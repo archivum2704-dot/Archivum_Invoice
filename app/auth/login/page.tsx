@@ -32,7 +32,7 @@ export default function LoginPage() {
         return
       }
 
-      // Get user role and redirect accordingly
+      // Get user role from metadata and redirect accordingly
       const { data: { user } } = await supabase.auth.getUser()
       const role = user?.user_metadata?.role || 'company_user'
 
