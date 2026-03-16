@@ -6,6 +6,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Force rebuild
+  reactCompiler: false,
 }
 
 export default nextConfig
