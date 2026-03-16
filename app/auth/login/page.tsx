@@ -32,7 +32,16 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/onboarding')
+      // Get user role and redirect accordingly
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      const role = user?.user_metadata?.role || 'company_user'
+
+      if (role === 'admin') {
+        router.push('/admin-dashboard')
+      } else {
+        router.push('/dashboard')
+      }
     } catch (err) {
       setError('An unexpected error occurred')
       setLoading(false)

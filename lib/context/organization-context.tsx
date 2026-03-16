@@ -13,6 +13,7 @@ interface OrganizationContextType {
   userOrgs: Organization[]
   currentMember: OrganizationMember | null
   userProfile: Profile | null
+  userRole: string | null
   loading: boolean
   error: string | null
   switchOrganization: (orgId: string) => void
@@ -26,6 +27,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
   const [userOrgs, setUserOrgs] = useState<Organization[]>([])
   const [currentMember, setCurrentMember] = useState<OrganizationMember | null>(null)
   const [userProfile, setUserProfile] = useState<Profile | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -46,6 +48,10 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
           setLoading(false)
           return
         }
+
+        // Extract user role from metadata
+        const role = user.user_metadata?.role || 'company_user'
+        setUserRole(role)
 
         // Load user profile
         const { data: profile, error: profileError } = await supabase
@@ -150,6 +156,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         userOrgs,
         currentMember,
         userProfile,
+        userRole,
         loading,
         error,
         switchOrganization,
