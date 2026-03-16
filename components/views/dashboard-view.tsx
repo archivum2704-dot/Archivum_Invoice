@@ -17,6 +17,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { useOrganization } from "@/lib/context/organization-context"
+import { useDocuments } from "@/lib/hooks/use-documents"
 
 const stats = [
   { label: "Total Documentos", value: "1.284", delta: "+48 este mes", icon: FolderOpen, color: "text-primary" },
@@ -59,6 +61,25 @@ const maxDocs = Math.max(...monthlyData.map((d) => d.docs))
 
 export function DashboardView() {
   const [searchQuery, setSearchQuery] = useState("")
+  const { currentOrg } = useOrganization()
+  const { documents, loading } = useDocuments(currentOrg?.id || null)
+
+  // Calculate stats from real data
+  const stats = [
+    { label: "Total Documentos", value: documents.length.toString(), delta: "de este período", icon: FolderOpen, color: "text-primary" },
+    { label: "Facturas", value: documents.filter(d => d.document_type === 'invoice').length.toString(), delta: "este período", icon: FileText, color: "text-accent" },
+    { label: "Reportes", value: documents.filter(d => d.document_type === 'report').length.toString(), delta: "este período", icon: Package, color: "text-[var(--status-paid)]" },
+    { label: "Recibos", value: documents.filter(d => d.document_type === 'receipt').length.toString(), delta: "este período", icon: Receipt, color: "text-[var(--status-pending)]" },
+  ]
+
+  const recentDocs = documents.slice(0, 6).map(doc => ({
+    id: doc.document_number,
+    empresa: "Empresa", // Will be joined from companies table in full implementation
+    tipo: doc.document_type,
+    importe: `${doc.total_amount.toFixed(2)} €`,
+    fecha: new Date(doc.date).toLocaleDateString('es-ES'),
+    estado: doc.status,
+  }))
 
   return (
     <div className="p-8">

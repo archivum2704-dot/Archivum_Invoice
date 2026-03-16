@@ -14,8 +14,10 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { useOrganization } from "@/lib/context/organization-context"
+import { useCompanies } from "@/lib/hooks/use-companies"
 
-const empresas = [
+const mockEmpresas = [
   {
     id: 1,
     nombre: "Construcciones García SL",
@@ -98,6 +100,22 @@ const empresas = [
 
 export function EmpresasView() {
   const [search, setSearch] = useState("")
+  const { currentOrg } = useOrganization()
+  const { companies, loading } = useCompanies(currentOrg?.id || null)
+
+  const empresas = companies.map((company, index) => ({
+    id: company.id,
+    nombre: company.name,
+    cif: company.cif,
+    sector: company.sector || "General",
+    ciudad: company.city || "N/A",
+    telefono: company.phone || "N/A",
+    email: company.email || "N/A",
+    documentos: 0,
+    importe_total: `${company.total_invoiced.toFixed(2)} €`,
+    color: ["bg-blue-500", "bg-emerald-600", "bg-purple-600", "bg-orange-500", "bg-pink-500"][index % 5],
+    initials: company.name.split(' ').slice(0, 2).map((w: string) => w[0]).join('')
+  }))
 
   const filtered = empresas.filter(
     (e) =>
