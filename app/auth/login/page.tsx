@@ -32,15 +32,8 @@ export default function LoginPage() {
         return
       }
 
-      // Get user role from metadata and redirect accordingly
-      const { data: { user } } = await supabase.auth.getUser()
-      const role = user?.user_metadata?.role || 'company_user'
-
-      if (role === 'admin') {
-        router.push('/admin-dashboard')
-      } else {
-        router.push('/dashboard')
-      }
+      // Redirect to dashboard after successful login
+      router.push('/dashboard')
     } catch (err) {
       setError('An unexpected error occurred')
       setLoading(false)

@@ -62,7 +62,9 @@ export default function SignupPage() {
         return
       }
 
-      router.push('/auth/signup-success')
+      // For development/testing: redirect to onboarding
+      // Note: Email confirmation may be required depending on Supabase project settings
+      router.push('/onboarding')
     } catch (err) {
       setError('An unexpected error occurred')
       setLoading(false)
