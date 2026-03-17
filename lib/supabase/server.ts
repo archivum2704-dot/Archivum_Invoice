@@ -4,10 +4,10 @@ import { cookies } from 'next/headers'
 export async function createClient(admin = false) {
   const cookieStore = await cookies()
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co'
   const supabaseKey = admin 
-    ? process.env.SUPABASE_SERVICE_ROLE_KEY! 
-    : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    ? (process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-admin-key')
+    : (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key')
 
   return createServerClient(
     supabaseUrl,
