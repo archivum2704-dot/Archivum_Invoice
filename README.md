@@ -1,5 +1,8 @@
-# v0-saa-s-invoicing-app
+# DocVault SaaS Invoicing App
 
+Este proyecto es un sistema de gestión de facturación y archivo digital.
+
+**Modo Demo Local Activado**: El sistema funciona actualmente con datos de ejemplo y bypass de Supabase para presentaciones rápidas.
 This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
 
 ## Built with v0
