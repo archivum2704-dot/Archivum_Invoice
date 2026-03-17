@@ -3,11 +3,18 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useOrganization } from '@/lib/context/organization-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 export default function OnboardingPage() {
   const router = useRouter()
+  // DEMO MODE: If we are already logged in via demo, go to dashboard
+  if (typeof window !== 'undefined' && document.cookie.includes('demo_session=true')) {
+    router.push('/dashboard')
+    return null
+  }
+  const { refreshUserData } = useOrganization()
   const [step, setStep] = useState<'organization' | 'details'>('organization')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -70,6 +77,9 @@ export default function OnboardingPage() {
 
       // Store organization ID in localStorage for quick access
       localStorage.setItem('current_org_id', org.id)
+
+      // Refresh context data so ProtectedLayout sees the new org
+      await refreshUserData()
 
       router.push('/')
     } catch (err) {
@@ -145,6 +155,23 @@ export default function OnboardingPage() {
             {loading ? 'Creando...' : 'Crear organización'}
           </Button>
         </form>
+        <div className="mt-8 pt-6 border-t border-border text-center">
+          <p className="text-sm text-muted-foreground mb-4">
+            ¿Quieres entrar con otra cuenta?
+          </p>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={async () => {
+              const supabase = createClient()
+              await supabase.auth.signOut()
+              router.push('/auth/login')
+            }}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Cerrar sesión
+          </Button>
+        </div>
       </div>
     </div>
   )

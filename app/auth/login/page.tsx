@@ -20,20 +20,27 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const supabase = createClient()
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      // DEMO MODE: Bypass Supabase
+      const demoUsers = [
+        { email: 'admin@test.com', role: 'admin' },
+        { email: 'empresa@test.com', role: 'company_user' }
+      ]
 
-      if (authError) {
-        setError(authError.message)
+      const user = demoUsers.find(u => u.email === email.toLowerCase())
+      
+      if (!user) {
+        setError('Acceso denegado. Use los usuarios de prueba definidos.')
         setLoading(false)
         return
       }
 
-      // Redirect to dashboard after successful login
-      router.push('/dashboard')
+      // Hacky way to set a demo cookie so middleware/layouts think we're logged in
+      document.cookie = `demo_session=true; path=/; max-age=3600`
+      localStorage.setItem('demo_user_role', user.role)
+      localStorage.setItem('demo_user_email', user.email)
+
+      // Force a full reload to ensure OrganizationProvider and Middleware pick up the new state
+      window.location.href = '/dashboard'
     } catch (err) {
       setError('An unexpected error occurred')
       setLoading(false)

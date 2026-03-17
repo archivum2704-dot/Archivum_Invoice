@@ -33,21 +33,24 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // DEMO MODE: Check for demo session cookie
+  const demoSession = request.cookies.get('demo_session')?.value === 'true'
+
   // Public routes that don't require authentication
-  const publicRoutes = ['/auth/login', '/auth/registro', '/auth/recuperar', '/auth/error', '/auth/confirmar']
+  const publicRoutes = ['/auth/login', '/auth/registro', '/auth/recuperar', '/auth/error', '/auth/confirmar', '/setup']
   const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route))
 
-  // If not logged in and trying to access protected route, redirect to login
-  if (!user && !isPublicRoute) {
+  // If not logged in (neither Supabase nor Demo) and trying to access protected route, redirect to login
+  if (!user && !demoSession && !isPublicRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)
   }
 
   // If logged in and trying to access auth pages, redirect to dashboard
-  if (user && request.nextUrl.pathname.startsWith('/auth/')) {
+  if ((user || demoSession) && request.nextUrl.pathname.startsWith('/auth/')) {
     const url = request.nextUrl.clone()
-    url.pathname = '/'
+    url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 

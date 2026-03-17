@@ -19,19 +19,28 @@ export default function AdminDashboardPage() {
   }, [userRole, orgLoading, router])
 
   // Get all documents from first organization (all companies)
-  const firstOrgId = userOrgs.length > 0 ? userOrgs[0].id : null
-  const { documents } = useDocuments(firstOrgId)
-  const { companies } = useCompanies(firstOrgId)
+  const firstOrgId = userOrgs.length > 0 ? userOrgs[0].id : currentOrg?.id || null
+  const { documents, loading: docsLoading } = useDocuments(firstOrgId)
+  const { companies, loading: compsLoading } = useCompanies(firstOrgId)
+  const loading = orgLoading || docsLoading || compsLoading
 
   // Calculate statistics
   const totalInvoices = documents.filter(d => d.document_type === 'invoice').length
-  const totalAmount = documents.reduce((sum, doc) => sum + doc.total_amount, 0)
+  const totalAmount = documents.reduce((sum, doc) => sum + (doc.total_amount || 0), 0)
   const paidAmount = documents
     .filter(d => d.status === 'paid')
-    .reduce((sum, doc) => sum + doc.total_amount, 0)
+    .reduce((sum, doc) => sum + (doc.total_amount || 0), 0)
   const pendingAmount = documents
-    .filter(d => ['sent', 'overdue'].includes(d.status))
-    .reduce((sum, doc) => sum + doc.total_amount, 0)
+    .filter(d => ['sent', 'overdue', 'draft'].includes(d.status))
+    .reduce((sum, doc) => sum + (doc.total_amount || 0), 0)
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
 
   if (!userRole || userRole !== 'admin') {
     return (

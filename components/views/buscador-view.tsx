@@ -16,6 +16,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { useOrganization } from "@/lib/context/organization-context"
+import { useDocuments } from "@/lib/hooks/use-documents"
 
 const allDocuments = [
   { id: "FAC-2024-0892", empresa: "Construcciones García SL", tipo: "Factura", importe: "4.250,00 €", fecha: "14/03/2024", estado: "Pagada", etiquetas: ["Obra", "Madrid"] },
@@ -59,7 +61,20 @@ export function BuscadorView() {
   const [fechaDesde, setFechaDesde] = useState("")
   const [fechaHasta, setFechaHasta] = useState("")
 
-  const empresas = Array.from(new Set(allDocuments.map((d) => d.empresa)))
+  const { currentOrg } = useOrganization()
+  const { documents, loading } = useDocuments(currentOrg?.id || null)
+
+  const mappedDocuments = documents.map(doc => ({
+    id: doc.document_number,
+    empresa: "Empresa Demo",
+    tipo: doc.document_type === 'invoice' ? 'Factura' : doc.document_type === 'report' ? 'Albarán' : 'Recibo',
+    importe: `${doc.total_amount.toFixed(2)} €`,
+    fecha: new Date(doc.date).toLocaleDateString('es-ES'),
+    estado: doc.status === 'paid' || doc.status === 'sent' ? 'Pagada' : doc.status === 'overdue' ? 'Vencida' : 'Pendiente',
+    etiquetas: ["Demo"]
+  }))
+
+  const empresas = Array.from(new Set(mappedDocuments.map((d) => d.empresa)))
 
   const toggleFilter = (arr: string[], setArr: (a: string[]) => void, val: string) => {
     setArr(arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val])
@@ -77,7 +92,7 @@ export function BuscadorView() {
 
   const activeFiltersCount = selectedTipos.length + selectedEstados.length + selectedEmpresas.length + selectedEtiquetas.length + (fechaDesde ? 1 : 0) + (fechaHasta ? 1 : 0)
 
-  const results = allDocuments.filter((d) => {
+  const results = mappedDocuments.filter((d) => {
     const matchQuery =
       !query ||
       d.id.toLowerCase().includes(query.toLowerCase()) ||
@@ -247,18 +262,25 @@ export function BuscadorView() {
 
         {/* Results */}
         <div className="flex-1">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">{results.length}</span> resultados encontrados
-            </p>
-            <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              <ArrowUpDown className="w-3.5 h-3.5" />
-              Ordenar por fecha
-            </button>
-          </div>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+              <p className="text-muted-foreground text-sm">Cargando resultados...</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-semibold text-foreground">{results.length}</span> resultados encontrados
+                </p>
+                <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <ArrowUpDown className="w-3.5 h-3.5" />
+                  Ordenar por fecha
+                </button>
+              </div>
 
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            {results.length === 0 ? (
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                {results.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <Search className="w-10 h-10 text-muted-foreground/40 mb-3" />
                 <p className="text-foreground font-medium">Sin resultados</p>
@@ -301,8 +323,10 @@ export function BuscadorView() {
               </div>
             )}
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
-  )
+  </div>
+</div>
+)
 }

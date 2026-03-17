@@ -18,6 +18,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { useOrganization } from "@/lib/context/organization-context"
+import { useDocuments } from "@/lib/hooks/use-documents"
 
 const documentos = [
   { id: "FAC-2024-0892", empresa: "Construcciones García SL", tipo: "Factura", importe: "4.250,00 €", fecha: "14/03/2024", estado: "Pagada", etiquetas: ["Obra", "Madrid"] },
@@ -54,7 +56,20 @@ export function BibliotecaView() {
   const [filterTipo, setFilterTipo] = useState("Todos")
   const [filterEstado, setFilterEstado] = useState("Todos")
 
-  const filtered = documentos.filter((d) => {
+  const { currentOrg } = useOrganization()
+  const { documents, loading } = useDocuments(currentOrg?.id || null)
+
+  const mappedDocuments = documents.map(doc => ({
+    id: doc.document_number,
+    empresa: "Empresa Demo",
+    tipo: doc.document_type === 'invoice' ? 'Factura' : doc.document_type === 'report' ? 'Albarán' : 'Recibo',
+    importe: `${doc.total_amount.toFixed(2)} €`,
+    fecha: new Date(doc.date).toLocaleDateString('es-ES'),
+    estado: doc.status === 'paid' || doc.status === 'sent' ? 'Pagada' : doc.status === 'overdue' ? 'Vencida' : 'Pendiente',
+    etiquetas: ["Demo"]
+  }))
+
+  const filtered = mappedDocuments.filter((d) => {
     const matchSearch =
       d.id.toLowerCase().includes(search.toLowerCase()) ||
       d.empresa.toLowerCase().includes(search.toLowerCase())
@@ -143,8 +158,15 @@ export function BibliotecaView() {
         </div>
       </div>
 
-      {/* List View */}
-      {viewMode === "list" && (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+          <p className="text-muted-foreground">Cargando biblioteca...</p>
+        </div>
+      ) : (
+        <>
+          {/* List View */}
+          {viewMode === "list" && (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           {/* Table header */}
           <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1.5fr_auto] gap-4 px-5 py-3 bg-muted/50 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -233,6 +255,8 @@ export function BibliotecaView() {
             )
           })}
         </div>
+      )}
+      </>
       )}
     </div>
   )

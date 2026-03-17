@@ -9,6 +9,14 @@ export default function HomePage() {
 
   useEffect(() => {
     const checkAuth = async () => {
+      // DEMO MODE
+      const hasDemoSession = document.cookie.includes('demo_session=true')
+      
+      if (hasDemoSession) {
+        router.push('/dashboard')
+        return
+      }
+
       const supabase = createClient()
       const {
         data: { session },

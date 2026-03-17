@@ -30,11 +30,17 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { currentOrg, userOrgs, userProfile, switchOrganization } = useOrganization()
+  const { currentOrg, userOrgs, userProfile, userRole, switchOrganization } = useOrganization()
   const [showOrgMenu, setShowOrgMenu] = useState(false)
   const supabase = createClient()
 
   const handleLogout = async () => {
+    // DEMO MODE: Clear session and state
+    document.cookie = 'demo_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+    localStorage.removeItem('demo_user_role')
+    localStorage.removeItem('demo_user_email')
+    localStorage.removeItem('current_org_id')
+    
     await supabase.auth.signOut()
     router.push('/auth/login')
   }
@@ -42,6 +48,20 @@ export function Sidebar() {
   const handleSwitchOrg = (orgId: string) => {
     switchOrganization(orgId)
     setShowOrgMenu(false)
+  }
+
+  // Define role-based navigation
+  const isAdmin = userRole === 'admin'
+  const filteredNavItems = navItems.filter(item => {
+    if (isAdmin) return true // Admin sees everything
+    // Company user doesn't see "Empresas" (all companies)
+    if (item.label === 'Empresas') return false
+    return true
+  })
+
+  // Add Admin specific items
+  if (isAdmin && !filteredNavItems.find(i => i.label === 'Gestión Global')) {
+    // Potential future admin links
   }
 
   return (
@@ -60,7 +80,7 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         <p className="text-xs font-medium text-sidebar-foreground/40 uppercase tracking-widest px-2 mb-3">Navegación</p>
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const active = pathname === item.href
           return (
             <Link
@@ -81,8 +101,8 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Organization Selector */}
-      {userOrgs.length > 0 && (
+      {/* Organization Selector - ONLY FOR ADMINS */}
+      {isAdmin && userOrgs.length > 0 && (
         <div className="px-3 py-3 border-t border-sidebar-border">
           <div className="relative">
             <button

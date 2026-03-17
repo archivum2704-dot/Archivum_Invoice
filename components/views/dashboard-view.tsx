@@ -61,11 +61,13 @@ const maxDocs = Math.max(...monthlyData.map((d) => d.docs))
 
 export function DashboardView() {
   const [searchQuery, setSearchQuery] = useState("")
-  const { currentOrg } = useOrganization()
-  const { documents, loading } = useDocuments(currentOrg?.id || null)
+  const { currentOrg, loading: orgLoading } = useOrganization()
+  const { documents, loading: docsLoading } = useDocuments(currentOrg?.id || null)
+  
+  const loading = orgLoading || docsLoading
 
   // Calculate stats from real data
-  const stats = [
+  const stats = loading ? [] : [
     { label: "Total Documentos", value: documents.length.toString(), delta: "de este período", icon: FolderOpen, color: "text-primary" },
     { label: "Facturas", value: documents.filter(d => d.document_type === 'invoice').length.toString(), delta: "este período", icon: FileText, color: "text-accent" },
     { label: "Reportes", value: documents.filter(d => d.document_type === 'report').length.toString(), delta: "este período", icon: Package, color: "text-[var(--status-paid)]" },
@@ -111,7 +113,13 @@ export function DashboardView() {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <>
+          {/* Stats Grid */}
       <div className="grid grid-cols-4 gap-4 mb-8">
         {stats.map((stat) => (
           <div key={stat.label} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
@@ -235,7 +243,8 @@ export function DashboardView() {
             </div>
           </div>
         </div>
-      </div>
+      </>
+      )}
     </div>
   )
 }

@@ -18,6 +18,7 @@ interface OrganizationContextType {
   error: string | null
   switchOrganization: (orgId: string) => void
   refreshOrganization: () => Promise<void>
+  refreshUserData: () => Promise<void>
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined)
@@ -33,83 +34,83 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
   const supabase = createClient()
 
-  // Load user profile and organizations
-  useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        setLoading(true)
+  const loadUserData = async () => {
+    try {
+      setLoading(true)
 
-        // Get current user
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
+      // DEMO MODE: Load from localStorage/Session
+      const demoEmail = localStorage.getItem('demo_user_email')
+      const demoRole = localStorage.getItem('demo_user_role')
 
-        if (!user) {
-          setLoading(false)
-          return
-        }
-
-        // Extract user role from metadata
-        const role = user.user_metadata?.role || 'company_user'
-        setUserRole(role)
-
-        // Load user profile
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-
-        if (profileError && profileError.code !== 'PGRST116') {
-          throw profileError
-        }
-
-        setUserProfile(profile || null)
-
-        // Load user's organizations
-        const { data: members, error: membersError } = await supabase
-          .from('organization_members')
-          .select('*')
-          .eq('user_id', user.id)
-
-        if (membersError) throw membersError
-
-        // Get organization details
-        if (members && members.length > 0) {
-          const orgIds = members.map((m) => m.organization_id)
-          const { data: orgs, error: orgsError } = await supabase
-            .from('organizations')
-            .select('*')
-            .in('id', orgIds)
-
-          if (orgsError) throw orgsError
-
-          setUserOrgs(orgs || [])
-
-          // Set current org from localStorage or first org
-          const savedOrgId = localStorage.getItem('current_org_id')
-          const selectedOrg = savedOrgId ? orgs?.find((o) => o.id === savedOrgId) : orgs?.[0]
-
-          if (selectedOrg) {
-            setCurrentOrg(selectedOrg)
-            const member = members.find((m) => m.organization_id === selectedOrg.id)
-            setCurrentMember(member || null)
-          }
-        }
-
-        setError(null)
-      } catch (err) {
-        console.error('Error loading user data:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load user data')
-      } finally {
+      if (!demoEmail) {
         setLoading(false)
+        return
       }
-    }
 
+      setUserRole(demoRole || 'company_user')
+      
+      const mockProfile = {
+        id: demoEmail === 'admin@test.com' ? 'admin-123' : 'empresa-123',
+        email: demoEmail,
+        first_name: demoEmail === 'admin@test.com' ? 'Admin' : 'Empresa',
+        last_name: 'Test',
+        avatar_url: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      setUserProfile(mockProfile)
+
+      if (demoRole === 'admin') {
+        const adminOrg = {
+          id: 'admin-global',
+          name: 'Panel Global (Admin)',
+          slug: 'admin-global',
+          industry: 'Administración',
+          logo_url: null,
+          website: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+        setCurrentOrg(adminOrg as any)
+        setUserOrgs([adminOrg] as any)
+        setCurrentMember({ organization_id: 'admin-global', user_id: mockProfile.id, role: 'owner' } as any)
+      } else {
+        const companyOrg = {
+          id: 'demo-org-1',
+          name: 'Mi Empresa Demo',
+          slug: 'demo-empresa',
+          industry: 'Servicios',
+          logo_url: null,
+          website: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+        setCurrentOrg(companyOrg as any)
+        setUserOrgs([companyOrg] as any)
+        setCurrentMember({ organization_id: 'demo-org-1', user_id: mockProfile.id, role: 'owner' } as any)
+      }
+
+      setError(null)
+    } catch (err) {
+      console.error('Error loading mock user data:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load user data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load user profile and organizations on mount
+  useEffect(() => {
     loadUserData()
   }, [supabase])
 
   const switchOrganization = (orgId: string) => {
+    // SECURITY: Only admins can switch between organizations
+    if (userRole !== 'admin') {
+      console.warn('Security: Non-admin attempted to switch organization')
+      return
+    }
+
     const org = userOrgs.find((o) => o.id === orgId)
     if (org) {
       setCurrentOrg(org)
@@ -161,6 +162,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         error,
         switchOrganization,
         refreshOrganization,
+        refreshUserData: loadUserData,
       }}
     >
       {children}
