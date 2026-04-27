@@ -1,0 +1,234 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "actions": "Actions",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "confirm": "Confirm",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "error": "An error occurred",
+    "success": "Success",
+    "noResults": "No results found",
+    "viewAll": "View all"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in to Archivum",
+      "subtitle": "Digital invoice archive",
+      "email": "Email address",
+      "emailPlaceholder": "you@company.com",
+      "password": "Password",
+      "passwordPlaceholder": "••••••••",
+      "submit": "Sign in",
+      "submitting": "Signing in...",
+      "forgotPassword": "Forgot your password?",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up",
+      "errors": {
+        "invalidCredentials": "Invalid email or password",
+        "generic": "An unexpected error occurred. Please try again."
+      }
+    },
+    "signup": {
+      "title": "Create your account",
+      "subtitle": "Start managing your documents",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email address",
+      "password": "Password",
+      "passwordHint": "Minimum 8 characters",
+      "confirmPassword": "Confirm password",
+      "submit": "Create account",
+      "submitting": "Creating account...",
+      "hasAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "errors": {
+        "passwordMismatch": "Passwords do not match",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "emailInUse": "This email is already in use",
+        "generic": "An unexpected error occurred. Please try again."
+      }
+    },
+    "resetPassword": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email and we'll send you a reset link",
+      "email": "Email address",
+      "submit": "Send reset link",
+      "submitting": "Sending...",
+      "successMessage": "Check your inbox — we sent a reset link to {email}",
+      "backToLogin": "Back to sign in",
+      "errors": {
+        "generic": "An unexpected error occurred. Please try again."
+      }
+    },
+    "signupSuccess": {
+      "title": "Check your inbox",
+      "message": "We sent a confirmation link to your email. Click it to activate your account.",
+      "backToLogin": "Back to sign in"
+    }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "library": "Library",
+    "search": "Search",
+    "upload": "Upload",
+    "companies": "Companies",
+    "adminPanel": "Admin Panel",
+    "settings": "Settings",
+    "signOut": "Sign out"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back, {name}",
+    "stats": {
+      "totalDocuments": "Total Documents",
+      "invoices": "Invoices",
+      "deliveryNotes": "Delivery Notes",
+      "receipts": "Receipts",
+      "thisMonth": "this month"
+    },
+    "recentDocuments": "Recent Documents",
+    "monthlyActivity": "Monthly Activity",
+    "last6Months": "last 6 months",
+    "invoiceStatus": "Invoice Status",
+    "quickLinks": "Quick Links",
+    "links": {
+      "todaysInvoices": "Today's invoices",
+      "pendingPayments": "Pending payments",
+      "activeCompanies": "Active companies",
+      "advancedSearch": "Advanced search"
+    },
+    "newDocument": "New Document"
+  },
+  "documents": {
+    "types": {
+      "order": "Order",
+      "receipt": "Receipt",
+      "delivery_note": "Delivery Note",
+      "invoice_issued": "Invoice (Issued)",
+      "invoice_received": "Invoice (Received)",
+      "quote": "Quote",
+      "contract": "Contract",
+      "payroll": "Payroll",
+      "tax": "Tax Document",
+      "other": "Other"
+    },
+    "statuses": {
+      "draft": "Draft",
+      "pending": "Pending",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "cancelled": "Cancelled"
+    },
+    "flow": {
+      "title": "Document Flow",
+      "order": "Order",
+      "receipt": "Receipt",
+      "deliveryNote": "Delivery Note",
+      "invoice": "Invoice",
+      "convertTo": "Convert to {type}",
+      "linkedDocuments": "Linked Documents"
+    },
+    "fields": {
+      "number": "Document Number",
+      "type": "Type",
+      "status": "Status",
+      "company": "Company",
+      "amount": "Amount",
+      "issueDate": "Issue Date",
+      "dueDate": "Due Date",
+      "paymentDate": "Payment Date",
+      "description": "Description",
+      "notes": "Notes",
+      "file": "File",
+      "tags": "Tags"
+    },
+    "actions": {
+      "upload": "Upload Document",
+      "download": "Download",
+      "preview": "Preview",
+      "convertToReceipt": "Convert to Receipt",
+      "convertToDeliveryNote": "Convert to Delivery Note",
+      "convertToInvoice": "Convert to Invoice",
+      "attachDocument": "Attach Document",
+      "delete": "Delete Document"
+    },
+    "upload": {
+      "title": "Upload Document",
+      "dragDrop": "Drag and drop your file here",
+      "or": "or",
+      "browse": "Browse files",
+      "maxSize": "Max file size: 10MB",
+      "supportedFormats": "Supported: PDF, JPG, PNG, XLSX"
+    },
+    "library": {
+      "title": "Document Library",
+      "filterByType": "Filter by type",
+      "filterByStatus": "Filter by status",
+      "filterByCompany": "Filter by company",
+      "sortBy": "Sort by",
+      "allTypes": "All types",
+      "allStatuses": "All statuses"
+    }
+  },
+  "companies": {
+    "title": "Companies",
+    "addCompany": "Add Company",
+    "fields": {
+      "name": "Company Name",
+      "cif": "Tax ID (CIF/NIF)",
+      "sector": "Sector",
+      "address": "Address",
+      "city": "City",
+      "country": "Country",
+      "phone": "Phone",
+      "email": "Email",
+      "contactPerson": "Contact Person",
+      "notes": "Notes",
+      "isActive": "Active"
+    },
+    "subCompanies": "Sub-companies",
+    "parentCompany": "Parent Company",
+    "noCompanies": "No companies yet. Add your first company."
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "subtitle": "Global platform overview",
+    "allOrganizations": "All Organizations",
+    "allUsers": "All Users",
+    "allDocuments": "All Documents",
+    "platformStats": "Platform Statistics",
+    "activityLog": "Activity Log",
+    "userManagement": "User Management",
+    "organizationManagement": "Organization Management"
+  },
+  "onboarding": {
+    "title": "Set up your organization",
+    "subtitle": "Let's get your workspace ready",
+    "orgName": "Organization Name",
+    "orgSlug": "URL identifier",
+    "create": "Create Organization",
+    "creating": "Creating..."
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "es": "Spanish"
+  },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  }
+}

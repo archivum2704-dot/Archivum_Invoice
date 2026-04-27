@@ -1,0 +1,234 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "actions": "Acciones",
+    "back": "Volver",
+    "next": "Siguiente",
+    "submit": "Enviar",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "yes": "Sí",
+    "no": "No",
+    "error": "Se produjo un error",
+    "success": "Éxito",
+    "noResults": "Sin resultados",
+    "viewAll": "Ver todos"
+  },
+  "auth": {
+    "login": {
+      "title": "Iniciar sesión en Archivum",
+      "subtitle": "Archivo digital de facturación",
+      "email": "Correo electrónico",
+      "emailPlaceholder": "tu@empresa.es",
+      "password": "Contraseña",
+      "passwordPlaceholder": "••••••••",
+      "submit": "Iniciar sesión",
+      "submitting": "Iniciando sesión...",
+      "forgotPassword": "¿Olvidaste tu contraseña?",
+      "noAccount": "¿No tienes cuenta?",
+      "signUp": "Regístrate",
+      "errors": {
+        "invalidCredentials": "Correo o contraseña incorrectos",
+        "generic": "Se produjo un error inesperado. Inténtalo de nuevo."
+      }
+    },
+    "signup": {
+      "title": "Crear tu cuenta",
+      "subtitle": "Empieza a gestionar tus documentos",
+      "firstName": "Nombre",
+      "lastName": "Apellido",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "passwordHint": "Mínimo 8 caracteres",
+      "confirmPassword": "Confirmar contraseña",
+      "submit": "Crear cuenta",
+      "submitting": "Creando cuenta...",
+      "hasAccount": "¿Ya tienes cuenta?",
+      "signIn": "Inicia sesión",
+      "errors": {
+        "passwordMismatch": "Las contraseñas no coinciden",
+        "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+        "emailInUse": "Este correo ya está en uso",
+        "generic": "Se produjo un error inesperado. Inténtalo de nuevo."
+      }
+    },
+    "resetPassword": {
+      "title": "Restablecer contraseña",
+      "subtitle": "Introduce tu correo y te enviaremos un enlace de restablecimiento",
+      "email": "Correo electrónico",
+      "submit": "Enviar enlace",
+      "submitting": "Enviando...",
+      "successMessage": "Revisa tu bandeja de entrada — te enviamos un enlace a {email}",
+      "backToLogin": "Volver al inicio de sesión",
+      "errors": {
+        "generic": "Se produjo un error inesperado. Inténtalo de nuevo."
+      }
+    },
+    "signupSuccess": {
+      "title": "Revisa tu bandeja de entrada",
+      "message": "Te enviamos un enlace de confirmación a tu correo. Haz clic en él para activar tu cuenta.",
+      "backToLogin": "Volver al inicio de sesión"
+    }
+  },
+  "nav": {
+    "dashboard": "Panel Principal",
+    "library": "Biblioteca",
+    "search": "Buscador",
+    "upload": "Subir",
+    "companies": "Empresas",
+    "adminPanel": "Panel Admin",
+    "settings": "Ajustes",
+    "signOut": "Cerrar sesión"
+  },
+  "dashboard": {
+    "title": "Panel Principal",
+    "welcome": "Bienvenido, {name}",
+    "stats": {
+      "totalDocuments": "Total Documentos",
+      "invoices": "Facturas",
+      "deliveryNotes": "Albaranes",
+      "receipts": "Recibos",
+      "thisMonth": "este mes"
+    },
+    "recentDocuments": "Documentos Recientes",
+    "monthlyActivity": "Actividad Mensual",
+    "last6Months": "últimos 6 meses",
+    "invoiceStatus": "Estado de Facturas",
+    "quickLinks": "Accesos Rápidos",
+    "links": {
+      "todaysInvoices": "Facturas de hoy",
+      "pendingPayments": "Pendientes de pago",
+      "activeCompanies": "Empresas activas",
+      "advancedSearch": "Búsqueda avanzada"
+    },
+    "newDocument": "Nuevo Documento"
+  },
+  "documents": {
+    "types": {
+      "order": "Orden",
+      "receipt": "Recibo",
+      "delivery_note": "Albarán",
+      "invoice_issued": "Factura Emitida",
+      "invoice_received": "Factura Recibida",
+      "quote": "Presupuesto",
+      "contract": "Contrato",
+      "payroll": "Nómina",
+      "tax": "Documento Fiscal",
+      "other": "Otro"
+    },
+    "statuses": {
+      "draft": "Borrador",
+      "pending": "Pendiente",
+      "paid": "Pagado",
+      "overdue": "Vencido",
+      "cancelled": "Cancelado"
+    },
+    "flow": {
+      "title": "Flujo de Documentos",
+      "order": "Orden",
+      "receipt": "Recibo",
+      "deliveryNote": "Albarán",
+      "invoice": "Factura",
+      "convertTo": "Convertir a {type}",
+      "linkedDocuments": "Documentos Vinculados"
+    },
+    "fields": {
+      "number": "Número de Documento",
+      "type": "Tipo",
+      "status": "Estado",
+      "company": "Empresa",
+      "amount": "Importe",
+      "issueDate": "Fecha de Emisión",
+      "dueDate": "Fecha de Vencimiento",
+      "paymentDate": "Fecha de Pago",
+      "description": "Descripción",
+      "notes": "Notas",
+      "file": "Archivo",
+      "tags": "Etiquetas"
+    },
+    "actions": {
+      "upload": "Subir Documento",
+      "download": "Descargar",
+      "preview": "Vista Previa",
+      "convertToReceipt": "Convertir a Recibo",
+      "convertToDeliveryNote": "Convertir a Albarán",
+      "convertToInvoice": "Convertir a Factura",
+      "attachDocument": "Adjuntar Documento",
+      "delete": "Eliminar Documento"
+    },
+    "upload": {
+      "title": "Subir Documento",
+      "dragDrop": "Arrastra y suelta tu archivo aquí",
+      "or": "o",
+      "browse": "Explorar archivos",
+      "maxSize": "Tamaño máximo: 10MB",
+      "supportedFormats": "Formatos: PDF, JPG, PNG, XLSX"
+    },
+    "library": {
+      "title": "Biblioteca de Documentos",
+      "filterByType": "Filtrar por tipo",
+      "filterByStatus": "Filtrar por estado",
+      "filterByCompany": "Filtrar por empresa",
+      "sortBy": "Ordenar por",
+      "allTypes": "Todos los tipos",
+      "allStatuses": "Todos los estados"
+    }
+  },
+  "companies": {
+    "title": "Empresas",
+    "addCompany": "Añadir Empresa",
+    "fields": {
+      "name": "Nombre de la Empresa",
+      "cif": "CIF/NIF",
+      "sector": "Sector",
+      "address": "Dirección",
+      "city": "Ciudad",
+      "country": "País",
+      "phone": "Teléfono",
+      "email": "Correo",
+      "contactPerson": "Persona de Contacto",
+      "notes": "Notas",
+      "isActive": "Activa"
+    },
+    "subCompanies": "Sub-empresas",
+    "parentCompany": "Empresa Principal",
+    "noCompanies": "Sin empresas todavía. Añade tu primera empresa."
+  },
+  "admin": {
+    "title": "Panel de Administración",
+    "subtitle": "Vista global de la plataforma",
+    "allOrganizations": "Todas las Organizaciones",
+    "allUsers": "Todos los Usuarios",
+    "allDocuments": "Todos los Documentos",
+    "platformStats": "Estadísticas de la Plataforma",
+    "activityLog": "Registro de Actividad",
+    "userManagement": "Gestión de Usuarios",
+    "organizationManagement": "Gestión de Organizaciones"
+  },
+  "onboarding": {
+    "title": "Configura tu organización",
+    "subtitle": "Preparemos tu espacio de trabajo",
+    "orgName": "Nombre de la Organización",
+    "orgSlug": "Identificador URL",
+    "create": "Crear Organización",
+    "creating": "Creando..."
+  },
+  "language": {
+    "label": "Idioma",
+    "en": "Inglés",
+    "es": "Español"
+  },
+  "theme": {
+    "label": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
+  }
+}
