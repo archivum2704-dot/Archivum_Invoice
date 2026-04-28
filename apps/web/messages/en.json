@@ -272,6 +272,69 @@
     "create": "Create Organization",
     "creating": "Creating..."
   },
+  "settings": {
+    "title": "Settings",
+    "tabs": {
+      "members": "Members",
+      "organization": "Organization"
+    },
+    "members": {
+      "title": "Team Members",
+      "subtitle": "Manage who has access to this organization",
+      "invite": "Invite Member",
+      "inviteTitle": "Invite a new member",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "colleague@company.com",
+      "roleLabel": "Role",
+      "sendInvite": "Add Member",
+      "sending": "Adding...",
+      "roles": {
+        "owner": "Owner",
+        "admin": "Admin",
+        "member": "Member",
+        "viewer": "Viewer"
+      },
+      "roleDescriptions": {
+        "admin": "Can manage members and companies",
+        "member": "Access limited to assigned companies",
+        "viewer": "Read-only access to assigned companies"
+      },
+      "joinedAt": "Joined {date}",
+      "removeConfirm": "Remove {name} from this organization?",
+      "remove": "Remove",
+      "changeRole": "Change role",
+      "companyAccess": "Company access",
+      "companyAccessTitle": "Company access for {name}",
+      "companyAccessSubtitle": "Select which companies this member can access",
+      "allCompanies": "Full access (admin)",
+      "noCompanies": "No companies assigned yet",
+      "permissions": {
+        "canUpload": "Can upload",
+        "canEdit": "Can edit",
+        "canDelete": "Can delete"
+      },
+      "errors": {
+        "user_not_found": "No account found for this email. The user must sign up first.",
+        "already_member": "This user is already a member.",
+        "cannot_add_self": "You cannot add yourself.",
+        "not_authorized": "You don't have permission to manage members.",
+        "generic": "An error occurred. Please try again."
+      }
+    },
+    "organization": {
+      "title": "Organization Details",
+      "name": "Organization Name",
+      "slug": "URL identifier",
+      "cif": "Tax ID (CIF/NIF)",
+      "address": "Address",
+      "city": "City",
+      "country": "Country",
+      "phone": "Phone",
+      "email": "Email",
+      "save": "Save changes",
+      "saving": "Saving..."
+    }
+  },
   "language": {
     "label": "Language",
     "en": "English",

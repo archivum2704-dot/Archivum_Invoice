@@ -272,6 +272,69 @@
     "create": "Crear Organización",
     "creating": "Creando..."
   },
+  "settings": {
+    "title": "Configuración",
+    "tabs": {
+      "members": "Miembros",
+      "organization": "Organización"
+    },
+    "members": {
+      "title": "Miembros del Equipo",
+      "subtitle": "Gestiona quién tiene acceso a esta organización",
+      "invite": "Invitar Miembro",
+      "inviteTitle": "Añadir un nuevo miembro",
+      "emailLabel": "Correo electrónico",
+      "emailPlaceholder": "colega@empresa.es",
+      "roleLabel": "Rol",
+      "sendInvite": "Añadir Miembro",
+      "sending": "Añadiendo...",
+      "roles": {
+        "owner": "Propietario",
+        "admin": "Administrador",
+        "member": "Miembro",
+        "viewer": "Visor"
+      },
+      "roleDescriptions": {
+        "admin": "Puede gestionar miembros y empresas",
+        "member": "Acceso limitado a empresas asignadas",
+        "viewer": "Acceso de solo lectura a empresas asignadas"
+      },
+      "joinedAt": "Se unió el {date}",
+      "removeConfirm": "¿Eliminar a {name} de esta organización?",
+      "remove": "Eliminar",
+      "changeRole": "Cambiar rol",
+      "companyAccess": "Acceso a empresas",
+      "companyAccessTitle": "Acceso a empresas de {name}",
+      "companyAccessSubtitle": "Selecciona a qué empresas puede acceder este miembro",
+      "allCompanies": "Acceso total (administrador)",
+      "noCompanies": "Sin empresas asignadas todavía",
+      "permissions": {
+        "canUpload": "Puede subir",
+        "canEdit": "Puede editar",
+        "canDelete": "Puede eliminar"
+      },
+      "errors": {
+        "user_not_found": "No se encontró cuenta con este correo. El usuario debe registrarse primero.",
+        "already_member": "Este usuario ya es miembro.",
+        "cannot_add_self": "No puedes añadirte a ti mismo.",
+        "not_authorized": "No tienes permiso para gestionar miembros.",
+        "generic": "Se produjo un error. Inténtalo de nuevo."
+      }
+    },
+    "organization": {
+      "title": "Datos de la Organización",
+      "name": "Nombre de la Organización",
+      "slug": "Identificador URL",
+      "cif": "CIF/NIF",
+      "address": "Dirección",
+      "city": "Ciudad",
+      "country": "País",
+      "phone": "Teléfono",
+      "email": "Correo",
+      "save": "Guardar cambios",
+      "saving": "Guardando..."
+    }
+  },
   "language": {
     "label": "Idioma",
     "en": "Inglés",
