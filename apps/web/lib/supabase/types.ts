@@ -24,6 +24,7 @@ export type Database = {
           id: string
           name: string
           slug: string
+          access_code: string
           cif: string | null
           address: string | null
           city: string | null

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import {
   Users, Building2, Shield, Trash2, ChevronDown,
-  UserPlus, CheckSquare, Square, X, Settings,
+  UserPlus, CheckSquare, Square, X, Settings, Copy, Check,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslations } from "next-intl"
@@ -263,76 +263,92 @@ function MemberRow({
   )
 }
 
-// ── Invite form ──────────────────────────────────────────────────────────────
-function InviteForm({ orgId, onSuccess }: { orgId: string; onSuccess: () => void }) {
+// ── Create member form (replaces old invite-by-RPC form) ────────────────────
+function CreateMemberForm({ orgId, onSuccess }: { orgId: string; onSuccess: () => void }) {
   const t = useTranslations("settings.members")
-  const [email, setEmail] = useState("")
-  const [role, setRole] = useState<OrgRole>("member")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName]   = useState("")
+  const [email, setEmail]         = useState("")
+  const [role, setRole]           = useState<OrgRole>("member")
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState<string | null>(null)
+  const [success, setSuccess]     = useState(false)
+
+  const inputCls = "px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground w-full"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    const supabase = createClient()
-    const { data } = await supabase.rpc("invite_member_by_email", {
-      p_org_id: orgId,
-      p_email: email.trim(),
-      p_role: role,
+    setSuccess(false)
+
+    const res = await fetch("/api/members/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim(), firstName, lastName, role, orgId }),
     })
+    const data = await res.json()
     setLoading(false)
-    const result = data as { success: boolean; error?: string } | null
-    if (!result?.success) {
-      const key = result?.error ?? "generic"
-      setError(t(`errors.${key}` as any))
+
+    if (!res.ok || !data.success) {
+      const key = data.error ?? "generic"
+      const msgMap: Record<string, string> = {
+        already_member: t("errors.already_member"),
+        not_authorized: t("errors.not_authorized"),
+        missing_fields: t("errors.generic"),
+        server_error:   t("errors.generic"),
+      }
+      setError(msgMap[key] ?? t("errors.generic"))
       return
     }
-    setEmail("")
-    onSuccess()
+
+    setSuccess(true)
+    setFirstName(""); setLastName(""); setEmail("")
+    setTimeout(() => { setSuccess(false); onSuccess() }, 1500)
   }
 
   return (
     <form onSubmit={handleSubmit} className="bg-muted/40 border border-border rounded-xl p-4 space-y-3">
-      <p className="text-sm font-medium text-foreground">{t("inviteTitle")}</p>
-      <div className="flex gap-2">
-        <input
-          type="email"
-          placeholder={t("emailPlaceholder")}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          disabled={loading}
-          className="flex-1 px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
-        />
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value as OrgRole)}
-          disabled={loading}
-          className="px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
-        >
-          {(["admin", "member", "viewer"] as OrgRole[]).map((r) => (
-            <option key={r} value={r}>{t(`roles.${r}`)}</option>
-          ))}
-        </select>
-        <button
-          type="submit"
-          disabled={loading || !email.trim()}
-          className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors whitespace-nowrap"
-        >
-          {loading ? t("sending") : t("sendInvite")}
-        </button>
-      </div>
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      <p className="text-sm font-semibold text-foreground">{t("createTitle")}</p>
+      <p className="text-xs text-muted-foreground -mt-1">{t("createSubtitle")}</p>
 
-      <div className="flex gap-4 pt-1">
-        {(["admin", "member", "viewer"] as OrgRole[]).map((r) => (
-          <div key={r} className="text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">{t(`roles.${r}`)}: </span>
-            {t(`roleDescriptions.${r}`)}
-          </div>
-        ))}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">{t("firstName")}</label>
+          <input type="text" placeholder="Ana" value={firstName} onChange={e => setFirstName(e.target.value)} disabled={loading} className={inputCls} />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">{t("lastName")}</label>
+          <input type="text" placeholder="García" value={lastName} onChange={e => setLastName(e.target.value)} disabled={loading} className={inputCls} />
+        </div>
       </div>
+
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <label className="text-xs text-muted-foreground mb-1 block">{t("emailLabel")}</label>
+          <input type="email" placeholder={t("emailPlaceholder")} value={email} onChange={e => setEmail(e.target.value)} required disabled={loading} className={inputCls} />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">{t("roleLabel")}</label>
+          <select value={role} onChange={e => setRole(e.target.value as OrgRole)} disabled={loading}
+            className="px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground h-[38px]">
+            {(["admin", "member", "viewer"] as OrgRole[]).map(r => (
+              <option key={r} value={r}>{t(`roles.${r}`)}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-end">
+          <button type="submit" disabled={loading || !email.trim()}
+            className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors whitespace-nowrap h-[38px]">
+            {loading ? t("sending") : t("createUser")}
+          </button>
+        </div>
+      </div>
+
+      {error   && <p className="text-xs text-destructive">{error}</p>}
+      {success && <p className="text-xs text-accent font-medium">✓ {t("createSuccess")}</p>}
+
+      <p className="text-xs text-muted-foreground pt-1">{t("createHint")}</p>
     </form>
   )
 }
@@ -341,6 +357,7 @@ function InviteForm({ orgId, onSuccess }: { orgId: string; onSuccess: () => void
 function OrgForm({ orgId, initialData }: { orgId: string; initialData: {
   name: string; slug: string; cif: string | null; address: string | null
   city: string | null; country: string; phone: string | null; email: string | null
+  access_code?: string | null
 }}) {
   const t = useTranslations("settings.organization")
   const [form, setForm] = useState({
@@ -394,8 +411,14 @@ function OrgForm({ orgId, initialData }: { orgId: string; initialData: {
   )
 
   return (
-    <form onSubmit={handleSave} className="space-y-4">
+    <form onSubmit={handleSave} className="space-y-5">
       <h2 className="text-base font-semibold text-foreground">{t("title")}</h2>
+
+      {/* Access code card */}
+      {initialData.access_code && (
+        <AccessCodeCard code={initialData.access_code} />
+      )}
+
       <div className="bg-card border border-border rounded-xl p-5 space-y-4">
         {field("name", t("name"))}
         {field("cif", t("cif"))}
@@ -414,9 +437,34 @@ function OrgForm({ orgId, initialData }: { orgId: string; initialData: {
         >
           {saving ? t("saving") : t("save")}
         </button>
-        {saved && <span className="text-sm text-accent">✓ Saved</span>}
+        {saved && <span className="text-sm text-accent">✓ Guardado</span>}
       </div>
     </form>
+  )
+}
+
+// ── Access code display ───────────────────────────────────────────────────────
+function AccessCodeCard({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    navigator.clipboard.writeText(code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <div className="bg-accent/5 border border-accent/20 rounded-xl p-4 flex items-center justify-between gap-4">
+      <div>
+        <p className="text-xs font-medium text-accent uppercase tracking-wide mb-1">Código de empresa</p>
+        <p className="text-xs text-muted-foreground">Comparte este código con tus usuarios para que puedan iniciar sesión</p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="text-2xl font-mono font-bold text-foreground tracking-widest bg-muted px-4 py-2 rounded-lg">{code}</span>
+        <button type="button" onClick={copy}
+          className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+          {copied ? <Check className="w-4 h-4 text-accent" /> : <Copy className="w-4 h-4" />}
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -481,7 +529,7 @@ export function SettingsView() {
           </div>
 
           {showInvite && isOrgAdmin && currentOrg && (
-            <InviteForm
+            <CreateMemberForm
               orgId={currentOrg.id}
               onSuccess={() => { setShowInvite(false); mutate() }}
             />
@@ -546,7 +594,7 @@ export function SettingsView() {
 
       {/* Organization tab */}
       {tab === "organization" && currentOrg && (
-        <OrgForm orgId={currentOrg.id} initialData={currentOrg} />
+        <OrgForm orgId={currentOrg.id} initialData={{ ...currentOrg, access_code: (currentOrg as any).access_code ?? null }} />
       )}
     </div>
   )
