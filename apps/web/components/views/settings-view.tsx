@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Settings, Copy, Check, Save } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { createClient } from "@/lib/supabase/client"
@@ -79,6 +79,21 @@ export function SettingsView() {
   const [error, setError]   = useState<string | null>(null)
 
   const set = (key: keyof typeof form) => (v: string) => setForm(f => ({ ...f, [key]: v }))
+
+  // Sync form when org loads asynchronously
+  useEffect(() => {
+    if (currentOrg) {
+      setForm({
+        name:    currentOrg.name ?? "",
+        cif:     currentOrg.cif ?? "",
+        address: currentOrg.address ?? "",
+        city:    currentOrg.city ?? "",
+        country: currentOrg.country ?? "",
+        phone:   currentOrg.phone ?? "",
+        email:   currentOrg.email ?? "",
+      })
+    }
+  }, [currentOrg?.id])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()

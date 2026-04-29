@@ -42,15 +42,17 @@ export function Sidebar() {
     setShowOrgMenu(false)
   }
 
+  const hasOrg = !!currentOrg
+
   const navItems = [
     { label: t("dashboard"), icon: LayoutDashboard, href: "/dashboard" },
-    ...(isOrgAdmin
+    ...(hasOrg
       ? [{ label: t("companies"), icon: Building2, href: "/empresas" }]
       : []),
     { label: t("library"), icon: Library, href: "/biblioteca" },
     { label: t("search"), icon: Search, href: "/buscador" },
     { label: t("upload"), icon: Upload, href: "/subir" },
-    ...(isOrgAdmin
+    ...(hasOrg
       ? [{ label: t("users"), icon: Users, href: "/usuarios" }]
       : []),
     ...(isPlatformAdmin
