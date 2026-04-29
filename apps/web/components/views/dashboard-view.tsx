@@ -8,10 +8,11 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useDocuments } from "@/lib/hooks/use-documents"
 import type { DocumentStatus, DocumentType } from "@/lib/supabase/types"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 
 const STATUS_STYLES: Record<DocumentStatus, string> = {
   paid:      "bg-[var(--status-paid)]/10 text-[var(--status-paid)]",
@@ -33,6 +34,7 @@ export function DashboardView() {
   const t = useTranslations("dashboard")
   const tDoc = useTranslations("documents")
   const tCommon = useTranslations("common")
+  const locale = useLocale()
   const [searchQuery, setSearchQuery] = useState("")
   const { currentOrg, userProfile, loading: orgLoading } = useOrganization()
   const { documents, loading: docsLoading } = useDocuments(currentOrg?.id ?? null)
@@ -79,6 +81,24 @@ export function DashboardView() {
 
   const firstName = userProfile?.first_name ?? ""
 
+  const monthlyData = loading ? [] : (() => {
+    const now = new Date()
+    return Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1)
+      const year = d.getFullYear()
+      const month = d.getMonth()
+      const count = documents.filter(doc => {
+        if (!doc.issue_date) return false
+        const dd = new Date(doc.issue_date)
+        return dd.getFullYear() === year && dd.getMonth() === month
+      }).length
+      return {
+        month: d.toLocaleDateString(locale, { month: "short" }),
+        docs: count,
+      }
+    })
+  })()
+
   return (
     <div className="p-8">
       {/* Header */}
@@ -88,7 +108,7 @@ export function DashboardView() {
             {firstName ? t("welcome", { name: firstName }) : t("title")}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {new Date().toLocaleDateString("en", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+            {new Date().toLocaleDateString(locale, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -154,8 +174,18 @@ export function DashboardView() {
                 </Link>
               </div>
               {recentDocs.length === 0 ? (
-                <div className="px-5 py-10 text-center text-muted-foreground text-sm">
-                  {tCommon("noResults")}
+                <div className="flex flex-col items-center justify-center py-14 gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
+                    <FolderOpen className="w-6 h-6 text-muted-foreground/50" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-foreground">Sin documentos todavía</p>
+                    <p className="text-xs text-muted-foreground mt-1">Sube tu primer documento para empezar</p>
+                  </div>
+                  <Link href="/subir"
+                    className="mt-1 flex items-center gap-1.5 text-xs font-medium text-accent hover:underline">
+                    <Plus className="w-3.5 h-3.5" /> Subir documento
+                  </Link>
                 </div>
               ) : (
                 <div className="divide-y divide-border">
@@ -167,7 +197,7 @@ export function DashboardView() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{doc.document_number ?? "—"}</p>
                         <p className="text-xs text-muted-foreground">
-                          {doc.issue_date ? new Date(doc.issue_date).toLocaleDateString("en") : "—"}
+                          {doc.issue_date ? new Date(doc.issue_date).toLocaleDateString(locale) : "—"}
                         </p>
                       </div>
                       <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", TYPE_STYLES[doc.document_type] ?? "bg-muted text-muted-foreground")}>
@@ -235,6 +265,36 @@ export function DashboardView() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Monthly Activity Chart */}
+          <div className="mt-6 bg-card border border-border rounded-xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-foreground text-sm">{t("monthlyActivity")}</h2>
+              <span className="text-xs text-muted-foreground">{t("last6Months")}</span>
+            </div>
+            {monthlyData.every(m => m.docs === 0) ? (
+              <div className="flex flex-col items-center justify-center py-8 gap-2">
+                <TrendingUp className="w-8 h-8 text-muted-foreground/30" />
+                <p className="text-xs text-muted-foreground">Sin actividad registrada todavía</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={monthlyData} barSize={28} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip
+                    cursor={{ fill: "hsl(var(--muted))" }}
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                    labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
+                    itemStyle={{ color: "hsl(var(--muted-foreground))" }}
+                    formatter={(v: number) => [v, t("stats.totalDocuments")]}
+                  />
+                  <Bar dataKey="docs" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </>
       )}

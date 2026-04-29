@@ -200,6 +200,42 @@ export function BibliotecaView() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
           <p className="text-muted-foreground">{t("loading")}</p>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+            {documents.length === 0
+              ? <FolderOpen className="w-8 h-8 text-muted-foreground/50" />
+              : <Search className="w-8 h-8 text-muted-foreground/50" />
+            }
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-foreground">
+              {documents.length === 0 ? "Sin documentos todavía" : "Sin resultados"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {documents.length === 0
+                ? "Sube tu primer documento para empezar a archivar"
+                : "Prueba ajustando los filtros o el texto de búsqueda"
+              }
+            </p>
+          </div>
+          {documents.length === 0 && (
+            <Link
+              href="/subir"
+              className="flex items-center gap-1.5 text-xs font-medium text-accent hover:underline"
+            >
+              <Plus className="w-3.5 h-3.5" /> Subir documento
+            </Link>
+          )}
+          {documents.length > 0 && (
+            <button
+              onClick={() => { setSearch(""); setFilterType("all"); setFilterStatus("all") }}
+              className="text-xs font-medium text-accent hover:underline"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
       ) : (
         <>
           {viewMode === "list" && (
