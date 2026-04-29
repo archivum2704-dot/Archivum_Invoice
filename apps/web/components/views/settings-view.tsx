@@ -293,10 +293,11 @@ function CreateMemberForm({ orgId, onSuccess }: { orgId: string; onSuccess: () =
     if (!res.ok || !data.success) {
       const key = data.error ?? "generic"
       const msgMap: Record<string, string> = {
-        already_member: t("errors.already_member"),
-        not_authorized: t("errors.not_authorized"),
-        missing_fields: t("errors.generic"),
-        server_error:   t("errors.generic"),
+        already_member:       t("errors.already_member"),
+        not_authorized:       t("errors.not_authorized"),
+        member_limit_reached: t("errors.member_limit_reached"),
+        missing_fields:       t("errors.generic"),
+        server_error:         t("errors.generic"),
       }
       setError(msgMap[key] ?? t("errors.generic"))
       return
@@ -480,6 +481,10 @@ export function SettingsView() {
   const currentUserId = userProfile?.id ?? ""
   const loading = orgLoading || membersLoading
 
+  const MAX_USERS = 3
+  const nonOwnerCount = members.filter((m) => m.role !== "owner").length
+  const atLimit = nonOwnerCount >= MAX_USERS
+
   return (
     <div className="p-8 max-w-4xl">
       <div className="mb-8">
@@ -509,7 +514,7 @@ export function SettingsView() {
         ))}
       </div>
 
-      {/* Members tab */}
+      {/* Users tab */}
       {tab === "members" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -518,17 +523,34 @@ export function SettingsView() {
               <p className="text-sm text-muted-foreground mt-0.5">{tMembers("subtitle")}</p>
             </div>
             {isOrgAdmin && (
-              <button
-                onClick={() => setShowInvite(!showInvite)}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
-              >
-                <UserPlus className="w-4 h-4" />
-                {tMembers("invite")}
-              </button>
+              <div className="flex items-center gap-3">
+                <span className={cn(
+                  "text-xs font-medium px-2.5 py-1 rounded-full border",
+                  atLimit
+                    ? "bg-destructive/10 text-destructive border-destructive/20"
+                    : "bg-muted text-muted-foreground border-border"
+                )}>
+                  {tMembers("userCount", { current: nonOwnerCount, max: MAX_USERS })}
+                </span>
+                <button
+                  onClick={() => !atLimit && setShowInvite(!showInvite)}
+                  disabled={atLimit}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  {tMembers("invite")}
+                </button>
+              </div>
             )}
           </div>
 
-          {showInvite && isOrgAdmin && currentOrg && (
+          {isOrgAdmin && atLimit && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-destructive/5 border border-destructive/20 rounded-xl">
+              <p className="text-xs text-destructive">{tMembers("limitReached", { max: MAX_USERS })}</p>
+            </div>
+          )}
+
+          {showInvite && isOrgAdmin && currentOrg && !atLimit && (
             <CreateMemberForm
               orgId={currentOrg.id}
               onSuccess={() => { setShowInvite(false); mutate() }}
@@ -543,7 +565,7 @@ export function SettingsView() {
               </div>
             ) : membersError ? (
               <div className="flex flex-col items-center justify-center py-12 text-center px-6">
-                <p className="text-sm text-destructive font-medium mb-1">Error al cargar miembros</p>
+                <p className="text-sm text-destructive font-medium mb-1">Error al cargar usuarios</p>
                 <p className="text-xs text-muted-foreground mb-3">{String(membersError)}</p>
                 <button onClick={() => mutate()} className="text-xs px-3 py-1.5 bg-muted rounded-lg hover:bg-muted/70 transition-colors">
                   Reintentar
@@ -552,10 +574,10 @@ export function SettingsView() {
             ) : members.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center px-6">
                 <Users className="w-8 h-8 text-muted-foreground/40 mb-3" />
-                <p className="text-sm font-medium text-foreground mb-1">No hay miembros todavía</p>
+                <p className="text-sm font-medium text-foreground mb-1">No hay usuarios todavía</p>
                 <p className="text-xs text-muted-foreground">
                   {currentOrg?.id
-                    ? "No se encontraron miembros. Aplica la migración SQL en el panel de Supabase."
+                    ? "No se encontraron usuarios. Aplica la migración SQL en el panel de Supabase."
                     : "Cargando organización..."}
                 </p>
               </div>

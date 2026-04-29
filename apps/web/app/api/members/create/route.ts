@@ -29,6 +29,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'not_authorized' }, { status: 403 })
     }
 
+    // Enforce 3-user limit (excluding owner)
+    const { count: memberCount } = await supabase
+      .from('organization_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('organization_id', orgId)
+      .neq('role', 'owner')
+
+    if (memberCount !== null && memberCount >= 3) {
+      return NextResponse.json({ error: 'member_limit_reached' }, { status: 403 })
+    }
+
     // Use admin client to create the user
     const supabaseAdmin = await createClient(true)
 

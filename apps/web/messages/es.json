@@ -291,12 +291,14 @@
   "settings": {
     "title": "Configuración",
     "tabs": {
-      "members": "Miembros",
-      "organization": "Organización"
+      "members": "Usuarios",
+      "organization": "Configuración"
     },
     "members": {
-      "title": "Miembros del Equipo",
-      "subtitle": "Gestiona quién tiene acceso a esta organización",
+      "title": "Usuarios",
+      "subtitle": "Gestiona los usuarios de tu organización",
+      "userCount": "{current} de {max} usuarios",
+      "limitReached": "Has alcanzado el límite de {max} usuarios. Elimina uno para poder añadir otro.",
       "invite": "Añadir Usuario",
       "createTitle": "Crear nuevo usuario",
       "createSubtitle": "El usuario recibirá un correo para activar su cuenta y establecer su contraseña.",
@@ -341,6 +343,7 @@
         "already_member": "Este usuario ya es miembro.",
         "cannot_add_self": "No puedes añadirte a ti mismo.",
         "not_authorized": "No tienes permiso para gestionar miembros.",
+        "member_limit_reached": "Has alcanzado el límite de 3 usuarios. Elimina uno para añadir otro.",
         "generic": "Se produjo un error. Inténtalo de nuevo."
       }
     },

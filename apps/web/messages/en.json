@@ -291,12 +291,14 @@
   "settings": {
     "title": "Settings",
     "tabs": {
-      "members": "Members",
-      "organization": "Organization"
+      "members": "Users",
+      "organization": "Configuration"
     },
     "members": {
-      "title": "Team Members",
-      "subtitle": "Manage who has access to this organization",
+      "title": "Users",
+      "subtitle": "Manage your organization's users",
+      "userCount": "{current} of {max} users",
+      "limitReached": "You've reached the limit of {max} users. Remove one to add another.",
       "invite": "Add User",
       "createTitle": "Create new user",
       "createSubtitle": "The user will receive an email to activate their account and set a password.",
@@ -341,6 +343,7 @@
         "already_member": "This user is already a member.",
         "cannot_add_self": "You cannot add yourself.",
         "not_authorized": "You don't have permission to manage members.",
+        "member_limit_reached": "You've reached the limit of 3 users. Remove one to add another.",
         "generic": "An error occurred. Please try again."
       }
     },
