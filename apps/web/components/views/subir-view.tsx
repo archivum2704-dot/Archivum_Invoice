@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import {
   Upload, FileText, Image, Scan, X, CheckCircle2,
   Building2, Tag, Calendar, ChevronDown, Plus, ArrowLeft, AlertCircle, Loader2,
+  Link2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useCompanies } from "@/lib/hooks/use-companies"
@@ -29,6 +31,15 @@ function formatSize(bytes: number): string {
     : `${Math.round(bytes / 1024)} KB`
 }
 
+type ParentDoc = {
+  id: string
+  document_number: string | null
+  document_type: string
+  company_id: string | null
+  total: number | null
+  currency: string
+}
+
 export function SubirView() {
   const t        = useTranslations("documents.upload")
   const tTypes   = useTranslations("documents.types")
@@ -37,10 +48,13 @@ export function SubirView() {
   const tCommon  = useTranslations("common")
   const { currentOrg, userProfile } = useOrganization()
   const { companies } = useCompanies(currentOrg?.id ?? null)
+  const searchParams = useSearchParams()
+  const fromId   = searchParams.get("from")
+  const fromType = searchParams.get("type")
 
   const [dragOver,   setDragOver]   = useState(false)
   const [files,      setFiles]      = useState<UploadedFile[]>([])
-  const [tipo,       setTipo]       = useState("")
+  const [tipo,       setTipo]       = useState(fromType ?? "")
   const [empresa,    setEmpresa]    = useState("")
   const [estado,     setEstado]     = useState("")
   const [fecha,      setFecha]      = useState("")
@@ -51,7 +65,27 @@ export function SubirView() {
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState<string | null>(null)
   const [uploadedId, setUploadedId] = useState<string | null>(null)
+  const [parentDoc,  setParentDoc]  = useState<ParentDoc | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // ── Load parent document if ?from= is present ───────────────────────────────
+  useEffect(() => {
+    if (!fromId) return
+    const supabase = createClient()
+    supabase
+      .from("documents")
+      .select("id, document_number, document_type, company_id, total, currency")
+      .eq("id", fromId)
+      .single()
+      .then(({ data }) => {
+        if (!data) return
+        setParentDoc(data as ParentDoc)
+        // Pre-fill company and amount from parent
+        if (data.company_id) setEmpresa(data.company_id)
+        if (data.total != null)
+          setImporte(data.total.toFixed(2).replace(".", ","))
+      })
+  }, [fromId])
 
   const addFile = (f: File) => {
     setFiles(prev => [...prev, {
@@ -72,7 +106,7 @@ export function SubirView() {
 
   const reset = () => {
     setFiles([]); setNumero(""); setImporte(""); setNotas("")
-    setEtiquetas([]); setTipo(""); setEmpresa(""); setEstado(""); setFecha("")
+    setEtiquetas([]); setTipo(fromType ?? ""); setEmpresa(""); setEstado(""); setFecha("")
     setError(null); setUploadedId(null)
   }
 
@@ -119,20 +153,21 @@ export function SubirView() {
       const { data, error: insertErr } = await supabase
         .from("documents")
         .insert({
-          organization_id: currentOrg.id,
-          company_id:      empresa || null,
-          uploaded_by:     userProfile?.id ?? null,
-          document_number: numero.trim() || null,
-          document_type:   tipo as any,
-          status:          (estado || "pending") as any,
-          total:           totalAmount,
-          currency:        "EUR",
-          issue_date:      fecha || null,
-          notes:           notas.trim() || null,
-          file_url:        fileUrl,
-          file_name:       fileName,
-          file_size:       fileSize,
-          file_type:       fileType,
+          organization_id:    currentOrg.id,
+          company_id:         empresa || null,
+          uploaded_by:        userProfile?.id ?? null,
+          parent_document_id: fromId || null,
+          document_number:    numero.trim() || null,
+          document_type:      tipo as any,
+          status:             (estado || "pending") as any,
+          total:              totalAmount,
+          currency:           "EUR",
+          issue_date:         fecha || null,
+          notes:              notas.trim() || null,
+          file_url:           fileUrl,
+          file_name:          fileName,
+          file_size:          fileSize,
+          file_type:          fileType,
         })
         .select("id")
         .single()
@@ -181,8 +216,8 @@ export function SubirView() {
   // ── Form ────────────────────────────────────────────────────────────────────
   return (
     <div className="p-8">
-      <div className="flex items-center gap-3 mb-8">
-        <Link href="/biblioteca" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+      <div className="flex items-center gap-3 mb-6">
+        <Link href={fromId ? `/factura/${fromId}` : "/biblioteca"} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div>
@@ -190,6 +225,28 @@ export function SubirView() {
           <p className="text-muted-foreground text-sm mt-1">{t("subtitle")}</p>
         </div>
       </div>
+
+      {/* Parent doc banner */}
+      {parentDoc && (
+        <div className="flex items-center gap-3 mb-6 px-4 py-3 bg-primary/5 border border-primary/20 rounded-xl">
+          <Link2 className="w-4 h-4 text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-muted-foreground">Creando desde</p>
+            <p className="text-sm font-medium text-foreground">
+              {tTypes(parentDoc.document_type as any)} ·{" "}
+              <Link href={`/factura/${parentDoc.id}`} className="text-primary hover:underline">
+                {parentDoc.document_number ?? parentDoc.id.slice(0, 8).toUpperCase()}
+              </Link>
+            </p>
+          </div>
+          <Link
+            href={`/factura/${parentDoc.id}`}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
+          >
+            Ver original
+          </Link>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-3 gap-6">

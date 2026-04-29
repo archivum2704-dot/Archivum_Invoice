@@ -4,17 +4,40 @@ import { useEffect, useState } from "react"
 import {
   ArrowLeft, Download, FileText, Building2, Calendar,
   Hash, Clock, CheckCircle2, AlertCircle, FileX,
+  ChevronRight, Plus, ArrowRight,
 } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import type { Database } from "@/lib/supabase/types"
+import type { Database, DocumentType } from "@/lib/supabase/types"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type DocumentRow = Database["public"]["Tables"]["documents"]["Row"]
 type DocumentWithCompany = DocumentRow & {
   company: { name: string; cif: string | null } | null
+}
+type DocRef = {
+  id: string
+  document_number: string | null
+  document_type: DocumentType
+  status: string
+}
+
+// ── Workflow config ────────────────────────────────────────────────────────────
+const WORKFLOW_STEPS: DocumentType[] = ["order", "delivery_note", "invoice_issued"]
+
+const WORKFLOW_NEXT: Partial<Record<DocumentType, DocumentType>> = {
+  order:         "delivery_note",
+  delivery_note: "invoice_issued",
+}
+
+const TYPE_ICON_COLOR: Record<string, string> = {
+  order:            "bg-blue-100 text-blue-600",
+  delivery_note:    "bg-primary/10 text-primary",
+  invoice_issued:   "bg-accent/10 text-accent",
+  invoice_received: "bg-primary/10 text-primary",
+  receipt:          "bg-muted text-muted-foreground",
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -56,6 +79,109 @@ function MetaRow({
   )
 }
 
+// ── Workflow Chain ─────────────────────────────────────────────────────────────
+function WorkflowChain({
+  current, parent, children, tTypes,
+}: {
+  current: DocumentWithCompany
+  parent: DocRef | null
+  children: DocRef[]
+  tTypes: (k: any) => string
+}) {
+  const nextType = WORKFLOW_NEXT[current.document_type as DocumentType]
+  const hasChild = children.some(c => c.document_type === nextType)
+  const isInWorkflow = WORKFLOW_STEPS.includes(current.document_type as DocumentType)
+
+  if (!isInWorkflow && !parent && children.length === 0) return null
+
+  return (
+    <div className="border-t border-border pt-4 space-y-3">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        Workflow
+      </p>
+
+      <div className="space-y-1.5">
+        {/* Parent */}
+        {parent && (
+          <Link
+            href={`/factura/${parent.id}`}
+            className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-muted/60 transition-colors group"
+          >
+            <span className={cn("w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0", TYPE_ICON_COLOR[parent.document_type] ?? "bg-muted text-muted-foreground")}>
+              <FileText className="w-3 h-3" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-muted-foreground">{tTypes(parent.document_type)}</p>
+              <p className="text-xs font-medium text-foreground truncate">{parent.document_number ?? parent.id.slice(0, 8)}</p>
+            </div>
+            <ChevronRight className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
+          </Link>
+        )}
+
+        {/* Connector line */}
+        {parent && (
+          <div className="ml-[18px] w-px h-3 bg-border" />
+        )}
+
+        {/* Current */}
+        <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
+          <span className={cn("w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0", TYPE_ICON_COLOR[current.document_type] ?? "bg-muted text-muted-foreground")}>
+            <FileText className="w-3 h-3" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-muted-foreground">{tTypes(current.document_type)}</p>
+            <p className="text-xs font-medium text-foreground truncate">
+              {current.document_number ?? current.id.slice(0, 8)} · <span className="text-primary">actual</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Children */}
+        {children.map(child => (
+          <div key={child.id}>
+            <div className="ml-[18px] w-px h-3 bg-border" />
+            <Link
+              href={`/factura/${child.id}`}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-muted/60 transition-colors group"
+            >
+              <span className={cn("w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0", TYPE_ICON_COLOR[child.document_type] ?? "bg-muted text-muted-foreground")}>
+                <FileText className="w-3 h-3" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">{tTypes(child.document_type)}</p>
+                <p className="text-xs font-medium text-foreground truncate">{child.document_number ?? child.id.slice(0, 8)}</p>
+              </div>
+              <ChevronRight className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
+            </Link>
+          </div>
+        ))}
+
+        {/* Next step CTA */}
+        {nextType && !hasChild && (
+          <>
+            <div className="ml-[18px] w-px h-3 bg-border border-dashed" />
+            <Link
+              href={`/subir?from=${current.id}&type=${nextType}`}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-dashed border-border hover:border-primary/40 hover:bg-primary/5 transition-colors group"
+            >
+              <span className="w-6 h-6 rounded-md bg-muted flex items-center justify-center shrink-0">
+                <Plus className="w-3 h-3 text-muted-foreground group-hover:text-primary" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">Siguiente paso</p>
+                <p className="text-xs font-medium text-foreground group-hover:text-primary">
+                  Crear {tTypes(nextType)}
+                </p>
+              </div>
+              <ArrowRight className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-primary" />
+            </Link>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main view ─────────────────────────────────────────────────────────────────
 interface FacturaViewProps { id: string }
 
@@ -66,13 +192,15 @@ export function FacturaView({ id }: FacturaViewProps) {
   const tActions  = useTranslations("documents.actions")
   const tCommon   = useTranslations("common")
 
-  const [doc,     setDoc]     = useState<DocumentWithCompany | null>(null)
-  const [pdfUrl,  setPdfUrl]  = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error,   setError]   = useState<string | null>(null)
+  const [doc,      setDoc]      = useState<DocumentWithCompany | null>(null)
+  const [parent,   setParent]   = useState<DocRef | null>(null)
+  const [children, setChildren] = useState<DocRef[]>([])
+  const [pdfUrl,   setPdfUrl]   = useState<string | null>(null)
+  const [loading,  setLoading]  = useState(true)
+  const [error,    setError]    = useState<string | null>(null)
   const [mobileTab, setMobileTab] = useState<"preview" | "details">("preview")
 
-  // ── Fetch document + resolve signed URL ─────────────────────────────────────
+  // ── Fetch document + resolve signed URL + workflow links ────────────────────
   useEffect(() => {
     if (!id) return
     setLoading(true)
@@ -90,10 +218,11 @@ export function FacturaView({ id }: FacturaViewProps) {
           return
         }
 
-        setDoc(data as DocumentWithCompany)
+        const d = data as DocumentWithCompany
+        setDoc(d)
 
-        // Resolve PDF URL — public URL or signed URL from storage path
-        const fileUrl = (data as DocumentWithCompany).file_url
+        // Resolve PDF URL
+        const fileUrl = d.file_url
         if (fileUrl) {
           if (fileUrl.startsWith("http")) {
             setPdfUrl(fileUrl)
@@ -104,6 +233,24 @@ export function FacturaView({ id }: FacturaViewProps) {
             if (signed?.signedUrl) setPdfUrl(signed.signedUrl)
           }
         }
+
+        // Fetch parent doc
+        if (d.parent_document_id) {
+          const { data: p } = await supabase
+            .from("documents")
+            .select("id, document_number, document_type, status")
+            .eq("id", d.parent_document_id)
+            .single()
+          if (p) setParent(p as DocRef)
+        }
+
+        // Fetch children
+        const { data: ch } = await supabase
+          .from("documents")
+          .select("id, document_number, document_type, status")
+          .eq("parent_document_id", id)
+          .order("created_at")
+        if (ch) setChildren(ch as DocRef[])
 
         setLoading(false)
       })
@@ -180,6 +327,18 @@ export function FacturaView({ id }: FacturaViewProps) {
             ))}
           </div>
 
+          {/* Next step shortcut (desktop) */}
+          {WORKFLOW_NEXT[doc.document_type as DocumentType] &&
+           !children.some(c => c.document_type === WORKFLOW_NEXT[doc.document_type as DocumentType]) && (
+            <Link
+              href={`/subir?from=${doc.id}&type=${WORKFLOW_NEXT[doc.document_type as DocumentType]}`}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-card border border-border text-foreground rounded-lg hover:bg-muted transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Crear {tTypes(WORKFLOW_NEXT[doc.document_type as DocumentType] as Parameters<typeof tTypes>[0])}
+            </Link>
+          )}
+
           {pdfUrl && (
             <a
               href={pdfUrl}
@@ -208,7 +367,6 @@ export function FacturaView({ id }: FacturaViewProps) {
               title={doc.file_name ?? "Document preview"}
             />
           ) : (
-            /* Empty state */
             <div className="flex flex-col items-center justify-center w-full h-full gap-5 text-muted-foreground">
               <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center">
                 <FileX className="w-10 h-10 opacity-40" />
@@ -325,6 +483,14 @@ export function FacturaView({ id }: FacturaViewProps) {
                 </div>
               </div>
             )}
+
+            {/* Workflow chain */}
+            <WorkflowChain
+              current={doc}
+              parent={parent}
+              children={children}
+              tTypes={tTypes}
+            />
 
             {/* Timestamp */}
             <p className="text-xs text-muted-foreground/50 pt-2 border-t border-border">
