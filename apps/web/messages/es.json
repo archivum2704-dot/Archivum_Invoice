@@ -291,9 +291,24 @@
   },
   "settings": {
     "title": "Configuración",
+    "subtitle": "Gestiona los datos y preferencias de tu organización",
     "tabs": {
       "members": "Usuarios",
       "organization": "Configuración"
+    },
+    "accessCode": {
+      "label": "Código de empresa",
+      "hint": "Comparte este código con tus usuarios para que puedan iniciar sesión"
+    },
+    "sections": {
+      "access": "Acceso",
+      "accessDesc": "Código que tus usuarios necesitan para iniciar sesión.",
+      "identity": "Identidad",
+      "identityDesc": "Nombre e identificación fiscal de tu organización.",
+      "contact": "Contacto",
+      "contactDesc": "Datos de contacto de la organización.",
+      "address": "Dirección",
+      "addressDesc": "Dirección fiscal o de operaciones."
     },
     "members": {
       "title": "Usuarios",
@@ -359,7 +374,8 @@
       "phone": "Teléfono",
       "email": "Correo",
       "save": "Guardar cambios",
-      "saving": "Guardando..."
+      "saving": "Guardando...",
+      "savedOk": "Guardado correctamente"
     }
   },
   "language": {

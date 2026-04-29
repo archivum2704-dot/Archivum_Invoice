@@ -12,5 +12,14 @@ export default async function ProtectedLayout({
 
   if (!user) redirect('/auth/login')
 
+  // If user has no organization membership, send them to onboarding
+  const { data: memberships } = await supabase
+    .from('organization_members')
+    .select('id')
+    .eq('user_id', user.id)
+    .limit(1)
+
+  if (!memberships?.length) redirect('/onboarding')
+
   return <AppShell>{children}</AppShell>
 }

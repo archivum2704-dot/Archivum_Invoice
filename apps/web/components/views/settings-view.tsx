@@ -14,11 +14,12 @@ function AccessCodeCard({ code }: { code: string }) {
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
+  const tRoot = useTranslations("settings")
   return (
     <div className="flex items-center justify-between gap-4 p-4 bg-accent/5 border border-accent/20 rounded-xl">
       <div>
-        <p className="text-xs font-semibold text-accent uppercase tracking-wide mb-0.5">Código de empresa</p>
-        <p className="text-xs text-muted-foreground">Comparte este código con tus usuarios para que puedan iniciar sesión</p>
+        <p className="text-xs font-semibold text-accent uppercase tracking-wide mb-0.5">{tRoot("accessCode.label")}</p>
+        <p className="text-xs text-muted-foreground">{tRoot("accessCode.hint")}</p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <span className="text-2xl font-mono font-bold text-foreground tracking-widest bg-muted px-4 py-2 rounded-lg">{code}</span>
@@ -63,6 +64,7 @@ function Field({ label, value, onChange, type = "text", disabled }: {
 // ── Main settings view ────────────────────────────────────────────────────────
 export function SettingsView() {
   const t = useTranslations("settings.organization")
+  const tRoot = useTranslations("settings")
   const { currentOrg, refreshOrganization } = useOrganization()
 
   const [form, setForm] = useState({
@@ -121,33 +123,33 @@ export function SettingsView() {
       <div className="mb-8 pb-6 border-b border-border">
         <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
           <Settings className="w-6 h-6" />
-          Configuración
+          {tRoot("title")}
         </h1>
-        <p className="text-muted-foreground text-sm mt-1">Gestiona los datos y preferencias de tu organización</p>
+        <p className="text-muted-foreground text-sm mt-1">{tRoot("subtitle")}</p>
       </div>
 
       <form onSubmit={handleSave}>
         {(currentOrg as any)?.access_code && (
-          <Section title="Acceso" description="Código que tus usuarios necesitan para iniciar sesión.">
+          <Section title={tRoot("sections.access")} description={tRoot("sections.accessDesc")}>
             <AccessCodeCard code={(currentOrg as any).access_code} />
           </Section>
         )}
 
-        <Section title="Identidad" description="Nombre e identificación fiscal de tu organización.">
+        <Section title={tRoot("sections.identity")} description={tRoot("sections.identityDesc")}>
           <div className="space-y-4">
             <Field label={t("name")} value={form.name} onChange={set("name")} disabled={saving} />
             <Field label={t("cif")}  value={form.cif}  onChange={set("cif")}  disabled={saving} />
           </div>
         </Section>
 
-        <Section title="Contacto" description="Datos de contacto de la organización.">
+        <Section title={tRoot("sections.contact")} description={tRoot("sections.contactDesc")}>
           <div className="space-y-4">
             <Field label={t("phone")} value={form.phone} onChange={set("phone")} disabled={saving} />
             <Field label={t("email")} value={form.email} onChange={set("email")} type="email" disabled={saving} />
           </div>
         </Section>
 
-        <Section title="Dirección" description="Dirección fiscal o de operaciones.">
+        <Section title={tRoot("sections.address")} description={tRoot("sections.addressDesc")}>
           <div className="space-y-4">
             <Field label={t("address")} value={form.address} onChange={set("address")} disabled={saving} />
             <div className="grid grid-cols-2 gap-4">
@@ -163,7 +165,7 @@ export function SettingsView() {
             <Save className="w-4 h-4" />
             {saving ? t("saving") : t("save")}
           </button>
-          {saved  && <span className="flex items-center gap-1.5 text-sm text-accent"><Check className="w-4 h-4" /> Guardado correctamente</span>}
+          {saved  && <span className="flex items-center gap-1.5 text-sm text-accent"><Check className="w-4 h-4" /> {t("savedOk")}</span>}
           {error  && <span className="text-sm text-destructive">{error}</span>}
         </div>
       </form>

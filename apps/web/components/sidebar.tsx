@@ -42,17 +42,25 @@ export function Sidebar() {
     setShowOrgMenu(false)
   }
 
-  const hasOrg = !!currentOrg
+  // Role-based nav: admins/owners see everything; members/viewers see limited set
+  const memberRole = currentMember?.role
+  const isOwnerOrAdmin = isOrgAdmin // owner | admin | platform_admin
+  const isViewer = memberRole === "viewer"
 
   const navItems = [
     { label: t("dashboard"), icon: LayoutDashboard, href: "/dashboard" },
-    ...(hasOrg
+    // Empresas: only admins/owners manage companies
+    ...(isOwnerOrAdmin
       ? [{ label: t("companies"), icon: Building2, href: "/empresas" }]
       : []),
     { label: t("library"), icon: Library, href: "/biblioteca" },
     { label: t("search"), icon: Search, href: "/buscador" },
-    { label: t("upload"), icon: Upload, href: "/subir" },
-    ...(hasOrg
+    // Upload: members and admins can upload; viewers cannot
+    ...(!isViewer
+      ? [{ label: t("upload"), icon: Upload, href: "/subir" }]
+      : []),
+    // Usuarios: only admins/owners manage users
+    ...(isOwnerOrAdmin
       ? [{ label: t("users"), icon: Users, href: "/usuarios" }]
       : []),
     ...(isPlatformAdmin

@@ -291,9 +291,24 @@
   },
   "settings": {
     "title": "Settings",
+    "subtitle": "Manage your organization's data and preferences",
     "tabs": {
       "members": "Users",
       "organization": "Configuration"
+    },
+    "accessCode": {
+      "label": "Company code",
+      "hint": "Share this code with your users so they can log in"
+    },
+    "sections": {
+      "access": "Access",
+      "accessDesc": "Code your users need to log in.",
+      "identity": "Identity",
+      "identityDesc": "Name and tax identification of your organization.",
+      "contact": "Contact",
+      "contactDesc": "Contact details of the organization.",
+      "address": "Address",
+      "addressDesc": "Fiscal or operational address."
     },
     "members": {
       "title": "Users",
@@ -359,7 +374,8 @@
       "phone": "Phone",
       "email": "Email",
       "save": "Save changes",
-      "saving": "Saving..."
+      "saving": "Saving...",
+      "savedOk": "Saved successfully"
     }
   },
   "language": {
