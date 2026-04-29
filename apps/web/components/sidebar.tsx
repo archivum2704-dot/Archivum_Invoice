@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronDown,
   ShieldCheck,
+  Users,
 } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { useTranslations } from "next-intl"
@@ -43,14 +44,15 @@ export function Sidebar() {
 
   const navItems = [
     { label: t("dashboard"), icon: LayoutDashboard, href: "/dashboard" },
-    // Companies visible to org admins and platform admins
     ...(isOrgAdmin
       ? [{ label: t("companies"), icon: Building2, href: "/empresas" }]
       : []),
     { label: t("library"), icon: Library, href: "/biblioteca" },
     { label: t("search"), icon: Search, href: "/buscador" },
     { label: t("upload"), icon: Upload, href: "/subir" },
-    // Admin panel only for platform super admin
+    ...(isOrgAdmin
+      ? [{ label: t("users"), icon: Users, href: "/usuarios" }]
+      : []),
     ...(isPlatformAdmin
       ? [{ label: t("adminPanel"), icon: ShieldCheck, href: "/admin-dashboard" }]
       : []),
