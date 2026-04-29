@@ -424,12 +424,13 @@ function OrgForm({ orgId, initialData }: { orgId: string; initialData: {
 export function SettingsView() {
   const t = useTranslations("settings")
   const tMembers = useTranslations("settings.members")
-  const { currentOrg, userProfile, isOrgAdmin } = useOrganization()
-  const { members, loading, mutate } = useMembers(currentOrg?.id ?? null)
+  const { currentOrg, userProfile, isOrgAdmin, loading: orgLoading } = useOrganization()
+  const { members, loading: membersLoading, error: membersError, mutate } = useMembers(currentOrg?.id ?? null)
   const [tab, setTab] = useState<"members" | "organization">("members")
   const [showInvite, setShowInvite] = useState(false)
 
   const currentUserId = userProfile?.id ?? ""
+  const loading = orgLoading || membersLoading
 
   return (
     <div className="p-8 max-w-4xl">
@@ -490,7 +491,25 @@ export function SettingsView() {
             {loading ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary mb-3" />
-                <p className="text-sm text-muted-foreground">Loading...</p>
+                <p className="text-sm text-muted-foreground">Cargando...</p>
+              </div>
+            ) : membersError ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+                <p className="text-sm text-destructive font-medium mb-1">Error al cargar miembros</p>
+                <p className="text-xs text-muted-foreground mb-3">{String(membersError)}</p>
+                <button onClick={() => mutate()} className="text-xs px-3 py-1.5 bg-muted rounded-lg hover:bg-muted/70 transition-colors">
+                  Reintentar
+                </button>
+              </div>
+            ) : members.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+                <Users className="w-8 h-8 text-muted-foreground/40 mb-3" />
+                <p className="text-sm font-medium text-foreground mb-1">No hay miembros todavía</p>
+                <p className="text-xs text-muted-foreground">
+                  {currentOrg?.id
+                    ? "No se encontraron miembros. Aplica la migración SQL en el panel de Supabase."
+                    : "Cargando organización..."}
+                </p>
               </div>
             ) : (
               <div className="divide-y divide-border">

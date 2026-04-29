@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import {
   FileText, Package, Receipt, FolderOpen,
-  Search, Filter, Grid3X3, List, Plus, MoreHorizontal, Download, Eye, ChevronDown, TableIcon,
+  Search, Filter, Grid3X3, List, Plus, MoreHorizontal, Download, Eye, ChevronDown, FileSpreadsheet,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -115,7 +115,7 @@ export function BibliotecaView() {
               disabled={filtered.length === 0}
               className="flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground text-sm font-medium rounded-lg hover:bg-muted transition-colors disabled:opacity-40"
             >
-              <TableIcon className="w-4 h-4" />
+              <FileSpreadsheet className="w-4 h-4" />
               {tExport("button")}
               <ChevronDown className={cn("w-3.5 h-3.5 text-muted-foreground transition-transform", showExportMenu && "rotate-180")} />
             </button>
