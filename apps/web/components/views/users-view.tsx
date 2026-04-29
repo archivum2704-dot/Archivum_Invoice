@@ -368,7 +368,9 @@ export function UsersView() {
         ) : membersError ? (
           <div className="flex flex-col items-center justify-center py-12 text-center px-6">
             <p className="text-sm text-destructive font-medium mb-1">Error al cargar usuarios</p>
-            <p className="text-xs text-muted-foreground mb-3">{String(membersError)}</p>
+            <p className="text-xs text-muted-foreground mb-3">
+              {(membersError as any)?.message ?? (membersError as any)?.error_description ?? 'Error desconocido'}
+            </p>
             <button onClick={() => mutate()} className="text-xs px-3 py-1.5 bg-muted rounded-lg hover:bg-muted/70 transition-colors">
               Reintentar
             </button>

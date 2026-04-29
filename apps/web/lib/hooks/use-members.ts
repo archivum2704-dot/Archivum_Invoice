@@ -29,6 +29,8 @@ export type CompanyAccess = {
 
 async function fetchMembers(orgId: string): Promise<OrgMember[]> {
   const supabase = createClient()
+
+  // First try with profile join
   const { data, error } = await supabase
     .from('organization_members')
     .select(`
@@ -38,8 +40,18 @@ async function fetchMembers(orgId: string): Promise<OrgMember[]> {
     .eq('organization_id', orgId)
     .order('joined_at')
 
-  if (error) throw error
-  return (data ?? []) as OrgMember[]
+  if (!error) return (data ?? []) as OrgMember[]
+
+  // Fallback: fetch members without profile join (RLS may block cross-user profile reads)
+  const { data: fallback, error: fallbackError } = await supabase
+    .from('organization_members')
+    .select('id, organization_id, user_id, role, invited_by, joined_at')
+    .eq('organization_id', orgId)
+    .order('joined_at')
+
+  if (fallbackError) throw fallbackError
+
+  return (fallback ?? []).map(m => ({ ...m, profile: null })) as OrgMember[]
 }
 
 async function fetchMemberCompanyAccess(orgId: string, userId: string): Promise<CompanyAccess[]> {
