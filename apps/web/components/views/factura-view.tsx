@@ -1,248 +1,335 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import {
-  ArrowLeft,
-  Download,
-  Printer,
-  Share2,
-  CheckCircle2,
-  Clock,
-  Building2,
-  Calendar,
-  FileText,
-  Tag,
-  Hash,
-  MoreHorizontal,
-  Eye,
-  User,
+  ArrowLeft, Download, FileText, Building2, Calendar,
+  Hash, Clock, CheckCircle2, AlertCircle, FileX,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { useTranslations } from "next-intl"
+import { createClient } from "@/lib/supabase/client"
+import { cn } from "@/lib/utils"
+import type { Database } from "@/lib/supabase/types"
 
-interface FacturaViewProps {
-  id: string
+// ── Types ──────────────────────────────────────────────────────────────────────
+type DocumentRow = Database["public"]["Tables"]["documents"]["Row"]
+type DocumentWithCompany = DocumentRow & {
+  company: { name: string; cif: string | null } | null
 }
 
-const etiquetaColors = ["bg-blue-100 text-blue-700", "bg-amber-100 text-amber-700", "bg-emerald-100 text-emerald-700"]
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const STATUS_STYLES: Record<string, string> = {
+  draft:     "bg-muted text-muted-foreground",
+  pending:   "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  paid:      "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+  overdue:   "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  cancelled: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+}
+
+function formatDate(d: string | null): string {
+  if (!d) return "—"
+  return new Date(d).toLocaleDateString("es-ES", {
+    day: "numeric", month: "long", year: "numeric",
+  })
+}
+
+function formatAmount(n: number | null, currency = "EUR"): string {
+  if (n == null) return "—"
+  return new Intl.NumberFormat("es-ES", { style: "currency", currency }).format(n)
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+function MetaRow({
+  icon: Icon, label, value, sub,
+}: {
+  icon: React.ElementType; label: string; value: string; sub?: string
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <Icon className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+      <div>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-sm font-medium text-foreground">{value}</p>
+        {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+      </div>
+    </div>
+  )
+}
+
+// ── Main view ─────────────────────────────────────────────────────────────────
+interface FacturaViewProps { id: string }
 
 export function FacturaView({ id }: FacturaViewProps) {
-  const doc = {
-    id: id || "FAC-2024-0892",
-    tipo: "Factura",
-    estado: "Pagada",
-    fecha_emision: "14 de marzo de 2024",
-    fecha_vencimiento: "14 de abril de 2024",
-    fecha_pago: "20 de marzo de 2024",
-    empresa_emisora: {
-      nombre: "Construcciones Garcia SL",
-      cif: "B-12345678",
-      direccion: "Calle Mayor 45, 28001 Madrid",
-      email: "admin@construccionesgarcia.es",
-    },
-    empresa_receptora: {
-      nombre: "Servicios Integrales SA",
-      cif: "A-99988877",
-      direccion: "Avda. Diagonal 200, 08005 Barcelona",
-      email: "facturas@serviciosintegrales.es",
-    },
-    lineas: [
-      { descripcion: "Trabajos de albanileria, Fase 1", cantidad: 1, precio_unit: "2.500,00 EUR", total: "2.500,00 EUR" },
-      { descripcion: "Materiales de construccion (cemento, aridos)", cantidad: 1, precio_unit: "850,00 EUR", total: "850,00 EUR" },
-      { descripcion: "Mano de obra especializada (20h)", cantidad: 20, precio_unit: "45,00 EUR", total: "900,00 EUR" },
-    ],
-    subtotal: "4.250,00 EUR",
-    iva: "21%",
-    iva_importe: "892,50 EUR",
-    total: "5.142,50 EUR",
-    forma_pago: "Transferencia bancaria",
-    etiquetas: ["Obra", "Madrid", "Construccion"],
-    notas: "Factura correspondiente a los trabajos realizados en el proyecto Residencial Las Acacias. Segunda emision conforme a contrato marco ref. CM-2024-001.",
+  const tTypes    = useTranslations("documents.types")
+  const tStatuses = useTranslations("documents.statuses")
+  const tFields   = useTranslations("documents.fields")
+  const tActions  = useTranslations("documents.actions")
+  const tCommon   = useTranslations("common")
+
+  const [doc,     setDoc]     = useState<DocumentWithCompany | null>(null)
+  const [pdfUrl,  setPdfUrl]  = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error,   setError]   = useState<string | null>(null)
+  const [mobileTab, setMobileTab] = useState<"preview" | "details">("preview")
+
+  // ── Fetch document + resolve signed URL ─────────────────────────────────────
+  useEffect(() => {
+    if (!id) return
+    setLoading(true)
+    const supabase = createClient()
+
+    supabase
+      .from("documents")
+      .select("*, company:companies(name, cif)")
+      .eq("id", id)
+      .single()
+      .then(async ({ data, error: err }) => {
+        if (err || !data) {
+          setError(err?.message ?? "Document not found")
+          setLoading(false)
+          return
+        }
+
+        setDoc(data as DocumentWithCompany)
+
+        // Resolve PDF URL — public URL or signed URL from storage path
+        const fileUrl = (data as DocumentWithCompany).file_url
+        if (fileUrl) {
+          if (fileUrl.startsWith("http")) {
+            setPdfUrl(fileUrl)
+          } else {
+            const { data: signed } = await supabase.storage
+              .from("documents")
+              .createSignedUrl(fileUrl, 3600)
+            if (signed?.signedUrl) setPdfUrl(signed.signedUrl)
+          }
+        }
+
+        setLoading(false)
+      })
+  }, [id])
+
+  // ── Loading ──────────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <span className="text-sm text-muted-foreground animate-pulse">{tCommon("loading")}</span>
+      </div>
+    )
   }
 
-  return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <Link href="/biblioteca" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          Volver a la biblioteca
-        </Link>
-        <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-3 py-2 text-sm text-foreground bg-card border border-border rounded-lg hover:bg-muted transition-colors">
-            <Printer className="w-4 h-4" />
-            Imprimir
-          </button>
-          <button className="flex items-center gap-2 px-3 py-2 text-sm text-foreground bg-card border border-border rounded-lg hover:bg-muted transition-colors">
-            <Share2 className="w-4 h-4" />
-            Compartir
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
-            <Download className="w-4 h-4" />
-            Descargar PDF
-          </button>
-          <button className="p-2 bg-card border border-border rounded-lg hover:bg-muted transition-colors">
-            <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </div>
+  // ── Error ────────────────────────────────────────────────────────────────────
+  if (error || !doc) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <AlertCircle className="w-10 h-10 text-destructive/50" />
+        <p className="text-sm text-muted-foreground">{error ?? tCommon("error")}</p>
+        <Link href="/biblioteca" className="text-sm text-primary hover:underline">{tCommon("back")}</Link>
       </div>
+    )
+  }
 
-      <div className="flex gap-6">
-        <div className="flex-1">
-          <div className="bg-card border border-border rounded-xl overflow-hidden mb-5">
-            <div className="bg-primary px-8 py-6 flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <FileText className="w-6 h-6 text-primary-foreground/80" />
-                  <span className="text-primary-foreground/70 text-sm font-medium uppercase tracking-wide">{doc.tipo}</span>
-                </div>
-                <h1 className="text-3xl font-bold text-primary-foreground">{doc.id}</h1>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-white/20 text-white">
-                <CheckCircle2 className="w-4 h-4" />
-                {doc.estado}
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-px bg-border">
-              {[
-                { label: "Fecha de emision", value: doc.fecha_emision, Icon: Calendar },
-                { label: "Fecha de vencimiento", value: doc.fecha_vencimiento, Icon: Clock },
-                { label: "Fecha de pago", value: doc.fecha_pago, Icon: CheckCircle2 },
-              ].map((item) => (
-                <div key={item.label} className="bg-card px-5 py-4">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <item.Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">{item.label}</span>
-                  </div>
-                  <p className="text-sm font-semibold text-foreground">{item.value}</p>
-                </div>
-              ))}
-            </div>
+  // ── Derived labels ───────────────────────────────────────────────────────────
+  const typeLabel   = tTypes(doc.document_type as Parameters<typeof tTypes>[0])
+  const statusLabel = tStatuses(doc.status as Parameters<typeof tStatuses>[0])
+  const docTitle    = doc.document_number ?? doc.id.slice(0, 8).toUpperCase()
+
+  return (
+    <div className="flex flex-col" style={{ height: "calc(100vh - 0px)" }}>
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-6 py-3.5 border-b border-border shrink-0 bg-background">
+        <div className="flex items-center gap-4 min-w-0">
+          <Link
+            href="/biblioteca"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            {tCommon("back")}
+          </Link>
+          <div className="w-px h-4 bg-border shrink-0" />
+          <div className="flex items-center gap-2 min-w-0">
+            <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="text-sm font-semibold text-foreground truncate">{docTitle}</span>
+            <span className="text-xs font-medium text-muted-foreground hidden sm:inline">· {typeLabel}</span>
+            <span className={cn(
+              "text-xs px-2 py-0.5 rounded-full font-medium shrink-0",
+              STATUS_STYLES[doc.status] ?? STATUS_STYLES.draft
+            )}>
+              {statusLabel}
+            </span>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-5">
-            {[
-              { title: "Empresa Emisora", data: doc.empresa_emisora },
-              { title: "Empresa Receptora", data: doc.empresa_receptora },
-            ].map(({ title, data }) => (
-              <div key={title} className="bg-card border border-border rounded-xl p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <Building2 className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{title}</span>
-                </div>
-                <p className="font-semibold text-foreground mb-1">{data.nombre}</p>
-                <p className="text-xs text-muted-foreground mb-0.5">CIF: {data.cif}</p>
-                <p className="text-xs text-muted-foreground mb-0.5">{data.direccion}</p>
-                <p className="text-xs text-muted-foreground">{data.email}</p>
-              </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Mobile tabs */}
+          <div className="flex lg:hidden bg-muted rounded-lg p-0.5">
+            {(["preview", "details"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setMobileTab(tab)}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  mobileTab === tab
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground"
+                )}
+              >
+                {tab === "preview" ? "PDF" : "Info"}
+              </button>
             ))}
           </div>
 
-          <div className="bg-card border border-border rounded-xl overflow-hidden mb-5">
-            <div className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-5 py-3 bg-muted/40 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              <span>Descripcion</span>
-              <span className="text-right">Cantidad</span>
-              <span className="text-right">Precio unit.</span>
-              <span className="text-right">Total</span>
-            </div>
-            <div className="divide-y divide-border">
-              {doc.lineas.map((linea, i) => (
-                <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-5 py-3.5">
-                  <span className="text-sm text-foreground">{linea.descripcion}</span>
-                  <span className="text-sm text-muted-foreground text-right">{linea.cantidad}</span>
-                  <span className="text-sm text-muted-foreground text-right">{linea.precio_unit}</span>
-                  <span className="text-sm font-medium text-foreground text-right">{linea.total}</span>
-                </div>
-              ))}
-            </div>
-            <div className="border-t border-border bg-muted/20 px-5 py-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium text-foreground">{doc.subtotal}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">IVA ({doc.iva})</span>
-                <span className="font-medium text-foreground">{doc.iva_importe}</span>
-              </div>
-              <div className="flex justify-between text-base font-bold border-t border-border pt-2 mt-2">
-                <span className="text-foreground">Total</span>
-                <span className="text-primary">{doc.total}</span>
-              </div>
-            </div>
-          </div>
+          {pdfUrl && (
+            <a
+              href={pdfUrl}
+              download={doc.file_name ?? "document.pdf"}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">{tActions("download")}</span>
+            </a>
+          )}
+        </div>
+      </div>
 
-          <div className="bg-card border border-border rounded-xl p-5">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Notas</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">{doc.notas}</p>
-          </div>
+      {/* ── Body ───────────────────────────────────────────────────────────── */}
+      <div className="flex flex-1 overflow-hidden min-h-0">
+
+        {/* PDF Panel */}
+        <div className={cn(
+          "flex-1 bg-zinc-100 dark:bg-zinc-900 overflow-hidden min-w-0",
+          mobileTab === "details" ? "hidden lg:flex" : "flex"
+        )}>
+          {pdfUrl ? (
+            <iframe
+              src={pdfUrl}
+              className="w-full h-full border-0"
+              title={doc.file_name ?? "Document preview"}
+            />
+          ) : (
+            /* Empty state */
+            <div className="flex flex-col items-center justify-center w-full h-full gap-5 text-muted-foreground">
+              <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center">
+                <FileX className="w-10 h-10 opacity-40" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-foreground">Sin archivo adjunto</p>
+                <p className="text-xs mt-1 text-muted-foreground max-w-xs">
+                  Este documento no tiene un PDF o imagen vinculado
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
-        <aside className="w-64 shrink-0 space-y-4">
-          <div className="bg-card border border-border rounded-xl p-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Detalles</p>
+        {/* Metadata sidebar */}
+        <aside className={cn(
+          "w-full lg:w-80 xl:w-96 border-l border-border bg-card overflow-y-auto shrink-0",
+          mobileTab === "preview" ? "hidden lg:block" : "block"
+        )}>
+          <div className="p-5 space-y-5">
+
+            {/* Doc type + status */}
+            <div className="pb-4 border-b border-border">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+                {tFields("type")}
+              </p>
+              <p className="text-base font-bold text-foreground">{typeLabel}</p>
+              <span className={cn(
+                "inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full font-medium",
+                STATUS_STYLES[doc.status] ?? STATUS_STYLES.draft
+              )}>
+                {statusLabel}
+              </span>
+            </div>
+
+            {/* Number */}
+            {doc.document_number && (
+              <MetaRow icon={Hash} label={tFields("number")} value={doc.document_number} />
+            )}
+
+            {/* Company */}
+            {doc.company && (
+              <MetaRow
+                icon={Building2}
+                label={tFields("company")}
+                value={doc.company.name}
+                sub={doc.company.cif ?? undefined}
+              />
+            )}
+
+            {/* Dates */}
             <div className="space-y-3">
-              {[
-                { label: "Numero", value: doc.id, Icon: Hash },
-                { label: "Tipo", value: doc.tipo, Icon: FileText },
-                { label: "Forma de pago", value: doc.forma_pago, Icon: User },
-              ].map((item) => (
-                <div key={item.label} className="flex items-start gap-2.5">
-                  <item.Icon className="w-3.5 h-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">{item.label}</p>
-                    <p className="text-sm font-medium text-foreground">{item.value}</p>
+              <MetaRow icon={Calendar} label={tFields("issueDate")} value={formatDate(doc.issue_date)} />
+              {doc.due_date && (
+                <MetaRow icon={Clock} label={tFields("dueDate")} value={formatDate(doc.due_date)} />
+              )}
+              {doc.payment_date && (
+                <MetaRow icon={CheckCircle2} label={tFields("paymentDate")} value={formatDate(doc.payment_date)} />
+              )}
+            </div>
+
+            {/* Amounts */}
+            {(doc.total != null || doc.subtotal != null) && (
+              <div className="rounded-xl bg-muted/50 p-4 space-y-2">
+                {doc.subtotal != null && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="font-medium">{formatAmount(doc.subtotal, doc.currency)}</span>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                )}
+                {doc.tax_amount != null && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">IVA ({doc.tax_rate}%)</span>
+                    <span className="font-medium">{formatAmount(doc.tax_amount, doc.currency)}</span>
+                  </div>
+                )}
+                {doc.total != null && (
+                  <div className="flex justify-between text-sm font-bold border-t border-border pt-2 mt-1">
+                    <span>{tFields("amount")}</span>
+                    <span className="text-primary text-base">{formatAmount(doc.total, doc.currency)}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
-          <div className="bg-card border border-border rounded-xl p-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Etiquetas</p>
-            <div className="flex flex-wrap gap-1.5">
-              {doc.etiquetas.map((et, i) => (
-                <span key={et} className={cn("text-xs px-2 py-0.5 rounded-full", etiquetaColors[i % etiquetaColors.length])}>
-                  {et}
-                </span>
-              ))}
-              <button className="text-xs px-2 py-0.5 rounded-full border border-dashed border-border text-muted-foreground hover:border-accent hover:text-accent transition-colors">
-                <Tag className="w-3 h-3 inline mr-1" />
-                Añadir
-              </button>
-            </div>
-          </div>
+            {/* Notes */}
+            {doc.notes && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                  {tFields("notes")}
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{doc.notes}</p>
+              </div>
+            )}
 
-          <div className="bg-card border border-border rounded-xl p-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Archivos Adjuntos</p>
-            <div className="space-y-2">
-              {["factura_0892.pdf", "albaran_anexo.pdf"].map((file) => (
-                <div key={file} className="flex items-center gap-2.5 p-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors cursor-pointer group">
+            {/* Attached file */}
+            {doc.file_name && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                  {tFields("file")}
+                </p>
+                <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-muted group cursor-default">
                   <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <span className="text-xs text-foreground flex-1 truncate">{file}</span>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Eye className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
-                    <Download className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
-                  </div>
+                  <span className="text-xs text-foreground flex-1 truncate">{doc.file_name}</span>
+                  {pdfUrl && (
+                    <a
+                      href={pdfUrl}
+                      download={doc.file_name}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Download className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+                    </a>
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            )}
 
-          <div className="bg-card border border-border rounded-xl p-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Actividad</p>
-            <div className="space-y-3">
-              {[
-                { accion: "Pago registrado", fecha: "20 mar 2024", user: "M. Admin" },
-                { accion: "Documento subido", fecha: "14 mar 2024", user: "M. Admin" },
-                { accion: "Factura creada", fecha: "14 mar 2024", user: "Sistema" },
-              ].map((act, i) => (
-                <div key={i} className="flex gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
-                  <div>
-                    <p className="text-xs font-medium text-foreground">{act.accion}</p>
-                    <p className="text-xs text-muted-foreground">{act.fecha} - {act.user}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {/* Timestamp */}
+            <p className="text-xs text-muted-foreground/50 pt-2 border-t border-border">
+              Archivado el {formatDate(doc.created_at)}
+            </p>
           </div>
         </aside>
       </div>

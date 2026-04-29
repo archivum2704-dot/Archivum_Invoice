@@ -27,7 +27,7 @@ export function Sidebar() {
   const t = useTranslations("nav")
   const pathname = usePathname()
   const router = useRouter()
-  const { currentOrg, userOrgs, userProfile, isPlatformAdmin, isOrgAdmin, switchOrganization } =
+  const { currentOrg, userOrgs, userProfile, currentMember, isPlatformAdmin, isOrgAdmin, switchOrganization } =
     useOrganization()
   const [showOrgMenu, setShowOrgMenu] = useState(false)
 
