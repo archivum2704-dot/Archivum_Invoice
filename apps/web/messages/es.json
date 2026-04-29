@@ -209,6 +209,15 @@
         "statusTags": "Estado / Etiquetas"
       }
     },
+    "export": {
+      "button": "Exportar",
+      "subtitle": "{count} documentos",
+      "csv": "Descargar CSV",
+      "csvHint": "Abre en Excel, Google Sheets",
+      "excel": "Descargar Excel",
+      "excelHint": "Formato .xls nativo",
+      "currency": "Moneda"
+    },
     "search": {
       "title": "Buscador Avanzado",
       "subtitle": "Encuentra cualquier documento con filtros precisos",

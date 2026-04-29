@@ -209,6 +209,15 @@
         "statusTags": "Status / Tags"
       }
     },
+    "export": {
+      "button": "Export",
+      "subtitle": "{count} documents",
+      "csv": "Download CSV",
+      "csvHint": "Opens in Excel, Google Sheets",
+      "excel": "Download Excel",
+      "excelHint": "Native .xls format",
+      "currency": "Currency"
+    },
     "search": {
       "title": "Advanced Search",
       "subtitle": "Find any document with precise filters",
