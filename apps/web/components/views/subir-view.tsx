@@ -8,6 +8,8 @@ import {
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
+import { useOrganization } from "@/lib/context/organization-context"
+import { useCompanies } from "@/lib/hooks/use-companies"
 
 const DOC_TYPES = [
   "invoice_issued", "invoice_received", "delivery_note",
@@ -18,12 +20,6 @@ const DOC_STATUSES = ["draft", "pending", "paid", "overdue", "cancelled"] as con
 
 const DEFAULT_TAGS = ["Obra", "Madrid", "Stock", "Software", "Anual", "Transporte", "Material", "Reforma", "Mantenimiento", "Logistica"]
 
-const MOCK_COMPANIES = [
-  "Construcciones Garcia SL", "Distribuciones Norte SA",
-  "Servicios Tech SL", "Transportes Iberia SA",
-  "Suministros del Sur SL", "Logistica Peninsular SA",
-]
-
 type UploadedFile = { name: string; size: string; type: string }
 
 export function SubirView() {
@@ -32,6 +28,8 @@ export function SubirView() {
   const tStatuses = useTranslations("documents.statuses")
   const tFields = useTranslations("documents.fields")
   const tCommon = useTranslations("common")
+  const { currentOrg } = useOrganization()
+  const { companies } = useCompanies(currentOrg?.id ?? null)
 
   const [dragOver, setDragOver] = useState(false)
   const [files, setFiles] = useState<UploadedFile[]>([])
@@ -195,10 +193,20 @@ export function SubirView() {
                   <div className="relative">
                     <select required value={empresa} onChange={(e) => setEmpresa(e.target.value)} className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
                       <option value="">{t("selectCompany")}</option>
-                      {MOCK_COMPANIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                      {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                   </div>
+                  {companies.length === 0 && (
+                    <Link href="/empresas" className="inline-flex items-center gap-1 mt-1.5 text-xs text-accent hover:underline">
+                      <Plus className="w-3 h-3" /> Añadir primera empresa
+                    </Link>
+                  )}
+                  {companies.length > 0 && (
+                    <Link href="/empresas" className="inline-flex items-center gap-1 mt-1.5 text-xs text-muted-foreground hover:text-accent transition-colors">
+                      <Plus className="w-3 h-3" /> Nueva empresa
+                    </Link>
+                  )}
                 </div>
 
                 <div>

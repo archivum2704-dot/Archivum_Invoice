@@ -4,7 +4,7 @@ import { useState } from "react"
 import {
   FileText, Receipt, Package, FolderOpen,
   TrendingUp, Clock, CheckCircle2, AlertCircle,
-  MoreHorizontal, ChevronRight, Plus, Search,
+  MoreHorizontal, ChevronRight, Plus, Search, Building2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -102,6 +102,13 @@ export function DashboardView() {
               className="pl-9 pr-4 py-2 text-sm bg-card border border-border rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
             />
           </div>
+          <Link
+            href="/empresas"
+            className="flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground text-sm font-medium rounded-lg hover:bg-muted transition-colors"
+          >
+            <Building2 className="w-4 h-4" />
+            Nueva empresa
+          </Link>
           <Link
             href="/subir"
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
