@@ -77,10 +77,10 @@ export function DashboardView() {
 
   const recentDocs = documents.slice(0, 6)
 
-  const paidCount    = documents.filter(d => d.status === "paid").length
-  const pendingCount = documents.filter(d => d.status === "pending").length
-  const overdueCount = documents.filter(d => d.status === "overdue").length
-  const total = paidCount + pendingCount + overdueCount || 1
+  const paidCount        = documents.filter(d => d.status === "paid").length
+  const pendingCount     = documents.filter(d => d.status === "pending").length
+  const overdueBarCount  = documents.filter(d => d.status === "overdue").length
+  const total = paidCount + pendingCount + overdueBarCount || 1
 
   const firstName = userProfile?.first_name ?? ""
 
@@ -275,7 +275,7 @@ export function DashboardView() {
                   {[
                     { key: "paid" as DocumentStatus,    icon: CheckCircle2, color: "text-[var(--status-paid)]",    bar: "bg-[var(--status-paid)]",    count: paidCount,    pct: Math.round((paidCount / total) * 100) },
                     { key: "pending" as DocumentStatus, icon: Clock,        color: "text-[var(--status-pending)]", bar: "bg-[var(--status-pending)]", count: pendingCount, pct: Math.round((pendingCount / total) * 100) },
-                    { key: "overdue" as DocumentStatus, icon: AlertCircle,  color: "text-[var(--status-overdue)]", bar: "bg-[var(--status-overdue)]", count: overdueCount, pct: Math.round((overdueCount / total) * 100) },
+                    { key: "overdue" as DocumentStatus, icon: AlertCircle,  color: "text-[var(--status-overdue)]", bar: "bg-[var(--status-overdue)]", count: overdueBarCount, pct: Math.round((overdueBarCount / total) * 100) },
                   ].map(item => (
                     <div key={item.key}>
                       <div className="flex items-center justify-between mb-1">
