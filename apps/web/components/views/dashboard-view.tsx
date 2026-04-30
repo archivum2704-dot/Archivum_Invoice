@@ -12,6 +12,7 @@ import { useTranslations, useLocale } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useDocuments } from "@/lib/hooks/use-documents"
 import { useOverdueDocs } from "@/lib/hooks/use-overdue-docs"
+import { OnboardingChecklist } from "@/components/onboarding-checklist"
 import type { DocumentStatus, DocumentType } from "@/lib/supabase/types"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 
@@ -268,6 +269,9 @@ export function DashboardView() {
 
             {/* Right column */}
             <div className="flex flex-col gap-5">
+              {/* Onboarding checklist — visible until dismissed or completed */}
+              <OnboardingChecklist orgId={currentOrg?.id ?? null} />
+
               {/* Invoice Status */}
               <div className="bg-card border border-border rounded-xl p-5">
                 <h2 className="font-semibold text-foreground text-sm mb-4">{t("invoiceStatus")}</h2>
