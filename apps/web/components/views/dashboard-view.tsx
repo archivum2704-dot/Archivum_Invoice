@@ -4,13 +4,14 @@ import { useState } from "react"
 import {
   FileText, Receipt, Package, FolderOpen,
   TrendingUp, Clock, CheckCircle2, AlertCircle,
-  MoreHorizontal, ChevronRight, Plus, Search, Building2,
+  MoreHorizontal, ChevronRight, Plus, Search, Building2, X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useTranslations, useLocale } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useDocuments } from "@/lib/hooks/use-documents"
+import { useOverdueDocs } from "@/lib/hooks/use-overdue-docs"
 import type { DocumentStatus, DocumentType } from "@/lib/supabase/types"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 
@@ -36,8 +37,10 @@ export function DashboardView() {
   const tCommon = useTranslations("common")
   const locale = useLocale()
   const [searchQuery, setSearchQuery] = useState("")
+  const [dismissedOverdue, setDismissedOverdue] = useState(false)
   const { currentOrg, userProfile, loading: orgLoading } = useOrganization()
   const { documents, loading: docsLoading } = useDocuments(currentOrg?.id ?? null)
+  const { overdueDocs, overdueCount } = useOverdueDocs(currentOrg?.id ?? null)
 
   const loading = orgLoading || docsLoading
 
@@ -138,6 +141,53 @@ export function DashboardView() {
           </Link>
         </div>
       </div>
+
+      {/* Overdue alert banner */}
+      {overdueCount > 0 && !dismissedOverdue && (
+        <div className="mb-6 flex items-start gap-3 px-4 py-3.5 bg-[var(--status-overdue)]/8 border border-[var(--status-overdue)]/25 rounded-xl">
+          <AlertCircle className="w-4 h-4 text-[var(--status-overdue)] mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">
+              {overdueCount} documento{overdueCount > 1 ? "s" : ""} vencido{overdueCount > 1 ? "s" : ""}
+            </p>
+            <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+              {overdueDocs.slice(0, 3).map(doc => (
+                <Link
+                  key={doc.id}
+                  href={`/factura/${doc.id}`}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {doc.document_number ?? doc.id.slice(0, 8)}
+                  {doc.due_date && (
+                    <span className="text-[var(--status-overdue)] ml-1">
+                      · {new Date(doc.due_date).toLocaleDateString(locale, { day: "numeric", month: "short" })}
+                    </span>
+                  )}
+                </Link>
+              ))}
+              {overdueCount > 3 && (
+                <Link href="/biblioteca?status=overdue" className="text-xs text-accent hover:underline">
+                  +{overdueCount - 3} más →
+                </Link>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/biblioteca?status=overdue"
+              className="text-xs font-medium text-[var(--status-overdue)] hover:underline"
+            >
+              Ver todos
+            </Link>
+            <button
+              onClick={() => setDismissedOverdue(true)}
+              className="p-1 rounded hover:bg-muted transition-colors"
+            >
+              <X className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">

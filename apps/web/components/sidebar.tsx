@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils"
 import { useOrganization } from "@/lib/context/organization-context"
 import { createClient } from "@/lib/supabase/client"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { useOverdueDocs } from "@/lib/hooks/use-overdue-docs"
 
 export function Sidebar() {
   const t = useTranslations("nav")
@@ -30,6 +31,7 @@ export function Sidebar() {
   const { currentOrg, userOrgs, userProfile, currentMember, isPlatformAdmin, isOrgAdmin, switchOrganization } =
     useOrganization()
   const [showOrgMenu, setShowOrgMenu] = useState(false)
+  const { overdueCount } = useOverdueDocs(currentOrg?.id ?? null)
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -86,6 +88,7 @@ export function Sidebar() {
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map((item) => {
           const active = pathname === item.href
+          const showBadge = item.href === "/biblioteca" && overdueCount > 0
           return (
             <Link
               key={item.href}
@@ -99,7 +102,12 @@ export function Sidebar() {
             >
               <item.icon className="w-4 h-4 shrink-0" />
               <span className="flex-1">{item.label}</span>
-              {active && <ChevronRight className="w-3.5 h-3.5 opacity-70" />}
+              {showBadge && (
+                <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--status-overdue)] text-white text-[10px] font-bold flex items-center justify-center">
+                  {overdueCount > 99 ? "99+" : overdueCount}
+                </span>
+              )}
+              {active && !showBadge && <ChevronRight className="w-3.5 h-3.5 opacity-70" />}
             </Link>
           )
         })}
