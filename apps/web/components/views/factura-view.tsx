@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import {
   ArrowLeft, Download, FileText, Building2, Calendar,
   Hash, Clock, CheckCircle2, AlertCircle, FileX,
-  ChevronRight, Plus, ArrowRight,
+  ChevronRight, Plus, ArrowRight, Pencil,
 } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
@@ -326,6 +326,15 @@ export function FacturaView({ id }: FacturaViewProps) {
               </button>
             ))}
           </div>
+
+          {/* Edit button */}
+          <Link
+            href={`/factura/${doc.id}/editar`}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-card border border-border text-foreground rounded-lg hover:bg-muted transition-colors"
+          >
+            <Pencil className="w-4 h-4" />
+            Editar
+          </Link>
 
           {/* Next step shortcut (desktop) */}
           {WORKFLOW_NEXT[doc.document_type as DocumentType] &&

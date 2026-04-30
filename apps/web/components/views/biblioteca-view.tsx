@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import {
   FileText, Package, Receipt, FolderOpen,
-  Search, Filter, Grid3X3, List, Plus, MoreHorizontal, Download, Eye, ChevronDown, FileSpreadsheet,
+  Search, Filter, Grid3X3, List, Plus, MoreHorizontal, Download, Eye, ChevronDown, FileSpreadsheet, Pencil,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -270,15 +270,12 @@ export function BibliotecaView() {
                         <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", STATUS_STYLES[doc.status] ?? "bg-muted text-muted-foreground")}>{tStatuses(doc.status as any)}</span>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Link href={`/factura/${doc.id}`} className="p-1.5 rounded hover:bg-muted transition-colors">
+                        <Link href={`/factura/${doc.id}`} className="p-1.5 rounded hover:bg-muted transition-colors" title="Ver">
                           <Eye className="w-3.5 h-3.5 text-muted-foreground" />
                         </Link>
-                        <button className="p-1.5 rounded hover:bg-muted transition-colors">
-                          <Download className="w-3.5 h-3.5 text-muted-foreground" />
-                        </button>
-                        <button className="p-1.5 rounded hover:bg-muted transition-colors">
-                          <MoreHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
-                        </button>
+                        <Link href={`/factura/${doc.id}/editar`} className="p-1.5 rounded hover:bg-muted transition-colors" title="Editar">
+                          <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                        </Link>
                       </div>
                     </div>
                   )
