@@ -75,7 +75,7 @@ export function Sidebar() {
     (userProfile?.last_name?.charAt(0) ?? "")
 
   return (
-    <aside className="flex flex-col w-64 min-h-screen bg-sidebar border-r border-sidebar-border shrink-0">
+    <aside className="flex flex-col w-64 h-full bg-sidebar border-r border-sidebar-border shrink-0">
       {/* Logo */}
       <div className="flex flex-col px-5 py-5 border-b border-sidebar-border gap-1">
         <Logo size={40} invert textClassName="text-sidebar-foreground text-base" />
