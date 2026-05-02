@@ -24,7 +24,7 @@ import { createClient } from "@/lib/supabase/client"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useOverdueDocs } from "@/lib/hooks/use-overdue-docs"
 
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   const t = useTranslations("nav")
   const pathname = usePathname()
   const router = useRouter()
@@ -77,11 +77,21 @@ export function Sidebar() {
   return (
     <aside className="flex flex-col w-64 h-full bg-sidebar border-r border-sidebar-border shrink-0">
       {/* Logo */}
-      <div className="flex flex-col px-5 py-5 border-b border-sidebar-border gap-1">
-        <Logo size={40} invert textClassName="text-sidebar-foreground text-base" />
-        <p className="text-xs text-sidebar-foreground/50 pl-[52px]">
-          {isPlatformAdmin ? "Platform Admin" : currentOrg?.name ?? ""}
-        </p>
+      <div className="flex items-start justify-between px-5 py-5 border-b border-sidebar-border">
+        <div className="flex flex-col gap-1">
+          <Logo size={40} invert textClassName="text-sidebar-foreground text-base" />
+          <p className="text-xs text-sidebar-foreground/50 pl-[52px]">
+            {isPlatformAdmin ? "Platform Admin" : currentOrg?.name ?? ""}
+          </p>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-sidebar-accent transition-colors lg:hidden mt-0.5"
+          >
+            <X className="w-4 h-4 text-sidebar-foreground/70" />
+          </button>
+        )}
       </div>
 
       {/* Navigation */}

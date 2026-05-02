@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import {
   FileText, Receipt, Package, FolderOpen,
   TrendingUp, Clock, CheckCircle2, AlertCircle,
   MoreHorizontal, ChevronRight, Plus, Search, Building2, X,
+  Euro, ArrowUpRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -45,43 +46,78 @@ export function DashboardView() {
 
   const loading = orgLoading || docsLoading
 
-  const stats = loading ? [] : [
-    {
-      label: t("stats.totalDocuments"),
-      value: documents.length,
-      delta: t("stats.thisMonth"),
-      icon: FolderOpen,
-      color: "text-primary",
-    },
-    {
-      label: t("stats.invoices"),
-      value: documents.filter(d => d.document_type === "invoice_issued" || d.document_type === "invoice_received").length,
-      delta: t("stats.thisMonth"),
-      icon: FileText,
-      color: "text-accent",
-    },
-    {
-      label: t("stats.deliveryNotes"),
-      value: documents.filter(d => d.document_type === "delivery_note").length,
-      delta: t("stats.thisMonth"),
-      icon: Package,
-      color: "text-[var(--status-paid)]",
-    },
-    {
-      label: t("stats.receipts"),
-      value: documents.filter(d => d.document_type === "receipt").length,
-      delta: t("stats.thisMonth"),
-      icon: Receipt,
-      color: "text-[var(--status-pending)]",
-    },
-  ]
-
   const recentDocs = documents.slice(0, 6)
+
+  const kpis = useMemo(() => {
+    const sum = (pred: (d: typeof documents[0]) => boolean) =>
+      documents.filter(pred).reduce((acc, d) => acc + (d.total ?? 0), 0)
+
+    const paidAmount    = sum(d => d.status === "paid")
+    const pendingAmount = sum(d => d.status === "pending")
+    const overdueAmount = sum(d => d.status === "overdue")
+    const totalDocs     = documents.length
+
+    const fmt = (n: number) =>
+      n >= 1_000_000
+        ? `${(n / 1_000_000).toFixed(1)}M €`
+        : n >= 10_000
+        ? `${(n / 1_000).toFixed(1)}k €`
+        : n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €"
+
+    return [
+      {
+        label: t("stats.totalDocuments"),
+        value: String(totalDocs),
+        sub: `${documents.filter(d => {
+          if (!d.issue_date) return false
+          const m = new Date(d.issue_date).getMonth()
+          return m === new Date().getMonth()
+        }).length} este mes`,
+        icon: FolderOpen,
+        iconBg: "bg-primary/10",
+        iconColor: "text-primary",
+        isAmount: false,
+      },
+      {
+        label: "Cobrado",
+        value: fmt(paidAmount),
+        sub: `${documents.filter(d => d.status === "paid").length} docs pagados`,
+        icon: CheckCircle2,
+        iconBg: "bg-[var(--status-paid)]/10",
+        iconColor: "text-[var(--status-paid)]",
+        isAmount: true,
+      },
+      {
+        label: "Pendiente de cobro",
+        value: fmt(pendingAmount),
+        sub: `${documents.filter(d => d.status === "pending").length} docs pendientes`,
+        icon: Clock,
+        iconBg: "bg-[var(--status-pending)]/10",
+        iconColor: "text-[var(--status-pending)]",
+        isAmount: true,
+      },
+      {
+        label: "Vencido",
+        value: fmt(overdueAmount),
+        sub: `${documents.filter(d => d.status === "overdue").length} docs vencidos`,
+        icon: AlertCircle,
+        iconBg: "bg-[var(--status-overdue)]/10",
+        iconColor: "text-[var(--status-overdue)]",
+        isAmount: true,
+      },
+    ]
+  }, [documents, locale])
 
   const paidCount        = documents.filter(d => d.status === "paid").length
   const pendingCount     = documents.filter(d => d.status === "pending").length
   const overdueBarCount  = documents.filter(d => d.status === "overdue").length
   const total = paidCount + pendingCount + overdueBarCount || 1
+
+  const amountByStatus = useMemo(() => {
+    const sum = (status: string) =>
+      documents.filter(d => d.status === status).reduce((acc, d) => acc + (d.total ?? 0), 0)
+    return { paid: sum("paid"), pending: sum("pending"), overdue: sum("overdue") }
+  }, [documents])
 
   const firstName = userProfile?.first_name ?? ""
 
@@ -196,20 +232,21 @@ export function DashboardView() {
         </div>
       ) : (
         <>
-          {/* Stats Grid */}
+          {/* KPI Cards */}
           <div className="grid grid-cols-4 gap-4 mb-8">
-            {stats.map(stat => (
-              <div key={stat.label} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
+            {kpis.map(kpi => (
+              <div key={kpi.label} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-sm">{stat.label}</span>
-                  <stat.icon className={cn("w-4 h-4", stat.color)} />
+                  <span className="text-muted-foreground text-sm">{kpi.label}</span>
+                  <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", kpi.iconBg)}>
+                    <kpi.icon className={cn("w-4 h-4", kpi.iconColor)} />
+                  </div>
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3 text-[var(--status-paid)]" />
-                    {stat.delta}
+                  <p className={cn("font-bold text-foreground leading-none", kpi.isAmount ? "text-2xl" : "text-3xl")}>
+                    {kpi.value}
                   </p>
+                  <p className="text-xs text-muted-foreground mt-1.5">{kpi.sub}</p>
                 </div>
               </div>
             ))}
@@ -277,9 +314,9 @@ export function DashboardView() {
                 <h2 className="font-semibold text-foreground text-sm mb-4">{t("invoiceStatus")}</h2>
                 <div className="space-y-3">
                   {[
-                    { key: "paid" as DocumentStatus,    icon: CheckCircle2, color: "text-[var(--status-paid)]",    bar: "bg-[var(--status-paid)]",    count: paidCount,    pct: Math.round((paidCount / total) * 100) },
-                    { key: "pending" as DocumentStatus, icon: Clock,        color: "text-[var(--status-pending)]", bar: "bg-[var(--status-pending)]", count: pendingCount, pct: Math.round((pendingCount / total) * 100) },
-                    { key: "overdue" as DocumentStatus, icon: AlertCircle,  color: "text-[var(--status-overdue)]", bar: "bg-[var(--status-overdue)]", count: overdueBarCount, pct: Math.round((overdueBarCount / total) * 100) },
+                    { key: "paid" as DocumentStatus,    icon: CheckCircle2, color: "text-[var(--status-paid)]",    bar: "bg-[var(--status-paid)]",    count: paidCount,       pct: Math.round((paidCount / total) * 100),       amount: amountByStatus.paid },
+                    { key: "pending" as DocumentStatus, icon: Clock,        color: "text-[var(--status-pending)]", bar: "bg-[var(--status-pending)]", count: pendingCount,    pct: Math.round((pendingCount / total) * 100),    amount: amountByStatus.pending },
+                    { key: "overdue" as DocumentStatus, icon: AlertCircle,  color: "text-[var(--status-overdue)]", bar: "bg-[var(--status-overdue)]", count: overdueBarCount, pct: Math.round((overdueBarCount / total) * 100), amount: amountByStatus.overdue },
                   ].map(item => (
                     <div key={item.key}>
                       <div className="flex items-center justify-between mb-1">
@@ -287,7 +324,12 @@ export function DashboardView() {
                           <item.icon className={cn("w-3.5 h-3.5", item.color)} />
                           <span className="text-sm text-foreground">{tDoc(`statuses.${item.key}`)}</span>
                         </div>
-                        <span className="text-sm font-semibold text-foreground">{item.count}</span>
+                        <div className="text-right">
+                          <span className="text-sm font-semibold text-foreground block leading-none">
+                            {item.amount.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">{item.count} docs</span>
+                        </div>
                       </div>
                       <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                         <div className={cn("h-full rounded-full", item.bar)} style={{ width: `${item.pct}%` }} />

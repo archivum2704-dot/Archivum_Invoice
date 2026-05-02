@@ -115,15 +115,14 @@ export function EmpresasView() {
   const empresas = companies.map((company, index) => ({
     id: company.id,
     name: company.name,
-    cif: company.cif,
+    cif: company.cif ?? "",
     sector: company.sector || "General",
     city: company.city || "—",
     phone: company.phone || "—",
     email: company.email || "—",
     docs: 0,
-    total: `${company.total_invoiced.toFixed(2)} €`,
     color: AVATAR_COLORS[index % AVATAR_COLORS.length],
-    initials: company.name.split(" ").slice(0, 2).map((w: string) => w[0]).join(""),
+    initials: company.name.split(" ").slice(0, 2).map((w: string) => w[0] ?? "").join(""),
   }))
 
   const filtered = empresas.filter(
@@ -230,10 +229,9 @@ export function EmpresasView() {
                     <span className="font-semibold text-foreground">{empresa.docs}</span>
                     <span className="text-muted-foreground">{t("docs")}</span>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">{t("totalBilled")}</p>
-                    <p className="text-sm font-semibold text-foreground">{empresa.total}</p>
-                  </div>
+                  {empresa.cif && (
+                    <p className="text-xs text-muted-foreground font-mono">{empresa.cif}</p>
+                  )}
                 </div>
               </div>
 
