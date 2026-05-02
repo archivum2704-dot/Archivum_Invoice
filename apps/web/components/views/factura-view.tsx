@@ -364,17 +364,31 @@ export function FacturaView({ id }: FacturaViewProps) {
       {/* ── Body ───────────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden min-h-0">
 
-        {/* PDF Panel */}
+        {/* PDF / Image Panel */}
         <div className={cn(
           "flex-1 bg-zinc-100 dark:bg-zinc-900 overflow-hidden min-w-0",
           mobileTab === "details" ? "hidden lg:flex" : "flex"
         )}>
           {pdfUrl ? (
-            <iframe
-              src={pdfUrl}
-              className="w-full h-full border-0"
-              title={doc.file_name ?? "Document preview"}
-            />
+            (() => {
+              const name = (doc.file_name ?? "").toLowerCase()
+              const isImage = /\.(jpe?g|png|webp|gif)$/i.test(name)
+              return isImage ? (
+                <div className="w-full h-full flex items-center justify-center p-6 overflow-auto">
+                  <img
+                    src={pdfUrl}
+                    alt={doc.file_name ?? "Document preview"}
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                  />
+                </div>
+              ) : (
+                <iframe
+                  src={pdfUrl}
+                  className="w-full h-full border-0"
+                  title={doc.file_name ?? "Document preview"}
+                />
+              )
+            })()
           ) : (
             <div className="flex flex-col items-center justify-center w-full h-full gap-5 text-muted-foreground">
               <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center">

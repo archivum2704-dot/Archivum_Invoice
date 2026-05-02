@@ -1,15 +1,17 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef, useEffect } from "react"
 import {
   Search, SlidersHorizontal, FileText, Package, Receipt,
   CalendarDays, Tag, X, ChevronRight, ArrowUpDown, FolderOpen,
+  FileSpreadsheet, ChevronDown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useTranslations, useLocale } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useDocuments } from "@/lib/hooks/use-documents"
+import { downloadCSV, downloadExcel } from "@/lib/utils/export"
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
   invoice_issued:   FileText,
@@ -41,10 +43,12 @@ const DOC_STATUSES = ["paid", "pending", "overdue", "draft", "cancelled"] as con
 type SortKey = "date_desc" | "date_asc" | "amount_desc" | "amount_asc"
 
 export function BuscadorView() {
-  const t        = useTranslations("documents.search")
-  const tTypes   = useTranslations("documents.types")
+  const t         = useTranslations("documents.search")
+  const tTypes    = useTranslations("documents.types")
   const tStatuses = useTranslations("documents.statuses")
-  const locale   = useLocale()
+  const tExport   = useTranslations("documents.export")
+  const tFields   = useTranslations("documents.fields")
+  const locale    = useLocale()
 
   const [query,            setQuery]            = useState("")
   const [selectedTypes,    setSelectedTypes]    = useState<string[]>([])
@@ -54,9 +58,23 @@ export function BuscadorView() {
   const [amountMin,        setAmountMin]        = useState("")
   const [amountMax,        setAmountMax]        = useState("")
   const [sortKey,          setSortKey]          = useState<SortKey>("date_desc")
+  const [showExportMenu,   setShowExportMenu]   = useState(false)
+
+  const exportRef = useRef<HTMLDivElement>(null)
 
   const { currentOrg } = useOrganization()
   const { documents, loading } = useDocuments(currentOrg?.id ?? null)
+
+  // Close export dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false)
+      }
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
 
   const toggle = (arr: string[], setArr: (a: string[]) => void, val: string) =>
     setArr(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
@@ -76,7 +94,6 @@ export function BuscadorView() {
     const maxA = amountMax ? parseFloat(amountMax.replace(",", ".")) : null
 
     let filtered = documents.filter(d => {
-      // Full-text search across number, company, notes, description
       if (q) {
         const haystack = [
           d.document_number ?? "",
@@ -86,8 +103,8 @@ export function BuscadorView() {
         ].join(" ").toLowerCase()
         if (!haystack.includes(q)) return false
       }
-      if (selectedTypes.length   && !selectedTypes.includes(d.document_type)) return false
-      if (selectedStatuses.length && !selectedStatuses.includes(d.status))    return false
+      if (selectedTypes.length    && !selectedTypes.includes(d.document_type)) return false
+      if (selectedStatuses.length && !selectedStatuses.includes(d.status))     return false
       if (dateFrom && d.issue_date && d.issue_date < dateFrom)  return false
       if (dateTo   && d.issue_date && d.issue_date > dateTo)    return false
       if (minA != null && (d.total ?? 0) < minA) return false
@@ -95,7 +112,6 @@ export function BuscadorView() {
       return true
     })
 
-    // Sort
     filtered = [...filtered].sort((a, b) => {
       switch (sortKey) {
         case "date_asc":    return (a.issue_date ?? "").localeCompare(b.issue_date ?? "")
@@ -108,11 +124,78 @@ export function BuscadorView() {
     return filtered
   }, [documents, query, selectedTypes, selectedStatuses, dateFrom, dateTo, amountMin, amountMax, sortKey])
 
+  const exportLabels = {
+    number: tFields("number"),
+    type: tFields("type"),
+    company: tFields("company"),
+    cif: "CIF/NIF",
+    status: tFields("status"),
+    subtotal: "Subtotal",
+    taxRate: "% IVA",
+    taxAmount: "Cuota IVA",
+    total: tFields("amount"),
+    currency: tExport("currency"),
+    issueDate: tFields("issueDate"),
+    dueDate: tFields("dueDate"),
+    paymentDate: tFields("paymentDate"),
+    description: tFields("description"),
+    notes: tFields("notes"),
+  }
+
+  const orgSlug = currentOrg?.slug ?? "archivum"
+  const today   = new Date().toISOString().slice(0, 10)
+
+  const handleExportCSV = () => {
+    downloadCSV(results, exportLabels, k => tTypes(k as any), k => tStatuses(k as any), `${orgSlug}_busqueda_${today}.csv`)
+    setShowExportMenu(false)
+  }
+  const handleExportExcel = () => {
+    downloadExcel(results, exportLabels, k => tTypes(k as any), k => tStatuses(k as any), `${orgSlug}_busqueda_${today}.xls`)
+    setShowExportMenu(false)
+  }
+
   return (
     <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm mt-1">{t("subtitle")}</p>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">{t("title")}</h1>
+          <p className="text-muted-foreground text-sm mt-1">{t("subtitle")}</p>
+        </div>
+
+        {/* Export dropdown */}
+        <div className="relative" ref={exportRef}>
+          <button
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            disabled={results.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground text-sm font-medium rounded-lg hover:bg-muted transition-colors disabled:opacity-40"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            {tExport("button")}
+            <ChevronDown className={cn("w-3.5 h-3.5 text-muted-foreground transition-transform", showExportMenu && "rotate-180")} />
+          </button>
+          {showExportMenu && (
+            <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-xl shadow-lg z-20 overflow-hidden w-52">
+              <div className="px-3 py-2 border-b border-border">
+                <p className="text-xs text-muted-foreground">{tExport("subtitle", { count: results.length })}</p>
+              </div>
+              <button onClick={handleExportCSV} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-muted transition-colors text-left">
+                <span className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold shrink-0">CSV</span>
+                <div>
+                  <p className="text-sm font-medium text-foreground">{tExport("csv")}</p>
+                  <p className="text-xs text-muted-foreground">{tExport("csvHint")}</p>
+                </div>
+              </button>
+              <button onClick={handleExportExcel} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-muted transition-colors text-left">
+                <span className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0">XLS</span>
+                <div>
+                  <p className="text-sm font-medium text-foreground">{tExport("excel")}</p>
+                  <p className="text-xs text-muted-foreground">{tExport("excelHint")}</p>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Search bar */}

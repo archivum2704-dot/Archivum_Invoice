@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import {
   FileText, Package, Receipt, FolderOpen,
-  Search, Filter, Grid3X3, List, Plus, MoreHorizontal, Download, Eye, ChevronDown, FileSpreadsheet, Pencil,
+  Search, Filter, Grid3X3, List, Plus, Download, Eye, ChevronDown, FileSpreadsheet, Pencil,
+  ChevronLeft, ChevronRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -38,11 +39,14 @@ export function BibliotecaView() {
   const tFields = useTranslations("documents.fields")
   const tExport = useTranslations("documents.export")
 
+  const PAGE_SIZE = 20
+
   const [viewMode, setViewMode] = useState<"grid" | "list">("list")
   const [search, setSearch] = useState("")
   const [filterType, setFilterType] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
   const [showExportMenu, setShowExportMenu] = useState(false)
+  const [page, setPage] = useState(1)
   const exportRef = useRef<HTMLDivElement>(null)
 
   const { currentOrg } = useOrganization()
@@ -90,13 +94,20 @@ export function BibliotecaView() {
     setShowExportMenu(false)
   }
 
-  const filtered = documents.filter((d) => {
+  const filtered = useMemo(() => documents.filter((d) => {
     const matchSearch =
-      (d.document_number ?? "").toLowerCase().includes(search.toLowerCase())
+      (d.document_number ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (d.company?.name ?? "").toLowerCase().includes(search.toLowerCase())
     const matchType = filterType === "all" || d.document_type === filterType
     const matchStatus = filterStatus === "all" || d.status === filterStatus
     return matchSearch && matchType && matchStatus
-  })
+  }), [documents, search, filterType, filterStatus])
+
+  // Reset to page 1 when filters change
+  useEffect(() => { setPage(1) }, [search, filterType, filterStatus])
+
+  const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const paginated   = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const getTypeStyle = (type: string) => TYPE_STYLES[type] ?? { icon: FileText, className: "bg-muted text-muted-foreground" }
 
@@ -250,7 +261,7 @@ export function BibliotecaView() {
                 <span />
               </div>
               <div className="divide-y divide-border">
-                {filtered.map((doc) => {
+                {paginated.map((doc) => {
                   const { icon: Icon, className: typeClass } = getTypeStyle(doc.document_type)
                   return (
                     <div key={doc.id} className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1.5fr_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-colors group">
@@ -286,7 +297,7 @@ export function BibliotecaView() {
 
           {viewMode === "grid" && (
             <div className="grid grid-cols-4 gap-4">
-              {filtered.map((doc) => {
+              {paginated.map((doc) => {
                 const { icon: Icon, className: typeClass } = getTypeStyle(doc.document_type)
                 return (
                   <Link href={`/factura/${doc.id}`} key={doc.id} className="bg-card border border-border rounded-xl p-4 hover:shadow-md transition-shadow">
@@ -306,6 +317,60 @@ export function BibliotecaView() {
                   </Link>
                 )
               })}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 px-1">
+              <p className="text-xs text-muted-foreground">
+                Mostrando{" "}
+                <span className="font-medium text-foreground">
+                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)}
+                </span>{" "}
+                de <span className="font-medium text-foreground">{filtered.length}</span>
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-1.5 rounded-lg border border-border hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(n => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+                  .reduce<(number | "…")[]>((acc, n, idx, arr) => {
+                    if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("…")
+                    acc.push(n)
+                    return acc
+                  }, [])
+                  .map((n, i) =>
+                    n === "…" ? (
+                      <span key={`e${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                    ) : (
+                      <button
+                        key={n}
+                        onClick={() => setPage(n as number)}
+                        className={cn(
+                          "min-w-[32px] h-8 px-2 text-xs rounded-lg border transition-colors",
+                          page === n
+                            ? "bg-primary text-primary-foreground border-primary font-semibold"
+                            : "border-border hover:bg-muted text-foreground"
+                        )}
+                      >
+                        {n}
+                      </button>
+                    )
+                  )}
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="p-1.5 rounded-lg border border-border hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
         </>
