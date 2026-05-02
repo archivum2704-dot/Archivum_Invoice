@@ -142,7 +142,7 @@ export function DashboardView() {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">
             {firstName ? t("welcome", { name: firstName }) : t("title")}
@@ -151,7 +151,7 @@ export function DashboardView() {
             {new Date().toLocaleDateString(locale, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -159,12 +159,12 @@ export function DashboardView() {
               placeholder={tCommon("search")}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 text-sm bg-card border border-border rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+              className="pl-9 pr-4 py-2 text-sm bg-card border border-border rounded-lg w-44 sm:w-56 focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
             />
           </div>
           <Link
             href="/empresas"
-            className="flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground text-sm font-medium rounded-lg hover:bg-muted transition-colors"
+            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground text-sm font-medium rounded-lg hover:bg-muted transition-colors"
           >
             <Building2 className="w-4 h-4" />
             Nueva empresa
@@ -174,7 +174,8 @@ export function DashboardView() {
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            {t("newDocument")}
+            <span className="hidden sm:inline">{t("newDocument")}</span>
+            <span className="sm:hidden">Nuevo</span>
           </Link>
         </div>
       </div>
@@ -233,7 +234,7 @@ export function DashboardView() {
       ) : (
         <>
           {/* KPI Cards */}
-          <div className="grid grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {kpis.map(kpi => (
               <div key={kpi.label} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
@@ -252,9 +253,9 @@ export function DashboardView() {
             ))}
           </div>
 
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Recent Documents */}
-            <div className="col-span-2 bg-card border border-border rounded-xl overflow-hidden">
+            <div className="lg:col-span-2 bg-card border border-border rounded-xl overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                 <h2 className="font-semibold text-foreground text-sm">{t("recentDocuments")}</h2>
                 <Link href="/biblioteca" className="text-xs text-accent hover:underline flex items-center gap-1">

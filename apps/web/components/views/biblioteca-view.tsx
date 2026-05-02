@@ -250,7 +250,8 @@ export function BibliotecaView() {
       ) : (
         <>
           {viewMode === "list" && (
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="bg-card border border-border rounded-xl overflow-hidden overflow-x-auto">
+              <div className="min-w-[700px]">
               <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1.5fr_auto] gap-4 px-5 py-3 bg-muted/50 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 <span>{t("columns.document")}</span>
                 <span>{t("columns.company")}</span>
@@ -292,11 +293,12 @@ export function BibliotecaView() {
                   )
                 })}
               </div>
+              </div>
             </div>
           )}
 
           {viewMode === "grid" && (
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
               {paginated.map((doc) => {
                 const { icon: Icon, className: typeClass } = getTypeStyle(doc.document_type)
                 return (

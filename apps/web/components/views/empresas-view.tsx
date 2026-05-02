@@ -188,7 +188,7 @@ export function EmpresasView() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
           {filtered.map((empresa) => (
             <div key={empresa.id} className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-md transition-shadow group">
               <div className="h-1.5 bg-primary" />
