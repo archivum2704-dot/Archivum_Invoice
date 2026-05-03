@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
@@ -22,6 +23,8 @@ export default function SignupPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm]   = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -113,7 +116,23 @@ export default function SignupPage() {
             <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
               {t('password')}
             </label>
-            <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} disabled={loading} required />
+            <div className="relative">
+              <Input
+                id="password" name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password} onChange={handleChange}
+                disabled={loading} required
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
             <p className="text-xs text-muted-foreground mt-1">{t('passwordHint')}</p>
           </div>
 
@@ -121,7 +140,23 @@ export default function SignupPage() {
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground mb-2">
               {t('confirmPassword')}
             </label>
-            <Input id="confirmPassword" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} disabled={loading} required />
+            <div className="relative">
+              <Input
+                id="confirmPassword" name="confirmPassword"
+                type={showConfirm ? 'text' : 'password'}
+                value={formData.confirmPassword} onChange={handleChange}
+                disabled={loading} required
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                tabIndex={-1}
+              >
+                {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {error && (
