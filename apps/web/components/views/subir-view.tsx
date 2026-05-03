@@ -14,6 +14,22 @@ import { useOrganization } from "@/lib/context/organization-context"
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { createClient } from "@/lib/supabase/client"
 
+const CURRENCIES = [
+  { code: "EUR", label: "€ Euro" },
+  { code: "USD", label: "$ Dólar USA" },
+  { code: "GBP", label: "£ Libra esterlina" },
+  { code: "CHF", label: "CHF Franco suizo" },
+  { code: "MXN", label: "$ Peso mexicano" },
+  { code: "COP", label: "$ Peso colombiano" },
+  { code: "ARS", label: "$ Peso argentino" },
+  { code: "CLP", label: "$ Peso chileno" },
+  { code: "BRL", label: "R$ Real brasileño" },
+  { code: "CAD", label: "$ Dólar canadiense" },
+  { code: "AUD", label: "$ Dólar australiano" },
+  { code: "JPY", label: "¥ Yen japonés" },
+  { code: "CNY", label: "¥ Yuan chino" },
+]
+
 const DOC_TYPES = [
   "invoice_issued", "invoice_received", "delivery_note",
   "receipt", "order", "quote", "contract", "payroll", "tax", "other",
@@ -62,6 +78,7 @@ export function SubirView() {
   const [numero,     setNumero]     = useState("")
   const [etiquetas,  setEtiquetas]  = useState<string[]>([])
   const [notas,      setNotas]      = useState("")
+  const [moneda,     setMoneda]     = useState("EUR")
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState<string | null>(null)
   const [uploadedId, setUploadedId] = useState<string | null>(null)
@@ -105,7 +122,7 @@ export function SubirView() {
     setEtiquetas(prev => prev.includes(et) ? prev.filter(x => x !== et) : [...prev, et])
 
   const reset = () => {
-    setFiles([]); setNumero(""); setImporte(""); setNotas("")
+    setFiles([]); setNumero(""); setImporte(""); setNotas(""); setMoneda("EUR")
     setEtiquetas([]); setTipo(fromType ?? ""); setEmpresa(""); setEstado(""); setFecha("")
     setError(null); setUploadedId(null)
   }
@@ -161,7 +178,7 @@ export function SubirView() {
           document_type:      tipo as any,
           status:             (estado || "pending") as any,
           total:              totalAmount,
-          currency:           "EUR",
+          currency:           moneda,
           issue_date:         fecha || null,
           notes:              notas.trim() || null,
           file_url:           fileUrl,
@@ -355,8 +372,17 @@ export function SubirView() {
 
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">{t("amount")}</label>
-                  <input type="text" placeholder="0,00" value={importe} onChange={e => setImporte(e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground" />
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="0,00" value={importe} onChange={e => setImporte(e.target.value)}
+                      className="flex-1 min-w-0 px-3 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground" />
+                    <div className="relative">
+                      <select value={moneda} onChange={e => setMoneda(e.target.value)}
+                        className="appearance-none pl-2 pr-6 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground font-mono">
+                        {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
+                      </select>
+                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </div>
                 </div>
 
                 <div>

@@ -17,6 +17,22 @@ import type { Database } from "@/lib/supabase/types"
 
 type DocumentRow = Database["public"]["Tables"]["documents"]["Row"]
 
+const CURRENCIES = [
+  { code: "EUR", label: "€ Euro" },
+  { code: "USD", label: "$ Dólar USA" },
+  { code: "GBP", label: "£ Libra esterlina" },
+  { code: "CHF", label: "CHF Franco suizo" },
+  { code: "MXN", label: "$ Peso mexicano" },
+  { code: "COP", label: "$ Peso colombiano" },
+  { code: "ARS", label: "$ Peso argentino" },
+  { code: "CLP", label: "$ Peso chileno" },
+  { code: "BRL", label: "R$ Real brasileño" },
+  { code: "CAD", label: "$ Dólar canadiense" },
+  { code: "AUD", label: "$ Dólar australiano" },
+  { code: "JPY", label: "¥ Yen japonés" },
+  { code: "CNY", label: "¥ Yuan chino" },
+]
+
 const DOC_TYPES = [
   "invoice_issued", "invoice_received", "delivery_note",
   "receipt", "order", "quote", "contract", "payroll", "tax", "other",
@@ -54,6 +70,7 @@ export function EditarView({ id }: EditarViewProps) {
   const [numero,     setNumero]     = useState("")
   const [notas,      setNotas]      = useState("")
   const [descripcion, setDescripcion] = useState("")
+  const [moneda,     setMoneda]     = useState("EUR")
 
   // File replacement
   const [newFile,    setNewFile]    = useState<File | null>(null)
@@ -87,6 +104,7 @@ export function EditarView({ id }: EditarViewProps) {
         setFechaPago(d.payment_date ?? "")
         setSubtotal(d.subtotal != null ? d.subtotal.toFixed(2).replace(".", ",") : d.total != null ? d.total.toFixed(2).replace(".", ",") : "")
         setTaxRate(d.tax_rate != null ? String(d.tax_rate) : "21")
+        setMoneda(d.currency ?? "EUR")
         setNumero(d.document_number ?? "")
         setNotas(d.notes ?? "")
         setDescripcion(d.description ?? "")
@@ -152,6 +170,7 @@ export function EditarView({ id }: EditarViewProps) {
           payment_date:    fechaPago || null,
           notes:           notas.trim() || null,
           description:     descripcion.trim() || null,
+          currency:        moneda,
           ...(newFile && { file_url: fileUrl, file_name: fileName, file_size: fileSize, file_type: fileType }),
           updated_at: new Date().toISOString(),
         })
@@ -306,14 +325,24 @@ export function EditarView({ id }: EditarViewProps) {
 
             {/* Amounts */}
             <div className="bg-card border border-border rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-foreground mb-4">Importes</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-foreground">Importes</h2>
+                {/* Currency selector */}
+                <div className="relative">
+                  <select value={moneda} onChange={e => setMoneda(e.target.value)}
+                    className="appearance-none pl-2 pr-6 py-1 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground font-mono">
+                    {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.label.split(" ").slice(1).join(" ")}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+                </div>
+              </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">Base imponible</label>
                   <div className="relative">
                     <input type="text" placeholder="0,00" value={subtotal} onChange={e => setSubtotal(e.target.value)}
                       className="w-full px-3 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground" />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">€</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">{moneda}</span>
                   </div>
                 </div>
                 <div>
@@ -329,7 +358,7 @@ export function EditarView({ id }: EditarViewProps) {
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">Total</label>
                   <div className="px-3 py-2.5 text-sm bg-muted/50 border border-border rounded-lg text-foreground font-semibold">
-                    {computedTotal > 0 ? `${computedTotal.toLocaleString("es-ES", { minimumFractionDigits: 2 })} €` : "—"}
+                    {computedTotal > 0 ? `${computedTotal.toLocaleString("es-ES", { minimumFractionDigits: 2 })} ${moneda}` : "—"}
                   </div>
                 </div>
               </div>
