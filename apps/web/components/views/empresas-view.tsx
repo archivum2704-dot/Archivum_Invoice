@@ -120,7 +120,7 @@ export function EmpresasView() {
     city: company.city || "—",
     phone: company.phone || "—",
     email: company.email || "—",
-    docs: 0,
+    docs: company.doc_count,
     color: AVATAR_COLORS[index % AVATAR_COLORS.length],
     initials: company.name.split(" ").slice(0, 2).map((w: string) => w[0] ?? "").join(""),
   }))
