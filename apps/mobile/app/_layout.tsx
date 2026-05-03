@@ -8,6 +8,8 @@ import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider } from "@/context/auth-context";
 import { ThemeProvider } from "@/context/theme-context";
+// Local supabase client (uses EXPO_PUBLIC_ env vars — avoids shared lib issues)
+import "@/lib/supabase";
 
 SplashScreen.preventAutoHideAsync();
 

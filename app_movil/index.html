@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Archivum — Mobile Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --blue:#2563EB;--blue-l:#EFF6FF;--blue-m:#DBEAFE;
+    --green:#16A34A;--green-l:#F0FDF4;
+    --yellow:#D97706;--yellow-l:#FFFBEB;
+    --red:#DC2626;--red-l:#FEF2F2;
+    --gray:#6B7280;--gray-l:#F3F4F6;
+    --bg:#F9FAFB;--surface:#FFFFFF;--text:#111827;--muted:#6B7280;--border:#E5E7EB;
+    --dbg:#111827;--dsurf:#1F2937;--dsurf2:#374151;--dtext:#F9FAFB;--dmuted:#9CA3AF;--dborder:#374151;
+    --r-card:14px;--r-chip:8px;--r-btn:10px;
+    --font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+    --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+    --shadow-md:0 4px 12px rgba(0,0,0,.1);
+  }
+  html,body{background:#E5E7EB;font-family:var(--font);min-height:100%;}
+  /* Phone frame */
+  .phone{width:375px;height:812px;background:var(--bg);border-radius:44px;overflow:hidden;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.25),0 0 0 1px rgba(0,0,0,.1);flex-shrink:0;}
+  .phone.dark{background:var(--dbg);}
+  .phone-screen{width:100%;height:100%;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+  /* Status bar */
+  .status-bar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:12px 24px 0;flex-shrink:0;font-size:12px;font-weight:600;}
+  /* Bottom safe area */
+  .home-ind{height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .home-ind-bar{width:134px;height:5px;background:rgba(0,0,0,.2);border-radius:3px;}
+  .dark .home-ind-bar{background:rgba(255,255,255,.2);}
+  /* Scrollable content */
+  .screen-body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+  .screen-body::-webkit-scrollbar{display:none;}
+  /* Bottom tab bar */
+  .tab-bar{height:49px;display:flex;align-items:center;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;padding:0 4px;}
+  .dark .tab-bar{background:var(--dsurf);border-color:var(--dborder);}
+  .tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:4px 0;position:relative;}
+  .tab-item svg{width:22px;height:22px;}
+  .tab-label{font-size:10px;font-weight:500;}
+  /* Cards */
+  .card{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow);padding:16px;}
+  .dark .card{background:var(--dsurf);}
+  /* Chips */
+  .chip{display:inline-flex;align-items:center;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap;cursor:pointer;}
+  /* Badges */
+  .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;}
+  .badge-green{background:var(--green-l);color:var(--green);}
+  .badge-yellow{background:var(--yellow-l);color:var(--yellow);}
+  .badge-red{background:var(--red-l);color:var(--red);}
+  .badge-gray{background:var(--gray-l);color:var(--gray);}
+  .badge-blue{background:var(--blue-l);color:var(--blue);}
+  /* Inputs */
+  .inp{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r-btn);font-size:15px;font-family:var(--font);background:var(--surface);color:var(--text);outline:none;}
+  .inp:focus{border-color:var(--blue);}
+  .dark .inp{background:var(--dsurf2);border-color:var(--dborder);color:var(--dtext);}
+  /* Buttons */
+  .btn-primary{width:100%;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:var(--r-btn);font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;}
+  .btn-secondary{width:100%;padding:13px;background:transparent;color:var(--blue);border:1.5px solid var(--blue);border-radius:var(--r-btn);font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;}
+  /* FAB */
+  .fab{position:absolute;bottom:70px;right:20px;width:52px;height:52px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,99,235,.4);cursor:pointer;z-index:10;}
+  /* Doc row */
+  .doc-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface);}
+  .dark .doc-row{background:var(--dsurf);border-color:var(--dborder);}
+  /* Section headers in gallery */
+  .section-header{display:flex;flex-direction:column;gap:4px;margin-bottom:20px;}
+  /* Skeleton shimmer */
+  @keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+  .skeleton{background:linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%);background-size:800px 100%;animation:shimmer 1.4s infinite;border-radius:6px;}
+  .dark .skeleton{background:linear-gradient(90deg,#374151 25%,#4B5563 50%,#374151 75%);background-size:800px 100%;animation:shimmer 1.4s infinite;}
+  /* Pulse for live dot */
+  @keyframes pulse-ring{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.6);opacity:0}100%{transform:scale(1.6);opacity:0}}
+  .pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--green);position:relative;display:inline-block;}
+  .pulse-dot::after{content:'';position:absolute;inset:-2px;border-radius:50%;background:var(--green);animation:pulse-ring 1.8s infinite;}
+  /* Bottom sheet overlay */
+  .sheet-overlay{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;flex-direction:column;justify-content:flex-end;}
+  .sheet{background:var(--surface);border-radius:20px 20px 0 0;padding:0 0 20px;}
+  .dark .sheet{background:var(--dsurf);}
+  .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;}
+  /* Gallery wrapper */
+  .gallery{display:flex;flex-wrap:wrap;gap:32px;padding:40px;justify-content:center;align-items:flex-start;}
+  .screen-group{display:flex;flex-direction:column;gap:12px;align-items:center;}
+  .screen-label{font-size:13px;font-weight:600;color:#374151;text-align:center;letter-spacing:.3px;}
+  .screen-sublabel{font-size:11px;color:#9CA3AF;text-align:center;}
+  /* Page title */
+  .page-title{font-size:28px;font-weight:800;color:var(--text);padding:20px 20px 0;}
+  .dark .page-title{color:var(--dtext);}
+  /* Group label */
+  .group-label{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#9CA3AF;padding:32px 40px 8px;width:100%;}
+  /* Swipe hint */
+  .swipe-actions{position:absolute;right:0;top:0;height:100%;display:flex;align-items:center;}
+  .swipe-btn{height:100%;display:flex;align-items:center;justify-content:center;padding:0 18px;font-size:12px;font-weight:600;color:#fff;}
+  /* Progress bar */
+  .progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--blue);border-radius:2px;transition:width .3s;}
+  /* Chart container */
+  .chart-wrap{position:relative;height:160px;}
+  /* Avatar */
+  .avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0;}
+  /* Step indicator */
+  .step-dot{width:8px;height:8px;border-radius:50%;}
+</style>
+</head>
+<body>
+
+<script>
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accentColor": "#2563EB",
+  "darkMode": false,
+  "showAnnotations": true,
+  "phoneScale": 0.85
+}/*EDITMODE-END*/;
+const TWEAK_SCHEMA = /*TWEAK-SCHEMA-BEGIN*/{
+  "accentColor": {
+    "kind": "color"
+  },
+  "darkMode": {
+    "kind": "boolean"
+  },
+  "showAnnotations": {
+    "kind": "boolean"
+  },
+  "phoneScale": {
+    "kind": "number",
+    "min": 0.6,
+    "max": 1,
+    "step": 0.05
+  }
+}/*TWEAK-SCHEMA-END*/;
+</script>
+
+<div id="root"></div>
+
+<script type="text/babel">
+// ─── Icons (inline SVG) ──────────────────────────────────────────────────────
+const Ico = {
+  home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>,
+  library: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>,
+  search: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  companies: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>,
+  settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
+  plus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  eye: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+  eyeOff: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
+  filter: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
+  download: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+  edit: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  trash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>,
+  chevronRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+  chevronLeft: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
+  bell: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
+  camera: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>,
+  file: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>,
+  image: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
+  check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  copy: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>,
+  alert: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  logout: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  user: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  globe: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>,
+  moon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>,
+  link: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>,
+  sort: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/></svg>,
+  moreV: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>,
+  star: <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+};
+
+// ─── Archivum Logo Components ────────────────────────────────────────────────
+// Reconstructed from brand asset: two overlapping document shapes (navy + teal)
+// with the wordmark "archivum" in a rounded-sans font.
+function ArchivumLogo({size=48, showWordmark=true}) {
+  const u = size;
+  // Document icon: back page (teal/cyan), front page (navy), slightly offset
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:showWordmark ? Math.round(u*0.18) : 0}}>
+      {/* Icon mark */}
+      <svg width={u} height={Math.round(u*1.02)} viewBox="0 0 100 102" fill="none" aria-hidden="true">
+        {/* Back document — teal, rotated slightly to the right */}
+        <g transform="rotate(8, 50, 51)">
+          <rect x="16" y="12" width="62" height="78" rx="8" fill="#3BBFCE"/>
+          <rect x="28" y="30" width="38" height="5" rx="2.5" fill="rgba(255,255,255,0.55)"/>
+          <rect x="28" y="42" width="28" height="4" rx="2" fill="rgba(255,255,255,0.4)"/>
+          <rect x="28" y="53" width="32" height="4" rx="2" fill="rgba(255,255,255,0.35)"/>
+          {/* Folded top-right corner */}
+          <path d="M63 12 L78 12 L78 26 Z" fill="rgba(0,0,0,0.12)"/>
+          <path d="M63 12 L63 26 L78 26" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" fill="none"/>
+        </g>
+        {/* Front document — deep navy, slightly left */}
+        <g transform="rotate(-5, 50, 51)">
+          <rect x="12" y="10" width="62" height="78" rx="8" fill="#0F2B5B"/>
+          <rect x="24" y="28" width="38" height="5" rx="2.5" fill="rgba(255,255,255,0.5)"/>
+          <rect x="24" y="40" width="28" height="4" rx="2" fill="rgba(255,255,255,0.35)"/>
+          <rect x="24" y="51" width="32" height="4" rx="2" fill="rgba(255,255,255,0.3)"/>
+          <rect x="24" y="62" width="20" height="4" rx="2" fill="rgba(255,255,255,0.25)"/>
+          {/* Folded top-right corner */}
+          <path d="M59 10 L74 10 L74 25 Z" fill="rgba(0,0,0,0.15)"/>
+          <path d="M59 10 L59 25 L74 25" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" fill="none"/>
+        </g>
+      </svg>
+      {showWordmark && <ArchivumWordmark size={Math.round(u * 0.48)} color="#0F2B5B"/>}
+    </div>
+  );
+}
+
+function ArchivumWordmark({size=22, color='#0F2B5B'}) {
+  return (
+    <svg width={Math.round(size * 5.2)} height={size} viewBox="0 0 208 40" fill="none" aria-label="archivum">
+      {/* "archivum" — geometric rounded letterforms traced from wordmark */}
+      <text
+        x="0" y="31"
+        fontFamily="'Inter', system-ui, sans-serif"
+        fontSize="32"
+        fontWeight="700"
+        letterSpacing="-0.5"
+        fill={color}
+      >archivum</text>
+    </svg>
+  );
+}
+
+// ─── Reusable Phone Shell ────────────────────────────────────────────────────
+function Phone({dark=false, children, noTabs=false, activeTab='home', onTab, className=''}) {
+  const d = dark;
+  const textColor = d ? '#F9FAFB' : '#111827';
+  const mutedColor = d ? '#9CA3AF' : '#6B7280';
+  const tabs = [
+    {id:'home', label:'Inicio', icon:Ico.home},
+    {id:'library', label:'Biblioteca', icon:Ico.library},
+    {id:'search', label:'Buscar', icon:Ico.search},
+    {id:'companies', label:'Empresas', icon:Ico.companies},
+    {id:'settings', label:'Ajustes', icon:Ico.settings},
+  ];
+  return (
+    <div className={`phone ${d?'dark':''} ${className}`} style={{fontFamily:'var(--font)'}}>
+      <div className="phone-screen">
+        {/* Status bar */}
+        <div className="status-bar" style={{color:textColor}}>
+          <span style={{fontFamily:'var(--mono)',fontSize:13,fontWeight:600}}>9:41</span>
+          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            <svg width="16" height="12" viewBox="0 0 16 12" fill={textColor}><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="0" width="2.5" height="12" rx="1" opacity=".3"/></svg>
+            <svg width="16" height="12" viewBox="0 0 24 16" fill={textColor}><path d="M12 3C8.19 3 4.76 4.58 2.38 7.16L0 4.78C3.04 1.79 7.3 0 12 0s8.96 1.79 12 4.78L21.62 7.16C19.24 4.58 15.81 3 12 3zm0 6c-2.21 0-4.21.9-5.66 2.34L4 9c1.81-1.81 4.3-2.93 7-3 .34-.01.67-.01 1 0 2.7.07 5.19 1.19 7 3l-2.34 2.34C15.21 9.9 13.21 9 12 9z" opacity=".5"/><circle cx="12" cy="16" r="2"/></svg>
+            <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".5" y=".5" width="21" height="11" rx="3.5" stroke={textColor} strokeOpacity=".35"/><rect x="1.5" y="1.5" width="16" height="9" rx="2" fill={textColor}/><path d="M23 4v4a2 2 0 000-4z" fill={textColor} fillOpacity=".4"/></svg>
+          </div>
+        </div>
+
+        {/* Dynamic Island */}
+        <div style={{display:'flex',justifyContent:'center',marginTop:-2,marginBottom:4,flexShrink:0}}>
+          <div style={{width:120,height:34,background:'#000',borderRadius:20}}/>
+        </div>
+
+        {/* Content */}
+        <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',position:'relative'}}>
+          {children}
+        </div>
+
+        {/* Tab bar */}
+        {!noTabs && (
+          <div className="tab-bar">
+            {tabs.map(t => {
+              const active = t.id === activeTab;
+              return (
+                <button key={t.id} className="tab-item" onClick={()=>onTab&&onTab(t.id)}
+                  style={{color: active ? '#2563EB' : mutedColor, background:'none', border:'none', cursor:'pointer'}}>
+                  <div style={{position:'relative'}}>
+                    {React.cloneElement(t.icon, {style:{color: active ? '#2563EB' : mutedColor}})}
+                    {t.id === 'home' && <span style={{position:'absolute',top:-3,right:-3,width:7,height:7,background:'#DC2626',borderRadius:'50%',display:'block'}}/>}
+                  </div>
+                  <span className="tab-label" style={{fontWeight: active ? 600 : 400}}>{t.label}</span>
+                  {active && <div style={{position:'absolute',bottom:-2,width:'28px',height:'2.5px',background:'#2563EB',borderRadius:'2px'}}/>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Home indicator */}
+        <div className="home-ind">
+          <div className="home-ind-bar"/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── AUTH: Login ─────────────────────────────────────────────────────────────
+function LoginScreen({dark=false}) {
+  const [tab, setTab] = React.useState('empresa');
+  const [showPwd, setShowPwd] = React.useState(false);
+  const d = dark;
+  const bg = d ? 'var(--dbg)' : 'var(--bg)';
+  const surf = d ? 'var(--dsurf)' : 'var(--surface)';
+  const text = d ? 'var(--dtext)' : 'var(--text)';
+  const muted = d ? 'var(--dmuted)' : 'var(--muted)';
+  const bdr = d ? 'var(--dborder)' : 'var(--border)';
+  return (
+    <div className="screen-body" style={{background:bg,padding:'0 24px 32px'}}>
+      {/* Logo */}
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:32,paddingBottom:32}}>
+        <ArchivumLogo size={72} showWordmark={false}/>
+        <div style={{marginTop:12,display:'flex',alignItems:'center'}}>
+          <ArchivumWordmark color={d?'#F9FAFB':'#0F1B2D'} size={26}/>
+        </div>
+        <div style={{fontSize:13,color:muted,marginTop:4}}>Archivo digital fiscal</div>
+      </div>
+
+      {/* Tab switcher */}
+      <div style={{display:'flex',background:d?'var(--dsurf2)':'#F3F4F6',borderRadius:10,padding:3,marginBottom:24}}>
+        {['empresa','usuario'].map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:'8px 0',borderRadius:8,border:'none',cursor:'pointer',
+            background: tab===t ? '#fff' : 'transparent',
+            color: tab===t ? 'var(--blue)' : muted,
+            fontWeight: tab===t ? 600 : 400,
+            fontSize:14,fontFamily:'var(--font)',
+            boxShadow: tab===t ? '0 1px 3px rgba(0,0,0,.1)' : 'none',
+            transition:'all .15s'}}>
+            {t==='empresa' ? 'Empresa' : 'Usuario'}
+          </button>
+        ))}
+      </div>
+
+      {/* Form */}
+      <div style={{display:'flex',flexDirection:'column',gap:14}}>
+        {tab==='usuario' && (
+          <div>
+            <label style={{fontSize:13,fontWeight:500,color:text,display:'block',marginBottom:6}}>Código de empresa</label>
+            <input className="inp" style={{background:surf,color:text,borderColor:bdr}} placeholder="AB-1234" maxLength={7}/>
+          </div>
+        )}
+        <div>
+          <label style={{fontSize:13,fontWeight:500,color:text,display:'block',marginBottom:6}}>Correo electrónico</label>
+          <input className="inp" style={{background:surf,color:text,borderColor:bdr}} placeholder="david@empresa.com" type="email"/>
+        </div>
+        <div>
+          <label style={{fontSize:13,fontWeight:500,color:text,display:'block',marginBottom:6}}>Contraseña</label>
+          <div style={{position:'relative'}}>
+            <input className="inp" style={{background:surf,color:text,borderColor:bdr,paddingRight:46}} placeholder="••••••••" type={showPwd?'text':'password'}/>
+            <button onClick={()=>setShowPwd(!showPwd)} style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:muted,display:'flex'}}>
+              {showPwd ? Ico.eyeOff : Ico.eye}
+            </button>
+          </div>
+        </div>
+        <div style={{textAlign:'right',marginTop:-6}}>
+          <span style={{fontSize:13,color:'var(--blue)',fontWeight:500,cursor:'pointer'}}>¿Olvidaste tu contraseña?</span>
+        </div>
+        <button className="btn-primary" style={{marginTop:8}}>Iniciar sesión</button>
+        <button className="btn-secondary">Crear cuenta nueva</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── AUTH: Register ───────────────────────────────────────────────────────────
+function RegisterScreen({dark=false}) {
+  const [showPwd, setShowPwd] = React.useState(false);
+  const d = dark;
+  const surf = d ? 'var(--dsurf)' : 'var(--surface)';
+  const text = d ? 'var(--dtext)' : 'var(--text)';
+  const muted = d ? 'var(--dmuted)' : 'var(--muted)';
+  const bdr = d ? 'var(--dborder)' : 'var(--border)';
+  const fields = [
+    {label:'Nombre',ph:'David'},{label:'Apellidos',ph:'Martínez Ruiz'},
+    {label:'Correo electrónico',ph:'david@empresa.com',type:'email'},
+    {label:'Nombre de organización',ph:'Constructora Valladolid SL'},
+  ];
+  return (
+    <div className="screen-body" style={{background:d?'var(--dbg)':'var(--bg)',padding:'0 24px 32px'}}>
+      <div style={{paddingTop:20,paddingBottom:20,display:'flex',alignItems:'center',gap:12}}>
+        <button style={{background:'none',border:'none',cursor:'pointer',color:'var(--blue)',display:'flex',padding:0}}>{Ico.chevronLeft}</button>
+        <div style={{fontSize:22,fontWeight:800,color:text}}>Crear cuenta</div>
+      </div>
+      <div style={{fontSize:14,color:muted,marginBottom:24}}>Completa tus datos para registrarte en Archivum.</div>
+      <div style={{display:'flex',flexDirection:'column',gap:14}}>
+        {fields.map(f=>(
+          <div key={f.label}>
+            <label style={{fontSize:13,fontWeight:500,color:text,display:'block',marginBottom:6}}>{f.label}</label>
+            <input className="inp" style={{background:surf,color:text,borderColor:bdr}} placeholder={f.ph} type={f.type||'text'}/>
+          </div>
+        ))}
+        <div>
+          <label style={{fontSize:13,fontWeight:500,color:text,display:'block',marginBottom:6}}>Contraseña</label>
+          <div style={{position:'relative'}}>
+            <input className="inp" style={{background:surf,color:text,borderColor:bdr,paddingRight:46}} placeholder="Mín. 8 caracteres" type={showPwd?'text':'password'}/>
+            <button onClick={()=>setShowPwd(!showPwd)} style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:muted,display:'flex'}}>{showPwd?Ico.eyeOff:Ico.eye}</button>
+          </div>
+        </div>
+        <div>
+          <label style={{fontSize:13,fontWeight:500,color:text,display:'block',marginBottom:6}}>Confirmar contraseña</label>
+          <input className="inp" style={{background:surf,color:text,borderColor:bdr}} placeholder="••••••••" type="password"/>
+        </div>
+        <div style={{display:'flex',gap:10,marginTop:4,alignItems:'flex-start'}}>
+          <div style={{width:18,height:18,borderRadius:4,border:'2px solid var(--blue)',background:'var(--blue)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:1}}>{React.cloneElement(Ico.check,{style:{width:12,height:12,color:'#fff'}})}</div>
+          <span style={{fontSize:12,color:muted}}>Acepto los <span style={{color:'var(--blue)'}}>Términos de servicio</span> y la <span style={{color:'var(--blue)'}}>Política de privacidad</span></span>
+        </div>
+        <button className="btn-primary" style={{marginTop:8}}>Crear cuenta</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────────────────────────
+const RECENT_DOCS = [
+  {id:'FAC-2024-0347',company:'Iberdrola SA',type:'Factura',amount:'€4.280,00',status:'pagado',date:'hace 2h'},
+  {id:'ALB-2024-0189',company:'Mercadona SL',type:'Albarán',amount:'€890,50',status:'pendiente',date:'ayer'},
+  {id:'FAC-2024-0346',company:'Telefónica',type:'Factura',amount:'€12.400,00',status:'vencido',date:'hace 3d'},
+  {id:'PRE-2024-0071',company:'SEAT SA',type:'Presupuesto',amount:'€38.600,00',status:'borrador',date:'hace 5d'},
+  {id:'FAC-2024-0345',company:'Repsol YPF',type:'Factura',amount:'€6.750,25',status:'pagado',date:'hace 1s'},
+];
+
+const STATUS_META = {
+  pagado:{label:'Pagado',cls:'badge-green'},
+  pendiente:{label:'Pendiente',cls:'badge-yellow'},
+  vencido:{label:'Vencido',cls:'badge-red'},
+  borrador:{label:'Borrador',cls:'badge-gray'},
+  cancelado:{label:'Cancelado',cls:'badge-gray'},
+};
+
+function DocRow({doc, dark=false, onSwipe}) {
+  const [swiped, setSwiped] = React.useState(false);
+  const sm = STATUS_META[doc.status];
+  const rowBg = dark ? 'var(--dsurf)' : '#fff';
+  const textC = dark ? 'var(--dtext)' : 'var(--text)';
+  const mutedC = dark ? 'var(--dmuted)' : 'var(--muted)';
+  const bdrC = dark ? 'var(--dborder)' : 'var(--border)';
+  return (
+    <div style={{position:'relative',overflow:'hidden',borderBottom:`1px solid ${bdrC}`}}>
+      <div style={{transform: swiped ? 'translateX(-130px)' : 'translateX(0)',transition:'transform .2s ease',
+        background:rowBg, display:'flex', alignItems:'center', gap:12, padding:'12px 16px', cursor:'pointer'}}
+        onClick={()=>setSwiped(!swiped)}>
+        <div style={{width:36,height:36,borderRadius:8,background:'var(--blue-l)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+          {React.cloneElement(Ico.file,{style:{width:16,height:16,color:'var(--blue)'}})}
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span style={{fontSize:13,fontWeight:600,color:textC,fontFamily:'var(--mono)'}}>{doc.id}</span>
+            <span style={{fontSize:13,fontWeight:700,color:textC}}>{doc.amount}</span>
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:3}}>
+            <span style={{fontSize:12,color:mutedC,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'60%'}}>{doc.company} · {doc.type}</span>
+            <span className={`badge ${sm.cls}`}>{sm.label}</span>
+          </div>
+          <div style={{fontSize:11,color:mutedC,marginTop:2}}>{doc.date}</div>
+        </div>
+      </div>
+      {/* Swipe actions */}
+      <div style={{position:'absolute',right:0,top:0,height:'100%',display:'flex'}}>
+        <button style={{width:65,height:'100%',background:'#2563EB',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+          {React.cloneElement(Ico.edit,{style:{width:16,height:16,color:'#fff'}})}
+          <span style={{fontSize:10,color:'#fff',fontWeight:600}}>Editar</span>
+        </button>
+        <button style={{width:65,height:'100%',background:'#DC2626',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+          {React.cloneElement(Ico.trash,{style:{width:16,height:16,color:'#fff'}})}
+          <span style={{fontSize:10,color:'#fff',fontWeight:600}}>Eliminar</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BarChart({dark=false}) {
+  const months = ['Ago','Sep','Oct','Nov','Dic','Ene'];
+  const vals = [23,31,19,42,38,27];
+  const max = 45;
+  const barColor = dark ? '#3B82F6' : '#2563EB';
+  const mutedC = dark ? '#4B5563' : '#E5E7EB';
+  const labelC = dark ? '#9CA3AF' : '#6B7280';
+  return (
+    <div style={{display:'flex',alignItems:'flex-end',gap:6,height:100,padding:'0 4px'}}>
+      {vals.map((v,i)=>(
+        <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+          <div style={{fontSize:10,color:labelC,fontWeight:500}}>{v}</div>
+          <div style={{width:'100%',background:mutedC,borderRadius:4,height:80,display:'flex',alignItems:'flex-end',overflow:'hidden'}}>
+            <div style={{width:'100%',height:`${(v/max)*100}%`,background: i===5 ? barColor : (dark?'#374151':'#BFDBFE'),borderRadius:4,transition:'height .3s'}}/>
+          </div>
+          <div style={{fontSize:10,color:labelC}}>{months[i]}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DashboardScreen({dark=false, onNav}) {
+  const d = dark;
+  const bg = d ? 'var(--dbg)' : 'var(--bg)';
+  const surf = d ? 'var(--dsurf)' : '#fff';
+  const text = d ? 'var(--dtext)' : 'var(--text)';
+  const muted = d ? 'var(--dmuted)' : 'var(--muted)';
+  const bdr = d ? 'var(--dborder)' : 'var(--border)';
+  const kpis = [
+    {label:'Cobrado',amount:'€84.230',docs:47,color:'#16A34A',bg:d?'rgba(22,163,74,.15)':'#F0FDF4',icon:'▲'},
+    {label:'Pendiente',amount:'€21.580',docs:12,color:'#D97706',bg:d?'rgba(217,119,6,.15)':'#FFFBEB',icon:'●'},
+    {label:'Vencido',amount:'€6.340',docs:4,color:'#DC2626',bg:d?'rgba(220,38,38,.15)':'#FEF2F2',icon:'▼'},
+  ];
+  return (
+    <div className="screen-body" style={{background:bg}}>
+      {/* Header */}
+      <div style={{padding:'8px 20px 0',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <div>
+          <div style={{fontSize:13,color:muted,fontWeight:400}}>Buenos días</div>
+          <div style={{fontSize:22,fontWeight:800,color:text}}>David Martínez 👋</div>
+        </div>
+        <button style={{position:'relative',background:'none',border:'none',cursor:'pointer',color:muted}}>
+          {React.cloneElement(Ico.bell,{style:{width:24,height:24}})}
+          <span style={{position:'absolute',top:0,right:0,width:8,height:8,background:'#DC2626',borderRadius:'50%'}}/>
+        </button>
+      </div>
+
+      {/* Alert banner */}
+      <div style={{margin:'14px 16px 0',background:d?'rgba(220,38,38,.15)':'#FEF2F2',border:'1px solid rgba(220,38,38,.25)',borderRadius:10,padding:'10px 14px',display:'flex',gap:10,alignItems:'center'}}>
+        {React.cloneElement(Ico.alert,{style:{width:18,height:18,color:'#DC2626',flexShrink:0}})}
+        <div style={{flex:1}}>
+          <div style={{fontSize:13,fontWeight:600,color:'#DC2626'}}>4 documentos vencidos</div>
+          <div style={{fontSize:12,color:d?'#FCA5A5':'#991B1B',marginTop:1}}>Acción requerida — €6.340 sin cobrar</div>
+        </div>
+        <span style={{fontSize:12,fontWeight:600,color:'#DC2626',cursor:'pointer'}}>Ver →</span>
+      </div>
+
+      {/* KPI cards */}
+      <div style={{display:'flex',gap:8,padding:'14px 16px 0'}}>
+        {kpis.map(k=>(
+          <div key={k.label} style={{flex:1,background:surf,borderRadius:12,padding:'12px 10px',boxShadow:'var(--shadow)',borderTop:`3px solid ${k.color}`}}>
+            <div style={{fontSize:11,color:muted,fontWeight:500,marginBottom:4}}>{k.label}</div>
+            <div style={{fontSize:16,fontWeight:800,color:k.color,fontVariantNumeric:'tabular-nums'}}>{k.amount}</div>
+            <div style={{fontSize:11,color:muted,marginTop:2}}>{k.docs} docs</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Chart */}
+      <div style={{margin:'14px 16px 0',background:surf,borderRadius:14,padding:'14px',boxShadow:'var(--shadow)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          <div>
+            <div style={{fontSize:14,fontWeight:700,color:text}}>Actividad mensual</div>
+            <div style={{fontSize:12,color:muted}}>Documentos archivados</div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:6}}>
+            <span className="pulse-dot"/>
+            <span style={{fontSize:11,fontWeight:600,color:'var(--green)',letterSpacing:.5}}>EN VIVO</span>
+          </div>
+        </div>
+        <BarChart dark={d}/>
+      </div>
+
+      {/* Recent docs */}
+      <div style={{margin:'14px 0 0'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0 16px 10px'}}>
+          <div style={{fontSize:15,fontWeight:700,color:text}}>Documentos recientes</div>
+          <span style={{fontSize:13,color:'var(--blue)',fontWeight:500,cursor:'pointer'}}>Ver todos</span>
+        </div>
+        <div style={{background:surf,borderRadius:14,margin:'0 0',overflow:'hidden',boxShadow:'var(--shadow)'}}>
+          {RECENT_DOCS.slice(0,4).map(doc=><DocRow key={doc.id} doc={doc} dark={d}/>)}
+        </div>
+      </div>
+
+      <div style={{height:16}}/>
+    </div>
+  );
+}
+
+// ─── LIBRARY ─────────────────────────────────────────────────────────────────
+function LibraryScreen({dark=false, showFilters=false, skeleton=false, empty=false}) {
+  const [filterOpen, setFilterOpen] = React.useState(showFilters);
+  const [activeChip, setActiveChip] = React.useState('Todos');
+  const [searchVal, setSearchVal] = React.useState('');
+  const d = dark;
+  const bg = d?'var(--dbg)':'var(--bg)';
+  const surf = d?'var(--dsurf)':'#fff';
+  const text = d?'var(--dtext)':'var(--text)';
+  const muted = d?'var(--dmuted)':'var(--muted)';
+  const bdr = d?'var(--dborder)':'var(--border)';
+  const chips = ['Todos','Facturas','Albaranes','Recibos','Pedidos','Nóminas','Contratos'];
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100%',background:bg}}>
+      {/* Sticky search header */}
+      <div style={{background:bg,padding:'8px 16px 0',flexShrink:0,zIndex:5}}>
+        <div style={{fontSize:22,fontWeight:800,color:text,marginBottom:10}}>Biblioteca</div>
+        <div style={{display:'flex',gap:8,marginBottom:10}}>
+          <div style={{flex:1,position:'relative'}}>
+            {React.cloneElement(Ico.search,{style:{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',width:16,height:16,color:muted}})}
+            <input value={searchVal} onChange={e=>setSearchVal(e.target.value)}
+              style={{width:'100%',padding:'10px 14px 10px 36px',border:`1.5px solid ${bdr}`,borderRadius:10,fontSize:14,fontFamily:'var(--font)',background:surf,color:text,outline:'none'}}
+              placeholder="Buscar documentos…"/>
+          </div>
+          <button onClick={()=>setFilterOpen(!filterOpen)} style={{padding:'0 14px',background:filterOpen?'var(--blue)':'var(--blue-l)',border:'none',borderRadius:10,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+            {React.cloneElement(Ico.filter,{style:{width:16,height:16,color:filterOpen?'#fff':'var(--blue)'}})}
+            {filterOpen && <span style={{fontSize:13,fontWeight:600,color:'#fff'}}>3</span>}
+          </button>
+        </div>
+        {/* Chips */}
+        <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:10,scrollbarWidth:'none'}}>
+          {chips.map(c=>(
+            <button key={c} onClick={()=>setActiveChip(c)} className="chip"
+              style={{background: c===activeChip ? 'var(--blue)' : surf,
+                color: c===activeChip ? '#fff' : muted,
+                border: `1px solid ${c===activeChip ? 'var(--blue)' : bdr}`,
+                fontFamily:'var(--font)',cursor:'pointer'}}>
+              {c}
+            </button>
+          ))}
+        </div>
+        {/* Doc count */}
+        <div style={{fontSize:12,color:muted,paddingBottom:8}}>
+          {empty ? '0 documentos encontrados' : `${RECENT_DOCS.length * 3} documentos encontrados`}
+        </div>
+      </div>
+
+      {/* List */}
+      <div className="screen-body" style={{background:bg,flex:1}}>
+        {skeleton ? (
+          <div style={{background:surf,borderRadius:14,margin:'0 16px',overflow:'hidden'}}>
+            {[1,2,3,4].map(i=>(
+              <div key={i} style={{display:'flex',gap:12,padding:'12px 16px',borderBottom:`1px solid ${bdr}`}}>
+                <div className="skeleton" style={{width:36,height:36,borderRadius:8}}/>
+                <div style={{flex:1,display:'flex',flexDirection:'column',gap:8}}>
+                  <div className="skeleton" style={{height:12,width:'60%'}}/>
+                  <div className="skeleton" style={{height:10,width:'80%'}}/>
+                  <div className="skeleton" style={{height:10,width:'40%'}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : empty ? (
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'48px 32px',gap:16}}>
+            <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+              <rect x="20" y="16" width="40" height="50" rx="6" stroke={muted} strokeWidth="2" strokeDasharray="5 3"/>
+              <circle cx="40" cy="41" r="10" stroke={muted} strokeWidth="2"/>
+              <line x1="30" y1="25" x2="50" y2="25" stroke={muted} strokeWidth="2" strokeLinecap="round"/>
+              <line x1="30" y1="32" x2="44" y2="32" stroke={muted} strokeWidth="2" strokeLinecap="round"/>
+              <path d="M47 51 L55 59" stroke="var(--blue)" strokeWidth="2.5" strokeLinecap="round"/>
+            </svg>
+            <div style={{textAlign:'center'}}>
+              <div style={{fontSize:16,fontWeight:700,color:text}}>Sin resultados</div>
+              <div style={{fontSize:13,color:muted,marginTop:4}}>No hay documentos que coincidan con los filtros aplicados.</div>
+            </div>
+            <button className="chip" style={{background:'var(--blue)',color:'#fff',border:'none',fontFamily:'var(--font)',cursor:'pointer',padding:'8px 20px',fontSize:13}}>
+              Limpiar filtros
+            </button>
+          </div>
+        ) : (
+          <div style={{background:surf,overflow:'hidden'}}>
+            {[...RECENT_DOCS,...RECENT_DOCS,...RECENT_DOCS].slice(0,12).map((doc,i)=>(
+              <DocRow key={i} doc={{...doc,id:doc.id.replace(/\d+$/,s=>(parseInt(s)+i).toString().padStart(4,'0'))}} dark={d}/>
+            ))}
+          </div>
+        )}
+        <div style={{height:16}}/>
+      </div>
+
+      {/* Filter bottom sheet */}
+      {filterOpen && (
+        <div className="sheet-overlay" onClick={()=>setFilterOpen(false)}>
+          <div className="sheet" onClick={e=>e.stopPropagation()}>
+            <div className="sheet-handle"/>
+            <div style={{padding:'16px 20px 0',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div style={{fontSize:17,fontWeight:700,color:'var(--text)'}}>Filtros avanzados</div>
+              <button onClick={()=>setFilterOpen(false)} style={{background:'var(--gray-l)',border:'none',borderRadius:8,padding:'4px 10px',cursor:'pointer',fontSize:13,color:'var(--muted)'}}>Limpiar</button>
+            </div>
+            {[
+              {label:'Tipo de documento',val:'Factura recibida'},
+              {label:'Estado',val:'Pendiente'},
+              {label:'Rango de fechas',val:'Ene 2024 – Ene 2025'},
+              {label:'Empresa',val:'Iberdrola SA'},
+              {label:'Importe',val:'€100 – €50.000'},
+            ].map(f=>(
+              <div key={f.label} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 20px',borderBottom:'1px solid var(--border)'}}>
+                <span style={{fontSize:14,color:'var(--muted)'}}>{f.label}</span>
+                <span style={{fontSize:14,fontWeight:600,color:'var(--blue)',display:'flex',alignItems:'center',gap:6}}>
+                  {f.val} {Ico.chevronRight}
+                </span>
+              </div>
+            ))}
+            <div style={{padding:'16px 20px 0'}}>
+              <button className="btn-primary">Aplicar filtros</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── UPLOAD FLOW ──────────────────────────────────────────────────────────────
+function UploadScreen({dark=false, step=1}) {
+  const d = dark;
+  const bg = d?'var(--dbg)':'var(--bg)';
+  const surf = d?'var(--dsurf)':'#fff';
+  const text = d?'var(--dtext)':'var(--text)';
+  const muted = d?'var(--dmuted)':'var(--muted)';
+  const bdr = d?'var(--dborder)':'var(--border)';
+  const steps = ['Archivo','Metadatos','Confirmar'];
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100%',background:bg}}>
+      {/* Header */}
+      <div style={{padding:'8px 16px 0',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16}}>
+          <button style={{background:'none',border:'none',cursor:'pointer',color:muted,display:'flex'}}>{Ico.chevronLeft}</button>
+          <div style={{fontSize:18,fontWeight:700,color:text}}>Archivar documento</div>
+        </div>
+        {/* Progress steps */}
+        <div style={{display:'flex',alignItems:'center',marginBottom:16}}>
+          {steps.map((s,i)=>(
+            <React.Fragment key={s}>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                <div style={{width:28,height:28,borderRadius:'50%',
+                  background: i+1<step ? 'var(--blue)' : i+1===step ? 'var(--blue)' : surf,
+                  border: i+1<=step ? 'none' : `2px solid ${bdr}`,
+                  display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  {i+1<step
+                    ? React.cloneElement(Ico.check,{style:{width:14,height:14,color:'#fff'}})
+                    : <span style={{fontSize:12,fontWeight:700,color: i+1===step ? '#fff' : muted}}>{i+1}</span>}
+                </div>
+                <span style={{fontSize:10,fontWeight: i+1===step?700:400,color: i+1<=step ? 'var(--blue)' : muted}}>{s}</span>
+              </div>
+              {i<steps.length-1 && <div style={{flex:1,height:2,background: i+1<step ? 'var(--blue)' : bdr,marginBottom:16,marginLeft:4,marginRight:4}}/>}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+
+      <div className="screen-body">
+        {step===1 && (
+          <div style={{padding:'0 16px'}}>
+            {/* Drop zone */}
+            <div style={{border:`2px dashed var(--blue)`,borderRadius:16,padding:'32px 20px',display:'flex',flexDirection:'column',alignItems:'center',gap:12,background:'var(--blue-l)',marginBottom:20}}>
+              {React.cloneElement(Ico.file,{style:{width:40,height:40,color:'var(--blue)'}})}
+              <div style={{fontSize:15,fontWeight:600,color:'var(--blue)'}}>Arrastra o selecciona</div>
+              <div style={{fontSize:12,color:muted}}>PDF, JPG, PNG — máx. 25 MB</div>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:20}}>
+              {[{icon:Ico.camera,label:'Cámara'},{icon:Ico.image,label:'Galería'},{icon:Ico.file,label:'Archivos'}].map(b=>(
+                <button key={b.label} style={{padding:'14px 8px',background:surf,border:`1px solid ${bdr}`,borderRadius:12,display:'flex',flexDirection:'column',alignItems:'center',gap:6,cursor:'pointer'}}>
+                  {React.cloneElement(b.icon,{style:{width:22,height:22,color:'var(--blue)'}})}
+                  <span style={{fontSize:12,fontWeight:500,color:text}}>{b.label}</span>
+                </button>
+              ))}
+            </div>
+            <button className="btn-primary">Continuar →</button>
+          </div>
+        )}
+        {step===2 && (
+          <div style={{padding:'0 16px'}}>
+            {/* Preview thumb */}
+            <div style={{height:80,background:surf,borderRadius:12,marginBottom:16,display:'flex',alignItems:'center',gap:12,padding:'0 14px',boxShadow:'var(--shadow)'}}>
+              <div style={{width:48,height:60,background:'var(--blue-l)',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                {React.cloneElement(Ico.file,{style:{color:'var(--blue)',width:20,height:20}})}
+              </div>
+              <div>
+                <div style={{fontSize:13,fontWeight:600,color:text}}>factura_iberdrola_012025.pdf</div>
+                <div style={{fontSize:12,color:muted}}>PDF · 842 KB · subido hace 2s</div>
+              </div>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:12}}>
+              {[
+                {label:'Tipo de documento',ph:'Factura recibida'},
+                {label:'Número de documento',ph:'FAC-2025-0001'},
+                {label:'Empresa',ph:'Buscar empresa…'},
+                {label:'Fecha de emisión',ph:'15/01/2025'},
+                {label:'Fecha de vencimiento',ph:'15/02/2025'},
+                {label:'Importe total (€)',ph:'4.280,00'},
+                {label:'Base imponible (€)',ph:'3.537,19'},
+                {label:'% IVA',ph:'21'},
+                {label:'Etiquetas',ph:'energía, trimestre-1'},
+                {label:'Notas',ph:'Factura enero 2025 — centro logístico'},
+              ].map(f=>(
+                <div key={f.label}>
+                  <label style={{fontSize:12,fontWeight:500,color:muted,display:'block',marginBottom:4}}>{f.label}</label>
+                  <input className="inp" style={{background:surf,color:text,borderColor:bdr,fontSize:14}} placeholder={f.ph}/>
+                </div>
+              ))}
+            </div>
+            <button className="btn-primary" style={{marginTop:20}}>Continuar →</button>
+            <div style={{height:16}}/>
+          </div>
+        )}
+        {step===3 && (
+          <div style={{padding:'0 16px'}}>
+            <div style={{background:surf,borderRadius:14,padding:'16px',boxShadow:'var(--shadow)',marginBottom:16}}>
+              <div style={{fontSize:15,fontWeight:700,color:text,marginBottom:12}}>Resumen</div>
+              {[
+                ['Tipo','Factura recibida'],['Nº Documento','FAC-2025-0001'],['Empresa','Iberdrola SA'],
+                ['Fecha emisión','15/01/2025'],['Vencimiento','15/02/2025'],['Importe',<span style={{fontWeight:700,color:'var(--blue)'}}>€4.280,00</span>],
+                ['IVA','21%'],['Estado','Pendiente'],
+              ].map(([k,v])=>(
+                <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:`1px solid ${bdr}`}}>
+                  <span style={{fontSize:13,color:muted}}>{k}</span>
+                  <span style={{fontSize:13,fontWeight:500,color:text}}>{v}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{background:'var(--blue-l)',borderRadius:12,padding:'12px 14px',marginBottom:16,display:'flex',gap:10,alignItems:'center'}}>
+              {React.cloneElement(Ico.file,{style:{width:20,height:20,color:'var(--blue)',flexShrink:0}})}
+              <div style={{fontSize:13,color:'var(--blue)'}}>factura_iberdrola_012025.pdf · 842 KB</div>
+            </div>
+            <button className="btn-primary" style={{background:'var(--green)'}}>✓ Archivar documento</button>
+            <button className="btn-secondary" style={{marginTop:10}}>← Editar datos</button>
+            <div style={{height:16}}/>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── DOCUMENT DETAIL ──────────────────────────────────────────────────────────
+function DocDetailScreen({dark=false}) {
+  const d = dark;
+  const bg = d?'var(--dbg)':'var(--bg)';
+  const surf = d?'var(--dsurf)':'#fff';
+  const text = d?'var(--dtext)':'var(--text)';
+  const muted = d?'var(--dmuted)':'var(--muted)';
+  const bdr = d?'var(--dborder)':'var(--border)';
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100%',background:bg}}>
+      {/* Nav */}
+      <div style={{padding:'8px 16px',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+        <button style={{background:'none',border:'none',cursor:'pointer',color:muted,display:'flex'}}>{Ico.chevronLeft}</button>
+        <div style={{flex:1,fontSize:16,fontWeight:700,color:text}}>Detalle</div>
+        <button style={{background:'none',border:'none',cursor:'pointer',color:muted,display:'flex'}}>{Ico.moreV}</button>
+      </div>
+
+      <div className="screen-body">
+        {/* PDF preview */}
+        <div style={{height:180,background:d?'#0F172A':'#F1F5F9',margin:'0 16px 16px',borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${bdr}`,position:'relative'}}>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
+            {React.cloneElement(Ico.file,{style:{width:48,height:48,color: d?'#475569':'#94A3B8'}})}
+            <span style={{fontSize:12,color:muted}}>factura_iberdrola_012025.pdf</span>
+          </div>
+          <div style={{position:'absolute',bottom:10,right:10,background:'rgba(0,0,0,.5)',borderRadius:6,padding:'3px 8px',fontSize:11,color:'#fff'}}>Pellizcar para zoom</div>
+        </div>
+
+        {/* Status + actions */}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0 16px',marginBottom:12}}>
+          <div>
+            <div style={{fontSize:13,color:muted,fontFamily:'var(--mono)'}}>FAC-2024-0347</div>
+            <div style={{fontSize:20,fontWeight:800,color:text}}>€4.280,00</div>
+          </div>
+          <span className="badge badge-yellow" style={{fontSize:13,padding:'5px 12px'}}>Pendiente</span>
+        </div>
+
+        {/* Action buttons */}
+        <div style={{display:'flex',gap:8,padding:'0 16px',marginBottom:16}}>
+          {[{icon:Ico.download,label:'Descargar'},{icon:Ico.edit,label:'Editar'},{icon:Ico.trash,label:'Eliminar',color:'#DC2626'}].map(b=>(
+            <button key={b.label} style={{flex:1,padding:'10px 4px',background:surf,border:`1px solid ${bdr}`,borderRadius:10,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+              {React.cloneElement(b.icon,{style:{width:18,height:18,color:b.color||'var(--blue)'}})}
+              <span style={{fontSize:11,fontWeight:500,color:b.color||text}}>{b.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Data fields */}
+        <div style={{background:surf,borderRadius:14,margin:'0 16px',overflow:'hidden',boxShadow:'var(--shadow)'}}>
+          <div style={{padding:'12px 16px',borderBottom:`1px solid ${bdr}`,fontSize:13,fontWeight:700,color:muted,textTransform:'uppercase',letterSpacing:'.5px'}}>Información</div>
+          {[
+            ['Tipo','Factura recibida'],['Empresa','Iberdrola SA'],['CIF proveedor','A-28023430'],
+            ['Fecha emisión','15/01/2025'],['Fecha vencimiento','15/02/2025'],
+            ['Base imponible','€3.537,19'],['IVA (21%)','€742,81'],['Total','€4.280,00'],
+            ['Notas','Centro logístico Alcalá de Henares'],
+          ].map(([k,v])=>(
+            <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'11px 16px',borderBottom:`1px solid ${bdr}`}}>
+              <span style={{fontSize:13,color:muted}}>{k}</span>
+              <span style={{fontSize:13,fontWeight:500,color:text,textAlign:'right',maxWidth:'55%'}}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Linked docs */}
+        <div style={{margin:'12px 16px'}}>
+          <div style={{fontSize:14,fontWeight:700,color:text,marginBottom:10}}>Documentos vinculados</div>
+          {[{id:'PED-2024-0091',type:'Pedido',status:'pagado'},{id:'ALB-2024-0112',type:'Albarán',status:'pagado'}].map((d2,i)=>(
+            <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:surf,borderRadius:10,marginBottom:6,boxShadow:'var(--shadow)'}}>
+              {React.cloneElement(Ico.link,{style:{width:14,height:14,color:'var(--blue)'}})}
+              <span style={{fontSize:13,fontFamily:'var(--mono)',color:text,flex:1}}>{d2.id}</span>
+              <span style={{fontSize:12,color:muted}}>{d2.type}</span>
+              <span className="badge badge-green" style={{fontSize:11}}>Pagado</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{height:16}}/>
+      </div>
+    </div>
+  );
+}
+
+// ─── EDIT DOCUMENT ────────────────────────────────────────────────────────────
+function EditDocScreen({dark=false}) {
+  const d = dark;
+  const bg = d?'var(--dbg)':'var(--bg)';
+  const surf = d?'var(--dsurf)':'#fff';
+  const text = d?'var(--dtext)':'var(--text)';
+  const muted = d?'var(--dmuted)':'var(--muted)';
+  const bdr = d?'var(--dborder)':'var(--border)';
+  const sections = [
+    {title:'Información',fields:[{label:'Tipo',val:'Factura recibida'},{label:'Número',val:'FAC-2024-0347'},{label:'Empresa',val:'Iberdrola SA'}]},
+    {title:'Fechas',fields:[{label:'Fecha emisión',val:'15/01/2025'},{label:'Fecha vencimiento',val:'15/02/2025'}]},
+    {title:'Importes',fields:[{label:'Importe total',val:'4280.00'},{label:'Base imponible',val:'3537.19'},{label:'% IVA',val:'21'}]},
+    {title:'Notas',fields:[{label:'Notas internas',val:'Centro logístico Alcalá'}]},
+  ];
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100%',background:bg}}>
+      <div style={{padding:'8px 16px',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+        <button style={{background:'none',border:'none',cursor:'pointer',color:muted,display:'flex'}}>{Ico.chevronLeft}</button>
+        <div style={{flex:1,fontSize:17,fontWeight:700,color:text}}>Editar documento</div>
+        <button style={{background:'var(--blue)',border:'none',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:13,fontWeight:600,color:'#fff'}}>Guardar</button>
+      </div>
+      <div className="screen-body" style={{padding:'8px 0'}}>
+        {sections.map(sec=>(
+          <div key={sec.title} style={{marginBottom:16}}>
+            <div style={{padding:'4px 16px 8px',fontSize:11,fontWeight:700,color:muted,letterSpacing:'1px',textTransform:'uppercase'}}>{sec.title}</div>
+            <div style={{background:surf,borderRadius:14,margin:'0 16px',overflow:'hidden',boxShadow:'var(--shadow)'}}>
+              {sec.fields.map((f,i)=>(
+                <div key={f.label} style={{padding:'12px 16px',borderBottom: i<sec.fields.length-1 ? `1px solid ${bdr}` : 'none'}}>
+                  <label style={{fontSize:12,fontWeight:500,color:muted,display:'block',marginBottom:6}}>{f.label}</label>
+                  <input className="inp" defaultValue={f.val} style={{background:surf,color:text,borderColor:bdr,fontSize:14,padding:'10px 12px'}}/>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* Danger zone */}
+        <div style={{margin:'8px 16px 24px',background:d?'rgba(220,38,38,.1)':'#FEF2F2',border:'1px solid rgba(220,38,38,.2)',borderRadius:12,padding:'14px 16px'}}>
+          <div style={{fontSize:13,fontWeight:700,color:'#DC2626',marginBottom:4}}>Zona de peligro</div>
+          <div style={{fontSize:12,color:d?'#FCA5A5':'#991B1B',marginBottom:12}}>Esta acción no se puede deshacer fácilmente.</div>
+          <button style={{padding:'10px 0',width:'100%',background:'transparent',border:'1px solid #DC2626',borderRadius:8,color:'#DC2626',fontWeight:600,fontSize:13,fontFamily:'var(--font)',cursor:'pointer'}}>
+            Marcar como cancelado
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── COMPANIES ────────────────────────────────────────────────────────────────
+const COMPANIES = [
+  {name:'Iberdrola SA',cif:'A-95075578',sector:'Energía',docs:47,total:'€184.230',active:true},
+  {name:'Mercadona SL',cif:'A-46103834',sector:'Distribución',docs:23,total:'€56.890',active:true},
+  {name:'Telefónica',cif:'A-28023430',sector:'Telecomunicaciones',docs:31,total:'€98.340',active:false},
+  {name:'SEAT SA',cif:'A-08001001',sector:'Automoción',docs:8,total:'€212.500',active:true},
+];
+
+function CompaniesScreen({dark=false, showModal=false}) {
+  const [modalOpen, setModalOpen] = React.useState(showModal);
+  const [menuOpen, setMenuOpen] = React.useState(null);
+  const d = dark;
+  const bg = d?'var(--dbg)':'var(--bg)';
+  const surf = d?'var(--dsurf)':'#fff';
+  const text = d?'var(--dtext)':'var(--text)';
+  const muted = d?'var(--dmuted)':'var(--muted)';
+  const bdr = d?'var(--dborder)':'var(--border)';
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100%',background:bg,position:'relative'}}>
+      <div style={{padding:'8px 16px 0',flexShrink:0}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+          <div style={{fontSize:22,fontWeight:800,color:text}}>Empresas</div>
+          <button onClick={()=>setModalOpen(true)} style={{width:36,height:36,background:'var(--blue)',borderRadius:10,border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+            {React.cloneElement(Ico.plus,{style:{width:18,height:18,color:'#fff'}})}
+          </button>
+        </div>
+      </div>
+      <div className="screen-body">
+        <div style={{padding:'0 16px',display:'flex',flexDirection:'column',gap:10}}>
+          {COMPANIES.map((c,i)=>(
+            <div key={i} style={{background:surf,borderRadius:14,padding:'14px',boxShadow:'var(--shadow)',position:'relative'}}>
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between'}}>
+                <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                  <div className="avatar" style={{background:'var(--blue-l)',color:'var(--blue)',fontSize:16}}>{c.name[0]}</div>
+                  <div>
+                    <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                      <span style={{fontSize:15,fontWeight:700,color:text}}>{c.name}</span>
+                      {!c.active && <span className="badge badge-red" style={{fontSize:10}}>Suspendida</span>}
+                    </div>
+                    <div style={{fontSize:12,color:muted,fontFamily:'var(--mono)'}}>{c.cif}</div>
+                  </div>
+                </div>
+                <button onClick={()=>setMenuOpen(menuOpen===i?null:i)} style={{background:'none',border:'none',cursor:'pointer',color:muted,display:'flex',padding:4}}>
+                  {Ico.moreV}
+                </button>
+              </div>
+              <div style={{display:'flex',gap:16,marginTop:10,paddingTop:10,borderTop:`1px solid ${bdr}`}}>
+                <div><div style={{fontSize:11,color:muted}}>Sector</div><div style={{fontSize:12,fontWeight:600,color:text}}>{c.sector}</div></div>
+                <div><div style={{fontSize:11,color:muted}}>Documentos</div><div style={{fontSize:12,fontWeight:600,color:text}}>{c.docs}</div></div>
+                <div><div style={{fontSize:11,color:muted}}>Total facturado</div><div style={{fontSize:12,fontWeight:600,color:text}}>{c.total}</div></div>
+              </div>
+              {menuOpen===i && (
+                <div style={{position:'absolute',right:14,top:48,background:surf,borderRadius:10,boxShadow:'var(--shadow-md)',border:`1px solid ${bdr}`,zIndex:10,overflow:'hidden',width:160}}>
+                  {['Ver documentos','Editar','Suspender','Eliminar'].map((a,j)=>(
+                    <button key={a} onClick={()=>setMenuOpen(null)} style={{display:'block',width:'100%',padding:'11px 14px',textAlign:'left',background:'none',border:'none',cursor:'pointer',fontSize:13,color: j===3 ? '#DC2626' : text,fontFamily:'var(--font)',borderBottom: j<3 ? `1px solid ${bdr}` : 'none'}}>
+                      {a}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div style={{height:16}}/>
+      </div>
+
+      {/* Add/Edit company modal */}
+      {modalOpen && (
+        <div className="sheet-overlay" onClick={()=>setModalOpen(false)}>
+          <div className="sheet" style={{maxHeight:'75%',overflow:'hidden',display:'flex',flexDirection:'column'}} onClick={e=>e.stopPropagation()}>
+            <div className="sheet-handle"/>
+            <div style={{padding:'12px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+              <div style={{fontSize:17,fontWeight:700}}>Nueva empresa</div>
+              <button onClick={()=>setModalOpen(false)} style={{background:'var(--gray-l)',border:'none',borderRadius:8,padding:'5px 12px',cursor:'pointer',fontSize:13}}>✕</button>
+            </div>
+            <div style={{overflowY:'auto',flex:1,padding:'12px 20px'}}>
+              {[{label:'Nombre',ph:'Iberdrola SA'},{label:'CIF/NIF',ph:'A-95075578'},{label:'Sector',ph:'Energía'},{label:'Dirección',ph:'Calle Mayor 12, 1º'},{label:'Ciudad',ph:'Madrid'},{label:'País',ph:'España'},{label:'Teléfono',ph:'+34 91 777 88 99'},{label:'Email',ph:'contacto@iberdrola.es'},{label:'Contacto',ph:'Nombre del responsable'},{label:'Notas',ph:'Observaciones…'}].map(f=>(
+                <div key={f.label} style={{marginBottom:12}}>
+                  <label style={{fontSize:12,fontWeight:500,color:'var(--muted)',display:'block',marginBottom:5}}>{f.label}</label>
+                  <input className="inp" style={{fontSize:14}} placeholder={f.ph}/>
+                </div>
+              ))}
+              <button className="btn-primary" style={{marginBottom:8}}>Crear empresa</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── SEARCH ───────────────────────────────────────────────────────────────────
+function SearchScreen({dark=false}) {
+  const [query, setQuery] = React.useState('iberdrola');
+  const [sortOpen, setSortOpen] = React.useState(false);
+  const [activeSort, setActiveSort] = React.useState('Fecha ↓');
+  const d = dark;
+  const bg = d?'var(--dbg)':'var(--bg)';
+  const surf = d?'var(--dsurf)':'#fff';
+  const text = d?'var(--dtext)':'var(--text)';
+  const muted = d?'var(--dmuted)':'var(--muted)';
+  const bdr = d?'var(--dborder)':'var(--border)';
+  const sorts = ['Fecha ↓','Fecha ↑','Importe ↓','Importe ↑'];
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100%',background:bg,position:'relative'}}>
+      {/* Search header */}
+      <div style={{padding:'8px 16px 10px',flexShrink:0}}>
+        <div style={{fontSize:22,fontWeight:800,color:text,marginBottom:10}}>Buscador</div>
+        <div style={{position:'relative',marginBottom:10}}>
+          {React.cloneElement(Ico.search,{style:{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',width:16,height:16,color:muted}})}
+          <input value={query} onChange={e=>setQuery(e.target.value)}
+            style={{width:'100%',padding:'11px 42px 11px 38px',border:`1.5px solid var(--blue)`,borderRadius:10,fontSize:15,fontFamily:'var(--font)',background:surf,color:text,outline:'none'}}
+            placeholder="Buscar por empresa, número, tipo…"/>
+          {query && <button onClick={()=>setQuery('')} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:muted,fontSize:18,lineHeight:1}}>×</button>}
+        </div>
+        {/* Filter chips */}
+        <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:4,scrollbarWidth:'none'}}>
+          {['Facturas','Pendiente','2025','€ > 1.000'].map((c,i)=>(
+            <span key={c} className="chip" style={{background:'var(--blue-l)',color:'var(--blue)',border:'1px solid var(--blue-m)',fontSize:12}}>
+              {c} <span style={{marginLeft:4,opacity:.6}}>×</span>
+            </span>
+          ))}
+          <button onClick={()=>setSortOpen(!sortOpen)} className="chip" style={{background:surf,color:muted,border:`1px solid ${bdr}`,fontFamily:'var(--font)',cursor:'pointer'}}>
+            {React.cloneElement(Ico.sort,{style:{width:13,height:13}})} {activeSort}
+          </button>
+        </div>
+        <div style={{fontSize:12,color:muted,marginTop:6}}>8 resultados para "{query}"</div>
+      </div>
+
+      {/* Results */}
+      <div className="screen-body">
+        <div style={{background:surf}}>
+          {RECENT_DOCS.concat(RECENT_DOCS).slice(0,8).map((doc,i)=>(
+            <DocRow key={i} doc={{...doc,id:doc.id.replace(/\d+$/,s=>(parseInt(s)+i).toString().padStart(4,'0'))}} dark={d}/>
+          ))}
+        </div>
+      </div>
+
+      {/* Sort sheet */}
+      {sortOpen && (
+        <div className="sheet-overlay" onClick={()=>setSortOpen(false)}>
+          <div className="sheet" onClick={e=>e.stopPropagation()}>
+            <div className="sheet-handle"/>
+            <div style={{padding:'14px 20px 6px',fontSize:16,fontWeight:700,color:'var(--text)'}}>Ordenar por</div>
+            {sorts.map(s=>(
+              <button key={s} onClick={()=>{setActiveSort(s);setSortOpen(false);}}
+                style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'13px 20px',background:'none',border:'none',cursor:'pointer',borderBottom:'1px solid var(--border)',fontFamily:'var(--font)',fontSize:14,color: s===activeSort ? 'var(--blue)' : 'var(--text)',fontWeight: s===activeSort ? 600 : 400}}>
+                {s}
+                {s===activeSort && React.cloneElement(Ico.check,{style:{width:16,height:16,color:'var(--blue)'}})}
+              </button>
+            ))}
+            <div style={{height:8}}/>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── SETTINGS ────────────────────────────────────────────────────────────────
+function SettingsScreen({dark=false}) {
+  const [lang, setLang] = React.useState('es');
+  const [theme, setTheme] = React.useState('sistema');
+  const [notifications, setNotifications] = React.useState(true);
+  const [copied, setCopied] = React.useState(false);
+  const d = dark;
+  const bg = d?'var(--dbg)':'var(--bg)';
+  const surf = d?'var(--dsurf)':'#fff';
+  const text = d?'var(--dtext)':'var(--text)';
+  const muted = d?'var(--dmuted)':'var(--muted)';
+  const bdr = d?'var(--dborder)':'var(--border)';
+
+  const handleCopy = () => { setCopied(true); setTimeout(()=>setCopied(false),1500); };
+
+  const members = [
+    {name:'David Martínez',email:'david@empresa.com',role:'owner',initials:'DM',color:'#2563EB'},
+    {name:'Sara Gómez',email:'sara@empresa.com',role:'admin',initials:'SG',color:'#16A34A'},
+    {name:'Tomás Herrera',email:'tomas@empresa.com',role:'member',initials:'TH',color:'#D97706'},
+    {name:'Priya Nair',email:'priya@empresa.com',role:'viewer',initials:'PN',color:'#7C3AED'},
+  ];
+  const roleColors = {owner:'var(--blue)',admin:'var(--green)',member:'var(--yellow)',viewer:'var(--gray)'};
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100%',background:bg}}>
+      <div style={{padding:'8px 16px 0',flexShrink:0}}>
+        <div style={{fontSize:22,fontWeight:800,color:text,marginBottom:14}}>Ajustes</div>
+      </div>
+      <div className="screen-body">
+        {/* Profile card */}
+        <div style={{background:surf,borderRadius:14,margin:'0 16px 16px',padding:'16px',boxShadow:'var(--shadow)',display:'flex',gap:14,alignItems:'center'}}>
+          <div className="avatar" style={{width:52,height:52,background:'var(--blue)',color:'#fff',fontSize:20,fontWeight:800}}>DM</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:16,fontWeight:700,color:text}}>David Martínez</div>
+            <div style={{fontSize:13,color:muted}}>david@empresa.com</div>
+            <span className="badge badge-blue" style={{marginTop:4,fontSize:11}}>Owner</span>
+          </div>
+          <button style={{background:'none',border:'none',cursor:'pointer',color:muted,display:'flex'}}>{Ico.edit}</button>
+        </div>
+
+        {/* Org */}
+        <div style={{fontSize:11,fontWeight:700,color:muted,letterSpacing:'1px',textTransform:'uppercase',padding:'0 16px 6px'}}>Organización</div>
+        <div style={{background:surf,borderRadius:14,margin:'0 16px 16px',overflow:'hidden',boxShadow:'var(--shadow)'}}>
+          <div style={{padding:'12px 16px',borderBottom:`1px solid ${bdr}`}}>
+            <div style={{fontSize:12,color:muted}}>Nombre</div>
+            <div style={{fontSize:14,fontWeight:600,color:text}}>Constructora Valladolid SL</div>
+          </div>
+          <div style={{padding:'12px 16px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div>
+              <div style={{fontSize:12,color:muted}}>Código de acceso</div>
+              <div style={{fontSize:16,fontWeight:700,color:'var(--blue)',fontFamily:'var(--mono)',letterSpacing:'3px'}}>CV-8842</div>
+            </div>
+            <button onClick={handleCopy} style={{padding:'7px 14px',background: copied?'var(--green-l)':'var(--blue-l)',border:`1px solid ${copied?'var(--green)':'var(--blue)'}`,borderRadius:8,cursor:'pointer',fontSize:12,fontWeight:600,color:copied?'var(--green)':'var(--blue)',display:'flex',gap:6,alignItems:'center'}}>
+              {copied ? <>{Ico.check} Copiado</> : <>{Ico.copy} Copiar</>}
+            </button>
+          </div>
+        </div>
+
+        {/* Team */}
+        <div style={{fontSize:11,fontWeight:700,color:muted,letterSpacing:'1px',textTransform:'uppercase',padding:'0 16px 6px'}}>Equipo ({members.length})</div>
+        <div style={{background:surf,borderRadius:14,margin:'0 16px 16px',overflow:'hidden',boxShadow:'var(--shadow)'}}>
+          {members.map((m,i)=>(
+            <div key={i} style={{display:'flex',alignItems:'center',gap:12,padding:'11px 16px',borderBottom: i<members.length-1?`1px solid ${bdr}`:'none'}}>
+              <div className="avatar" style={{width:36,height:36,background:m.color+'22',color:m.color,fontSize:13}}>{m.initials}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:600,color:text}}>{m.name}</div>
+                <div style={{fontSize:11,color:muted,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{m.email}</div>
+              </div>
+              <span style={{fontSize:11,fontWeight:600,color:roleColors[m.role],background:roleColors[m.role]+'18',padding:'2px 8px',borderRadius:999,textTransform:'capitalize'}}>{m.role}</span>
+            </div>
+          ))}
+          <button style={{display:'flex',alignItems:'center',gap:8,width:'100%',padding:'12px 16px',background:'none',border:'none',borderTop:`1px solid ${bdr}`,cursor:'pointer',color:'var(--blue)',fontFamily:'var(--font)',fontSize:13,fontWeight:600}}>
+            {React.cloneElement(Ico.plus,{style:{width:16,height:16}})} Invitar miembro
+          </button>
+        </div>
+
+        {/* Preferences */}
+        <div style={{fontSize:11,fontWeight:700,color:muted,letterSpacing:'1px',textTransform:'uppercase',padding:'0 16px 6px'}}>Preferencias</div>
+        <div style={{background:surf,borderRadius:14,margin:'0 16px 16px',overflow:'hidden',boxShadow:'var(--shadow)'}}>
+          {/* Language */}
+          <div style={{padding:'12px 16px',borderBottom:`1px solid ${bdr}`}}>
+            <div style={{fontSize:13,fontWeight:500,color:text,marginBottom:8,display:'flex',alignItems:'center',gap:6}}>
+              {React.cloneElement(Ico.globe,{style:{width:15,height:15,color:muted}})} Idioma
+            </div>
+            <div style={{display:'flex',background:d?'var(--dsurf2)':'#F3F4F6',borderRadius:8,padding:2}}>
+              {[{k:'es',v:'Español'},{k:'en',v:'English'}].map(l=>(
+                <button key={l.k} onClick={()=>setLang(l.k)} style={{flex:1,padding:'7px 0',border:'none',cursor:'pointer',borderRadius:6,background: lang===l.k ? '#fff' : 'transparent',color: lang===l.k ? 'var(--blue)' : muted,fontWeight: lang===l.k ? 600 : 400,fontSize:13,fontFamily:'var(--font)',boxShadow: lang===l.k ? '0 1px 3px rgba(0,0,0,.1)' : 'none'}}>
+                  {l.v}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Theme */}
+          <div style={{padding:'12px 16px',borderBottom:`1px solid ${bdr}`}}>
+            <div style={{fontSize:13,fontWeight:500,color:text,marginBottom:8,display:'flex',alignItems:'center',gap:6}}>
+              {React.cloneElement(Ico.moon,{style:{width:15,height:15,color:muted}})} Tema
+            </div>
+            <div style={{display:'flex',background:d?'var(--dsurf2)':'#F3F4F6',borderRadius:8,padding:2,gap:2}}>
+              {['Claro','Oscuro','Sistema'].map(t=>(
+                <button key={t} onClick={()=>setTheme(t.toLowerCase())} style={{flex:1,padding:'7px 0',border:'none',cursor:'pointer',borderRadius:6,background: theme===t.toLowerCase() ? '#fff' : 'transparent',color: theme===t.toLowerCase() ? 'var(--blue)' : muted,fontWeight: theme===t.toLowerCase() ? 600 : 400,fontSize:12,fontFamily:'var(--font)',boxShadow: theme===t.toLowerCase() ? '0 1px 3px rgba(0,0,0,.1)' : 'none'}}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Notifications */}
+          <div style={{padding:'12px 16px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div style={{fontSize:13,fontWeight:500,color:text,display:'flex',alignItems:'center',gap:6}}>
+              {React.cloneElement(Ico.bell,{style:{width:15,height:15,color:muted}})} Notificaciones
+            </div>
+            <button onClick={()=>setNotifications(!notifications)} style={{width:44,height:24,borderRadius:12,border:'none',cursor:'pointer',position:'relative',
+              background: notifications ? 'var(--blue)' : (d?'var(--dsurf2)':'#D1D5DB'),transition:'background .2s'}}>
+              <div style={{position:'absolute',top:3,left: notifications ? 22 : 3,width:18,height:18,borderRadius:'50%',background:'#fff',transition:'left .2s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
+            </button>
+          </div>
+        </div>
+
+        {/* Logout */}
+        <div style={{margin:'0 16px 32px'}}>
+          <button style={{width:'100%',padding:'14px',background:'transparent',border:'1px solid #DC2626',borderRadius:10,color:'#DC2626',fontWeight:600,fontSize:15,fontFamily:'var(--font)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+            {React.cloneElement(Ico.logout,{style:{width:18,height:18}})} Cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SKELETON DASHBOARD ────────────────────────────────────────────────────────
+function SkeletonDashboard() {
+  return (
+    <div className="screen-body" style={{background:'var(--bg)',padding:'12px 16px',gap:12,display:'flex',flexDirection:'column'}}>
+      <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:4}}>
+        <div className="skeleton" style={{height:12,width:'30%'}}/>
+        <div className="skeleton" style={{height:22,width:'60%'}}/>
+      </div>
+      <div style={{display:'flex',gap:8}}>
+        {[1,2,3].map(i=>(
+          <div key={i} style={{flex:1,background:'#fff',borderRadius:12,padding:12,boxShadow:'var(--shadow)'}}>
+            <div className="skeleton" style={{height:10,width:'80%',marginBottom:8}}/>
+            <div className="skeleton" style={{height:18,width:'60%',marginBottom:6}}/>
+            <div className="skeleton" style={{height:10,width:'40%'}}/>
+          </div>
+        ))}
+      </div>
+      <div style={{background:'#fff',borderRadius:14,padding:14,boxShadow:'var(--shadow)'}}>
+        <div className="skeleton" style={{height:14,width:'40%',marginBottom:8}}/>
+        <div className="skeleton" style={{height:100,width:'100%'}}/>
+      </div>
+      {[1,2,3].map(i=>(
+        <div key={i} style={{display:'flex',gap:12,padding:'12px 0',borderBottom:'1px solid var(--border)'}}>
+          <div className="skeleton" style={{width:36,height:36,borderRadius:8}}/>
+          <div style={{flex:1,gap:8,display:'flex',flexDirection:'column'}}>
+            <div className="skeleton" style={{height:12,width:'50%'}}/>
+            <div className="skeleton" style={{height:10,width:'70%'}}/>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+function App() {
+  const [activeTab, setActiveTab] = React.useState('home');
+  const [activeScreen, setActiveScreen] = React.useState(null);
+
+  // Gallery data: all screens to show
+  const groups = [
+    {
+      id:'auth', label:'🔐 Autenticación',
+      screens:[
+        {id:'login', label:'Login', sub:'Tab: Empresa', el:<LoginScreen/>},
+        {id:'login-user', label:'Login', sub:'Tab: Usuario', el:<LoginScreen/>},
+        {id:'register', label:'Registro', sub:'Nuevo usuario', el:<RegisterScreen/>},
+      ]
+    },
+    {
+      id:'dashboard', label:'🏠 Dashboard',
+      screens:[
+        {id:'dashboard-light', label:'Dashboard', sub:'Modo claro', el:<DashboardScreen/>},
+        {id:'dashboard-dark', label:'Dashboard', sub:'Modo oscuro', el:<DashboardScreen dark/>},
+        {id:'dashboard-skel', label:'Dashboard', sub:'Skeleton loading', el:<SkeletonDashboard/>},
+      ]
+    },
+    {
+      id:'library', label:'📚 Biblioteca',
+      screens:[
+        {id:'library-light', label:'Biblioteca', sub:'Modo claro', el:<LibraryScreen/>},
+        {id:'library-dark', label:'Biblioteca', sub:'Modo oscuro', el:<LibraryScreen dark/>},
+        {id:'library-filters', label:'Biblioteca', sub:'Filtros avanzados', el:<LibraryScreen showFilters/>},
+        {id:'library-empty', label:'Biblioteca', sub:'Estado vacío', el:<LibraryScreen empty/>},
+        {id:'library-skel', label:'Biblioteca', sub:'Skeleton', el:<LibraryScreen skeleton/>},
+      ]
+    },
+    {
+      id:'upload', label:'📤 Subir documento',
+      screens:[
+        {id:'upload-1', label:'Subir — Paso 1', sub:'Seleccionar archivo', el:<UploadScreen step={1}/>},
+        {id:'upload-2', label:'Subir — Paso 2', sub:'Metadatos', el:<UploadScreen step={2}/>},
+        {id:'upload-3', label:'Subir — Paso 3', sub:'Confirmar', el:<UploadScreen step={3}/>},
+      ]
+    },
+    {
+      id:'docs', label:'📄 Documentos',
+      screens:[
+        {id:'doc-detail', label:'Detalle documento', sub:'Vista completa', el:<DocDetailScreen/>},
+        {id:'doc-edit', label:'Editar documento', sub:'Formulario', el:<EditDocScreen/>},
+      ]
+    },
+    {
+      id:'companies', label:'🏢 Empresas',
+      screens:[
+        {id:'companies-list', label:'Empresas', sub:'Lista', el:<CompaniesScreen/>},
+        {id:'companies-modal', label:'Empresas', sub:'Modal nueva empresa', el:<CompaniesScreen showModal/>},
+      ]
+    },
+    {
+      id:'search', label:'🔍 Buscador',
+      screens:[
+        {id:'search-main', label:'Búsqueda avanzada', sub:'Con resultados', el:<SearchScreen/>},
+      ]
+    },
+    {
+      id:'settings', label:'⚙️ Ajustes',
+      screens:[
+        {id:'settings-light', label:'Ajustes', sub:'Modo claro', el:<SettingsScreen/>},
+        {id:'settings-dark', label:'Ajustes', sub:'Modo oscuro', el:<SettingsScreen dark/>},
+      ]
+    },
+  ];
+
+  return (
+    <div style={{minHeight:'100vh',background:'#E5E7EB'}}>
+      {/* Top bar */}
+      <div style={{background:'#1F2937',padding:'16px 40px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:100}}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <div style={{width:32,height:32,background:'var(--blue)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+              <rect x="6" y="8" width="14" height="18" rx="2" stroke="white" strokeWidth="2"/>
+              <rect x="12" y="6" width="14" height="18" rx="2" fill="rgba(255,255,255,.25)" stroke="white" strokeWidth="2"/>
+            </svg>
+          </div>
+          <div>
+            <div style={{color:'#fff',fontWeight:800,fontSize:16}}><ArchivumWordmark color="#F9FAFB" size={18}/></div>
+            <div style={{color:'#9CA3AF',fontSize:11}}>Mobile Design System — 20 pantallas</div>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          {groups.map(g=>(
+            <a key={g.id} href={`#${g.id}`} style={{fontSize:12,color:'#9CA3AF',textDecoration:'none',padding:'4px 8px',borderRadius:6,whiteSpace:'nowrap'}}>
+              {g.label.split(' ')[0]} {g.label.split(' ').slice(1).join(' ')}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      {/* Hero */}
+      <div style={{background:'linear-gradient(135deg,#1E3A5F 0%,#1D4ED8 50%,#3B82F6 100%)',padding:'48px 40px',textAlign:'center'}}>
+        <div style={{fontSize:40,fontWeight:800,color:'#fff',marginBottom:4,display:'none'}}>Archivum iOS & Android</div>
+          <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:18,marginBottom:12}}>
+            <ArchivumLogo size={68} showWordmark={false}/>
+            <ArchivumWordmark color="#FFFFFF" size={42}/>
+          </div>
+          <div style={{fontSize:17,fontWeight:400,color:'rgba(255,255,255,.65)',marginBottom:8}}>iOS & Android</div>
+        <div style={{fontSize:17,color:'rgba(255,255,255,.75)',maxWidth:560,margin:'0 auto'}}>
+          Mockups de alta fidelidad · 20 pantallas · Flujo completo · Dark mode · Skeleton states
+        </div>
+        <div style={{display:'flex',justifyContent:'center',gap:16,marginTop:24,flexWrap:'wrap'}}>
+          {['20 pantallas','Dark mode','Skeleton loading','Estados vacíos','Flujo de subida','Swipe actions'].map(t=>(
+            <span key={t} style={{background:'rgba(255,255,255,.15)',color:'#fff',padding:'5px 14px',borderRadius:999,fontSize:13,fontWeight:500}}>{t}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* Screens gallery */}
+      {groups.map(g=>(
+        <div key={g.id} id={g.id}>
+          <div className="group-label">{g.label}</div>
+          <div className="gallery">
+            {g.screens.map(s=>(
+              <div key={s.id} className="screen-group">
+                <div style={{position:'relative'}}>
+                  <Phone
+                    dark={s.id.includes('dark')}
+                    activeTab={
+                      g.id==='dashboard'?'home':
+                      g.id==='library'?'library':
+                      g.id==='search'?'search':
+                      g.id==='companies'?'companies':
+                      g.id==='settings'?'settings':'home'}
+                    noTabs={g.id==='auth'||g.id==='upload'||g.id==='docs'}
+                    style={{transform:`scale(${TWEAK_DEFAULTS.phoneScale})`,transformOrigin:'top center'}}>
+                    {s.el}
+                  </Phone>
+                  {/* FAB for screens that need it */}
+                  {(g.id==='dashboard'||g.id==='library') && (
+                    <div style={{position:'absolute',bottom:102,right:12,width:48,height:48,background:'var(--blue)',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 16px rgba(37,99,235,.4)',cursor:'pointer'}}>
+                      {React.cloneElement(Ico.plus,{style:{width:22,height:22,color:'#fff'}})}
+                    </div>
+                  )}
+                </div>
+                <div className="screen-label">{s.label}</div>
+                <div className="screen-sublabel">{s.sub}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <div style={{height:48}}/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

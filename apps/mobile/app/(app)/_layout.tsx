@@ -1,63 +1,85 @@
-import { Tabs } from "expo-router";
+import { Tabs, Redirect } from "expo-router";
 import { useAuth } from "@/context/auth-context";
-import { Redirect } from "expo-router";
-import { FileText, Users, LayoutDashboard, Settings } from "lucide-react-native";
+import { View, ActivityIndicator } from "react-native";
+import {
+  Home, BookOpen, Search, Building2, Settings,
+} from "lucide-react-native";
+
+const BLUE    = "#2563EB";
+const MUTED   = "#9CA3AF";
+const SURFACE = "#FFFFFF";
+const BORDER  = "#E5E7EB";
 
 export default function AppLayout() {
   const { session, loading } = useAuth();
 
-  if (!loading && !session) {
-    return <Redirect href="/(auth)/login" />;
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#F9FAFB" }}>
+        <ActivityIndicator size="large" color={BLUE} />
+      </View>
+    );
   }
+
+  if (!session) return <Redirect href="/(auth)/login" />;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "hsl(var(--primary))",
-        tabBarInactiveTintColor: "hsl(var(--muted-foreground))",
+        tabBarActiveTintColor: BLUE,
+        tabBarInactiveTintColor: MUTED,
         tabBarStyle: {
-          backgroundColor: "hsl(var(--background))",
-          borderTopColor: "hsl(var(--border))",
+          backgroundColor: SURFACE,
+          borderTopColor: BORDER,
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 4,
         },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: "500" },
       }}
     >
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: "Dashboard",
-          tabBarIcon: ({ color, size }) => (
-            <LayoutDashboard size={size} color={color} />
-          ),
+          title: "Inicio",
+          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="invoices"
+        name="biblioteca"
         options={{
-          title: "Facturas",
-          tabBarIcon: ({ color, size }) => (
-            <FileText size={size} color={color} />
-          ),
+          title: "Biblioteca",
+          tabBarIcon: ({ color, size }) => <BookOpen size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="clients"
+        name="buscar"
         options={{
-          title: "Clientes",
-          tabBarIcon: ({ color, size }) => (
-            <Users size={size} color={color} />
-          ),
+          title: "Buscar",
+          tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="empresas"
+        options={{
+          title: "Empresas",
+          tabBarIcon: ({ color, size }) => <Building2 size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="ajustes"
         options={{
           title: "Ajustes",
-          tabBarIcon: ({ color, size }) => (
-            <Settings size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />,
         }}
       />
+
+      {/* Detail / action screens — hidden from tab bar */}
+      <Tabs.Screen name="documento/[id]" options={{ href: null }} />
+      <Tabs.Screen name="editar/[id]"    options={{ href: null }} />
+      <Tabs.Screen name="subir"          options={{ href: null }} />
     </Tabs>
   );
 }
