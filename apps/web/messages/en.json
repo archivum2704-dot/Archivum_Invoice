@@ -10,6 +10,7 @@
     "filter": "Filter",
     "actions": "Actions",
     "back": "Back",
+    "backToHome": "Back to home",
     "next": "Next",
     "submit": "Submit",
     "confirm": "Confirm",
@@ -19,7 +20,23 @@
     "error": "An error occurred",
     "success": "Success",
     "noResults": "No results found",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "view": "View",
+    "viewDocument": "View document",
+    "uploadDocument": "Upload document",
+    "noDocumentsYet": "No documents yet",
+    "noDocumentsHint": "Upload your first document to get started",
+    "newCompany": "New company",
+    "deleteConfirm": "Are you sure you want to delete this document? This action cannot be undone.",
+    "cancelDocument": "Mark as cancelled",
+    "cancelDocumentConfirm": "Are you sure you want to mark this document as cancelled? It will not be deleted, only its status will change.",
+    "replaceFile": "Replace file",
+    "uploadFile": "Upload file",
+    "saveChanges": "Save changes",
+    "editDocument": "Edit document",
+    "dangerZone": "Danger zone",
+    "saving": "Saving...",
+    "saved": "Saved"
   },
   "auth": {
     "login": {
@@ -116,7 +133,20 @@
       "activeCompanies": "Active companies",
       "advancedSearch": "Advanced search"
     },
-    "newDocument": "New Document"
+    "newDocument": "New Document",
+    "kpi": {
+      "collected": "Collected",
+      "pending": "Pending collection",
+      "overdue": "Overdue",
+      "docsPaid": "{n} docs paid",
+      "docsPending": "{n} docs pending",
+      "docsOverdue": "{n} docs overdue"
+    },
+    "noDocumentsYet": "No documents yet",
+    "noDocumentsHint": "Upload your first document to get started",
+    "overdueAlert": "{count} overdue document{plural}",
+    "viewOverdue": "View all",
+    "cancelMark": "Mark as cancelled"
   },
   "documents": {
     "types": {

@@ -61,7 +61,7 @@ export function DashboardView() {
   }, [])
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Seguro que quieres eliminar este documento? Esta acción no se puede deshacer.")) return
+    if (!confirm(tCommon("deleteConfirm"))) return
     setDeletingId(id)
     setOpenMenuId(null)
     const supabase = createClient()
@@ -97,36 +97,37 @@ export function DashboardView() {
         value: String(totalDocs),
         sub: `${documents.filter(d => {
           if (!d.issue_date) return false
-          const m = new Date(d.issue_date).getMonth()
-          return m === new Date().getMonth()
-        }).length} este mes`,
+          const parts = d.issue_date.split("-")
+          if (parts.length !== 3) return false
+          return parseInt(parts[1], 10) - 1 === new Date().getMonth() && parseInt(parts[0], 10) === new Date().getFullYear()
+        }).length} ${t("stats.thisMonth")}`,
         icon: FolderOpen,
         iconBg: "bg-primary/10",
         iconColor: "text-primary",
         isAmount: false,
       },
       {
-        label: "Cobrado",
+        label: t("kpi.collected"),
         value: fmt(paidAmount),
-        sub: `${documents.filter(d => d.status === "paid").length} docs pagados`,
+        sub: t("kpi.docsPaid", { n: documents.filter(d => d.status === "paid").length }),
         icon: CheckCircle2,
         iconBg: "bg-[var(--status-paid)]/10",
         iconColor: "text-[var(--status-paid)]",
         isAmount: true,
       },
       {
-        label: "Pendiente de cobro",
+        label: t("kpi.pending"),
         value: fmt(pendingAmount),
-        sub: `${documents.filter(d => d.status === "pending").length} docs pendientes`,
+        sub: t("kpi.docsPending", { n: documents.filter(d => d.status === "pending").length }),
         icon: Clock,
         iconBg: "bg-[var(--status-pending)]/10",
         iconColor: "text-[var(--status-pending)]",
         isAmount: true,
       },
       {
-        label: "Vencido",
+        label: t("kpi.overdue"),
         value: fmt(overdueAmount),
-        sub: `${documents.filter(d => d.status === "overdue").length} docs vencidos`,
+        sub: t("kpi.docsOverdue", { n: documents.filter(d => d.status === "overdue").length }),
         icon: AlertCircle,
         iconBg: "bg-[var(--status-overdue)]/10",
         iconColor: "text-[var(--status-overdue)]",
@@ -203,7 +204,7 @@ export function DashboardView() {
             className="hidden sm:flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground text-sm font-medium rounded-lg hover:bg-muted transition-colors"
           >
             <Building2 className="w-4 h-4" />
-            Nueva empresa
+            {tCommon("newCompany")}
           </Link>
           <Link
             href="/subir"
@@ -304,12 +305,12 @@ export function DashboardView() {
                     <FolderOpen className="w-6 h-6 text-muted-foreground/50" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-foreground">Sin documentos todavía</p>
-                    <p className="text-xs text-muted-foreground mt-1">Sube tu primer documento para empezar</p>
+                    <p className="text-sm font-medium text-foreground">{t("noDocumentsYet")}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("noDocumentsHint")}</p>
                   </div>
                   <Link href="/subir"
                     className="mt-1 flex items-center gap-1.5 text-xs font-medium text-accent hover:underline">
-                    <Plus className="w-3.5 h-3.5" /> Subir documento
+                    <Plus className="w-3.5 h-3.5" /> {tCommon("uploadDocument")}
                   </Link>
                 </div>
               ) : (
@@ -373,7 +374,7 @@ export function DashboardView() {
                               className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
                             >
                               <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-                              Ver documento
+                              {tCommon("viewDocument")}
                             </Link>
                             <Link
                               href={`/editar/${doc.id}`}
@@ -381,7 +382,7 @@ export function DashboardView() {
                               className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
                             >
                               <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                              Editar
+                              {tCommon("edit")}
                             </Link>
                             <div className="border-t border-border" />
                             <button
@@ -389,7 +390,7 @@ export function DashboardView() {
                               className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-destructive hover:bg-destructive/8 transition-colors"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
-                              Eliminar
+                              {tCommon("delete")}
                             </button>
                           </div>
                         )}

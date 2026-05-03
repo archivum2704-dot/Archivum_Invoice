@@ -218,7 +218,7 @@ export function EditarView({ id }: EditarViewProps) {
         </Link>
         <div className="w-px h-4 bg-border" />
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Editar documento</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{tCommon("editDocument")}</h1>
           <p className="text-muted-foreground text-sm mt-1">
             {numero ? `Nº ${numero}` : id.slice(0, 8).toUpperCase()}
           </p>
@@ -228,7 +228,7 @@ export function EditarView({ id }: EditarViewProps) {
       {saved && (
         <div className="mb-6 flex items-center gap-2.5 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          <p className="text-sm font-medium text-foreground">Cambios guardados correctamente</p>
+          <p className="text-sm font-medium text-foreground">{tCommon("saved")}</p>
         </div>
       )}
 
@@ -413,7 +413,7 @@ export function EditarView({ id }: EditarViewProps) {
               <button type="button" onClick={() => fileRef.current?.click()}
                 className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium text-muted-foreground border border-dashed border-border rounded-lg hover:border-accent hover:text-accent transition-colors">
                 <Upload className="w-3.5 h-3.5" />
-                {existingFileName ? "Reemplazar archivo" : "Subir archivo"}
+                {existingFileName ? tCommon("replaceFile") : tCommon("uploadFile")}
               </button>
             </div>
 
@@ -422,10 +422,10 @@ export function EditarView({ id }: EditarViewProps) {
               <button type="submit" disabled={loading || saved}
                 className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors">
                 {loading
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> {tCommon("saving")}</>
                   : saved
-                  ? <><CheckCircle2 className="w-4 h-4" /> Guardado</>
-                  : <><Save className="w-4 h-4" /> Guardar cambios</>
+                  ? <><CheckCircle2 className="w-4 h-4" /> {tCommon("saved")}</>
+                  : <><Save className="w-4 h-4" /> {tCommon("saveChanges")}</>
                 }
               </button>
               <Link href={`/factura/${id}`}
@@ -436,16 +436,16 @@ export function EditarView({ id }: EditarViewProps) {
 
             {/* Danger zone */}
             <div className="bg-card border border-border rounded-xl p-5">
-              <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Zona de peligro</h2>
+              <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{tCommon("dangerZone")}</h2>
               <button type="button"
                 onClick={async () => {
-                  if (!confirm("¿Seguro que quieres marcar este documento como cancelado? No se eliminará, solo cambiará su estado.")) return
+                  if (!confirm(tCommon("cancelDocumentConfirm"))) return
                   const supabase = createClient()
                   await supabase.from("documents").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", id)
                   router.push(`/factura/${id}`)
                 }}
                 className="w-full text-xs text-destructive border border-destructive/30 rounded-lg py-2 hover:bg-destructive/5 transition-colors">
-                Marcar como cancelado
+                {tCommon("cancelDocument")}
               </button>
             </div>
           </div>

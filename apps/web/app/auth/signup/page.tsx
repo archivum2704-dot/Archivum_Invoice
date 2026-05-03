@@ -10,7 +10,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Logo } from '@/components/logo'
 
 export default function SignupPage() {
-  const t = useTranslations('auth.signup')
+  const t       = useTranslations('auth.signup')
+  const tCommon = useTranslations('common')
   const router = useRouter()
   const [formData, setFormData] = useState({
     firstName: '',
@@ -71,7 +72,7 @@ export default function SignupPage() {
       <div className="px-6 py-4">
         <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          Volver al inicio
+          {tCommon('backToHome')}
         </Link>
       </div>
 
