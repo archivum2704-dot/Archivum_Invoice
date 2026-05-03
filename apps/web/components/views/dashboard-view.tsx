@@ -148,16 +148,25 @@ export function DashboardView() {
 
   const firstName = userProfile?.first_name ?? ""
 
+  // Resolve --primary CSS variable at render time so Recharts SVG fill works
+  const barColor = typeof window !== "undefined"
+    ? `hsl(${getComputedStyle(document.documentElement).getPropertyValue("--primary").trim()})`
+    : "#2563eb"
+
   const monthlyData = loading ? [] : (() => {
     const now = new Date()
     return Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1)
       const year = d.getFullYear()
-      const month = d.getMonth()
+      const month = d.getMonth()   // 0-indexed
       const count = documents.filter(doc => {
         if (!doc.issue_date) return false
-        const dd = new Date(doc.issue_date)
-        return dd.getFullYear() === year && dd.getMonth() === month
+        // Parse YYYY-MM-DD as local date to avoid UTC-offset shifting the month
+        const parts = doc.issue_date.split("-")
+        if (parts.length !== 3) return false
+        const docYear  = parseInt(parts[0], 10)
+        const docMonth = parseInt(parts[1], 10) - 1  // to 0-indexed
+        return docYear === year && docMonth === month
       }).length
       return {
         month: d.toLocaleDateString(locale, { month: "short" }),
@@ -468,13 +477,13 @@ export function DashboardView() {
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} allowDecimals={false} />
                   <Tooltip
-                    cursor={{ fill: "hsl(var(--muted))" }}
-                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                    labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
-                    itemStyle={{ color: "hsl(var(--muted-foreground))" }}
+                    cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                    contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 12 }}
+                    labelStyle={{ color: "#111", fontWeight: 600 }}
+                    itemStyle={{ color: "#6b7280" }}
                     formatter={(v: number) => [v, t("stats.totalDocuments")]}
                   />
-                  <Bar dataKey="docs" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="docs" fill={barColor} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
