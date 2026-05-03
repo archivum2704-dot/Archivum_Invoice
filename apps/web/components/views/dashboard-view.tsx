@@ -1,19 +1,21 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef, useEffect } from "react"
 import {
   FileText, Receipt, Package, FolderOpen,
   TrendingUp, Clock, CheckCircle2, AlertCircle,
   MoreHorizontal, ChevronRight, Plus, Search, Building2, X,
-  Euro, ArrowUpRight,
+  Euro, ArrowUpRight, Eye, Pencil, Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useTranslations, useLocale } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useDocuments } from "@/lib/hooks/use-documents"
 import { useOverdueDocs } from "@/lib/hooks/use-overdue-docs"
 import { OnboardingChecklist } from "@/components/onboarding-checklist"
+import { createClient } from "@/lib/supabase/client"
 import type { DocumentStatus, DocumentType } from "@/lib/supabase/types"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 
@@ -38,10 +40,35 @@ export function DashboardView() {
   const tDoc = useTranslations("documents")
   const tCommon = useTranslations("common")
   const locale = useLocale()
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [dismissedOverdue, setDismissedOverdue] = useState(false)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const { currentOrg, userProfile, loading: orgLoading } = useOrganization()
-  const { documents, loading: docsLoading } = useDocuments(currentOrg?.id ?? null)
+  const { documents, loading: docsLoading, mutate } = useDocuments(currentOrg?.id ?? null)
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null)
+      }
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Seguro que quieres eliminar este documento? Esta acción no se puede deshacer.")) return
+    setDeletingId(id)
+    setOpenMenuId(null)
+    const supabase = createClient()
+    await supabase.from("documents").delete().eq("id", id)
+    await mutate()
+    setDeletingId(null)
+  }
   const { overdueDocs, overdueCount } = useOverdueDocs(currentOrg?.id ?? null)
 
   const loading = orgLoading || docsLoading
@@ -277,28 +304,87 @@ export function DashboardView() {
                   </Link>
                 </div>
               ) : (
-                <div className="divide-y divide-border">
+                <div className="divide-y divide-border" ref={menuRef}>
                   {recentDocs.map(doc => (
-                    <div key={doc.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/40 transition-colors group cursor-pointer">
+                    <div
+                      key={doc.id}
+                      className={cn(
+                        "flex items-center gap-4 px-5 py-3.5 hover:bg-muted/40 transition-colors group relative",
+                        deletingId === doc.id && "opacity-40 pointer-events-none"
+                      )}
+                    >
+                      {/* Icon */}
                       <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
                         <FileText className="w-4 h-4 text-muted-foreground" />
                       </div>
-                      <div className="flex-1 min-w-0">
+
+                      {/* Name + date — clickable to view */}
+                      <Link href={`/factura/${doc.id}`} className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{doc.document_number ?? "—"}</p>
                         <p className="text-xs text-muted-foreground">
                           {doc.issue_date ? new Date(doc.issue_date).toLocaleDateString(locale) : "—"}
                         </p>
-                      </div>
+                      </Link>
+
+                      {/* Type badge */}
                       <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", TYPE_STYLES[doc.document_type] ?? "bg-muted text-muted-foreground")}>
                         {tDoc(`types.${doc.document_type}`)}
                       </span>
+
+                      {/* Amount */}
                       <span className="text-sm font-semibold text-foreground w-28 text-right">
-                        {doc.total != null ? `${doc.total.toLocaleString("en", { minimumFractionDigits: 2 })} €` : "—"}
+                        {doc.total != null ? `${doc.total.toLocaleString("en", { minimumFractionDigits: 2 })} ${doc.currency ?? "€"}` : "—"}
                       </span>
+
+                      {/* Status badge */}
                       <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium w-20 text-center", STATUS_STYLES[doc.status])}>
                         {tDoc(`statuses.${doc.status}`)}
                       </span>
-                      <MoreHorizontal className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                      {/* ··· menu button */}
+                      <div className="relative shrink-0">
+                        <button
+                          onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === doc.id ? null : doc.id) }}
+                          className={cn(
+                            "p-1.5 rounded-md transition-all",
+                            openMenuId === doc.id
+                              ? "bg-muted text-foreground"
+                              : "text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-foreground"
+                          )}
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+
+                        {/* Dropdown */}
+                        {openMenuId === doc.id && (
+                          <div className="absolute right-0 top-full mt-1 z-50 w-40 bg-card border border-border rounded-xl shadow-lg overflow-hidden">
+                            <Link
+                              href={`/factura/${doc.id}`}
+                              onClick={() => setOpenMenuId(null)}
+                              className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                              Ver documento
+                            </Link>
+                            <Link
+                              href={`/editar/${doc.id}`}
+                              onClick={() => setOpenMenuId(null)}
+                              className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                            >
+                              <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                              Editar
+                            </Link>
+                            <div className="border-t border-border" />
+                            <button
+                              onClick={() => handleDelete(doc.id)}
+                              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-destructive hover:bg-destructive/8 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Eliminar
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
