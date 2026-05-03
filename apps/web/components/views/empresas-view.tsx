@@ -1,7 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import { Building2, Search, Plus, FileText, MoreHorizontal, ChevronRight, MapPin, Phone, Mail, X } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import {
+  Building2, Search, Plus, FileText, MoreHorizontal, ChevronRight,
+  MapPin, Phone, Mail, X, Pencil, Trash2, PauseCircle, PlayCircle, Eye,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
@@ -11,15 +14,28 @@ import { createClient } from "@/lib/supabase/client"
 
 const AVATAR_COLORS = ["bg-blue-500", "bg-emerald-600", "bg-violet-600", "bg-orange-500", "bg-rose-600"]
 
-// ── Create company modal ──────────────────────────────────────────────────────
-function CreateCompanyModal({ orgId, onClose, onCreated }: { orgId: string; onClose: () => void; onCreated: () => void }) {
+type CompanyForm = { name: string; cif: string; sector: string; city: string; phone: string; email: string }
+
+// ── Shared company form modal ─────────────────────────────────────────────────
+function CompanyModal({
+  orgId, initial, onClose, onSaved,
+}: {
+  orgId: string
+  initial?: { id: string } & CompanyForm
+  onClose: () => void
+  onSaved: () => void
+}) {
   const t       = useTranslations("companies")
   const tCommon = useTranslations("common")
-  const [form, setForm] = useState({ name: "", cif: "", sector: "", city: "", phone: "", email: "" })
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const isEdit  = !!initial
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const [form, setForm] = useState<CompanyForm>(
+    initial ?? { name: "", cif: "", sector: "", city: "", phone: "", email: "" }
+  )
+  const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState<string | null>(null)
+
+  const set = (k: keyof CompanyForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,19 +43,23 @@ function CreateCompanyModal({ orgId, onClose, onCreated }: { orgId: string; onCl
     if (!form.name.trim()) return
     setSaving(true); setError(null)
     const supabase = createClient()
-    const { error: err } = await supabase.from("companies").insert({
-      organization_id: orgId,
-      name: form.name.trim(),
-      cif: form.cif.trim() || null,
+
+    const payload = {
+      name:   form.name.trim(),
+      cif:    form.cif.trim()    || null,
       sector: form.sector.trim() || null,
-      city: form.city.trim() || null,
-      phone: form.phone.trim() || null,
-      email: form.email.trim() || null,
-      is_active: true,
-    })
+      city:   form.city.trim()   || null,
+      phone:  form.phone.trim()  || null,
+      email:  form.email.trim()  || null,
+    }
+
+    const { error: err } = isEdit
+      ? await supabase.from("companies").update(payload).eq("id", initial!.id)
+      : await supabase.from("companies").insert({ ...payload, organization_id: orgId, is_active: true })
+
     setSaving(false)
     if (err) { setError(err.message); return }
-    onCreated()
+    onSaved()
     onClose()
   }
 
@@ -50,7 +70,9 @@ function CreateCompanyModal({ orgId, onClose, onCreated }: { orgId: string; onCl
       <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
-            <h2 className="text-base font-semibold text-foreground">{t("addCompany")}</h2>
+            <h2 className="text-base font-semibold text-foreground">
+              {isEdit ? t("editCompany") : t("addCompany")}
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5">{t("addCompanyHint")}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
@@ -93,7 +115,7 @@ function CreateCompanyModal({ orgId, onClose, onCreated }: { orgId: string; onCl
           <div className="flex items-center gap-3 pt-1">
             <button type="submit" disabled={saving || !form.name.trim()}
               className="flex-1 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
-              {saving ? tCommon("saving") : t("createCompany")}
+              {saving ? tCommon("saving") : isEdit ? tCommon("saveChanges") : t("createCompany")}
             </button>
             <button type="button" onClick={onClose}
               className="px-4 py-2 text-sm text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors">
@@ -106,24 +128,57 @@ function CreateCompanyModal({ orgId, onClose, onCreated }: { orgId: string; onCl
   )
 }
 
+// ── Main view ─────────────────────────────────────────────────────────────────
 export function EmpresasView() {
-  const t = useTranslations("companies")
-  const [search, setSearch] = useState("")
-  const [showCreate, setShowCreate] = useState(false)
+  const t       = useTranslations("companies")
+  const tCommon = useTranslations("common")
+
+  const [search,      setSearch]      = useState("")
+  const [showCreate,  setShowCreate]  = useState(false)
+  const [editTarget,  setEditTarget]  = useState<null | { id: string } & CompanyForm>(null)
+  const [openMenuId,  setOpenMenuId]  = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
   const { currentOrg } = useOrganization()
   const { companies, loading, mutate } = useCompanies(currentOrg?.id ?? null)
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node))
+        setOpenMenuId(null)
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
+
+  const handleToggleActive = async (id: string, currentActive: boolean) => {
+    setOpenMenuId(null)
+    const supabase = createClient()
+    await supabase.from("companies").update({ is_active: !currentActive }).eq("id", id)
+    await mutate()
+  }
+
+  const handleDelete = async (id: string, name: string) => {
+    setOpenMenuId(null)
+    if (!confirm(t("deleteCompanyConfirm"))) return
+    const supabase = createClient()
+    await supabase.from("companies").delete().eq("id", id)
+    await mutate()
+  }
+
   const empresas = companies.map((company, index) => ({
-    id: company.id,
-    name: company.name,
-    cif: company.cif ?? "",
-    sector: company.sector || "General",
-    city: company.city || "—",
-    phone: company.phone || "—",
-    email: company.email || "—",
-    docs: company.doc_count,
-    color: AVATAR_COLORS[index % AVATAR_COLORS.length],
-    initials: company.name.split(" ").slice(0, 2).map((w: string) => w[0] ?? "").join(""),
+    id:        company.id,
+    name:      company.name,
+    cif:       company.cif    ?? "",
+    sector:    company.sector ?? "",
+    city:      company.city   ?? "",
+    phone:     company.phone  ?? "",
+    email:     company.email  ?? "",
+    isActive:  company.is_active ?? true,
+    docs:      company.doc_count,
+    color:     AVATAR_COLORS[index % AVATAR_COLORS.length],
+    initials:  company.name.split(" ").slice(0, 2).map((w: string) => w[0] ?? "").join(""),
   }))
 
   const filtered = empresas.filter(
@@ -135,11 +190,22 @@ export function EmpresasView() {
 
   return (
     <div className="p-8">
+      {/* Create modal */}
       {showCreate && currentOrg && (
-        <CreateCompanyModal
+        <CompanyModal
           orgId={currentOrg.id}
           onClose={() => setShowCreate(false)}
-          onCreated={() => mutate()}
+          onSaved={() => mutate()}
+        />
+      )}
+
+      {/* Edit modal */}
+      {editTarget && currentOrg && (
+        <CompanyModal
+          orgId={currentOrg.id}
+          initial={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSaved={() => mutate()}
         />
       )}
 
@@ -189,38 +255,125 @@ export function EmpresasView() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5" ref={menuRef}>
           {filtered.map((empresa) => (
-            <div key={empresa.id} className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-md transition-shadow group">
-              <div className="h-1.5 bg-primary" />
+            <div
+              key={empresa.id}
+              className={cn(
+                "bg-card border border-border rounded-xl overflow-hidden hover:shadow-md transition-shadow relative",
+                !empresa.isActive && "opacity-60"
+              )}
+            >
+              {/* Suspended banner */}
+              {!empresa.isActive && (
+                <div className="absolute top-0 inset-x-0 h-1 bg-amber-500" />
+              )}
+              {empresa.isActive && <div className="h-1.5 bg-primary" />}
+
               <div className="p-5">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold", empresa.color)}>
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0", empresa.color)}>
                       {empresa.initials}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground text-sm leading-tight">{empresa.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{t("fields.cif")}: {empresa.cif}</p>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-foreground text-sm leading-tight">{empresa.name}</h3>
+                        {!empresa.isActive && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
+                            {t("suspended")}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{t("fields.cif")}: {empresa.cif || "—"}</p>
                     </div>
                   </div>
-                  <button className="p-1 rounded hover:bg-muted transition-colors">
-                    <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-                  </button>
+
+                  {/* ··· menu */}
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === empresa.id ? null : empresa.id) }}
+                      className={cn(
+                        "p-1.5 rounded-lg transition-all",
+                        openMenuId === empresa.id
+                          ? "bg-muted text-foreground"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </button>
+
+                    {openMenuId === empresa.id && (
+                      <div className="absolute right-0 top-full mt-1 z-50 w-44 bg-card border border-border rounded-xl shadow-lg overflow-hidden">
+                        {/* Ver documentos */}
+                        <Link
+                          href={`/biblioteca?empresa=${empresa.id}`}
+                          onClick={() => setOpenMenuId(null)}
+                          className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                          {t("viewDocuments")}
+                        </Link>
+
+                        {/* Editar */}
+                        <button
+                          onClick={() => {
+                            setOpenMenuId(null)
+                            setEditTarget({
+                              id:     empresa.id,
+                              name:   empresa.name,
+                              cif:    empresa.cif,
+                              sector: empresa.sector,
+                              city:   empresa.city,
+                              phone:  empresa.phone,
+                              email:  empresa.email,
+                            })
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                          {tCommon("edit")}
+                        </button>
+
+                        {/* Suspender / Reactivar */}
+                        <button
+                          onClick={() => handleToggleActive(empresa.id, empresa.isActive)}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                        >
+                          {empresa.isActive
+                            ? <PauseCircle className="w-3.5 h-3.5 text-amber-500" />
+                            : <PlayCircle  className="w-3.5 h-3.5 text-emerald-500" />
+                          }
+                          {empresa.isActive ? t("suspend") : t("reactivate")}
+                        </button>
+
+                        <div className="border-t border-border" />
+
+                        {/* Eliminar */}
+                        <button
+                          onClick={() => handleDelete(empresa.id, empresa.name)}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-destructive hover:bg-destructive/8 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          {t("deleteCompany")}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <MapPin className="w-3.5 h-3.5 shrink-0" />
-                    <span>{empresa.city} · {empresa.sector}</span>
+                    <span>{empresa.city || "—"} · {empresa.sector || "—"}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Phone className="w-3.5 h-3.5 shrink-0" />
-                    <span>{empresa.phone}</span>
+                    <span>{empresa.phone || "—"}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Mail className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{empresa.email}</span>
+                    <span className="truncate">{empresa.email || "—"}</span>
                   </div>
                 </div>
 
