@@ -193,7 +193,7 @@ export function SubirView() {
 
       setUploadedId(data.id)
     } catch (err: any) {
-      setError(err?.message ?? "Error al archivar el documento")
+      setError(err?.message ?? t("errorArchiving"))
     } finally {
       setLoading(false)
     }
@@ -248,7 +248,7 @@ export function SubirView() {
         <div className="flex items-center gap-3 mb-6 px-4 py-3 bg-primary/5 border border-primary/20 rounded-xl">
           <Link2 className="w-4 h-4 text-primary shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground">Creando desde</p>
+            <p className="text-xs text-muted-foreground">{t("creatingFrom")}</p>
             <p className="text-sm font-medium text-foreground">
               {tTypes(parentDoc.document_type as any)} ·{" "}
               <Link href={`/factura/${parentDoc.id}`} className="text-primary hover:underline">
@@ -260,7 +260,7 @@ export function SubirView() {
             href={`/factura/${parentDoc.id}`}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
           >
-            Ver original
+            {t("viewOriginal")}
           </Link>
         </div>
       )}
@@ -366,7 +366,7 @@ export function SubirView() {
                   <Link href="/empresas"
                     className="inline-flex items-center gap-1 mt-1.5 text-xs text-muted-foreground hover:text-accent transition-colors">
                     <Plus className="w-3 h-3" />
-                    {companies.length === 0 ? "Añadir primera empresa" : "Nueva empresa"}
+                    {companies.length === 0 ? t("addFirstCompany") : tCommon("newCompany")}
                   </Link>
                 </div>
 
@@ -460,7 +460,7 @@ export function SubirView() {
                 className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
               >
                 {loading
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Archivando...</>
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> {t("archiving")}</>
                   : <><Upload className="w-4 h-4" />{t("submit")}</>
                 }
               </button>

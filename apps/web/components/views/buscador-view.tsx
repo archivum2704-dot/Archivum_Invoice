@@ -203,7 +203,7 @@ export function BuscadorView() {
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Buscar por número, empresa, notas…"
+          placeholder={t("placeholder")}
           value={query}
           onChange={e => setQuery(e.target.value)}
           autoFocus
@@ -271,12 +271,12 @@ export function BuscadorView() {
               </div>
               <div className="space-y-2">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Desde</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t("dateFrom")}</p>
                   <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
                     className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Hasta</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t("dateTo")}</p>
                   <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
                     className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground" />
                 </div>
@@ -287,16 +287,16 @@ export function BuscadorView() {
             <div>
               <div className="flex items-center gap-1.5 mb-2">
                 <Tag className="w-3.5 h-3.5 text-muted-foreground" />
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Importe</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("amountFilter")}</p>
               </div>
               <div className="space-y-2">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Mínimo (€)</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t("amountMin")}</p>
                   <input type="number" min="0" placeholder="0" value={amountMin} onChange={e => setAmountMin(e.target.value)}
                     className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground placeholder:text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Máximo (€)</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t("amountMax")}</p>
                   <input type="number" min="0" placeholder="∞" value={amountMax} onChange={e => setAmountMax(e.target.value)}
                     className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground placeholder:text-muted-foreground" />
                 </div>
@@ -318,8 +318,8 @@ export function BuscadorView() {
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm text-muted-foreground">
                   <span className="font-semibold text-foreground">{results.length}</span>{" "}
-                  resultado{results.length !== 1 ? "s" : ""}
-                  {query && <span className="ml-1">para "<span className="text-foreground">{query}</span>"</span>}
+                  {t("results", { count: results.length })}
+                  {query && <span className="ml-1">{t("resultFor", { query })}</span>}
                 </p>
                 <div className="relative">
                   <select
@@ -327,10 +327,10 @@ export function BuscadorView() {
                     onChange={e => setSortKey(e.target.value as SortKey)}
                     className="appearance-none pl-7 pr-6 py-1.5 text-xs bg-card border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground"
                   >
-                    <option value="date_desc">Fecha ↓</option>
-                    <option value="date_asc">Fecha ↑</option>
-                    <option value="amount_desc">Importe ↓</option>
-                    <option value="amount_asc">Importe ↑</option>
+                    <option value="date_desc">{t("sortDateDesc")}</option>
+                    <option value="date_asc">{t("sortDateAsc")}</option>
+                    <option value="amount_desc">{t("sortAmountDesc")}</option>
+                    <option value="amount_asc">{t("sortAmountAsc")}</option>
                   </select>
                   <ArrowUpDown className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
                 </div>
@@ -348,7 +348,7 @@ export function BuscadorView() {
                     </div>
                     {activeCount > 0 && (
                       <button onClick={clearAll} className="text-xs text-primary hover:underline">
-                        Limpiar filtros
+                        {t("clearFilters")}
                       </button>
                     )}
                   </div>

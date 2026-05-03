@@ -221,13 +221,10 @@ export function BibliotecaView() {
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-foreground">
-              {documents.length === 0 ? "Sin documentos todavía" : "Sin resultados"}
+              {documents.length === 0 ? t("noDocuments") : t("all")}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {documents.length === 0
-                ? "Sube tu primer documento para empezar a archivar"
-                : "Prueba ajustando los filtros o el texto de búsqueda"
-              }
+              {documents.length === 0 ? t("noDocumentsHint") : t("noResultsHint")}
             </p>
           </div>
           {documents.length === 0 && (
@@ -235,7 +232,7 @@ export function BibliotecaView() {
               href="/subir"
               className="flex items-center gap-1.5 text-xs font-medium text-accent hover:underline"
             >
-              <Plus className="w-3.5 h-3.5" /> Subir documento
+              <Plus className="w-3.5 h-3.5" /> {t("uploadNew")}
             </Link>
           )}
           {documents.length > 0 && (
@@ -243,7 +240,7 @@ export function BibliotecaView() {
               onClick={() => { setSearch(""); setFilterType("all"); setFilterStatus("all") }}
               className="text-xs font-medium text-accent hover:underline"
             >
-              Limpiar filtros
+              {t("clearFilters")}
             </button>
           )}
         </div>
@@ -282,10 +279,10 @@ export function BibliotecaView() {
                         <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", STATUS_STYLES[doc.status] ?? "bg-muted text-muted-foreground")}>{tStatuses(doc.status as any)}</span>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Link href={`/factura/${doc.id}`} className="p-1.5 rounded hover:bg-muted transition-colors" title="Ver">
+                        <Link href={`/factura/${doc.id}`} className="p-1.5 rounded hover:bg-muted transition-colors" title={tActions("preview")}>
                           <Eye className="w-3.5 h-3.5 text-muted-foreground" />
                         </Link>
-                        <Link href={`/factura/${doc.id}/editar`} className="p-1.5 rounded hover:bg-muted transition-colors" title="Editar">
+                        <Link href={`/editar/${doc.id}`} className="p-1.5 rounded hover:bg-muted transition-colors" title={tActions("upload")}>
                           <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                         </Link>
                       </div>
@@ -326,11 +323,11 @@ export function BibliotecaView() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-4 px-1">
               <p className="text-xs text-muted-foreground">
-                Mostrando{" "}
-                <span className="font-medium text-foreground">
-                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)}
-                </span>{" "}
-                de <span className="font-medium text-foreground">{filtered.length}</span>
+                {t("showing", {
+                  from: (page - 1) * PAGE_SIZE + 1,
+                  to: Math.min(page * PAGE_SIZE, filtered.length),
+                  total: filtered.length,
+                })}
               </p>
               <div className="flex items-center gap-1">
                 <button

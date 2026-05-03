@@ -13,7 +13,8 @@ const AVATAR_COLORS = ["bg-blue-500", "bg-emerald-600", "bg-violet-600", "bg-ora
 
 // ── Create company modal ──────────────────────────────────────────────────────
 function CreateCompanyModal({ orgId, onClose, onCreated }: { orgId: string; onClose: () => void; onCreated: () => void }) {
-  const t = useTranslations("companies")
+  const t       = useTranslations("companies")
+  const tCommon = useTranslations("common")
   const [form, setForm] = useState({ name: "", cif: "", sector: "", city: "", phone: "", email: "" })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -50,7 +51,7 @@ function CreateCompanyModal({ orgId, onClose, onCreated }: { orgId: string; onCl
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
             <h2 className="text-base font-semibold text-foreground">{t("addCompany")}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Añade los datos de la empresa o cliente</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("addCompanyHint")}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
             <X className="w-4 h-4 text-muted-foreground" />
@@ -92,11 +93,11 @@ function CreateCompanyModal({ orgId, onClose, onCreated }: { orgId: string; onCl
           <div className="flex items-center gap-3 pt-1">
             <button type="submit" disabled={saving || !form.name.trim()}
               className="flex-1 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
-              {saving ? "Guardando..." : "Crear empresa"}
+              {saving ? tCommon("saving") : t("createCompany")}
             </button>
             <button type="button" onClick={onClose}
               className="px-4 py-2 text-sm text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors">
-              Cancelar
+              {tCommon("cancel")}
             </button>
           </div>
         </form>
@@ -175,15 +176,15 @@ export function EmpresasView() {
             <Building2 className="w-8 h-8 text-muted-foreground/40" />
           </div>
           <p className="text-base font-semibold text-foreground mb-1">
-            {search ? "Sin resultados" : "No hay empresas todavía"}
+            {search ? t("noResults") : t("noCompanies")}
           </p>
           <p className="text-sm text-muted-foreground mb-6">
-            {search ? "Prueba con otro término de búsqueda" : t("noCompanies")}
+            {search ? t("noResultsHint") : ""}
           </p>
           {!search && currentOrg && (
             <button onClick={() => setShowCreate(true)}
               className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
-              <Plus className="w-4 h-4" /> Añadir primera empresa
+              <Plus className="w-4 h-4" /> {t("addFirstCompany")}
             </button>
           )}
         </div>

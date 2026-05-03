@@ -297,7 +297,7 @@ export function EditarView({ id }: EditarViewProps) {
 
             {/* Dates */}
             <div className="bg-card border border-border rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-foreground mb-4">Fechas</h2>
+              <h2 className="text-sm font-semibold text-foreground mb-4">{tFields("dates")}</h2>
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">
@@ -326,7 +326,7 @@ export function EditarView({ id }: EditarViewProps) {
             {/* Amounts */}
             <div className="bg-card border border-border rounded-xl p-5">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-foreground">Importes</h2>
+                <h2 className="text-sm font-semibold text-foreground">{tFields("amounts")}</h2>
                 {/* Currency selector */}
                 <div className="relative">
                   <select value={moneda} onChange={e => setMoneda(e.target.value)}
@@ -338,7 +338,7 @@ export function EditarView({ id }: EditarViewProps) {
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Base imponible</label>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">{tFields("taxableBase")}</label>
                   <div className="relative">
                     <input type="text" placeholder="0,00" value={subtotal} onChange={e => setSubtotal(e.target.value)}
                       className="w-full px-3 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground" />
@@ -346,7 +346,7 @@ export function EditarView({ id }: EditarViewProps) {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">% IVA</label>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">{tFields("vatRate")}</label>
                   <div className="relative">
                     <select value={taxRate} onChange={e => setTaxRate(e.target.value)}
                       className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
@@ -356,7 +356,7 @@ export function EditarView({ id }: EditarViewProps) {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Total</label>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">{tFields("total")}</label>
                   <div className="px-3 py-2.5 text-sm bg-muted/50 border border-border rounded-lg text-foreground font-semibold">
                     {computedTotal > 0 ? `${computedTotal.toLocaleString("es-ES", { minimumFractionDigits: 2 })} ${moneda}` : "—"}
                   </div>
@@ -366,11 +366,11 @@ export function EditarView({ id }: EditarViewProps) {
 
             {/* Notes */}
             <div className="bg-card border border-border rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-foreground mb-4">Notas y descripción</h2>
+              <h2 className="text-sm font-semibold text-foreground mb-4">{tFields("notesAndDescription")}</h2>
               <div className="space-y-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">{tFields("description")}</label>
-                  <input type="text" placeholder="Descripción breve del documento" value={descripcion}
+                  <input type="text" placeholder={tFields("description")} value={descripcion}
                     onChange={e => setDescripcion(e.target.value)}
                     className="w-full px-3 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground" />
                 </div>
