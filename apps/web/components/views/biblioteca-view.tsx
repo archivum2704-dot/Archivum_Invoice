@@ -583,16 +583,18 @@ export function BibliotecaView() {
                           requestAnimationFrame(() => document.body.removeChild(ghost))
                         }}
                         onDragEnd={() => { setDragDocId(null); setDragOverFolder(null) }}
-                        onMouseMove={(e) => { if (!dragDocId) setMousePos({ x: e.clientX, y: e.clientY }) }}
-                        onMouseEnter={() => { if (!dragDocId) setPreviewDoc(doc) }}
-                        onMouseLeave={() => setPreviewDoc(null)}
                         className={cn(
                           "grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1.5fr_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-all duration-300 group relative cursor-grab active:cursor-grabbing select-none",
                           dragDocId === doc.id && "opacity-0",
                           movingOutId === doc.id && "opacity-0 -translate-x-12 scale-y-0 pointer-events-none"
                         )}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className="flex items-center gap-3 min-w-0"
+                          onMouseMove={(e) => { if (!dragDocId) setMousePos({ x: e.clientX, y: e.clientY }) }}
+                          onMouseEnter={() => { if (!dragDocId) setPreviewDoc(doc) }}
+                          onMouseLeave={() => setPreviewDoc(null)}
+                        >
                           <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
                             <Icon className="w-4 h-4 text-muted-foreground" />
                           </div>
