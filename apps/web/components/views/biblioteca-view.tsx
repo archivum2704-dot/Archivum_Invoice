@@ -61,6 +61,9 @@ export function BibliotecaView() {
   const [movingDoc, setMovingDoc] = useState<string | null>(null) // doc id being moved
   const [page, setPage] = useState(1)
   const [previewDoc, setPreviewDoc] = useState<(typeof documents)[number] | null>(null)
+  const [thumbReady, setThumbReady] = useState(false)
+  const [dragDocId, setDragDocId] = useState<string | null>(null)
+  const [dragOverFolder, setDragOverFolder] = useState<string | "root" | null>(null)
   const exportRef = useRef<HTMLDivElement>(null)
 
   const { currentOrg, isOrgAdmin } = useOrganization()
@@ -89,6 +92,14 @@ export function BibliotecaView() {
     mutateDocuments()
     setMovingDoc(null)
   }
+
+  // Delay thumbnail render to avoid flicker on fast mouse passes
+  useEffect(() => {
+    setThumbReady(false)
+    if (!previewDoc) return
+    const timer = setTimeout(() => setThumbReady(true), 250)
+    return () => clearTimeout(timer)
+  }, [previewDoc?.id])
 
   // Close export dropdown on outside click
   useEffect(() => {
@@ -206,14 +217,19 @@ export function BibliotecaView() {
           </div>
         )}
 
-        {/* All documents */}
+        {/* All documents — drop target for removing folder */}
         <button
           onClick={() => setSelectedFolder(null)}
+          onDragOver={(e) => { e.preventDefault(); setDragOverFolder("root") }}
+          onDragLeave={() => setDragOverFolder(null)}
+          onDrop={(e) => { e.preventDefault(); if (dragDocId) handleMoveToFolder(dragDocId, null); setDragOverFolder(null); setDragDocId(null) }}
           className={cn(
-            "flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-sm transition-colors text-left w-full",
-            selectedFolder === null
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            "flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-sm transition-all text-left w-full",
+            dragOverFolder === "root"
+              ? "bg-primary/15 border border-primary/40 text-primary scale-[1.02]"
+              : selectedFolder === null
+                ? "bg-primary/10 text-primary font-medium"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
         >
           <FolderOpen className="w-4 h-4 shrink-0" />
@@ -228,11 +244,16 @@ export function BibliotecaView() {
             <div key={folder.id} className="relative group/folder">
               <button
                 onClick={() => setSelectedFolder(folder.id)}
+                onDragOver={(e) => { e.preventDefault(); setDragOverFolder(folder.id) }}
+                onDragLeave={() => setDragOverFolder(null)}
+                onDrop={(e) => { e.preventDefault(); if (dragDocId) handleMoveToFolder(dragDocId, folder.id); setDragOverFolder(null); setDragDocId(null) }}
                 className={cn(
-                  "flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-sm transition-colors text-left w-full",
-                  selectedFolder === folder.id
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  "flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-sm transition-all text-left w-full",
+                  dragOverFolder === folder.id
+                    ? "bg-primary/15 border border-primary/40 text-primary scale-[1.02]"
+                    : selectedFolder === folder.id
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
                 <Folder className="w-4 h-4 shrink-0" />
@@ -436,8 +457,14 @@ export function BibliotecaView() {
                     return (
                       <div
                         key={doc.id}
-                        className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1.5fr_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-colors group relative"
-                        onMouseEnter={() => setPreviewDoc(doc)}
+                        draggable
+                        onDragStart={() => { setDragDocId(doc.id); setPreviewDoc(null) }}
+                        onDragEnd={() => { setDragDocId(null); setDragOverFolder(null) }}
+                        className={cn(
+                          "grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1.5fr_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-all group relative cursor-grab active:cursor-grabbing select-none",
+                          dragDocId === doc.id && "opacity-40 scale-[0.98]"
+                        )}
+                        onMouseEnter={() => { if (!dragDocId) setPreviewDoc(doc) }}
                         onMouseLeave={() => setPreviewDoc(null)}
                       >
                         <div className="flex items-center gap-3 min-w-0">
@@ -511,11 +538,54 @@ export function BibliotecaView() {
               {/* Hover preview card */}
               {previewDoc && (() => {
                 const { icon: PIcon, className: pTypeClass } = getTypeStyle(previewDoc.document_type)
+                const fileUrl = (previewDoc as any).file_url as string | null
+                const isImage = fileUrl ? /\.(jpe?g|png|gif|webp|svg)(\?|$)/i.test(fileUrl) : false
                 return (
-                  <div className="absolute right-0 top-0 z-30 w-64 bg-background border border-border rounded-xl shadow-xl p-4 pointer-events-none translate-x-[calc(100%+12px)]">
+                  <div className="absolute right-0 top-0 z-30 w-72 bg-background border border-border rounded-xl shadow-xl p-4 pointer-events-none translate-x-[calc(100%+12px)]">
+
+                    {/* Document thumbnail */}
+                    {fileUrl ? (
+                      <div className="relative w-full rounded-lg overflow-hidden bg-muted border border-border mb-3" style={{ height: 130 }}>
+                        {!thumbReady && (
+                          <div className="absolute inset-0 bg-muted animate-pulse rounded-lg flex items-center justify-center">
+                            <PIcon className="w-8 h-8 text-muted-foreground/30" />
+                          </div>
+                        )}
+                        {thumbReady && (
+                          isImage ? (
+                            <img
+                              src={fileUrl}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            /* Scale a full-size iframe down to thumbnail */
+                            <div style={{
+                              position: 'absolute', top: 0, left: 0,
+                              width: '300%', height: '300%',
+                              transform: 'scale(0.333)',
+                              transformOrigin: 'top left',
+                              pointerEvents: 'none',
+                            }}>
+                              <iframe
+                                src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0&zoom=page-fit`}
+                                style={{ width: '100%', height: '100%', border: 0 }}
+                                title={previewDoc.document_number ?? "preview"}
+                              />
+                            </div>
+                          )
+                        )}
+                      </div>
+                    ) : (
+                      <div className="w-full h-20 rounded-lg bg-muted border border-border mb-3 flex items-center justify-center">
+                        <PIcon className="w-8 h-8 text-muted-foreground/30" />
+                      </div>
+                    )}
+
+                    {/* Metadata */}
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                        <PIcon className="w-4.5 h-4.5 text-muted-foreground" />
+                      <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <PIcon className="w-4 h-4 text-muted-foreground" />
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">{previewDoc.document_number ?? "—"}</p>
