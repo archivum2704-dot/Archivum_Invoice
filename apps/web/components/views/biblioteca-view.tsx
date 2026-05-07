@@ -98,16 +98,16 @@ export function BibliotecaView() {
   }
 
   const handleMoveToFolder = async (docId: string, folderId: string | null) => {
-    // Animate the row out
     setMovingOutId(docId)
     setPreviewDoc(null)
-    // Flash the destination folder in sidebar
     setDropTargetFlash(folderId ?? "root")
     setTimeout(() => setDropTargetFlash(null), 700)
-    // Wait for exit animation then persist
-    await new Promise(r => setTimeout(r, 340))
+    // Run animation + DB update in parallel — faster overall
     const supabase = createClient()
-    await supabase.from("documents").update({ folder_id: folderId, updated_at: new Date().toISOString() }).eq("id", docId)
+    await Promise.all([
+      new Promise(r => setTimeout(r, 300)),
+      supabase.from("documents").update({ folder_id: folderId, updated_at: new Date().toISOString() }).eq("id", docId),
+    ])
     await mutateDocuments()
     setMovingOutId(null)
     setMovingDoc(null)
@@ -195,9 +195,12 @@ export function BibliotecaView() {
       const children = folders.filter((f: any) => f.parent_id === id)
       return [id, ...children.flatMap((c: any) => getFolderIds(c.id))]
     }
-    const matchFolder = selectedFolder === null
+    // Root view = only docs with no folder (unless searching — search shows everything)
+    const matchFolder = search.trim()
       ? true
-      : getFolderIds(selectedFolder).includes((d as any).folder_id)
+      : selectedFolder === null
+        ? !(d as any).folder_id
+        : getFolderIds(selectedFolder).includes((d as any).folder_id)
     return matchSearch && matchType && matchStatus && matchDate && matchFolder
   }), [documents, search, filterType, filterStatus, dateFrom, dateTo, selectedFolder])
 
@@ -568,14 +571,24 @@ export function BibliotecaView() {
                       <div
                         key={doc.id}
                         draggable
-                        onDragStart={() => { setDragDocId(doc.id); setPreviewDoc(null) }}
+                        onDragStart={(e) => {
+                          setDragDocId(doc.id)
+                          setPreviewDoc(null)
+                          // Custom compact drag badge — replaces the browser's full-row ghost
+                          const ghost = document.createElement("div")
+                          ghost.style.cssText = "position:fixed;top:-200px;left:-200px;background:hsl(var(--primary));color:hsl(var(--primary-foreground));padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,0.25);white-space:nowrap;"
+                          ghost.textContent = `📄 ${doc.document_number ?? "Documento"}`
+                          document.body.appendChild(ghost)
+                          e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, 20)
+                          requestAnimationFrame(() => document.body.removeChild(ghost))
+                        }}
                         onDragEnd={() => { setDragDocId(null); setDragOverFolder(null) }}
                         onMouseMove={(e) => { if (!dragDocId) setMousePos({ x: e.clientX, y: e.clientY }) }}
                         onMouseEnter={() => { if (!dragDocId) setPreviewDoc(doc) }}
                         onMouseLeave={() => setPreviewDoc(null)}
                         className={cn(
                           "grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1.5fr_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-all duration-300 group relative cursor-grab active:cursor-grabbing select-none",
-                          dragDocId === doc.id && "opacity-40 scale-[0.98]",
+                          dragDocId === doc.id && "opacity-0",
                           movingOutId === doc.id && "opacity-0 -translate-x-12 scale-y-0 pointer-events-none"
                         )}
                       >
