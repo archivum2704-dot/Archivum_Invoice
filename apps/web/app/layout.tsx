@@ -1,12 +1,16 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { OrganizationProvider } from '@/lib/context/organization-context'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  weight: ['400', '500', '600', '700', '800'],
+})
 
 export const metadata: Metadata = {
   title: 'Archivum — Invoice Archive',
@@ -28,7 +32,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${plusJakarta.variable} font-sans antialiased`}>
         <NextIntlClientProvider messages={messages}>
           <OrganizationProvider>
             {children}

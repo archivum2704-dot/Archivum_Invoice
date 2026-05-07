@@ -151,8 +151,8 @@ export function DashboardView() {
 
   // Resolve --primary CSS variable at render time so Recharts SVG fill works
   const barColor = typeof window !== "undefined"
-    ? `hsl(${getComputedStyle(document.documentElement).getPropertyValue("--primary").trim()})`
-    : "#2563eb"
+    ? getComputedStyle(document.documentElement).getPropertyValue("--primary").trim()
+    : "oklch(0.28 0.08 255)"
 
   const monthlyData = loading ? [] : (() => {
     const now = new Date()
@@ -177,40 +177,42 @@ export function DashboardView() {
   })()
 
   return (
-    <div className="p-8">
+    <div className="p-6 sm:p-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 animate-slide-up-fade">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 mb-1.5">
+            {new Date().toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             {firstName ? t("welcome", { name: firstName }) : t("title")}
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {new Date().toLocaleDateString(locale, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
             <input
               type="text"
               placeholder={tCommon("search")}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 text-sm bg-card border border-border rounded-lg w-44 sm:w-56 focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+              className="pl-9 pr-4 py-2 text-sm bg-card border border-border rounded-xl w-44 sm:w-56 focus:outline-none focus:ring-2 focus:ring-ring/40 placeholder:text-muted-foreground/50 transition-all duration-200"
             />
           </div>
           <Link
             href="/empresas"
-            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground text-sm font-medium rounded-lg hover:bg-muted transition-colors"
+            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground text-sm font-medium rounded-xl hover:bg-muted transition-all duration-200"
           >
-            <Building2 className="w-4 h-4" />
+            <Building2 className="w-3.5 h-3.5" />
             {tCommon("newCompany")}
           </Link>
           <Link
             href="/subir"
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
+            className="group flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 active:scale-[0.98] transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
           >
-            <Plus className="w-4 h-4" />
+            <span className="w-5 h-5 rounded-lg bg-primary-foreground/15 flex items-center justify-center transition-transform duration-200 group-hover:scale-110">
+              <Plus className="w-3 h-3" />
+            </span>
             <span className="hidden sm:inline">{t("newDocument")}</span>
             <span className="sm:hidden">Nuevo</span>
           </Link>
@@ -219,7 +221,7 @@ export function DashboardView() {
 
       {/* Overdue alert banner */}
       {overdueCount > 0 && !dismissedOverdue && (
-        <div className="mb-6 flex items-start gap-3 px-4 py-3.5 bg-[var(--status-overdue)]/8 border border-[var(--status-overdue)]/25 rounded-xl">
+        <div className="mb-6 flex items-start gap-3 px-4 py-3.5 bg-[var(--status-overdue)]/8 border border-[var(--status-overdue)]/25 rounded-2xl animate-slide-up-fade" style={{ animationDelay: "60ms" }}>
           <AlertCircle className="w-4 h-4 text-[var(--status-overdue)] mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground">
@@ -265,26 +267,82 @@ export function DashboardView() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-        </div>
+        /* ── Skeleton loading state ─────────────────────────────────── */
+        <>
+          {/* KPI skeleton */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="p-1 rounded-2xl bg-border/40">
+                <div className="bg-card rounded-[calc(1rem-2px)] p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="skeleton h-3 w-20" />
+                    <div className="skeleton w-8 h-8 rounded-lg" style={{ borderRadius: 8 }} />
+                  </div>
+                  <div className="skeleton h-7 w-24" />
+                  <div className="skeleton h-2.5 w-16" />
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Content skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-card border border-border rounded-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-border">
+                <div className="skeleton h-3.5 w-32" />
+              </div>
+              {[0, 1, 2, 3, 4].map(i => (
+                <div key={i} className="flex items-center gap-4 px-5 py-4 border-b border-border last:border-0">
+                  <div className="skeleton w-9 h-9 rounded-xl flex-shrink-0" style={{ borderRadius: 10 }} />
+                  <div className="flex-1 space-y-2">
+                    <div className="skeleton h-3.5 w-36" />
+                    <div className="skeleton h-2.5 w-20" />
+                  </div>
+                  <div className="skeleton h-5 w-16 rounded-full" />
+                  <div className="skeleton h-3.5 w-20" />
+                </div>
+              ))}
+            </div>
+            <div className="space-y-5">
+              <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+                <div className="skeleton h-3.5 w-24" />
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="space-y-2">
+                    <div className="flex justify-between">
+                      <div className="skeleton h-3 w-16" />
+                      <div className="skeleton h-3 w-20" />
+                    </div>
+                    <div className="skeleton h-1.5 w-full rounded-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
       ) : (
         <>
-          {/* KPI Cards */}
+          {/* KPI Cards — double-bezel architecture */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {kpis.map(kpi => (
-              <div key={kpi.label} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-sm">{kpi.label}</span>
-                  <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", kpi.iconBg)}>
-                    <kpi.icon className={cn("w-4 h-4", kpi.iconColor)} />
+            {kpis.map((kpi, i) => (
+              <div
+                key={kpi.label}
+                className="animate-slide-up-fade p-[3px] rounded-2xl bg-gradient-to-b from-border/60 to-border/20"
+                style={{ animationDelay: `${80 + i * 60}ms` }}
+              >
+                <div className="bg-card rounded-[calc(1rem-1px)] p-5 flex flex-col gap-3 h-full shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                      {kpi.label}
+                    </span>
+                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", kpi.iconBg)}>
+                      <kpi.icon className={cn("w-4 h-4", kpi.iconColor)} />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <p className={cn("font-bold text-foreground leading-none", kpi.isAmount ? "text-2xl" : "text-3xl")}>
-                    {kpi.value}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1.5">{kpi.sub}</p>
+                  <div>
+                    <p className={cn("font-bold text-foreground tracking-tight leading-none", kpi.isAmount ? "text-[1.6rem]" : "text-[2rem]")}>
+                      {kpi.value}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground/70 mt-1.5 font-medium">{kpi.sub}</p>
+                  </div>
                 </div>
               </div>
             ))}
@@ -292,10 +350,18 @@ export function DashboardView() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Recent Documents */}
-            <div className="lg:col-span-2 bg-card border border-border rounded-xl overflow-hidden">
+            <div
+              className="lg:col-span-2 bg-card border border-border rounded-2xl overflow-hidden animate-slide-up-fade"
+              style={{ animationDelay: "320ms" }}
+            >
               <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                <h2 className="font-semibold text-foreground text-sm">{t("recentDocuments")}</h2>
-                <Link href="/biblioteca" className="text-xs text-accent hover:underline flex items-center gap-1">
+                <div className="flex items-center gap-2.5">
+                  <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.15em] font-semibold bg-muted text-muted-foreground/60">
+                    reciente
+                  </span>
+                  <h2 className="font-semibold text-foreground text-sm">{t("recentDocuments")}</h2>
+                </div>
+                <Link href="/biblioteca" className="text-xs text-accent hover:underline flex items-center gap-1 font-medium">
                   {tCommon("viewAll")} <ChevronRight className="w-3 h-3" />
                 </Link>
               </div>
@@ -314,18 +380,19 @@ export function DashboardView() {
                   </Link>
                 </div>
               ) : (
-                <div className="divide-y divide-border" ref={menuRef}>
-                  {recentDocs.map(doc => (
+                <div className="divide-y divide-border/60" ref={menuRef}>
+                  {recentDocs.map((doc, idx) => (
                     <div
                       key={doc.id}
                       className={cn(
-                        "flex items-center gap-4 px-5 py-3.5 hover:bg-muted/40 transition-colors group relative",
+                        "flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-all duration-150 group relative animate-slide-up-fade",
                         deletingId === doc.id && "opacity-40 pointer-events-none"
                       )}
+                      style={{ animationDelay: `${400 + idx * 50}ms` }}
                     >
                       {/* Icon */}
-                      <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
+                      <div className="w-9 h-9 rounded-xl bg-primary/8 border border-border/60 flex items-center justify-center shrink-0">
+                        <FileText className="w-4 h-4 text-primary/60" />
                       </div>
 
                       {/* Name + date — clickable to view */}
@@ -402,34 +469,45 @@ export function DashboardView() {
             </div>
 
             {/* Right column */}
-            <div className="flex flex-col gap-5">
+            <div
+              className="flex flex-col gap-5 animate-slide-up-fade"
+              style={{ animationDelay: "360ms" }}
+            >
               {/* Onboarding checklist — visible until dismissed or completed */}
               <OnboardingChecklist orgId={currentOrg?.id ?? null} />
 
               {/* Invoice Status */}
-              <div className="bg-card border border-border rounded-xl p-5">
-                <h2 className="font-semibold text-foreground text-sm mb-4">{t("invoiceStatus")}</h2>
-                <div className="space-y-3">
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.15em] font-semibold bg-muted text-muted-foreground/60">
+                    resumen
+                  </span>
+                  <h2 className="font-semibold text-foreground text-sm">{t("invoiceStatus")}</h2>
+                </div>
+                <div className="space-y-4">
                   {[
                     { key: "paid" as DocumentStatus,    icon: CheckCircle2, color: "text-[var(--status-paid)]",    bar: "bg-[var(--status-paid)]",    count: paidCount,       pct: Math.round((paidCount / total) * 100),       amount: amountByStatus.paid },
                     { key: "pending" as DocumentStatus, icon: Clock,        color: "text-[var(--status-pending)]", bar: "bg-[var(--status-pending)]", count: pendingCount,    pct: Math.round((pendingCount / total) * 100),    amount: amountByStatus.pending },
                     { key: "overdue" as DocumentStatus, icon: AlertCircle,  color: "text-[var(--status-overdue)]", bar: "bg-[var(--status-overdue)]", count: overdueBarCount, pct: Math.round((overdueBarCount / total) * 100), amount: amountByStatus.overdue },
                   ].map(item => (
                     <div key={item.key}>
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           <item.icon className={cn("w-3.5 h-3.5", item.color)} />
-                          <span className="text-sm text-foreground">{tDoc(`statuses.${item.key}`)}</span>
+                          <span className="text-sm font-medium text-foreground">{tDoc(`statuses.${item.key}`)}</span>
                         </div>
                         <div className="text-right">
-                          <span className="text-sm font-semibold text-foreground block leading-none">
+                          <span className="text-sm font-bold text-foreground block leading-none tracking-tight">
                             {item.amount.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
                           </span>
-                          <span className="text-[10px] text-muted-foreground">{item.count} docs</span>
+                          <span className="text-[10px] text-muted-foreground/70">{item.count} docs</span>
                         </div>
                       </div>
-                      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div className={cn("h-full rounded-full", item.bar)} style={{ width: `${item.pct}%` }} />
+                      <div className="w-full h-1.5 bg-muted/60 rounded-full overflow-hidden">
+                        <div
+                          className={cn("h-full rounded-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]", item.bar)}
+                          style={{ width: `${item.pct}%` }}
+                        />
                       </div>
                     </div>
                   ))}
@@ -437,9 +515,14 @@ export function DashboardView() {
               </div>
 
               {/* Quick links */}
-              <div className="bg-card border border-border rounded-xl p-5">
-                <h2 className="font-semibold text-foreground text-sm mb-3">{t("quickLinks")}</h2>
-                <div className="space-y-1">
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.15em] font-semibold bg-muted text-muted-foreground/60">
+                    accesos
+                  </span>
+                  <h2 className="font-semibold text-foreground text-sm">{t("quickLinks")}</h2>
+                </div>
+                <div className="space-y-0.5">
                   {[
                     { label: t("links.todaysInvoices"),   href: "/biblioteca?type=invoice_issued&date=today" },
                     { label: t("links.pendingPayments"),  href: "/biblioteca?status=pending" },
@@ -449,10 +532,10 @@ export function DashboardView() {
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/60 text-sm text-foreground transition-colors"
+                      className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-muted/50 text-sm text-foreground transition-all duration-150 group"
                     >
-                      {link.label}
-                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="font-medium">{link.label}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 transition-transform duration-150 group-hover:translate-x-0.5" />
                     </Link>
                   ))}
                 </div>
@@ -461,10 +544,18 @@ export function DashboardView() {
           </div>
 
           {/* Monthly Activity Chart */}
-          <div className="mt-6 bg-card border border-border rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-foreground text-sm">{t("monthlyActivity")}</h2>
-              <span className="text-xs text-muted-foreground">{t("last6Months")}</span>
+          <div
+            className="mt-6 bg-card border border-border rounded-2xl p-5 animate-slide-up-fade"
+            style={{ animationDelay: "480ms" }}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2.5">
+                <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.15em] font-semibold bg-muted text-muted-foreground/60">
+                  actividad
+                </span>
+                <h2 className="font-semibold text-foreground text-sm">{t("monthlyActivity")}</h2>
+              </div>
+              <span className="text-[11px] font-medium text-muted-foreground/60">{t("last6Months")}</span>
             </div>
             {monthlyData.every(m => m.docs === 0) ? (
               <div className="flex flex-col items-center justify-center py-8 gap-2">

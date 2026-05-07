@@ -96,7 +96,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-0.5">
         {navItems.map((item) => {
           const active = pathname === item.href
           const showBadge = item.href === "/biblioteca" && overdueCount > 0
@@ -105,20 +105,30 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors group",
+                "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm group",
+                "transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]",
                 active
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  ? "bg-sidebar-primary/90 text-sidebar-primary-foreground font-semibold"
+                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
               )}
             >
-              <item.icon className="w-4 h-4 shrink-0" />
+              {/* Active left-bar indicator */}
+              <span
+                className={cn(
+                  "absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-full transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]",
+                  active ? "h-5 bg-sidebar-primary-foreground/70 opacity-100" : "h-0 opacity-0"
+                )}
+              />
+              <item.icon className={cn("w-4 h-4 shrink-0 transition-transform duration-200", active && "scale-110")} />
               <span className="flex-1">{item.label}</span>
               {showBadge && (
                 <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--status-overdue)] text-white text-[10px] font-bold flex items-center justify-center">
                   {overdueCount > 99 ? "99+" : overdueCount}
                 </span>
               )}
-              {active && !showBadge && <ChevronRight className="w-3.5 h-3.5 opacity-70" />}
+              {active && !showBadge && (
+                <ChevronRight className="w-3 h-3 opacity-50 transition-transform duration-200 group-hover:translate-x-0.5" />
+              )}
             </Link>
           )
         })}
@@ -171,32 +181,32 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
       )}
 
       {/* Footer */}
-      <div className="px-3 py-4 border-t border-sidebar-border space-y-1">
+      <div className="px-3 py-4 border-t border-sidebar-border space-y-0.5">
         <Link
           href="/configuracion"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
         >
           <Settings className="w-4 h-4" />
           <span>{t("settings")}</span>
         </Link>
 
         {/* User row */}
-        <div className="flex items-center gap-3 px-3 py-3">
-          <div className="w-8 h-8 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground text-xs font-bold shrink-0">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl">
+          <div className="w-8 h-8 rounded-full bg-sidebar-primary/80 ring-2 ring-sidebar-primary/30 flex items-center justify-center text-sidebar-primary-foreground text-xs font-bold shrink-0">
             {initials || "?"}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sidebar-foreground text-xs font-medium truncate">
+            <p className="text-sidebar-foreground text-xs font-semibold truncate">
               {userProfile?.first_name} {userProfile?.last_name}
             </p>
-            <p className="text-sidebar-foreground/40 text-xs truncate">{userProfile?.email}</p>
+            <p className="text-sidebar-foreground/35 text-[10px] truncate">{userProfile?.email}</p>
           </div>
           <LanguageSwitcher />
         </div>
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
         >
           <LogOut className="w-4 h-4" />
           <span>{t("signOut")}</span>
