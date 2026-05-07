@@ -63,6 +63,7 @@ export function BibliotecaView() {
   const [page, setPage] = useState(1)
   const [previewDoc, setPreviewDoc] = useState<(typeof documents)[number] | null>(null)
   const [thumbReady, setThumbReady] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [dragDocId, setDragDocId] = useState<string | null>(null)
   const [dragOverFolder, setDragOverFolder] = useState<string | "root" | null>(null)
   const [movingOutId, setMovingOutId] = useState<string | null>(null)
@@ -112,12 +113,26 @@ export function BibliotecaView() {
     setMovingDoc(null)
   }
 
-  // Delay thumbnail render to avoid flicker on fast mouse passes
+  // Delay card render to avoid flicker on fast mouse passes
   useEffect(() => {
     setThumbReady(false)
+    setPreviewUrl(null)
     if (!previewDoc) return
     const timer = setTimeout(() => setThumbReady(true), 250)
     return () => clearTimeout(timer)
+  }, [previewDoc?.id])
+
+  // Generate signed URL for the hovered document's file
+  useEffect(() => {
+    if (!previewDoc) { setPreviewUrl(null); return }
+    const filePath = (previewDoc as any).file_url as string | null
+    if (!filePath) { setPreviewUrl(null); return }
+    // Already a full URL (legacy)
+    if (filePath.startsWith("http")) { setPreviewUrl(filePath); return }
+    // Generate a signed URL from storage path
+    const supabase = createClient()
+    supabase.storage.from("documents").createSignedUrl(filePath, 120)
+      .then(({ data }) => setPreviewUrl(data?.signedUrl ?? null))
   }, [previewDoc?.id])
 
   // Close export dropdown on outside click
@@ -647,8 +662,10 @@ export function BibliotecaView() {
               {/* Hover preview card — fixed so it escapes overflow clips */}
               {previewDoc && (() => {
                 const { icon: PIcon, className: pTypeClass } = getTypeStyle(previewDoc.document_type)
-                const fileUrl = (previewDoc as any).file_url as string | null
-                const isImage = fileUrl ? /\.(jpe?g|png|gif|webp|svg)(\?|$)/i.test(fileUrl) : false
+                // Use original path for extension detection, signed URL for actual src
+                const origPath = (previewDoc as any).file_url as string | null
+                const isImage = origPath ? /\.(jpe?g|png|gif|webp|svg)(\?|$)/i.test(origPath) : false
+                const hasFile = !!origPath
                 // Clamp position so card stays within viewport
                 const cardW = 288, cardH = 420
                 const left = typeof window !== "undefined"
@@ -663,39 +680,41 @@ export function BibliotecaView() {
                     style={{ left, top }}
                   >
                     {/* Document thumbnail */}
-                    {fileUrl ? (
-                      <div className="relative w-full rounded-lg overflow-hidden bg-muted border border-border mb-3" style={{ height: 130 }}>
-                        {!thumbReady && (
-                          <div className="absolute inset-0 bg-muted animate-pulse rounded-lg flex items-center justify-center">
-                            <PIcon className="w-8 h-8 text-muted-foreground/30" />
+                    <div className="relative w-full rounded-lg overflow-hidden bg-muted border border-border mb-3" style={{ height: 130 }}>
+                      {/* Skeleton while waiting for signed URL or delay */}
+                      {(!thumbReady || !previewUrl) && (
+                        <div className="absolute inset-0 bg-muted animate-pulse rounded-lg flex items-center justify-center">
+                          <PIcon className="w-8 h-8 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      {/* Actual file preview */}
+                      {thumbReady && previewUrl && (
+                        isImage ? (
+                          <img src={previewUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          /* Render embed at 3× size, scale down to thumbnail */
+                          <div style={{
+                            position: 'absolute', top: 0, left: 0,
+                            width: '300%', height: '300%',
+                            transform: 'scale(0.333)',
+                            transformOrigin: 'top left',
+                            pointerEvents: 'none',
+                          }}>
+                            <embed
+                              src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                              type="application/pdf"
+                              style={{ width: '100%', height: '100%' }}
+                            />
                           </div>
-                        )}
-                        {thumbReady && (
-                          isImage ? (
-                            <img src={fileUrl} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            /* Render embed at 3× size, scale down to thumbnail */
-                            <div style={{
-                              position: 'absolute', top: 0, left: 0,
-                              width: '300%', height: '300%',
-                              transform: 'scale(0.333)',
-                              transformOrigin: 'top left',
-                              pointerEvents: 'none',
-                            }}>
-                              <embed
-                                src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                                type="application/pdf"
-                                style={{ width: '100%', height: '100%' }}
-                              />
-                            </div>
-                          )
-                        )}
-                      </div>
-                    ) : (
-                      <div className="w-full h-20 rounded-lg bg-muted border border-border mb-3 flex items-center justify-center">
-                        <PIcon className="w-8 h-8 text-muted-foreground/30" />
-                      </div>
-                    )}
+                        )
+                      )}
+                      {/* No file uploaded */}
+                      {thumbReady && !hasFile && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <PIcon className="w-8 h-8 text-muted-foreground/30" />
+                        </div>
+                      )}
+                    </div>
 
                     {/* Metadata */}
                     <div className="flex items-center gap-3 mb-3">
