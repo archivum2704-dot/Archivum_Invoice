@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ShieldCheck,
   Users,
+  X,
 } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { useTranslations } from "next-intl"

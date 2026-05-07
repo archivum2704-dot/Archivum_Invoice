@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import {
   Upload, FileText, Image, Scan, X, CheckCircle2,
   Building2, Tag, Calendar, ChevronDown, Plus, ArrowLeft, AlertCircle, Loader2,
-  Link2,
+  Link2, Folder,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -12,6 +12,7 @@ import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useCompanies } from "@/lib/hooks/use-companies"
+import { useFolders } from "@/lib/hooks/use-folders"
 import { createClient } from "@/lib/supabase/client"
 
 const CURRENCIES = [
@@ -62,8 +63,10 @@ export function SubirView() {
   const tStatuses = useTranslations("documents.statuses")
   const tFields  = useTranslations("documents.fields")
   const tCommon  = useTranslations("common")
+  const tFolders = useTranslations("folders")
   const { currentOrg, userProfile } = useOrganization()
   const { companies } = useCompanies(currentOrg?.id ?? null)
+  const { folders } = useFolders(currentOrg?.id ?? null)
   const searchParams = useSearchParams()
   const fromId   = searchParams.get("from")
   const fromType = searchParams.get("type")
@@ -79,6 +82,7 @@ export function SubirView() {
   const [etiquetas,  setEtiquetas]  = useState<string[]>([])
   const [notas,      setNotas]      = useState("")
   const [moneda,     setMoneda]     = useState("EUR")
+  const [carpeta,    setCarpeta]    = useState("")
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState<string | null>(null)
   const [uploadedId, setUploadedId] = useState<string | null>(null)
@@ -123,7 +127,7 @@ export function SubirView() {
 
   const reset = () => {
     setFiles([]); setNumero(""); setImporte(""); setNotas(""); setMoneda("EUR")
-    setEtiquetas([]); setTipo(fromType ?? ""); setEmpresa(""); setEstado(""); setFecha("")
+    setEtiquetas([]); setTipo(fromType ?? ""); setEmpresa(""); setEstado(""); setFecha(""); setCarpeta("")
     setError(null); setUploadedId(null)
   }
 
@@ -174,6 +178,7 @@ export function SubirView() {
           company_id:         empresa || null,
           uploaded_by:        userProfile?.id ?? null,
           parent_document_id: fromId || null,
+          folder_id:          carpeta || null,
           document_number:    numero.trim() || null,
           document_type:      tipo as any,
           status:             (estado || "pending") as any,
@@ -190,6 +195,34 @@ export function SubirView() {
         .single()
 
       if (insertErr) throw insertErr
+
+      // 4. Save tags — upsert by name then link to document
+      if (etiquetas.length > 0) {
+        const { data: existingTags } = await supabase
+          .from("tags")
+          .select("id, name")
+          .eq("organization_id", currentOrg.id)
+          .in("name", etiquetas)
+
+        const existingNames = new Set((existingTags ?? []).map(t => t.name))
+        const newTagNames = etiquetas.filter(n => !existingNames.has(n))
+
+        let allTagIds = (existingTags ?? []).map(t => t.id)
+
+        if (newTagNames.length > 0) {
+          const { data: newTags } = await supabase
+            .from("tags")
+            .insert(newTagNames.map(name => ({ organization_id: currentOrg.id, name })))
+            .select("id")
+          if (newTags) allTagIds = [...allTagIds, ...newTags.map(t => t.id)]
+        }
+
+        if (allTagIds.length > 0) {
+          await supabase
+            .from("document_tags")
+            .insert(allTagIds.map(tag_id => ({ document_id: data.id, tag_id })))
+        }
+      }
 
       setUploadedId(data.id)
     } catch (err: any) {
@@ -404,6 +437,22 @@ export function SubirView() {
                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                   </div>
                 </div>
+
+                {folders.length > 0 && (
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                      <Folder className="w-3.5 h-3.5 inline mr-1" />{tFolders("title")}
+                    </label>
+                    <div className="relative">
+                      <select value={carpeta} onChange={e => setCarpeta(e.target.value)}
+                        className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
+                        <option value="">{tFolders("allDocuments")}</option>
+                        {folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="mt-4">

@@ -1,12 +1,22 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ReactNode } from "react"
-import { Menu, X } from "lucide-react"
+import { Menu } from "lucide-react"
 import { Sidebar } from "@/components/sidebar"
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Lock body scroll when mobile drawer is open (prevents background scroll on iOS)
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => { document.body.style.overflow = "" }
+  }, [sidebarOpen])
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

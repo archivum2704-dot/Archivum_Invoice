@@ -445,6 +445,19 @@
       "savedOk": "Saved successfully"
     }
   },
+  "folders": {
+    "title": "Folders",
+    "allDocuments": "All documents",
+    "newFolder": "New folder",
+    "folderName": "Folder name",
+    "noFolders": "No folders yet",
+    "createFolder": "Create folder",
+    "moveToFolder": "Move to folder",
+    "moveToRoot": "Remove from folder",
+    "deleteFolderConfirm": "Delete this folder? Documents inside will be moved to the root.",
+    "deleteFolder": "Delete folder",
+    "renameFolder": "Rename folder"
+  },
   "language": {
     "label": "Language",
     "en": "English",

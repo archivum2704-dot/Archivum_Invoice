@@ -445,6 +445,19 @@
       "savedOk": "Guardado correctamente"
     }
   },
+  "folders": {
+    "title": "Carpetas",
+    "allDocuments": "Todos los documentos",
+    "newFolder": "Nueva carpeta",
+    "folderName": "Nombre de carpeta",
+    "noFolders": "Aún no hay carpetas",
+    "createFolder": "Crear carpeta",
+    "moveToFolder": "Mover a carpeta",
+    "moveToRoot": "Quitar de carpeta",
+    "deleteFolderConfirm": "¿Eliminar esta carpeta? Los documentos que contiene pasarán a la raíz.",
+    "deleteFolder": "Eliminar carpeta",
+    "renameFolder": "Renombrar carpeta"
+  },
   "language": {
     "label": "Idioma",
     "en": "Inglés",

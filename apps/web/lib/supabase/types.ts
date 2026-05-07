@@ -206,6 +206,7 @@ export type Database = {
           company_id: string | null
           uploaded_by: string | null
           parent_document_id: string | null
+          folder_id: string | null
           document_number: string | null
           document_type: DocumentType
           status: DocumentStatus
@@ -232,6 +233,7 @@ export type Database = {
           company_id?: string | null
           uploaded_by?: string | null
           parent_document_id?: string | null
+          folder_id?: string | null
           document_number?: string | null
           document_type?: DocumentType
           status?: DocumentStatus
@@ -253,6 +255,7 @@ export type Database = {
         Update: {
           company_id?: string | null
           parent_document_id?: string | null
+          folder_id?: string | null
           document_number?: string | null
           document_type?: DocumentType
           status?: DocumentStatus
@@ -330,6 +333,56 @@ export type Database = {
           tag_id: string
         }
         Update: never
+      }
+      folders: {
+        Row: {
+          id: string
+          organization_id: string
+          parent_id: string | null
+          name: string
+          color: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          parent_id?: string | null
+          name: string
+          color?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          parent_id?: string | null
+          name?: string
+          color?: string | null
+          updated_at?: string
+        }
+      }
+      folder_user_access: {
+        Row: {
+          folder_id: string
+          user_id: string
+          can_upload: boolean
+          can_edit: boolean
+          can_delete: boolean
+          granted_at: string
+          granted_by: string | null
+        }
+        Insert: {
+          folder_id: string
+          user_id: string
+          can_upload?: boolean
+          can_edit?: boolean
+          can_delete?: boolean
+          granted_by?: string | null
+        }
+        Update: {
+          can_upload?: boolean
+          can_edit?: boolean
+          can_delete?: boolean
+        }
       }
       activity_log: {
         Row: {
