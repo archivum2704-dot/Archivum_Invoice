@@ -65,6 +65,9 @@ export function BibliotecaView() {
   const [thumbReady, setThumbReady] = useState(false)
   const [dragDocId, setDragDocId] = useState<string | null>(null)
   const [dragOverFolder, setDragOverFolder] = useState<string | "root" | null>(null)
+  const [movingOutId, setMovingOutId] = useState<string | null>(null)
+  const [dropTargetFlash, setDropTargetFlash] = useState<string | null>(null)
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const exportRef = useRef<HTMLDivElement>(null)
 
   const { currentOrg, isOrgAdmin } = useOrganization()
@@ -94,9 +97,18 @@ export function BibliotecaView() {
   }
 
   const handleMoveToFolder = async (docId: string, folderId: string | null) => {
+    // Animate the row out
+    setMovingOutId(docId)
+    setPreviewDoc(null)
+    // Flash the destination folder in sidebar
+    setDropTargetFlash(folderId ?? "root")
+    setTimeout(() => setDropTargetFlash(null), 700)
+    // Wait for exit animation then persist
+    await new Promise(r => setTimeout(r, 340))
     const supabase = createClient()
     await supabase.from("documents").update({ folder_id: folderId, updated_at: new Date().toISOString() }).eq("id", docId)
-    mutateDocuments()
+    await mutateDocuments()
+    setMovingOutId(null)
     setMovingDoc(null)
   }
 
@@ -189,6 +201,7 @@ export function BibliotecaView() {
     const isExpanded = expandedFolders.has(folder.id)
     const isSelected = selectedFolder === folder.id
     const isDragOver = dragOverFolder === folder.id
+    const isFlashing = dropTargetFlash === folder.id
 
     return (
       <div key={folder.id}>
@@ -215,11 +228,13 @@ export function BibliotecaView() {
             onDrop={(e) => { e.preventDefault(); if (dragDocId) handleMoveToFolder(dragDocId, folder.id); setDragOverFolder(null); setDragDocId(null) }}
             className={cn(
               "flex-1 min-w-0 flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-all text-left",
-              isDragOver
-                ? "bg-primary/15 border border-primary/40 text-primary scale-[1.02]"
-                : isSelected
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              isFlashing
+                ? "bg-accent/20 text-accent scale-[1.04] font-medium"
+                : isDragOver
+                  ? "bg-primary/15 border border-primary/40 text-primary scale-[1.02]"
+                  : isSelected
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
             <Folder className="w-3.5 h-3.5 shrink-0" />
@@ -327,11 +342,13 @@ export function BibliotecaView() {
           onDrop={(e) => { e.preventDefault(); if (dragDocId) handleMoveToFolder(dragDocId, null); setDragOverFolder(null); setDragDocId(null) }}
           className={cn(
             "flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-sm transition-all text-left w-full",
-            dragOverFolder === "root"
-              ? "bg-primary/15 border border-primary/40 text-primary scale-[1.02]"
-              : selectedFolder === null
-                ? "bg-primary/10 text-primary font-medium"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            dropTargetFlash === "root"
+              ? "bg-accent/20 text-accent scale-[1.04] font-medium"
+              : dragOverFolder === "root"
+                ? "bg-primary/15 border border-primary/40 text-primary scale-[1.02]"
+                : selectedFolder === null
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
         >
           <FolderOpen className="w-4 h-4 shrink-0" />
@@ -538,12 +555,14 @@ export function BibliotecaView() {
                         draggable
                         onDragStart={() => { setDragDocId(doc.id); setPreviewDoc(null) }}
                         onDragEnd={() => { setDragDocId(null); setDragOverFolder(null) }}
-                        className={cn(
-                          "grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1.5fr_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-all group relative cursor-grab active:cursor-grabbing select-none",
-                          dragDocId === doc.id && "opacity-40 scale-[0.98]"
-                        )}
+                        onMouseMove={(e) => { if (!dragDocId) setMousePos({ x: e.clientX, y: e.clientY }) }}
                         onMouseEnter={() => { if (!dragDocId) setPreviewDoc(doc) }}
                         onMouseLeave={() => setPreviewDoc(null)}
+                        className={cn(
+                          "grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1.5fr_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-all duration-300 group relative cursor-grab active:cursor-grabbing select-none",
+                          dragDocId === doc.id && "opacity-40 scale-[0.98]",
+                          movingOutId === doc.id && "opacity-0 -translate-x-12 scale-y-0 pointer-events-none"
+                        )}
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
@@ -625,14 +644,24 @@ export function BibliotecaView() {
                 </div>
               </div>
 
-              {/* Hover preview card */}
+              {/* Hover preview card — fixed so it escapes overflow clips */}
               {previewDoc && (() => {
                 const { icon: PIcon, className: pTypeClass } = getTypeStyle(previewDoc.document_type)
                 const fileUrl = (previewDoc as any).file_url as string | null
                 const isImage = fileUrl ? /\.(jpe?g|png|gif|webp|svg)(\?|$)/i.test(fileUrl) : false
+                // Clamp position so card stays within viewport
+                const cardW = 288, cardH = 420
+                const left = typeof window !== "undefined"
+                  ? Math.min(mousePos.x + 18, window.innerWidth - cardW - 8)
+                  : mousePos.x + 18
+                const top = typeof window !== "undefined"
+                  ? Math.min(mousePos.y - 30, window.innerHeight - cardH - 8)
+                  : mousePos.y - 30
                 return (
-                  <div className="absolute right-0 top-0 z-30 w-72 bg-background border border-border rounded-xl shadow-xl p-4 pointer-events-none translate-x-[calc(100%+12px)]">
-
+                  <div
+                    className="fixed z-[9999] w-72 bg-background border border-border rounded-xl shadow-2xl p-4 pointer-events-none"
+                    style={{ left, top }}
+                  >
                     {/* Document thumbnail */}
                     {fileUrl ? (
                       <div className="relative w-full rounded-lg overflow-hidden bg-muted border border-border mb-3" style={{ height: 130 }}>
@@ -643,13 +672,9 @@ export function BibliotecaView() {
                         )}
                         {thumbReady && (
                           isImage ? (
-                            <img
-                              src={fileUrl}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
+                            <img src={fileUrl} alt="" className="w-full h-full object-cover" />
                           ) : (
-                            /* Scale a full-size iframe down to thumbnail */
+                            /* Render embed at 3× size, scale down to thumbnail */
                             <div style={{
                               position: 'absolute', top: 0, left: 0,
                               width: '300%', height: '300%',
@@ -657,10 +682,10 @@ export function BibliotecaView() {
                               transformOrigin: 'top left',
                               pointerEvents: 'none',
                             }}>
-                              <iframe
-                                src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0&zoom=page-fit`}
-                                style={{ width: '100%', height: '100%', border: 0 }}
-                                title={previewDoc.document_number ?? "preview"}
+                              <embed
+                                src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                                type="application/pdf"
+                                style={{ width: '100%', height: '100%' }}
                               />
                             </div>
                           )
