@@ -34,6 +34,8 @@ export type Database = {
           email: string | null
           logo_url: string | null
           is_active: boolean
+          storage_limit_bytes: number
+          storage_used_bytes: number
           created_at: string
           updated_at: string
         }
@@ -63,6 +65,8 @@ export type Database = {
           email?: string | null
           logo_url?: string | null
           is_active?: boolean
+          storage_limit_bytes?: number
+          storage_used_bytes?: number
           updated_at?: string
         }
       }
@@ -222,6 +226,7 @@ export type Database = {
           file_name: string | null
           file_size: number | null
           file_type: string | null
+          payment_method: string | null
           description: string | null
           notes: string | null
           created_at: string
@@ -249,6 +254,7 @@ export type Database = {
           file_name?: string | null
           file_size?: number | null
           file_type?: string | null
+          payment_method?: string | null
           description?: string | null
           notes?: string | null
         }
@@ -271,6 +277,7 @@ export type Database = {
           file_name?: string | null
           file_size?: number | null
           file_type?: string | null
+          payment_method?: string | null
           description?: string | null
           notes?: string | null
           updated_at?: string

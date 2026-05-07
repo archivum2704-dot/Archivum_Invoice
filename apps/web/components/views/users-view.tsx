@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Users, Building2, Shield, Trash2, ChevronDown,
-  UserPlus, CheckSquare, Square, X, Check,
+  UserPlus, CheckSquare, Square, X, Check, Folder,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslations } from "next-intl"
@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useMembers, useMemberCompanyAccess, type OrgMember } from "@/lib/hooks/use-members"
 import { useCompanies } from "@/lib/hooks/use-companies"
+import { useFolders } from "@/lib/hooks/use-folders"
 import type { OrgRole } from "@/lib/supabase/types"
 
 const MAX_USERS = 3
@@ -115,12 +116,123 @@ function CompanyAccessPanel({ member, orgId, onClose }: { member: OrgMember; org
   )
 }
 
+// ── Folder access panel ───────────────────────────────────────────────────────
+function FolderAccessPanel({ member, orgId, onClose }: { member: OrgMember; orgId: string; onClose: () => void }) {
+  const tF = useTranslations("folders")
+  const tS = useTranslations("settings.members")
+  const { folders } = useFolders(orgId)
+  const [access, setAccess] = useState<Record<string, { can_upload: boolean; can_edit: boolean; can_delete: boolean }>>({})
+  const [loading, setLoading] = useState(true)
+
+  const name = member.profile
+    ? `${member.profile.first_name ?? ""} ${member.profile.last_name ?? ""}`.trim() || member.profile.email
+    : member.user_id
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from("folder_user_access")
+      .select("folder_id, can_upload, can_edit, can_delete")
+      .eq("user_id", member.user_id)
+      .then(({ data }) => {
+        const map: typeof access = {}
+        for (const row of data ?? []) {
+          map[row.folder_id] = { can_upload: row.can_upload, can_edit: row.can_edit, can_delete: row.can_delete }
+        }
+        setAccess(map)
+        setLoading(false)
+      })
+  }, [member.user_id])
+
+  const hasAccess = (folderId: string) => !!access[folderId]
+
+  const toggleFolder = async (folderId: string) => {
+    const supabase = createClient()
+    if (hasAccess(folderId)) {
+      await supabase.from("folder_user_access").delete().eq("folder_id", folderId).eq("user_id", member.user_id)
+      setAccess(prev => { const n = { ...prev }; delete n[folderId]; return n })
+    } else {
+      const row = { folder_id: folderId, user_id: member.user_id, can_upload: true, can_edit: false, can_delete: false }
+      await supabase.from("folder_user_access").insert(row)
+      setAccess(prev => ({ ...prev, [folderId]: { can_upload: true, can_edit: false, can_delete: false } }))
+    }
+  }
+
+  const togglePerm = async (folderId: string, field: "can_upload" | "can_edit" | "can_delete") => {
+    const current = access[folderId]
+    if (!current) return
+    const updated = { ...current, [field]: !current[field] }
+    const supabase = createClient()
+    await supabase.from("folder_user_access").update({ [field]: updated[field] }).eq("folder_id", folderId).eq("user_id", member.user_id)
+    setAccess(prev => ({ ...prev, [folderId]: updated }))
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-lg">
+        <div className="flex items-start justify-between p-5 border-b border-border">
+          <div>
+            <h3 className="text-base font-semibold text-foreground">{tF("title")} — {name}</h3>
+            <p className="text-sm text-muted-foreground mt-0.5">{tS("companyAccessSubtitle")}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+
+        <div className="p-5 max-h-[60vh] overflow-y-auto">
+          {loading ? (
+            <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
+          ) : folders.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">{tF("noFolders")}</p>
+          ) : (
+            <div className="space-y-3">
+              {folders.map((folder) => {
+                const granted = hasAccess(folder.id)
+                const row = access[folder.id]
+                return (
+                  <div key={folder.id} className={cn("rounded-xl border transition-colors", granted ? "border-accent/30 bg-accent/5" : "border-border bg-card")}>
+                    <div className="flex items-center gap-3 p-3">
+                      <button type="button" onClick={() => toggleFolder(folder.id)} className="shrink-0">
+                        {granted ? <CheckSquare className="w-5 h-5 text-accent" /> : <Square className="w-5 h-5 text-muted-foreground" />}
+                      </button>
+                      <Folder className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <p className="text-sm font-medium text-foreground flex-1 truncate">{folder.name}</p>
+                    </div>
+                    {granted && row && (
+                      <div className="flex items-center gap-4 px-4 pb-3 pt-0">
+                        {(["can_upload", "can_edit", "can_delete"] as const).map((field) => (
+                          <label key={field} className="flex items-center gap-1.5 cursor-pointer">
+                            <input type="checkbox" checked={row[field]} onChange={() => togglePerm(folder.id, field)} className="w-3.5 h-3.5 accent-accent" />
+                            <span className="text-xs text-muted-foreground">{tS(`permissions.${field}`)}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end p-4 border-t border-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
+            Listo
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── User row ─────────────────────────────────────────────────────────────────
 function UserRow({ member, orgId, currentUserId, isAdmin, onRefresh }: {
   member: OrgMember; orgId: string; currentUserId: string; isAdmin: boolean; onRefresh: () => void
 }) {
   const t = useTranslations("settings.members")
   const [showAccess, setShowAccess] = useState(false)
+  const [showFolderAccess, setShowFolderAccess] = useState(false)
   const [showRoleMenu, setShowRoleMenu] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -189,11 +301,18 @@ function UserRow({ member, orgId, currentUserId, isAdmin, onRefresh }: {
           )}
 
           {canManage && (member.role === "member" || member.role === "viewer") && (
-            <button onClick={() => setShowAccess(true)}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-full px-2.5 py-1 hover:border-accent/50 transition-colors">
-              <Building2 className="w-3 h-3" />
-              {t("companyAccess")}
-            </button>
+            <>
+              <button onClick={() => setShowAccess(true)}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-full px-2.5 py-1 hover:border-accent/50 transition-colors">
+                <Building2 className="w-3 h-3" />
+                {t("companyAccess")}
+              </button>
+              <button onClick={() => setShowFolderAccess(true)}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-full px-2.5 py-1 hover:border-accent/50 transition-colors">
+                <Folder className="w-3 h-3" />
+                Carpetas
+              </button>
+            </>
           )}
 
           {canManage && (
@@ -204,7 +323,8 @@ function UserRow({ member, orgId, currentUserId, isAdmin, onRefresh }: {
         </div>
       </div>
 
-      {showAccess && <CompanyAccessPanel member={member} orgId={orgId} onClose={() => setShowAccess(false)} />}
+      {showAccess       && <CompanyAccessPanel  member={member} orgId={orgId} onClose={() => setShowAccess(false)} />}
+      {showFolderAccess && <FolderAccessPanel   member={member} orgId={orgId} onClose={() => setShowFolderAccess(false)} />}
     </>
   )
 }

@@ -63,7 +63,9 @@ export function SubirView() {
   const tStatuses = useTranslations("documents.statuses")
   const tFields  = useTranslations("documents.fields")
   const tCommon  = useTranslations("common")
-  const tFolders = useTranslations("folders")
+  const tFolders  = useTranslations("folders")
+  const tPayment  = useTranslations("documents.paymentMethods")
+  const tStorage  = useTranslations("settings.storage")
   const { currentOrg, userProfile } = useOrganization()
   const { companies } = useCompanies(currentOrg?.id ?? null)
   const { folders } = useFolders(currentOrg?.id ?? null)
@@ -83,6 +85,7 @@ export function SubirView() {
   const [notas,      setNotas]      = useState("")
   const [moneda,     setMoneda]     = useState("EUR")
   const [carpeta,    setCarpeta]    = useState("")
+  const [metodoPago, setMetodoPago] = useState("")
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState<string | null>(null)
   const [uploadedId, setUploadedId] = useState<string | null>(null)
@@ -127,7 +130,7 @@ export function SubirView() {
 
   const reset = () => {
     setFiles([]); setNumero(""); setImporte(""); setNotas(""); setMoneda("EUR")
-    setEtiquetas([]); setTipo(fromType ?? ""); setEmpresa(""); setEstado(""); setFecha(""); setCarpeta("")
+    setEtiquetas([]); setTipo(fromType ?? ""); setEmpresa(""); setEstado(""); setFecha(""); setCarpeta(""); setMetodoPago("")
     setError(null); setUploadedId(null)
   }
 
@@ -143,6 +146,23 @@ export function SubirView() {
       let fileName: string | null = null
       let fileSize: number | null = null
       let fileType: string | null = null
+
+      // 0. Check storage limit before uploading
+      if (files.length > 0) {
+        const { data: orgData } = await supabase
+          .from("organizations")
+          .select("storage_limit_bytes, storage_used_bytes")
+          .eq("id", currentOrg.id)
+          .single()
+        if (orgData) {
+          const wouldUse = (orgData.storage_used_bytes ?? 0) + files[0].file.size
+          if (wouldUse > (orgData.storage_limit_bytes ?? 1073741824)) {
+            setError(tStorage("limitReached"))
+            setLoading(false)
+            return
+          }
+        }
+      }
 
       // 1. Upload file to Storage if one is selected
       if (files.length > 0) {
@@ -179,6 +199,7 @@ export function SubirView() {
           uploaded_by:        userProfile?.id ?? null,
           parent_document_id: fromId || null,
           folder_id:          carpeta || null,
+          payment_method:     metodoPago || null,
           document_number:    numero.trim() || null,
           document_type:      tipo as any,
           status:             (estado || "pending") as any,
@@ -453,6 +474,20 @@ export function SubirView() {
                     </div>
                   </div>
                 )}
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">{tFields("paymentMethod")}</label>
+                  <div className="relative">
+                    <select value={metodoPago} onChange={e => setMetodoPago(e.target.value)}
+                      className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
+                      <option value="">{tPayment("none")}</option>
+                      {(["transfer","bizum","paypal","credit_card","cash","check","other"] as const).map(k => (
+                        <option key={k} value={k}>{tPayment(k)}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
               </div>
 
               <div className="mt-4">

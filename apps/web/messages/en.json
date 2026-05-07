@@ -186,6 +186,7 @@
       "issueDate": "Issue Date",
       "dueDate": "Due Date",
       "paymentDate": "Payment Date",
+      "paymentMethod": "Payment Method",
       "description": "Description",
       "notes": "Notes",
       "file": "File",
@@ -196,6 +197,16 @@
       "taxableBase": "Taxable base",
       "vatRate": "% Tax",
       "total": "Total"
+    },
+    "paymentMethods": {
+      "none": "Not specified",
+      "transfer": "Bank Transfer",
+      "bizum": "Bizum",
+      "paypal": "PayPal",
+      "credit_card": "Credit Card",
+      "cash": "Cash",
+      "check": "Cheque",
+      "other": "Other"
     },
     "actions": {
       "upload": "Upload Document",
@@ -375,7 +386,15 @@
       "contact": "Contact",
       "contactDesc": "Contact details of the organization.",
       "address": "Address",
-      "addressDesc": "Fiscal or operational address."
+      "addressDesc": "Fiscal or operational address.",
+      "storage": "Storage",
+      "storageDesc": "Space used to store your documents."
+    },
+    "storage": {
+      "used": "{used} used",
+      "of": "of {limit}",
+      "free": "{free} free",
+      "limitReached": "Storage limit reached. Delete documents or contact support to increase your limit."
     },
     "members": {
       "title": "Users",

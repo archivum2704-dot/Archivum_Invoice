@@ -195,7 +195,18 @@
       "notesAndDescription": "Notas y descripción",
       "taxableBase": "Base imponible",
       "vatRate": "% IVA",
-      "total": "Total"
+      "total": "Total",
+      "paymentMethod": "Método de pago"
+    },
+    "paymentMethods": {
+      "none": "Sin especificar",
+      "transfer": "Transferencia bancaria",
+      "bizum": "Bizum",
+      "paypal": "PayPal",
+      "credit_card": "Tarjeta de crédito",
+      "cash": "Efectivo",
+      "check": "Cheque",
+      "other": "Otro"
     },
     "actions": {
       "upload": "Subir Documento",
@@ -375,7 +386,15 @@
       "contact": "Contacto",
       "contactDesc": "Datos de contacto de la organización.",
       "address": "Dirección",
-      "addressDesc": "Dirección fiscal o de operaciones."
+      "addressDesc": "Dirección fiscal o de operaciones.",
+      "storage": "Almacenamiento",
+      "storageDesc": "Espacio utilizado para guardar tus documentos."
+    },
+    "storage": {
+      "used": "{used} utilizados",
+      "of": "de {limit}",
+      "free": "{free} libres",
+      "limitReached": "Límite de almacenamiento alcanzado. Elimina documentos o contacta con soporte para ampliar."
     },
     "members": {
       "title": "Usuarios",
