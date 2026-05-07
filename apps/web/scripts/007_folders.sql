@@ -25,10 +25,10 @@ CREATE INDEX IF NOT EXISTS folders_org_idx      ON folders(organization_id);
 CREATE INDEX IF NOT EXISTS folders_parent_idx   ON folders(parent_id);
 CREATE INDEX IF NOT EXISTS documents_folder_idx ON documents(folder_id);
 
--- 4. updated_at trigger for folders
-CREATE OR REPLACE TRIGGER folders_updated_at
+-- 4. updated_at trigger for folders (reuses the existing set_updated_at() function)
+CREATE TRIGGER set_updated_at_folders
   BEFORE UPDATE ON folders
-  FOR EACH ROW EXECUTE PROCEDURE moddatetime(updated_at);
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- 5. RLS
 ALTER TABLE folders ENABLE ROW LEVEL SECURITY;
