@@ -1,0 +1,16 @@
+node_modules
+.git
+*.log
+*.pdf
+
+# Monorepo: only deploy apps/web
+apps/mobile
+packages/*/node_modules
+
+# Build artifacts (outside apps/web)
+.turbo
+dist
+build
+
+# Local env files
+.env*.local
