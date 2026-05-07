@@ -55,9 +55,10 @@ export function BibliotecaView() {
   const [dateTo, setDateTo] = useState("")
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null) // null = all docs
   const [showExportMenu, setShowExportMenu] = useState(false)
-  const [showNewFolder, setShowNewFolder] = useState(false)
+  const [creatingUnder, setCreatingUnder] = useState<string | "root" | null>(null) // folder id or "root"
   const [newFolderName, setNewFolderName] = useState("")
   const [creatingFolder, setCreatingFolder] = useState(false)
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [movingDoc, setMovingDoc] = useState<string | null>(null) // doc id being moved
   const [page, setPage] = useState(1)
   const [previewDoc, setPreviewDoc] = useState<(typeof documents)[number] | null>(null)
@@ -70,18 +71,24 @@ export function BibliotecaView() {
   const { documents, loading, mutate: mutateDocuments } = useDocuments(currentOrg?.id ?? null)
   const { folders, mutate: mutateFolders } = useFolders(currentOrg?.id ?? null)
 
-  const handleCreateFolder = async () => {
+  const toggleExpand = (id: string) =>
+    setExpandedFolders(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
+
+  const handleCreateFolder = async (parentId: string | null = null) => {
     if (!newFolderName.trim() || !currentOrg) return
     setCreatingFolder(true)
     const supabase = createClient()
     const { error } = await supabase.from("folders").insert({
       organization_id: currentOrg.id,
       name: newFolderName.trim(),
+      parent_id: parentId,
     })
     if (!error) {
       mutateFolders()
       setNewFolderName("")
-      setShowNewFolder(false)
+      setCreatingUnder(null)
+      // Auto-expand parent so new subfolder is visible
+      if (parentId) setExpandedFolders(prev => new Set([...prev, parentId]))
     }
     setCreatingFolder(false)
   }
@@ -157,9 +164,13 @@ export function BibliotecaView() {
       if (dateTo && d_ > dateTo) return false
       return true
     })()
+    const getFolderIds = (id: string): string[] => {
+      const children = folders.filter((f: any) => f.parent_id === id)
+      return [id, ...children.flatMap((c: any) => getFolderIds(c.id))]
+    }
     const matchFolder = selectedFolder === null
       ? true
-      : (d as any).folder_id === selectedFolder
+      : getFolderIds(selectedFolder).includes((d as any).folder_id)
     return matchSearch && matchType && matchStatus && matchDate && matchFolder
   }), [documents, search, filterType, filterStatus, dateFrom, dateTo, selectedFolder])
 
@@ -171,6 +182,97 @@ export function BibliotecaView() {
 
   const getTypeStyle = (type: string) => TYPE_STYLES[type] ?? { icon: FileText, className: "bg-muted text-muted-foreground" }
 
+  // ── Recursive folder node renderer ─────────────────────────────────────────
+  const renderFolderNode = (folder: (typeof folders)[number], depth: number): React.ReactNode => {
+    const kids = folders.filter((f: any) => f.parent_id === folder.id)
+    const count = documents.filter((d: any) => d.folder_id === folder.id).length
+    const isExpanded = expandedFolders.has(folder.id)
+    const isSelected = selectedFolder === folder.id
+    const isDragOver = dragOverFolder === folder.id
+
+    return (
+      <div key={folder.id}>
+        {/* Row */}
+        <div
+          className="group/fi flex items-center gap-0.5"
+          style={{ paddingLeft: depth * 10 }}
+        >
+          {/* Expand toggle — placeholder space if no children */}
+          <button
+            onClick={() => toggleExpand(folder.id)}
+            className={cn("w-4 h-4 shrink-0 flex items-center justify-center rounded transition-colors", kids.length > 0 ? "hover:bg-muted" : "cursor-default")}
+          >
+            {kids.length > 0 && (
+              <ChevronRight className={cn("w-3 h-3 text-muted-foreground transition-transform", isExpanded && "rotate-90")} />
+            )}
+          </button>
+
+          {/* Folder button */}
+          <button
+            onClick={() => setSelectedFolder(folder.id)}
+            onDragOver={(e) => { e.preventDefault(); setDragOverFolder(folder.id) }}
+            onDragLeave={() => setDragOverFolder(null)}
+            onDrop={(e) => { e.preventDefault(); if (dragDocId) handleMoveToFolder(dragDocId, folder.id); setDragOverFolder(null); setDragDocId(null) }}
+            className={cn(
+              "flex-1 min-w-0 flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-all text-left",
+              isDragOver
+                ? "bg-primary/15 border border-primary/40 text-primary scale-[1.02]"
+                : isSelected
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            <Folder className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate flex-1">{folder.name}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{count}</span>
+          </button>
+
+          {/* Add subfolder button (admin only, on hover) */}
+          {isOrgAdmin && (
+            <button
+              onClick={() => { setCreatingUnder(creatingUnder === folder.id ? null : folder.id); setNewFolderName("") }}
+              className="opacity-0 group-hover/fi:opacity-100 p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
+              title={tFolders("newFolder")}
+            >
+              <FolderPlus className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Inline input for new subfolder */}
+        {creatingUnder === folder.id && (
+          <div className="flex items-center gap-1.5 pr-1 mb-1 mt-0.5" style={{ paddingLeft: (depth + 1) * 10 + 20 }}>
+            <input
+              autoFocus
+              type="text"
+              value={newFolderName}
+              onChange={e => setNewFolderName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") handleCreateFolder(folder.id)
+                if (e.key === "Escape") { setCreatingUnder(null); setNewFolderName("") }
+              }}
+              placeholder={tFolders("folderName")}
+              className="flex-1 min-w-0 px-2 py-1 text-xs bg-muted border border-border rounded focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+            />
+            <button
+              onClick={() => handleCreateFolder(folder.id)}
+              disabled={!newFolderName.trim() || creatingFolder}
+              className="p-1 rounded bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors shrink-0"
+            >
+              {creatingFolder ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+            </button>
+            <button onClick={() => { setCreatingUnder(null); setNewFolderName("") }} className="p-1 rounded hover:bg-muted shrink-0">
+              <X className="w-3 h-3 text-muted-foreground" />
+            </button>
+          </div>
+        )}
+
+        {/* Children */}
+        {isExpanded && kids.map(kid => renderFolderNode(kid, depth + 1))}
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-0 h-full">
 
@@ -180,7 +282,7 @@ export function BibliotecaView() {
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{tFolders("title")}</span>
           {isOrgAdmin && (
             <button
-              onClick={() => setShowNewFolder(v => !v)}
+              onClick={() => { setCreatingUnder(creatingUnder === "root" ? null : "root"); setNewFolderName("") }}
               className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
               title={tFolders("newFolder")}
             >
@@ -189,8 +291,8 @@ export function BibliotecaView() {
           )}
         </div>
 
-        {/* New folder input */}
-        {showNewFolder && (
+        {/* New root-level folder input */}
+        {creatingUnder === "root" && (
           <div className="flex items-center gap-1.5 px-2 mb-1">
             <input
               autoFocus
@@ -198,26 +300,26 @@ export function BibliotecaView() {
               value={newFolderName}
               onChange={e => setNewFolderName(e.target.value)}
               onKeyDown={e => {
-                if (e.key === "Enter") handleCreateFolder()
-                if (e.key === "Escape") { setShowNewFolder(false); setNewFolderName("") }
+                if (e.key === "Enter") handleCreateFolder(null)
+                if (e.key === "Escape") { setCreatingUnder(null); setNewFolderName("") }
               }}
               placeholder={tFolders("folderName")}
               className="flex-1 min-w-0 px-2 py-1 text-xs bg-muted border border-border rounded focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
             />
             <button
-              onClick={handleCreateFolder}
+              onClick={() => handleCreateFolder(null)}
               disabled={!newFolderName.trim() || creatingFolder}
               className="p-1 rounded bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors"
             >
               {creatingFolder ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
             </button>
-            <button onClick={() => { setShowNewFolder(false); setNewFolderName("") }} className="p-1 rounded hover:bg-muted">
+            <button onClick={() => { setCreatingUnder(null); setNewFolderName("") }} className="p-1 rounded hover:bg-muted">
               <X className="w-3 h-3 text-muted-foreground" />
             </button>
           </div>
         )}
 
-        {/* All documents — drop target for removing folder */}
+        {/* All documents — drop target */}
         <button
           onClick={() => setSelectedFolder(null)}
           onDragOver={(e) => { e.preventDefault(); setDragOverFolder("root") }}
@@ -237,34 +339,10 @@ export function BibliotecaView() {
           <span className="text-xs text-muted-foreground tabular-nums">{documents.length}</span>
         </button>
 
-        {/* Folder list */}
-        {folders.map(folder => {
-          const count = documents.filter((d: any) => d.folder_id === folder.id).length
-          return (
-            <div key={folder.id} className="relative group/folder">
-              <button
-                onClick={() => setSelectedFolder(folder.id)}
-                onDragOver={(e) => { e.preventDefault(); setDragOverFolder(folder.id) }}
-                onDragLeave={() => setDragOverFolder(null)}
-                onDrop={(e) => { e.preventDefault(); if (dragDocId) handleMoveToFolder(dragDocId, folder.id); setDragOverFolder(null); setDragDocId(null) }}
-                className={cn(
-                  "flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-sm transition-all text-left w-full",
-                  dragOverFolder === folder.id
-                    ? "bg-primary/15 border border-primary/40 text-primary scale-[1.02]"
-                    : selectedFolder === folder.id
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                <Folder className="w-4 h-4 shrink-0" />
-                <span className="truncate flex-1">{folder.name}</span>
-                <span className="text-xs text-muted-foreground tabular-nums">{count}</span>
-              </button>
-            </div>
-          )
-        })}
+        {/* Recursive folder tree */}
+        {folders.filter((f: any) => !f.parent_id).map(folder => renderFolderNode(folder, 0))}
 
-        {folders.length === 0 && (
+        {folders.length === 0 && creatingUnder !== "root" && (
           <p className="text-xs text-muted-foreground/50 text-center mt-4 px-2">{tFolders("noFolders")}</p>
         )}
       </div>
@@ -510,17 +588,29 @@ export function BibliotecaView() {
                                     {tFolders("moveToRoot")}
                                   </button>
                                 )}
-                                {folders.map(f => (
-                                  <button
-                                    key={f.id}
-                                    onClick={() => handleMoveToFolder(doc.id, f.id)}
-                                    className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted text-left"
-                                  >
-                                    <Folder className="w-3.5 h-3.5 text-muted-foreground" />
-                                    <span className="truncate">{f.name}</span>
-                                    {(doc as any).folder_id === f.id && <Check className="w-3 h-3 text-primary ml-auto" />}
-                                  </button>
-                                ))}
+                                {(() => {
+                                  // Flatten folder tree with depth for indented menu
+                                  const flatFolders: Array<{ folder: (typeof folders)[number]; depth: number }> = []
+                                  const collect = (parentId: string | null, depth: number) => {
+                                    folders.filter((f: any) => (f.parent_id ?? null) === parentId).forEach(f => {
+                                      flatFolders.push({ folder: f, depth })
+                                      collect(f.id, depth + 1)
+                                    })
+                                  }
+                                  collect(null, 0)
+                                  return flatFolders.map(({ folder: f, depth }) => (
+                                    <button
+                                      key={f.id}
+                                      onClick={() => handleMoveToFolder(doc.id, f.id)}
+                                      className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted text-left"
+                                      style={{ paddingLeft: 12 + depth * 14 }}
+                                    >
+                                      <Folder className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                      <span className="truncate">{f.name}</span>
+                                      {(doc as any).folder_id === f.id && <Check className="w-3 h-3 text-primary ml-auto" />}
+                                    </button>
+                                  ))
+                                })()}
                                 {folders.length === 0 && (
                                   <p className="px-3 py-2 text-xs text-muted-foreground">{tFolders("noFolders")}</p>
                                 )}
