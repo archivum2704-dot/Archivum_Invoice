@@ -36,7 +36,8 @@
     "editDocument": "Editar documento",
     "dangerZone": "Zona de peligro",
     "saving": "Guardando...",
-    "saved": "Guardado"
+    "saved": "Guardado",
+    "deleting": "Eliminando..."
   },
   "auth": {
     "login": {
@@ -474,8 +475,11 @@
     "moveToFolder": "Mover a carpeta",
     "moveToRoot": "Quitar de carpeta",
     "deleteFolderConfirm": "¿Eliminar esta carpeta? Los documentos que contiene pasarán a la raíz.",
+    "deleteFolderDocs": "{count} documento(s) quedarán sin carpeta asignada.",
+    "deleteFolderSubs": "{count} subcarpeta(s) también se eliminarán permanentemente.",
     "deleteFolder": "Eliminar carpeta",
-    "renameFolder": "Renombrar carpeta"
+    "renameFolder": "Renombrar carpeta",
+    "deleteFolderEmpty": "Esta carpeta está vacía. Se eliminará permanentemente."
   },
   "language": {
     "label": "Idioma",

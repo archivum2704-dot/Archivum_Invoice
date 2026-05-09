@@ -36,7 +36,8 @@
     "editDocument": "Edit document",
     "dangerZone": "Danger zone",
     "saving": "Saving...",
-    "saved": "Saved"
+    "saved": "Saved",
+    "deleting": "Deleting..."
   },
   "auth": {
     "login": {
@@ -474,8 +475,11 @@
     "moveToFolder": "Move to folder",
     "moveToRoot": "Remove from folder",
     "deleteFolderConfirm": "Delete this folder? Documents inside will be moved to the root.",
+    "deleteFolderDocs": "{count} document(s) will be unlinked from this folder.",
+    "deleteFolderSubs": "{count} subfolder(s) will also be permanently deleted.",
     "deleteFolder": "Delete folder",
-    "renameFolder": "Rename folder"
+    "renameFolder": "Rename folder",
+    "deleteFolderEmpty": "This folder is empty. It will be permanently deleted."
   },
   "language": {
     "label": "Language",

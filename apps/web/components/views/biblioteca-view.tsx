@@ -5,7 +5,7 @@ import {
   FileText, Package, Receipt, FolderOpen, Folder,
   Search, Filter, Grid3X3, List, Plus, Eye, ChevronDown, FileSpreadsheet, Pencil,
   ChevronLeft, ChevronRight, CalendarDays, X, Building2, FolderPlus, Check, Loader2,
-  MoveRight,
+  MoveRight, Trash2, AlertTriangle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -60,6 +60,15 @@ export function BibliotecaView() {
   const [creatingFolder, setCreatingFolder] = useState(false)
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [movingDoc, setMovingDoc] = useState<string | null>(null) // doc id being moved
+  const [renamingFolder, setRenamingFolder] = useState<string | null>(null) // folder id being renamed
+  const [renameValue,    setRenameValue]    = useState("")
+  const [renameSaving,   setRenameSaving]   = useState(false)
+  const [deleteConfirm,  setDeleteConfirm]  = useState<{
+    folder: (typeof folders)[number]
+    docCount: number
+    subCount: number
+  } | null>(null)
+  const [deletingFolder, setDeletingFolder] = useState(false)
   const [page, setPage] = useState(1)
   const [previewDoc, setPreviewDoc] = useState<(typeof documents)[number] | null>(null)
   const [thumbReady, setThumbReady] = useState(false)
@@ -111,6 +120,61 @@ export function BibliotecaView() {
     await mutateDocuments()
     setMovingOutId(null)
     setMovingDoc(null)
+  }
+
+  const handleRenameFolder = async (folderId: string) => {
+    if (!renameValue.trim() || !currentOrg) return
+    setRenameSaving(true)
+    const supabase = createClient()
+    await supabase.from("folders").update({ name: renameValue.trim() }).eq("id", folderId)
+    await mutateFolders()
+    setRenameSaving(false)
+    setRenamingFolder(null)
+    setRenameValue("")
+  }
+
+  const openDeleteConfirm = (folder: (typeof folders)[number]) => {
+    // Count all descendant folder IDs recursively
+    const getAllSubIds = (parentId: string): string[] => {
+      const kids = folders.filter((f: any) => f.parent_id === parentId)
+      return kids.flatMap((k: any) => [k.id, ...getAllSubIds(k.id)])
+    }
+    const subIds  = getAllSubIds(folder.id)
+    const subCount = subIds.length
+    // Count all docs in this folder AND its subfolders
+    const allFolderIds = [folder.id, ...subIds]
+    const docCount = documents.filter((d: any) => allFolderIds.includes(d.folder_id)).length
+    setDeleteConfirm({ folder, docCount, subCount })
+  }
+
+  const handleDeleteFolder = async () => {
+    if (!deleteConfirm) return
+    setDeletingFolder(true)
+    const supabase = createClient()
+
+    // Collect all folder IDs to delete (this folder + all descendants)
+    const getAllSubIds = (parentId: string): string[] => {
+      const kids = folders.filter((f: any) => f.parent_id === parentId)
+      return kids.flatMap((k: any) => [k.id, ...getAllSubIds(k.id)])
+    }
+    const allIds = [deleteConfirm.folder.id, ...getAllSubIds(deleteConfirm.folder.id)]
+
+    // 1. Unlink all documents from these folders
+    await supabase.from("documents").update({ folder_id: null }).in("folder_id", allIds)
+
+    // 2. Delete folders bottom-up (children first) to avoid FK issues
+    for (const id of [...allIds].reverse()) {
+      await supabase.from("folders").delete().eq("id", id)
+    }
+
+    // If we were viewing this folder, go back to root
+    if (selectedFolder && allIds.includes(selectedFolder)) {
+      setSelectedFolder(null)
+    }
+
+    await Promise.all([mutateFolders(), mutateDocuments()])
+    setDeletingFolder(false)
+    setDeleteConfirm(null)
   }
 
   // Delay card render to avoid flicker on fast mouse passes
@@ -238,37 +302,82 @@ export function BibliotecaView() {
             )}
           </button>
 
-          {/* Folder button */}
-          <button
-            onClick={() => setSelectedFolder(folder.id)}
-            onDragOver={(e) => { e.preventDefault(); setDragOverFolder(folder.id) }}
-            onDragLeave={() => setDragOverFolder(null)}
-            onDrop={(e) => { e.preventDefault(); if (dragDocId) handleMoveToFolder(dragDocId, folder.id); setDragOverFolder(null); setDragDocId(null) }}
-            className={cn(
-              "flex-1 min-w-0 flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-all text-left",
-              isFlashing
-                ? "bg-accent/20 text-accent scale-[1.04] font-medium"
-                : isDragOver
-                  ? "bg-primary/15 border border-primary/40 text-primary scale-[1.02]"
-                  : isSelected
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            <Folder className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate flex-1">{folder.name}</span>
-            <span className="text-xs text-muted-foreground tabular-nums">{count}</span>
-          </button>
-
-          {/* Add subfolder button (admin only, on hover) */}
-          {isOrgAdmin && (
+            {/* Folder button — or inline rename input */}
+          {renamingFolder === folder.id ? (
+            <div className="flex-1 flex items-center gap-1">
+              <input
+                autoFocus
+                type="text"
+                value={renameValue}
+                onChange={e => setRenameValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter") handleRenameFolder(folder.id)
+                  if (e.key === "Escape") { setRenamingFolder(null); setRenameValue("") }
+                }}
+                className="flex-1 min-w-0 px-2 py-1 text-xs bg-muted border border-border rounded focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+              />
+              <button
+                onClick={() => handleRenameFolder(folder.id)}
+                disabled={!renameValue.trim() || renameSaving}
+                className="p-1 rounded bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors shrink-0"
+              >
+                {renameSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+              </button>
+              <button
+                onClick={() => { setRenamingFolder(null); setRenameValue("") }}
+                className="p-1 rounded hover:bg-muted shrink-0"
+              >
+                <X className="w-3 h-3 text-muted-foreground" />
+              </button>
+            </div>
+          ) : (
             <button
-              onClick={() => { setCreatingUnder(creatingUnder === folder.id ? null : folder.id); setNewFolderName("") }}
-              className="opacity-0 group-hover/fi:opacity-100 p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
-              title={tFolders("newFolder")}
+              onClick={() => setSelectedFolder(folder.id)}
+              onDragOver={(e) => { e.preventDefault(); setDragOverFolder(folder.id) }}
+              onDragLeave={() => setDragOverFolder(null)}
+              onDrop={(e) => { e.preventDefault(); if (dragDocId) handleMoveToFolder(dragDocId, folder.id); setDragOverFolder(null); setDragDocId(null) }}
+              className={cn(
+                "flex-1 min-w-0 flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-all text-left",
+                isFlashing
+                  ? "bg-accent/20 text-accent scale-[1.04] font-medium"
+                  : isDragOver
+                    ? "bg-primary/15 border border-primary/40 text-primary scale-[1.02]"
+                    : isSelected
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
             >
-              <FolderPlus className="w-3 h-3" />
+              <Folder className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate flex-1">{folder.name}</span>
+              <span className="text-xs text-muted-foreground tabular-nums">{count}</span>
             </button>
+          )}
+
+          {/* Admin action buttons (on hover) */}
+          {isOrgAdmin && renamingFolder !== folder.id && (
+            <div className="flex items-center opacity-0 group-hover/fi:opacity-100 transition-opacity shrink-0">
+              <button
+                onClick={() => { setCreatingUnder(creatingUnder === folder.id ? null : folder.id); setNewFolderName("") }}
+                className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                title={tFolders("newFolder")}
+              >
+                <FolderPlus className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => { setRenamingFolder(folder.id); setRenameValue(folder.name) }}
+                className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                title={tFolders("renameFolder")}
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => openDeleteConfirm(folder)}
+                className="p-1 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
+                title={tFolders("deleteFolder")}
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
           )}
         </div>
 
@@ -862,6 +971,67 @@ export function BibliotecaView() {
         </>
       )}
       </div> {/* end main content */}
+
+      {/* ── Delete folder confirmation modal ─────────────────────── */}
+      {deleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget && !deletingFolder) setDeleteConfirm(null) }}
+        >
+          <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 flex flex-col gap-4">
+            {/* Header */}
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold text-foreground">{tFolders("deleteFolder")}</h2>
+                <p className="text-sm text-muted-foreground mt-0.5 truncate">
+                  &ldquo;{deleteConfirm.folder.name}&rdquo;
+                </p>
+              </div>
+            </div>
+
+            {/* Warning details */}
+            <div className="bg-destructive/5 border border-destructive/20 rounded-xl px-4 py-3 flex flex-col gap-2">
+              {deleteConfirm.docCount > 0 && (
+                <p className="text-sm text-destructive/90">
+                  {tFolders("deleteFolderDocs", { count: deleteConfirm.docCount })}
+                </p>
+              )}
+              {deleteConfirm.subCount > 0 && (
+                <p className="text-sm text-destructive/90">
+                  {tFolders("deleteFolderSubs", { count: deleteConfirm.subCount })}
+                </p>
+              )}
+              {deleteConfirm.docCount === 0 && deleteConfirm.subCount === 0 && (
+                <p className="text-sm text-muted-foreground">{tFolders("deleteFolderEmpty")}</p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 justify-end pt-1">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deletingFolder}
+                className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                {tCommon("cancel")}
+              </button>
+              <button
+                onClick={handleDeleteFolder}
+                disabled={deletingFolder}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-destructive rounded-lg hover:bg-destructive/90 transition-colors disabled:opacity-70"
+              >
+                {deletingFolder
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> {tCommon("deleting")}</>
+                  : <><Trash2 className="w-4 h-4" /> {tCommon("delete")}</>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
