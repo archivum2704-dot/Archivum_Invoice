@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
+
+function getAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) {
+    throw new Error(`Missing env vars: url=${!!url} key=${!!key}`)
+  }
+  return createAdminClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,16 +52,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'member_limit_reached' }, { status: 403 })
     }
 
-    // Use admin client to create the user
-    const supabaseAdmin = await createClient(true)
+    // Use plain supabase-js admin client for auth.admin.* operations
+    const admin = getAdminClient()
 
-    // Check if user already exists
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
-    const existingUser = existingUsers?.users?.find(u => u.email === email.toLowerCase().trim())
+    // Check if user already exists by listing and filtering
+    // (getUserByEmail is not available in all versions — listUsers with filter is safer)
+    const { data: existingUsers, error: listErr } = await admin.auth.admin.listUsers({ perPage: 1000 })
+    if (listErr) {
+      console.error('[create-member] listUsers error:', listErr)
+      return NextResponse.json({ error: 'server_error', detail: listErr.message }, { status: 500 })
+    }
+
+    const normalizedEmail = email.toLowerCase().trim()
+    const existingUser = existingUsers?.users?.find(u => u.email === normalizedEmail)
 
     if (existingUser) {
       // User already has an account — just add them to the org if not already there
-      const { data: alreadyMember } = await supabaseAdmin
+      const { data: alreadyMember } = await admin
         .from('organization_members')
         .select('id')
         .eq('organization_id', orgId)
@@ -60,12 +79,16 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'already_member' }, { status: 409 })
       }
 
-      await supabaseAdmin.from('organization_members').insert({
+      const { error: insertErr } = await admin.from('organization_members').insert({
         organization_id: orgId,
         user_id: existingUser.id,
         role,
         invited_by: user.id,
       })
+      if (insertErr) {
+        console.error('[create-member] insert existing member error:', insertErr)
+        return NextResponse.json({ error: 'server_error', detail: insertErr.message }, { status: 500 })
+      }
 
       return NextResponse.json({ success: true, existing: true })
     }
@@ -73,8 +96,8 @@ export async function POST(req: NextRequest) {
     // New user — invite via Supabase (sends activation email)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://archivum2704-dot.vercel.app'
 
-    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      email.toLowerCase().trim(),
+    const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+      normalizedEmail,
       {
         data: {
           first_name: firstName ?? '',
@@ -85,21 +108,26 @@ export async function POST(req: NextRequest) {
     )
 
     if (inviteError || !inviteData?.user) {
+      console.error('[create-member] inviteUserByEmail error:', inviteError)
       return NextResponse.json({ error: inviteError?.message ?? 'invite_failed' }, { status: 400 })
     }
 
     // Add to organization
-    await supabaseAdmin.from('organization_members').insert({
+    const { error: memberInsertErr } = await admin.from('organization_members').insert({
       organization_id: orgId,
       user_id: inviteData.user.id,
       role,
       invited_by: user.id,
     })
+    if (memberInsertErr) {
+      console.error('[create-member] insert new member error:', memberInsertErr)
+      return NextResponse.json({ error: 'server_error', detail: memberInsertErr.message }, { status: 500 })
+    }
 
     return NextResponse.json({ success: true, existing: false })
 
   } catch (err) {
-    console.error('[create-member]', err)
-    return NextResponse.json({ error: 'server_error' }, { status: 500 })
+    console.error('[create-member] unhandled error:', err)
+    return NextResponse.json({ error: 'server_error', detail: String(err) }, { status: 500 })
   }
 }
