@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { stripe, PRICES } from '@/lib/stripe'
+import { getStripe, PRICES } from '@/lib/stripe'
 import type Stripe from 'stripe'
 
 // Do NOT wrap in createClient() — webhook uses raw body, no user session
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET!)
+    event = getStripe().webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET!)
   } catch (err) {
     console.error('[webhook] signature verification failed:', err)
     return NextResponse.json({ error: 'invalid_signature' }, { status: 400 })
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
         const orgId = await getOrgId(admin, session.customer as string, session.metadata?.org_id)
         if (!orgId) break
 
-        const sub = await stripe.subscriptions.retrieve(session.subscription as string)
+        const sub = await getStripe().subscriptions.retrieve(session.subscription as string)
         const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null
         const periodEnd = new Date(sub.current_period_end * 1000).toISOString()
 

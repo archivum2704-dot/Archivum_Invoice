@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { stripe, PRICES } from '@/lib/stripe'
+import { getStripe, PRICES } from '@/lib/stripe'
 
 export async function POST(req: NextRequest) {
   try {
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get current subscription items
+    const stripe = getStripe()
     const sub = await stripe.subscriptions.retrieve(org.stripe_subscription_id)
 
     // Fetch price IDs by lookup key
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, changed: false })
     }
 
-    await stripe.subscriptions.update(org.stripe_subscription_id, {
+    await getStripe().subscriptions.update(org.stripe_subscription_id, {
       items,
       proration_behavior: 'always_invoice',
     })
