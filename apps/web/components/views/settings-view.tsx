@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Settings, Copy, Check, Save, HelpCircle, Sparkles } from "lucide-react"
+import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, Inbox } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
@@ -28,6 +28,50 @@ function AccessCodeCard({ code }: { code: string }) {
         <button type="button" onClick={copy} className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
           {copied ? <Check className="w-4 h-4 text-accent" /> : <Copy className="w-4 h-4" />}
         </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Inbox email card ──────────────────────────────────────────────────────────
+function InboxEmailCard({ token }: { token: string }) {
+  const [copied, setCopied] = useState(false)
+  const domain = process.env.NEXT_PUBLIC_INBOX_DOMAIN ?? "inbox.archivum.app"
+  const address = `${token}@${domain}`
+  const copy = () => {
+    navigator.clipboard.writeText(address)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-4 p-4 bg-primary/5 border border-primary/20 rounded-xl">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <Inbox className="w-3.5 h-3.5 text-primary" />
+            <p className="text-xs font-semibold text-primary uppercase tracking-wide">Tu dirección de importación</p>
+          </div>
+          <p className="text-sm font-mono font-semibold text-foreground break-all">{address}</p>
+        </div>
+        <button
+          type="button"
+          onClick={copy}
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-card border border-border rounded-lg hover:bg-muted transition-colors"
+        >
+          {copied
+            ? <><Check className="w-3.5 h-3.5 text-accent" /> Copiado</>
+            : <><Copy className="w-3.5 h-3.5" /> Copiar</>}
+        </button>
+      </div>
+
+      <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
+        <p className="font-semibold text-foreground">Cómo funciona:</p>
+        <ol className="space-y-1.5 ml-4 list-decimal">
+          <li>Reenvía facturas, recibos o albaranes a esta dirección desde tu correo corporativo.</li>
+          <li>Pon esta dirección en copia (CC/BCC) cuando recibas documentos importantes.</li>
+          <li>Configura una regla en tu correo para que reenvíe automáticamente los emails de proveedores específicos.</li>
+        </ol>
+        <p className="pt-1">Cualquier PDF o imagen adjunto se subirá automáticamente como un documento pendiente de procesar.</p>
       </div>
     </div>
   )
@@ -135,6 +179,15 @@ export function SettingsView() {
         {(currentOrg as any)?.access_code && (
           <Section title={tRoot("sections.access")} description={tRoot("sections.accessDesc")}>
             <AccessCodeCard code={(currentOrg as any).access_code} />
+          </Section>
+        )}
+
+        {(currentOrg as any)?.inbox_token && (
+          <Section
+            title="Importación por correo"
+            description="Reenvía facturas a esta dirección y se importarán automáticamente."
+          >
+            <InboxEmailCard token={(currentOrg as any).inbox_token} />
           </Section>
         )}
 
