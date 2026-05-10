@@ -4,39 +4,22 @@
     "slug": "invoice-saas",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
     "scheme": "invoice-saas",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0f172a"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.invoicesaas.app"
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#0f172a"
-      },
       "package": "com.invoicesaas.app"
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "static"
     },
     "plugins": [
       "expo-router",
-      "expo-font",
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#0f172a"
-        }
-      ]
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

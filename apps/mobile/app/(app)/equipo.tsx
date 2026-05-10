@@ -281,7 +281,7 @@ function MemberCard({ member, isSelf, canManage, onRoleChange, onRemove }: {
   const profile = member.profiles;
   const firstName = profile?.first_name ?? "";
   const lastName  = profile?.last_name  ?? "";
-  const fullName  = [firstName, lastName].filter(Boolean).join(" ") || profile?.email ?? "Usuario";
+  const fullName  = [firstName, lastName].filter(Boolean).join(" ") || (profile?.email ?? "Usuario");
   const initials  = ([firstName[0], lastName[0]].filter(Boolean).join("") || "U").toUpperCase();
   const rc = ROLE_COLORS[member.role];
 

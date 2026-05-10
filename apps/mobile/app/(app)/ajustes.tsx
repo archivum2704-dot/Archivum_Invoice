@@ -4,10 +4,12 @@ import {
   Alert, ActivityIndicator, Clipboard, Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   User, Building2, Copy, Check, Users, Globe, Moon,
   Bell, LogOut, ChevronRight, CreditCard, FileText,
-  CheckCircle, AlertTriangle, XCircle, Clock,
+  CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle,
 } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { useTheme } from "@/context/theme-context";
@@ -373,6 +375,20 @@ export default function AjustesScreen() {
               thumbColor="#FFFFFF"
             />
           </View>
+        </Card>
+
+        {/* Help */}
+        <SectionLabel>Ayuda</SectionLabel>
+        <Card>
+          <Row
+            icon={<HelpCircle size={16} color={C.muted} />}
+            label="Ver tutorial de la app"
+            onPress={async () => {
+              try { await AsyncStorage.removeItem("@archivum/onboarding_completed"); } catch {}
+              router.push("/(app)/onboarding");
+            }}
+            border={false}
+          />
         </Card>
 
         {/* Sign out */}

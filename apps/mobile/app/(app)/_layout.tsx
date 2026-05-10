@@ -1,6 +1,8 @@
-import { Tabs, Redirect } from "expo-router";
+import { Tabs, Redirect, usePathname } from "expo-router";
 import { useAuth } from "@/context/auth-context";
 import { View, ActivityIndicator } from "react-native";
+import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Home, BookOpen, Search, Building2, Users, Settings,
 } from "lucide-react-native";
@@ -12,8 +14,24 @@ const BORDER  = "#E5E7EB";
 
 export default function AppLayout() {
   const { session, loading } = useAuth();
+  const pathname = usePathname();
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [needsOnboarding,   setNeedsOnboarding]   = useState(false);
+  const isOnboardingRoute = pathname?.includes("onboarding");
 
-  if (loading) {
+  useEffect(() => {
+    (async () => {
+      try {
+        const v = await AsyncStorage.getItem("@archivum/onboarding_completed");
+        setNeedsOnboarding(v !== "true");
+      } catch {
+        setNeedsOnboarding(false);
+      }
+      setOnboardingChecked(true);
+    })();
+  }, []);
+
+  if (loading || !onboardingChecked) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#F9FAFB" }}>
         <ActivityIndicator size="large" color={BLUE} />
@@ -22,6 +40,7 @@ export default function AppLayout() {
   }
 
   if (!session) return <Redirect href="/(auth)/login" />;
+  if (needsOnboarding && !isOnboardingRoute) return <Redirect href="/(app)/onboarding" />;
 
   return (
     <Tabs
@@ -87,6 +106,7 @@ export default function AppLayout() {
       <Tabs.Screen name="documento/[id]" options={{ href: null }} />
       <Tabs.Screen name="editar/[id]"    options={{ href: null }} />
       <Tabs.Screen name="subir"          options={{ href: null }} />
+      <Tabs.Screen name="onboarding"     options={{ href: null }} />
     </Tabs>
   );
 }
