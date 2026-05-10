@@ -12,9 +12,9 @@ import { useOrganization } from "@/lib/context/organization-context"
 import { useMembers, useMemberCompanyAccess, type OrgMember } from "@/lib/hooks/use-members"
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { useFolders } from "@/lib/hooks/use-folders"
+import { useBilling } from "@/lib/hooks/use-billing"
+import { useRouter } from "next/navigation"
 import type { OrgRole } from "@/lib/supabase/types"
-
-const MAX_USERS = 3
 
 const ROLE_COLORS: Record<OrgRole, string> = {
   owner:  "bg-accent/10 text-accent border-accent/20",
@@ -431,20 +431,87 @@ function CreateUserForm({ orgId, onSuccess }: { orgId: string; onSuccess: () => 
   )
 }
 
+// ── Upgrade modal ─────────────────────────────────────────────────────────────
+function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan: boolean }) {
+  const router = useRouter()
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between mb-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <UserPlus className="w-6 h-6 text-primary" />
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+
+        <h2 className="text-base font-semibold text-foreground mb-1">
+          {isFreePlan ? "Límite del plan gratuito" : "Límite de usuarios alcanzado"}
+        </h2>
+        <p className="text-sm text-muted-foreground mb-5">
+          {isFreePlan
+            ? "El plan gratuito incluye 1 usuario. Actualiza al plan Pro para añadir hasta 5 usuarios, o añade usuarios extra a partir de 2 €/usuario/mes."
+            : "Has alcanzado el límite de usuarios de tu plan. Añade usuarios extra desde la sección de Facturación a partir de 2 €/usuario/mes."}
+        </p>
+
+        <div className="space-y-2">
+          {isFreePlan && (
+            <button
+              onClick={() => { router.push("/configuracion/billing"); onClose() }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+            >
+              Ver planes — 7 días gratis
+            </button>
+          )}
+          <button
+            onClick={() => { router.push("/configuracion/billing"); onClose() }}
+            className={cn(
+              "w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border transition-colors",
+              isFreePlan
+                ? "border-border text-foreground hover:bg-muted"
+                : "bg-primary text-primary-foreground border-transparent hover:bg-primary/90"
+            )}
+          >
+            {isFreePlan ? "Añadir usuarios extra" : "Gestionar usuarios extra"}
+          </button>
+          <button onClick={onClose} className="w-full px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main users view ───────────────────────────────────────────────────────────
 export function UsersView() {
   const t = useTranslations("settings.members")
   const { currentOrg, userProfile, isOrgAdmin, loading: orgLoading } = useOrganization()
   const { members, loading: membersLoading, error: membersError, mutate } = useMembers(currentOrg?.id ?? null)
+  const { billing } = useBilling(currentOrg?.id ?? null)
   const [showForm, setShowForm] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
 
   const currentUserId = userProfile?.id ?? ""
   const loading = orgLoading || membersLoading
-  const nonOwnerCount = members.filter((m) => m.role !== "owner").length
-  const atLimit = nonOwnerCount >= MAX_USERS
+
+  // Limit from billing: free=1, pro=5+extras (billing hook returns correct value)
+  const maxUsers = billing?.maxUsers ?? 1
+  const totalCount = members.length
+  const atLimit = totalCount >= maxUsers
+  const isFreePlan = !billing?.hasSubscription
+
+  function handleAddClick() {
+    if (atLimit) { setShowUpgrade(true); return }
+    setShowForm(!showForm)
+  }
 
   return (
     <div className="p-8 max-w-4xl">
+      {/* Upgrade modal */}
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} isFreePlan={isFreePlan} />}
+
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
@@ -463,12 +530,11 @@ export function UsersView() {
                 ? "bg-destructive/10 text-destructive border-destructive/20"
                 : "bg-muted text-muted-foreground border-border"
             )}>
-              {t("userCount", { current: nonOwnerCount, max: MAX_USERS })}
+              {t("userCount", { current: totalCount, max: maxUsers })}
             </span>
             <button
-              onClick={() => !atLimit && setShowForm(!showForm)}
-              disabled={atLimit}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              onClick={handleAddClick}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
             >
               <UserPlus className="w-4 h-4" />
               {t("invite")}
@@ -476,13 +542,6 @@ export function UsersView() {
           </div>
         )}
       </div>
-
-      {/* Limit warning */}
-      {isOrgAdmin && atLimit && (
-        <div className="mb-4 px-4 py-3 bg-destructive/5 border border-destructive/20 rounded-xl">
-          <p className="text-xs text-destructive">{t("limitReached", { max: MAX_USERS })}</p>
-        </div>
-      )}
 
       {/* Create user form */}
       {showForm && isOrgAdmin && currentOrg && !atLimit && (

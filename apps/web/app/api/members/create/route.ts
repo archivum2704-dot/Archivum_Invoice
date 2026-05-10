@@ -51,23 +51,28 @@ export async function POST(req: NextRequest) {
     // Enforce dynamic user limit based on subscription
     const { data: orgBilling } = await supabase
       .from('organizations')
-      .select('subscription_status, extra_users_quantity')
+      .select('subscription_status, stripe_subscription_id, extra_users_quantity')
       .eq('id', orgId)
       .single()
 
-    const blockedStatuses = ['canceled', 'unpaid']
-    if (orgBilling && blockedStatuses.includes(orgBilling.subscription_status)) {
-      return NextResponse.json({ error: 'subscription_required' }, { status: 402 })
-    }
+    const status = orgBilling?.subscription_status ?? null
+    const hasPaidSub = !!orgBilling?.stripe_subscription_id
+    const isPaidActive = hasPaidSub && (status === 'active' || status === 'trialing')
+
+    // Free plan: 1 user max. Paid plan: 5 + extras.
+    const maxUsers = isPaidActive ? 5 + (orgBilling?.extra_users_quantity ?? 0) : 1
 
     const { count: memberCount } = await supabase
       .from('organization_members')
       .select('*', { count: 'exact', head: true })
       .eq('organization_id', orgId)
 
-    const maxUsers = 5 + (orgBilling?.extra_users_quantity ?? 0)
     if (memberCount !== null && memberCount >= maxUsers) {
-      return NextResponse.json({ error: 'member_limit_reached' }, { status: 403 })
+      return NextResponse.json({
+        error: 'member_limit_reached',
+        isFreePlan: !isPaidActive,
+        maxUsers,
+      }, { status: 403 })
     }
 
     const admin = getAdminClient()
