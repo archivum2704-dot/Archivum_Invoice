@@ -14,6 +14,7 @@ import { useOrganization } from "@/lib/context/organization-context"
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { useFolders } from "@/lib/hooks/use-folders"
 import { createClient } from "@/lib/supabase/client"
+import { Coachmark } from "@/components/coachmark"
 
 const CURRENCIES = [
   { code: "EUR", label: "€ Euro" },
@@ -75,6 +76,7 @@ export function SubirView() {
 
   const [dragOver,   setDragOver]   = useState(false)
   const [files,      setFiles]      = useState<UploadedFile[]>([])
+  const dropzoneRef = useRef<HTMLDivElement>(null)
   const [tipo,       setTipo]       = useState(fromType ?? "")
   const [empresa,    setEmpresa]    = useState("")
   const [estado,     setEstado]     = useState("")
@@ -325,6 +327,7 @@ export function SubirView() {
 
             {/* Drop zone */}
             <div
+              ref={dropzoneRef}
               onDragOver={e => { e.preventDefault(); setDragOver(true) }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
@@ -557,6 +560,15 @@ export function SubirView() {
           </div>
         </div>
       </form>
+
+      {/* First-time hint: dropzone */}
+      <Coachmark
+        id="subir-dropzone"
+        targetRef={dropzoneRef}
+        title="Sube tu primer documento"
+        description="Arrastra una factura, contrato o recibo aquí, o haz click para elegir archivos. La IA extraerá los datos automáticamente."
+        placement="right"
+      />
     </div>
   )
 }

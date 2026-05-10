@@ -15,6 +15,7 @@ import { useDocuments } from "@/lib/hooks/use-documents"
 import { useFolders } from "@/lib/hooks/use-folders"
 import { downloadCSV, downloadExcel } from "@/lib/utils/export"
 import { createClient } from "@/lib/supabase/client"
+import { Coachmark } from "@/components/coachmark"
 
 const TYPE_STYLES: Record<string, { icon: React.ElementType; className: string }> = {
   invoice_issued:   { icon: FileText,  className: "bg-accent/10 text-accent" },
@@ -79,6 +80,7 @@ export function BibliotecaView() {
   const [dropTargetFlash, setDropTargetFlash] = useState<string | null>(null)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const exportRef = useRef<HTMLDivElement>(null)
+  const uploadLinkRef = useRef<HTMLAnchorElement>(null)
 
   const { currentOrg, isOrgAdmin } = useOrganization()
   const { documents, loading, mutate: mutateDocuments } = useDocuments(currentOrg?.id ?? null)
@@ -539,7 +541,7 @@ export function BibliotecaView() {
             )}
           </div>
 
-          <Link href="/subir" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+          <Link ref={uploadLinkRef as any} href="/subir" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
             <Plus className="w-4 h-4" />{t("uploadNew")}
           </Link>
         </div>
@@ -1031,6 +1033,17 @@ export function BibliotecaView() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* First-time hint: empty library */}
+      {documents.length === 0 && (
+        <Coachmark
+          id="biblioteca-upload-first"
+          targetRef={uploadLinkRef}
+          title="Sube tu primer documento"
+          description="Aquí verás todos tus documentos. Empieza subiendo tu primera factura o contrato."
+          placement="bottom"
+        />
       )}
     </div>
   )

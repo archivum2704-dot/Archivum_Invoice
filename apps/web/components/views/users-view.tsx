@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   Users, Building2, Shield, Trash2, ChevronDown,
   UserPlus, CheckSquare, Square, X, Check, Folder,
@@ -15,6 +15,7 @@ import { useFolders } from "@/lib/hooks/use-folders"
 import { useBilling } from "@/lib/hooks/use-billing"
 import { useRouter } from "next/navigation"
 import type { OrgRole } from "@/lib/supabase/types"
+import { Coachmark } from "@/components/coachmark"
 
 const ROLE_COLORS: Record<OrgRole, string> = {
   owner:  "bg-accent/10 text-accent border-accent/20",
@@ -492,6 +493,7 @@ export function UsersView() {
   const { billing } = useBilling(currentOrg?.id ?? null)
   const [showForm, setShowForm] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
+  const inviteBtnRef = useRef<HTMLButtonElement>(null)
 
   const currentUserId = userProfile?.id ?? ""
   const loading = orgLoading || membersLoading
@@ -533,6 +535,7 @@ export function UsersView() {
               {t("userCount", { current: totalCount, max: maxUsers })}
             </span>
             <button
+              ref={inviteBtnRef}
               onClick={handleAddClick}
               className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
             >
@@ -608,6 +611,17 @@ export function UsersView() {
           ))}
         </div>
       </div>
+
+      {/* First-time hint: invite team */}
+      {totalCount <= 1 && !loading && isOrgAdmin && (
+        <Coachmark
+          id="users-invite-first"
+          targetRef={inviteBtnRef}
+          title="Invita a tu equipo"
+          description="Añade administradores, miembros o visores. Cada rol tiene permisos distintos sobre las empresas y carpetas."
+          placement="bottom"
+        />
+      )}
     </div>
   )
 }

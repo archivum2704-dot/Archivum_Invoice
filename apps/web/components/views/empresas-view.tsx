@@ -13,6 +13,7 @@ import { useCompanies } from "@/lib/hooks/use-companies"
 import { useBilling } from "@/lib/hooks/use-billing"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { Coachmark } from "@/components/coachmark"
 
 const AVATAR_COLORS = ["bg-blue-500", "bg-emerald-600", "bg-violet-600", "bg-orange-500", "bg-rose-600"]
 
@@ -190,6 +191,7 @@ export function EmpresasView() {
   const [editTarget,   setEditTarget]   = useState<null | { id: string } & CompanyForm>(null)
   const [openMenuId,   setOpenMenuId]   = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const addBtnRef = useRef<HTMLButtonElement>(null)
 
   const { currentOrg } = useOrganization()
   const { companies, loading, mutate } = useCompanies(currentOrg?.id ?? null)
@@ -296,7 +298,7 @@ export function EmpresasView() {
               className="pl-9 pr-4 py-2 text-sm bg-card border border-border rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
             />
           </div>
-          <button onClick={handleAddClick} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+          <button ref={addBtnRef} onClick={handleAddClick} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
             <Plus className="w-4 h-4" />{t("addCompany")}
           </button>
         </div>
@@ -473,6 +475,17 @@ export function EmpresasView() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* First-time hint */}
+      {companies.length === 0 && !loading && (
+        <Coachmark
+          id="empresas-create-first"
+          targetRef={addBtnRef}
+          title="Crea tu primera empresa"
+          description="Agrupa tus documentos por cliente o departamento. El plan gratuito incluye 1 empresa."
+          placement="bottom"
+        />
       )}
     </div>
   )
