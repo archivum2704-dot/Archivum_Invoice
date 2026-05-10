@@ -105,6 +105,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'server_error', detail: createErr?.message ?? 'create_failed' }, { status: 500 })
     }
 
+    // Ensure profile row exists (the DB trigger may not fire for admin-created users)
+    await admin.from('profiles').upsert({
+      id: newUser.user.id,
+      email: normalizedEmail,
+      first_name: firstName ?? '',
+      last_name: lastName ?? '',
+    }, { onConflict: 'id' })
+
     // Generate the activation/set-password link
     const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
       type: 'invite',

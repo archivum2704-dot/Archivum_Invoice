@@ -91,12 +91,15 @@ function CompanyAccessPanel({ member, orgId, onClose }: { member: OrgMember; org
                     </div>
                     {granted && row && (
                       <div className="flex items-center gap-4 px-4 pb-3 pt-0">
-                        {(["can_upload", "can_edit", "can_delete"] as const).map((field) => (
-                          <label key={field} className="flex items-center gap-1.5 cursor-pointer">
-                            <input type="checkbox" checked={row[field]} onChange={() => togglePermission(company.id, field)} className="w-3.5 h-3.5 accent-accent" />
-                            <span className="text-xs text-muted-foreground">{t(`permissions.${field}`)}</span>
-                          </label>
-                        ))}
+                        {(["can_upload", "can_edit", "can_delete"] as const).map((field) => {
+                          const i18nKey = { can_upload: "canUpload", can_edit: "canEdit", can_delete: "canDelete" }[field]!
+                          return (
+                            <label key={field} className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="checkbox" checked={row[field]} onChange={() => togglePermission(company.id, field)} className="w-3.5 h-3.5 accent-accent" />
+                              <span className="text-xs text-muted-foreground">{t(`permissions.${i18nKey}`)}</span>
+                            </label>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
@@ -201,12 +204,15 @@ function FolderAccessPanel({ member, orgId, onClose }: { member: OrgMember; orgI
                     </div>
                     {granted && row && (
                       <div className="flex items-center gap-4 px-4 pb-3 pt-0">
-                        {(["can_upload", "can_edit", "can_delete"] as const).map((field) => (
-                          <label key={field} className="flex items-center gap-1.5 cursor-pointer">
-                            <input type="checkbox" checked={row[field]} onChange={() => togglePerm(folder.id, field)} className="w-3.5 h-3.5 accent-accent" />
-                            <span className="text-xs text-muted-foreground">{tS(`permissions.${field}`)}</span>
-                          </label>
-                        ))}
+                        {(["can_upload", "can_edit", "can_delete"] as const).map((field) => {
+                          const i18nKey = { can_upload: "canUpload", can_edit: "canEdit", can_delete: "canDelete" }[field]!
+                          return (
+                            <label key={field} className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="checkbox" checked={row[field]} onChange={() => togglePerm(folder.id, field)} className="w-3.5 h-3.5 accent-accent" />
+                              <span className="text-xs text-muted-foreground">{tS(`permissions.${i18nKey}`)}</span>
+                            </label>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
