@@ -30,8 +30,8 @@ function CompanyAccessPanel({ member, orgId, onClose }: { member: OrgMember; org
   const { access, mutate } = useMemberCompanyAccess(orgId, member.user_id)
 
   const name = member.profile
-    ? `${member.profile.first_name ?? ""} ${member.profile.last_name ?? ""}`.trim() || member.profile.email
-    : member.user_id
+    ? `${member.profile.first_name ?? ""} ${member.profile.last_name ?? ""}`.trim() || member.profile.email || t("unknownUser")
+    : t("unknownUser")
 
   const hasAccess = (companyId: string) => access.some((a) => a.company_id === companyId)
 
@@ -111,7 +111,7 @@ function CompanyAccessPanel({ member, orgId, onClose }: { member: OrgMember; org
 
         <div className="flex justify-end p-4 border-t border-border">
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
-            Listo
+            {t("done")}
           </button>
         </div>
       </div>
@@ -128,8 +128,8 @@ function FolderAccessPanel({ member, orgId, onClose }: { member: OrgMember; orgI
   const [loading, setLoading] = useState(true)
 
   const name = member.profile
-    ? `${member.profile.first_name ?? ""} ${member.profile.last_name ?? ""}`.trim() || member.profile.email
-    : member.user_id
+    ? `${member.profile.first_name ?? ""} ${member.profile.last_name ?? ""}`.trim() || member.profile.email || tS("unknownUser")
+    : tS("unknownUser")
 
   useEffect(() => {
     const supabase = createClient()
@@ -175,8 +175,8 @@ function FolderAccessPanel({ member, orgId, onClose }: { member: OrgMember; orgI
       <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-lg">
         <div className="flex items-start justify-between p-5 border-b border-border">
           <div>
-            <h3 className="text-base font-semibold text-foreground">{tF("title")} — {name}</h3>
-            <p className="text-sm text-muted-foreground mt-0.5">{tS("companyAccessSubtitle")}</p>
+            <h3 className="text-base font-semibold text-foreground">{tS("folderAccessTitle", { name })}</h3>
+            <p className="text-sm text-muted-foreground mt-0.5">{tS("folderAccessSubtitle")}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
             <X className="w-4 h-4 text-muted-foreground" />
@@ -224,7 +224,7 @@ function FolderAccessPanel({ member, orgId, onClose }: { member: OrgMember; orgI
 
         <div className="flex justify-end p-4 border-t border-border">
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
-            Listo
+            {tS("done")}
           </button>
         </div>
       </div>
@@ -316,7 +316,7 @@ function UserRow({ member, orgId, currentUserId, isAdmin, onRefresh }: {
               <button onClick={() => setShowFolderAccess(true)}
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-full px-2.5 py-1 hover:border-accent/50 transition-colors">
                 <Folder className="w-3 h-3" />
-                Carpetas
+                {t("folderAccess")}
               </button>
             </>
           )}

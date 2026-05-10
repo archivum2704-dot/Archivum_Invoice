@@ -434,6 +434,11 @@
       "companyAccess": "Company access",
       "companyAccessTitle": "Company access for {name}",
       "companyAccessSubtitle": "Select which companies this member can access",
+      "folderAccess": "Folders",
+      "folderAccessTitle": "Folder access for {name}",
+      "folderAccessSubtitle": "Select which folders this member can access",
+      "done": "Done",
+      "unknownUser": "Unknown user",
       "allCompanies": "Full access (admin)",
       "noCompanies": "No companies assigned yet",
       "permissions": {

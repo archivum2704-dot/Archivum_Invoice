@@ -434,6 +434,11 @@
       "companyAccess": "Acceso a empresas",
       "companyAccessTitle": "Acceso a empresas de {name}",
       "companyAccessSubtitle": "Selecciona a qué empresas puede acceder este miembro",
+      "folderAccess": "Carpetas",
+      "folderAccessTitle": "Acceso a carpetas de {name}",
+      "folderAccessSubtitle": "Selecciona a qué carpetas puede acceder este miembro",
+      "done": "Listo",
+      "unknownUser": "Usuario desconocido",
       "allCompanies": "Acceso total (administrador)",
       "noCompanies": "Sin empresas asignadas todavía",
       "permissions": {
