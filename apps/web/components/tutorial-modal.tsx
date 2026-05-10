@@ -158,7 +158,7 @@ export function TutorialModal({ open, onClose }: TutorialModalProps) {
         <div className="border-t border-border px-6 py-5 flex flex-col gap-4">
           {/* Dots */}
           <div className="flex items-center justify-center gap-1.5">
-            {SLIDES.map((_, i) => {
+            {SLIDE_STYLES.map((_, i) => {
               const active = i === page
               return (
                 <button
