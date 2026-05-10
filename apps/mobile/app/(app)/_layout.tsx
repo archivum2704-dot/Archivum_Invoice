@@ -2,7 +2,7 @@ import { Tabs, Redirect } from "expo-router";
 import { useAuth } from "@/context/auth-context";
 import { View, ActivityIndicator } from "react-native";
 import {
-  Home, BookOpen, Search, Building2, Settings,
+  Home, BookOpen, Search, Building2, Users, Settings,
 } from "lucide-react-native";
 
 const BLUE    = "#2563EB";
@@ -66,6 +66,13 @@ export default function AppLayout() {
         options={{
           title: "Empresas",
           tabBarIcon: ({ color, size }) => <Building2 size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="equipo"
+        options={{
+          title: "Equipo",
+          tabBarIcon: ({ color, size }) => <Users size={size} color={color} />,
         }}
       />
       <Tabs.Screen

@@ -30,18 +30,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'missing_fields' }, { status: 400 })
     }
 
-    // Verify the requesting user is an admin of the org
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    const admin = getAdminClient()
+
+    // Determine auth: Bearer token (mobile) or cookie session (web)
+    let userId: string
+    const authHeader = req.headers.get('authorization')
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7)
+      const { data, error } = await admin.auth.getUser(token)
+      if (error || !data.user) {
+        return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+      }
+      userId = data.user.id
+    } else {
+      const supabase = await createClient()
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) {
+        return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+      }
+      userId = user.id
     }
 
-    const { data: callerMember } = await supabase
+    // Verify the requesting user is an admin of the org
+    const { data: callerMember } = await admin
       .from('organization_members')
       .select('role')
       .eq('organization_id', orgId)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single()
 
     if (!callerMember || !['owner', 'admin'].includes(callerMember.role)) {
@@ -49,7 +64,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Enforce dynamic user limit based on subscription
-    const { data: orgBilling } = await supabase
+    const { data: orgBilling } = await admin
       .from('organizations')
       .select('subscription_status, stripe_subscription_id, extra_users_quantity')
       .eq('id', orgId)
@@ -62,7 +77,7 @@ export async function POST(req: NextRequest) {
     // Free plan: 1 user max. Paid plan: 5 + extras.
     const maxUsers = isPaidActive ? 5 + (orgBilling?.extra_users_quantity ?? 0) : 1
 
-    const { count: memberCount } = await supabase
+    const { count: memberCount } = await admin
       .from('organization_members')
       .select('*', { count: 'exact', head: true })
       .eq('organization_id', orgId)
@@ -74,8 +89,6 @@ export async function POST(req: NextRequest) {
         maxUsers,
       }, { status: 403 })
     }
-
-    const admin = getAdminClient()
     const normalizedEmail = email.toLowerCase().trim()
     const displayName = [firstName, lastName].filter(Boolean).join(' ') || normalizedEmail
 
@@ -103,7 +116,7 @@ export async function POST(req: NextRequest) {
         organization_id: orgId,
         user_id: existingUser.id,
         role,
-        invited_by: user.id,
+        invited_by: userId,
       })
 
       return NextResponse.json({ success: true, existing: true })
@@ -162,7 +175,7 @@ export async function POST(req: NextRequest) {
       organization_id: orgId,
       user_id: newUser.user.id,
       role,
-      invited_by: user.id,
+      invited_by: userId,
     })
 
     if (memberErr) {
