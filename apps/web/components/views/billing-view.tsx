@@ -299,7 +299,7 @@ export function BillingView() {
             value={effectiveExtraUsers}
             onChange={(v) => setExtraUsers(v)}
             price="2 € / usuario / mes"
-            disabled={!billing?.hasSubscription || !isActive}
+            disabled={false}
           />
           <AddonStepper
             label="Pack de documentos"
@@ -307,7 +307,7 @@ export function BillingView() {
             value={effectiveExtraDocs}
             onChange={(v) => setExtraDocs(v)}
             price="5 € / pack / mes"
-            disabled={!billing?.hasSubscription || !isActive}
+            disabled={false}
           />
 
           {/* Cost summary */}
@@ -349,8 +349,15 @@ export function BillingView() {
               </button>
             </div>
           )}
-          {!billing?.hasSubscription && (
-            <p className="mt-4 text-xs text-muted-foreground">Suscríbete primero para añadir extras.</p>
+          {addonsChanged && !billing?.hasSubscription && (
+            <p className="mt-4 text-xs text-muted-foreground">
+              Suscríbete al plan base para activar estos extras.
+            </p>
+          )}
+          {addonsChanged && billing?.hasSubscription && !isActive && (
+            <p className="mt-4 text-xs text-muted-foreground">
+              Tu suscripción no está activa. Reactívala para aplicar cambios.
+            </p>
           )}
           {addonMsg && (
             <p className={cn("mt-3 text-xs", addonMsg.startsWith("Error") ? "text-destructive" : "text-emerald-600")}>

@@ -434,7 +434,7 @@ export function DashboardView() {
 
                         {/* Dropdown */}
                         {openMenuId === doc.id && (
-                          <div className="absolute right-0 top-full mt-1 z-50 w-40 bg-card border border-border rounded-xl shadow-lg overflow-hidden">
+                          <div className="absolute right-0 top-full mt-1 z-50 w-40 bg-popover border border-border rounded-xl shadow-xl overflow-hidden">
                             <Link
                               href={`/factura/${doc.id}`}
                               onClick={() => setOpenMenuId(null)}
