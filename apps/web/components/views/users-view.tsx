@@ -362,9 +362,10 @@ function CreateUserForm({ orgId, onSuccess }: { orgId: string; onSuccess: () => 
         not_authorized:       t("errors.not_authorized"),
         member_limit_reached: t("errors.member_limit_reached"),
       }
-      // Show mapped message, or fall back to the raw API error so we can diagnose it
       const mapped = msgMap[data.error]
-      setError(mapped ?? `Error: ${data.error ?? 'unknown'}${data.detail ? ` — ${data.detail}` : ''} (HTTP ${res.status})`)
+      // For unmapped errors, show the raw Supabase message so it's actionable
+      const rawMsg = data.detail ?? data.error ?? 'unknown'
+      setError(mapped ?? rawMsg)
       return
     }
 
