@@ -2,16 +2,28 @@ import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   RefreshControl, ActivityIndicator, Modal, ScrollView,
-  Alert,
+  Alert, Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
   Plus, Search, MoreVertical, Building2, X,
   FileText, Pencil, PauseCircle, PlayCircle, Trash2,
+  ArrowRight, Lock,
 } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
+
+const APP_URL = "https://archivum2704-dot.vercel.app";
+
+function isPaidActive(status: string) {
+  return status === "active" || status === "trialing";
+}
+
+interface PlanInfo {
+  subscription_status: string;
+  extra_companies_quantity: number;
+}
 
 const C = {
   blue: "#2563EB", blueL: "#EFF6FF",
@@ -29,6 +41,59 @@ interface Company {
   sector: string | null;
   is_active: boolean;
   doc_count?: number;
+}
+
+/* ── Upgrade modal ───────────────────────────────────────────────────────── */
+function UpgradeModal({ visible, maxCompanies, onClose }: { visible: boolean; maxCompanies: number; onClose: () => void }) {
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,.45)" }} activeOpacity={1} onPress={onClose} />
+      <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 28 }}>
+        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 16 }} />
+
+        {/* Icon */}
+        <View style={{ alignItems: "center", marginBottom: 12 }}>
+          <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
+            <Lock size={26} color={C.blue} />
+          </View>
+        </View>
+
+        <Text style={{ fontSize: 18, fontWeight: "800", color: C.text, textAlign: "center", paddingHorizontal: 24, marginBottom: 8 }}>
+          Límite de empresas alcanzado
+        </Text>
+        <Text style={{ fontSize: 14, color: C.muted, textAlign: "center", paddingHorizontal: 24, lineHeight: 20, marginBottom: 20 }}>
+          Tu plan actual permite hasta {maxCompanies} {maxCompanies === 1 ? "empresa" : "empresas"}.
+          Actualiza a Pro o añade empresas adicionales por 2€/empresa/mes.
+        </Text>
+
+        {/* Bullets */}
+        <View style={{ marginHorizontal: 24, marginBottom: 20, gap: 8 }}>
+          {[
+            "Plan Gratis: 1 empresa",
+            "Plan Pro: 20 empresas incluidas",
+            "+2€/mes por empresa adicional",
+          ].map((line) => (
+            <View key={line} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.blue }} />
+              <Text style={{ fontSize: 13, color: C.text }}>{line}</Text>
+            </View>
+          ))}
+        </View>
+
+        <TouchableOpacity
+          onPress={() => { onClose(); Linking.openURL(`${APP_URL}/configuracion/billing`); }}
+          style={{ marginHorizontal: 24, backgroundColor: C.blue, borderRadius: 12, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Ver planes y precios</Text>
+          <ArrowRight size={16} color="#fff" />
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={onClose} style={{ marginTop: 10, alignItems: "center", paddingVertical: 10 }}>
+          <Text style={{ fontSize: 14, color: C.muted }}>Ahora no</Text>
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
 }
 
 /* ── Company form modal (create / edit) ─────────────────────────────────── */
@@ -198,20 +263,34 @@ function CompanyCard({ company, onMenu }: { company: Company; onMenu: () => void
 /* ── Main screen ─────────────────────────────────────────────────────────── */
 export default function EmpresasScreen() {
   const { orgId } = useAuth();
-  const [companies,   setCompanies]   = useState<Company[]>([]);
-  const [filtered,    setFiltered]    = useState<Company[]>([]);
-  const [query,       setQuery]       = useState("");
-  const [loading,     setLoading]     = useState(true);
-  const [refreshing,  setRefreshing]  = useState(false);
-  const [menuTarget,  setMenuTarget]  = useState<Company | null>(null);
-  const [editTarget,  setEditTarget]  = useState<Company | null>(null);
-  const [createOpen,  setCreateOpen]  = useState(false);
+  const [companies,    setCompanies]    = useState<Company[]>([]);
+  const [filtered,     setFiltered]     = useState<Company[]>([]);
+  const [query,        setQuery]        = useState("");
+  const [loading,      setLoading]      = useState(true);
+  const [refreshing,   setRefreshing]   = useState(false);
+  const [menuTarget,   setMenuTarget]   = useState<Company | null>(null);
+  const [editTarget,   setEditTarget]   = useState<Company | null>(null);
+  const [createOpen,   setCreateOpen]   = useState(false);
+  const [upgradeOpen,  setUpgradeOpen]  = useState(false);
+  const [plan,         setPlan]         = useState<PlanInfo | null>(null);
+
+  const maxCompanies = plan
+    ? (isPaidActive(plan.subscription_status) ? 20 + plan.extra_companies_quantity : 1)
+    : 1;
+
+  const atLimit = companies.length >= maxCompanies;
+
+  const handleAddPress = () => {
+    if (atLimit) { setUpgradeOpen(true); }
+    else         { setCreateOpen(true);  }
+  };
 
   const load = useCallback(async () => {
     if (!orgId) { setLoading(false); return; }
-    const [{ data: comps }, { data: counts }] = await Promise.all([
+    const [{ data: comps }, { data: counts }, { data: orgData }] = await Promise.all([
       supabase.from("companies").select("id, name, cif, sector, is_active").eq("organization_id", orgId).order("name"),
       supabase.from("documents").select("company_id").eq("organization_id", orgId).not("company_id", "is", null),
+      supabase.from("organizations").select("subscription_status, extra_companies_quantity").eq("id", orgId).single(),
     ]);
     const countMap: Record<string, number> = {};
     for (const row of counts ?? []) {
@@ -219,6 +298,7 @@ export default function EmpresasScreen() {
     }
     const withCounts = (comps ?? []).map((c) => ({ ...c, doc_count: countMap[c.id] ?? 0 }));
     setCompanies(withCounts);
+    if (orgData) setPlan(orgData as PlanInfo);
     setLoading(false);
     setRefreshing(false);
   }, [orgId]);
@@ -265,9 +345,16 @@ export default function EmpresasScreen() {
       {/* Header */}
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <Text style={{ fontSize: 22, fontWeight: "800", color: C.text }}>Empresas</Text>
+          <View>
+            <Text style={{ fontSize: 22, fontWeight: "800", color: C.text }}>Empresas</Text>
+            {plan && (
+              <Text style={{ fontSize: 12, color: atLimit ? C.red : C.muted, marginTop: 1 }}>
+                {companies.length} / {maxCompanies} empresas
+              </Text>
+            )}
+          </View>
           <TouchableOpacity
-            onPress={() => setCreateOpen(true)}
+            onPress={handleAddPress}
             style={{ width: 36, height: 36, backgroundColor: C.blue, borderRadius: 10, alignItems: "center", justifyContent: "center" }}
           >
             <Plus size={18} color="#fff" />
@@ -301,7 +388,7 @@ export default function EmpresasScreen() {
           </Text>
           {!query && (
             <TouchableOpacity
-              onPress={() => setCreateOpen(true)}
+              onPress={handleAddPress}
               style={{ backgroundColor: C.blue, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 8, marginTop: 4 }}
             >
               <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>Añadir empresa</Text>
@@ -322,6 +409,11 @@ export default function EmpresasScreen() {
       )}
 
       {/* Modals */}
+      <UpgradeModal
+        visible={upgradeOpen}
+        maxCompanies={maxCompanies}
+        onClose={() => setUpgradeOpen(false)}
+      />
       <CompanyModal
         visible={createOpen}
         onClose={() => setCreateOpen(false)}
