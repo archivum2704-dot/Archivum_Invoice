@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import {
-  CreditCard, Users, FileText, Zap, CheckCircle2,
+  CreditCard, Users, FileText, CheckCircle2,
   AlertTriangle, XCircle, Clock, ChevronUp, ChevronDown, ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"

@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   User, Building2, Copy, Check, Users, Globe, Moon,
-  Bell, LogOut, ChevronRight, CreditCard, FileText, Zap,
+  Bell, LogOut, ChevronRight, CreditCard, FileText,
   CheckCircle, AlertTriangle, XCircle, Clock,
 } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";

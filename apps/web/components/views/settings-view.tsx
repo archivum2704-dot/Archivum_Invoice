@@ -1,18 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Settings, Copy, Check, Save, HardDrive } from "lucide-react"
+import { Settings, Copy, Check, Save } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { useOrganization } from "@/lib/context/organization-context"
-
-function formatBytes(bytes: number): string {
-  if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} GB`
-  if (bytes >= 1048576)    return `${(bytes / 1048576).toFixed(0)} MB`
-  if (bytes >= 1024)       return `${(bytes / 1024).toFixed(0)} KB`
-  return `${bytes} B`
-}
 
 // ── Access code card ──────────────────────────────────────────────────────────
 function AccessCodeCard({ code }: { code: string }) {
@@ -73,7 +66,6 @@ function Field({ label, value, onChange, type = "text", disabled }: {
 export function SettingsView() {
   const t = useTranslations("settings.organization")
   const tRoot = useTranslations("settings")
-  const tStorage = useTranslations("settings.storage")
   const { currentOrg, refreshOrganization } = useOrganization()
 
   const [form, setForm] = useState({
@@ -168,42 +160,6 @@ export function SettingsView() {
           </div>
         </Section>
 
-        {/* Storage usage */}
-        {currentOrg && (
-          <Section title={tRoot("sections.storage")} description={tRoot("sections.storageDesc")}>
-            {(() => {
-              const used  = (currentOrg as any).storage_used_bytes  ?? 0
-              const limit = (currentOrg as any).storage_limit_bytes ?? 1073741824
-              const pct   = Math.min(100, (used / limit) * 100)
-              const atLimit = pct >= 100
-              return (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <HardDrive className="w-5 h-5 text-muted-foreground shrink-0" />
-                    <div className="flex-1">
-                      <div className="flex justify-between text-sm mb-1.5">
-                        <span className="font-medium text-foreground">{tStorage("used", { used: formatBytes(used) })}</span>
-                        <span className="text-muted-foreground">{tStorage("of", { limit: formatBytes(limit) })}</span>
-                      </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className={cn("h-full rounded-full transition-all", atLimit ? "bg-destructive" : pct > 80 ? "bg-amber-500" : "bg-primary")}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">{tStorage("free", { free: formatBytes(Math.max(0, limit - used)) })}</p>
-                    </div>
-                  </div>
-                  {atLimit && (
-                    <p className="text-xs text-destructive bg-destructive/5 border border-destructive/20 rounded-lg px-3 py-2">
-                      {tStorage("limitReached")}
-                    </p>
-                  )}
-                </div>
-              )
-            })()}
-          </Section>
-        )}
 
         <div className="flex items-center gap-3 pt-6">
           <button type="submit" disabled={saving}
