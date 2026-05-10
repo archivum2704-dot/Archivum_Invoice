@@ -48,14 +48,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'not_authorized' }, { status: 403 })
     }
 
-    // Enforce 3-user limit (excluding owner)
+    // Enforce dynamic user limit based on subscription
+    const { data: orgBilling } = await supabase
+      .from('organizations')
+      .select('subscription_status, extra_users_quantity')
+      .eq('id', orgId)
+      .single()
+
+    const blockedStatuses = ['canceled', 'unpaid']
+    if (orgBilling && blockedStatuses.includes(orgBilling.subscription_status)) {
+      return NextResponse.json({ error: 'subscription_required' }, { status: 402 })
+    }
+
     const { count: memberCount } = await supabase
       .from('organization_members')
       .select('*', { count: 'exact', head: true })
       .eq('organization_id', orgId)
-      .neq('role', 'owner')
 
-    if (memberCount !== null && memberCount >= 3) {
+    const maxUsers = 5 + (orgBilling?.extra_users_quantity ?? 0)
+    if (memberCount !== null && memberCount >= maxUsers) {
       return NextResponse.json({ error: 'member_limit_reached' }, { status: 403 })
     }
 

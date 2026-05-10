@@ -10,6 +10,7 @@ import {
   Search,
   Upload,
   Settings,
+  CreditCard,
   ChevronRight,
   LogOut,
   ChevronDown,
@@ -189,6 +190,20 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
           <Settings className="w-4 h-4" />
           <span>{t("settings")}</span>
         </Link>
+        {isOrgAdmin && (
+          <Link
+            href="/configuracion/billing"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]",
+              pathname === "/configuracion/billing"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground/60 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
+            )}
+          >
+            <CreditCard className="w-4 h-4" />
+            <span>Facturación</span>
+          </Link>
+        )}
 
         {/* User row */}
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl">
