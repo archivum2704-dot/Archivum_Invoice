@@ -72,8 +72,10 @@ interface PlanInfo {
   subscription_status: string;
   extra_users_quantity: number;
   extra_docs_quantity: number;
+  extra_companies_quantity: number;
   document_count: number;
   member_count: number;
+  company_count: number;
 }
 
 const APP_URL = "https://archivum2704-dot.vercel.app";
@@ -126,17 +128,20 @@ export default function AjustesScreen() {
   useEffect(() => {
     if (!org?.id) return;
     (async () => {
-      const [{ data: orgData }, { count: memberCount }] = await Promise.all([
+      const [{ data: orgData }, { count: memberCount }, { count: companyCount }] = await Promise.all([
         supabase.from("organizations")
-          .select("subscription_status,extra_users_quantity,extra_docs_quantity,document_count")
+          .select("subscription_status,extra_users_quantity,extra_docs_quantity,extra_companies_quantity,document_count")
           .eq("id", org.id)
           .single(),
         supabase.from("organization_members")
           .select("*", { count: "exact", head: true })
           .eq("organization_id", org.id),
+        supabase.from("companies")
+          .select("*", { count: "exact", head: true })
+          .eq("organization_id", org.id),
       ]);
       if (orgData) {
-        setPlan({ ...orgData, member_count: memberCount ?? 0 });
+        setPlan({ ...orgData, member_count: memberCount ?? 0, company_count: companyCount ?? 0 });
       }
     })();
   }, [org?.id]);
@@ -277,6 +282,22 @@ export default function AjustesScreen() {
                 </Text>
               </View>
               <UsageBar value={plan.document_count} max={isPaidActive(plan.subscription_status) ? 500 + plan.extra_docs_quantity * 200 : 20} />
+            </View>
+          )}
+
+          {/* Usage: companies */}
+          {plan && (
+            <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Building2 size={14} color={C.muted} />
+                  <Text style={{ fontSize: 13, color: C.muted }}>Empresas</Text>
+                </View>
+                <Text style={{ fontSize: 13, color: C.text, fontWeight: "600" }}>
+                  {plan.company_count} / {isPaidActive(plan.subscription_status) ? 20 + plan.extra_companies_quantity : 1}
+                </Text>
+              </View>
+              <UsageBar value={plan.company_count} max={isPaidActive(plan.subscription_status) ? 20 + plan.extra_companies_quantity : 1} />
             </View>
           )}
 

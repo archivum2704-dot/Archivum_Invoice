@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import {
-  CreditCard, Users, FileText, CheckCircle2,
+  CreditCard, Users, FileText, Building2, CheckCircle2,
   AlertTriangle, XCircle, Clock, ChevronUp, ChevronDown, ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -106,26 +106,31 @@ export function BillingView() {
   const { currentOrg, isOrgAdmin } = useOrganization()
   const { billing, loading, mutate } = useBilling(currentOrg?.id ?? null)
 
-  const [extraUsers, setExtraUsers] = useState<number | null>(null)
-  const [extraDocs,  setExtraDocs]  = useState<number | null>(null)
+  const [extraUsers,     setExtraUsers]     = useState<number | null>(null)
+  const [extraDocs,      setExtraDocs]      = useState<number | null>(null)
+  const [extraCompanies, setExtraCompanies] = useState<number | null>(null)
   const [saving, setSaving]         = useState(false)
   const [redirecting, setRedirecting] = useState<"checkout" | "portal" | null>(null)
   const [addonMsg, setAddonMsg]     = useState<string | null>(null)
 
   // Initialise steppers from server data on first load
-  const effectiveExtraUsers = extraUsers ?? billing?.extraUsersQuantity ?? 0
-  const effectiveExtraDocs  = extraDocs  ?? billing?.extraDocsQuantity  ?? 0
+  const effectiveExtraUsers     = extraUsers     ?? billing?.extraUsersQuantity     ?? 0
+  const effectiveExtraDocs      = extraDocs      ?? billing?.extraDocsQuantity      ?? 0
+  const effectiveExtraCompanies = extraCompanies ?? billing?.extraCompaniesQuantity ?? 0
 
   const isActive = billing?.subscriptionStatus === 'active' || billing?.subscriptionStatus === 'trialing'
   const addonsChanged = billing
-    ? effectiveExtraUsers !== billing.extraUsersQuantity || effectiveExtraDocs !== billing.extraDocsQuantity
+    ? effectiveExtraUsers     !== billing.extraUsersQuantity     ||
+      effectiveExtraDocs      !== billing.extraDocsQuantity      ||
+      effectiveExtraCompanies !== billing.extraCompaniesQuantity
     : false
 
   // Monthly cost breakdown
-  const baseCost    = 10
-  const usersCost   = effectiveExtraUsers * 2
-  const docsCost    = effectiveExtraDocs  * 5
-  const totalCost   = baseCost + usersCost + docsCost
+  const baseCost      = 10
+  const usersCost     = effectiveExtraUsers     * 2
+  const docsCost      = effectiveExtraDocs      * 5
+  const companiesCost = effectiveExtraCompanies * 2
+  const totalCost     = baseCost + usersCost + docsCost + companiesCost
 
   async function handleCheckout() {
     setRedirecting("checkout")
@@ -161,7 +166,12 @@ export function BillingView() {
     const res = await fetch("/api/billing/update-addons", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orgId: currentOrg?.id, extraUsers: effectiveExtraUsers, extraDocs: effectiveExtraDocs }),
+      body: JSON.stringify({
+        orgId: currentOrg?.id,
+        extraUsers:     effectiveExtraUsers,
+        extraDocs:      effectiveExtraDocs,
+        extraCompanies: effectiveExtraCompanies,
+      }),
     })
     const data = await res.json()
     setSaving(false)
@@ -211,7 +221,7 @@ export function BillingView() {
             <p className="text-xs text-muted-foreground mt-1">Sin tarjeta de crédito. Para siempre.</p>
           </div>
           <ul className="px-5 py-4 space-y-2.5 text-sm text-muted-foreground">
-            {["1 usuario", "20 documentos", "Todas las funcionalidades"].map(f => (
+            {["1 usuario", "1 empresa", "20 documentos", "Todas las funcionalidades"].map(f => (
               <li key={f} className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                 {f}
@@ -245,6 +255,7 @@ export function BillingView() {
           <ul className="px-5 py-4 space-y-2.5 text-sm text-muted-foreground">
             {[
               "5 usuarios incluidos (+2 €/usuario/mes)",
+              "20 empresas incluidas (+2 €/empresa/mes)",
               "500 documentos (+5 €/pack de 200 docs)",
               "Todas las funcionalidades",
               "Soporte prioritario",
@@ -306,6 +317,17 @@ export function BillingView() {
               danger
             />
           </div>
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Building2 className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-foreground">Empresas</span>
+            </div>
+            <ProgressBar
+              value={billing?.companyCount ?? 0}
+              max={billing?.maxCompanies ?? 20}
+              danger
+            />
+          </div>
         </div>
       </div>
 
@@ -335,6 +357,14 @@ export function BillingView() {
             price="5 € / pack / mes"
             disabled={false}
           />
+          <AddonStepper
+            label="Empresas adicionales"
+            sublabel="+1 empresa por unidad"
+            value={effectiveExtraCompanies}
+            onChange={(v) => setExtraCompanies(v)}
+            price="2 € / empresa / mes"
+            disabled={false}
+          />
 
           {/* Cost summary */}
           <div className="mt-4 pt-4 border-t border-border space-y-1.5 text-sm">
@@ -353,11 +383,27 @@ export function BillingView() {
                 <span>{docsCost} €</span>
               </div>
             )}
+            {companiesCost > 0 && (
+              <div className="flex justify-between text-muted-foreground">
+                <span>{effectiveExtraCompanies} empresa{effectiveExtraCompanies !== 1 ? "s" : ""} extra</span>
+                <span>{companiesCost} €</span>
+              </div>
+            )}
             <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-border">
               <span>Total / mes</span><span>{totalCost} €</span>
             </div>
           </div>
 
+          {addonsChanged && !billing?.hasSubscription && (
+            <p className="mt-4 text-xs text-muted-foreground">
+              Suscríbete al plan base para activar estos extras.
+            </p>
+          )}
+          {addonsChanged && billing?.hasSubscription && !isActive && (
+            <p className="mt-4 text-xs text-muted-foreground">
+              Tu suscripción no está activa. Reactívala para aplicar cambios.
+            </p>
+          )}
           {addonsChanged && billing?.hasSubscription && isActive && (
             <div className="mt-4 flex items-center gap-3">
               <button
@@ -368,22 +414,16 @@ export function BillingView() {
                 {saving ? "Guardando..." : "Guardar cambios"}
               </button>
               <button
-                onClick={() => { setExtraUsers(billing.extraUsersQuantity); setExtraDocs(billing.extraDocsQuantity) }}
+                onClick={() => {
+                  setExtraUsers(billing.extraUsersQuantity)
+                  setExtraDocs(billing.extraDocsQuantity)
+                  setExtraCompanies(billing.extraCompaniesQuantity)
+                }}
                 className="px-4 py-2 border border-border text-sm rounded-xl hover:bg-muted transition-colors"
               >
                 Cancelar
               </button>
             </div>
-          )}
-          {addonsChanged && !billing?.hasSubscription && (
-            <p className="mt-4 text-xs text-muted-foreground">
-              Suscríbete al plan base para activar estos extras.
-            </p>
-          )}
-          {addonsChanged && billing?.hasSubscription && !isActive && (
-            <p className="mt-4 text-xs text-muted-foreground">
-              Tu suscripción no está activa. Reactívala para aplicar cambios.
-            </p>
           )}
           {addonMsg && (
             <p className={cn("mt-3 text-xs", addonMsg.startsWith("Error") ? "text-destructive" : "text-emerald-600")}>

@@ -75,14 +75,16 @@ export async function POST(req: NextRequest) {
         const orgId = await getOrgId(admin, sub.customer as string, sub.metadata?.org_id)
         if (!orgId) break
 
-        const extraUsersItem = sub.items.data.find(i => i.price.lookup_key === PRICES.extraUsers)
-        const extraDocsItem  = sub.items.data.find(i => i.price.lookup_key === PRICES.extraDocs)
+        const extraUsersItem     = sub.items.data.find(i => i.price.lookup_key === PRICES.extraUsers)
+        const extraDocsItem      = sub.items.data.find(i => i.price.lookup_key === PRICES.extraDocs)
+        const extraCompaniesItem = sub.items.data.find(i => i.price.lookup_key === PRICES.extraCompanies)
 
         const update: Record<string, any> = {
-          subscription_status:    sub.status,
-          current_period_end:     new Date(sub.current_period_end * 1000).toISOString(),
-          extra_users_quantity:   extraUsersItem?.quantity ?? 0,
-          extra_docs_quantity:    extraDocsItem?.quantity  ?? 0,
+          subscription_status:       sub.status,
+          current_period_end:        new Date(sub.current_period_end * 1000).toISOString(),
+          extra_users_quantity:      extraUsersItem?.quantity     ?? 0,
+          extra_docs_quantity:       extraDocsItem?.quantity      ?? 0,
+          extra_companies_quantity:  extraCompaniesItem?.quantity ?? 0,
         }
         if (sub.trial_end) update.trial_ends_at = new Date(sub.trial_end * 1000).toISOString()
 

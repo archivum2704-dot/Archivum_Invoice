@@ -10,7 +10,9 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useCompanies } from "@/lib/hooks/use-companies"
+import { useBilling } from "@/lib/hooks/use-billing"
 import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 
 const AVATAR_COLORS = ["bg-blue-500", "bg-emerald-600", "bg-violet-600", "bg-orange-500", "bg-rose-600"]
 
@@ -128,19 +130,79 @@ function CompanyModal({
   )
 }
 
+// ── Upgrade modal ─────────────────────────────────────────────────────────────
+function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan: boolean }) {
+  const router = useRouter()
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between mb-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Building2 className="w-6 h-6 text-primary" />
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+        <h2 className="text-base font-semibold text-foreground mb-1">
+          {isFreePlan ? "Límite del plan gratuito" : "Límite de empresas alcanzado"}
+        </h2>
+        <p className="text-sm text-muted-foreground mb-5">
+          {isFreePlan
+            ? "El plan gratuito incluye 1 empresa. Actualiza al plan Pro para gestionar hasta 20 empresas, o añade empresas extra a partir de 2 €/empresa/mes."
+            : "Has alcanzado el límite de empresas de tu plan. Añade empresas extra desde Facturación a partir de 2 €/empresa/mes."}
+        </p>
+        <div className="space-y-2">
+          {isFreePlan && (
+            <button
+              onClick={() => { router.push("/configuracion/billing"); onClose() }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+            >
+              Ver planes — 7 días gratis
+            </button>
+          )}
+          <button
+            onClick={() => { router.push("/configuracion/billing"); onClose() }}
+            className={cn(
+              "w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border transition-colors",
+              isFreePlan ? "border-border text-foreground hover:bg-muted" : "bg-primary text-primary-foreground border-transparent hover:bg-primary/90"
+            )}
+          >
+            {isFreePlan ? "Añadir empresas extra" : "Gestionar empresas extra"}
+          </button>
+          <button onClick={onClose} className="w-full px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main view ─────────────────────────────────────────────────────────────────
 export function EmpresasView() {
   const t       = useTranslations("companies")
   const tCommon = useTranslations("common")
 
-  const [search,      setSearch]      = useState("")
-  const [showCreate,  setShowCreate]  = useState(false)
-  const [editTarget,  setEditTarget]  = useState<null | { id: string } & CompanyForm>(null)
-  const [openMenuId,  setOpenMenuId]  = useState<string | null>(null)
+  const [search,       setSearch]       = useState("")
+  const [showCreate,   setShowCreate]   = useState(false)
+  const [showUpgrade,  setShowUpgrade]  = useState(false)
+  const [editTarget,   setEditTarget]   = useState<null | { id: string } & CompanyForm>(null)
+  const [openMenuId,   setOpenMenuId]   = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const { currentOrg } = useOrganization()
   const { companies, loading, mutate } = useCompanies(currentOrg?.id ?? null)
+  const { billing } = useBilling(currentOrg?.id ?? null)
+
+  const maxCompanies  = billing?.maxCompanies ?? 1
+  const isFreePlan    = !billing?.hasSubscription
+  const atLimit       = companies.length >= maxCompanies
+
+  function handleAddClick() {
+    if (atLimit) { setShowUpgrade(true); return }
+    setShowCreate(true)
+  }
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -190,6 +252,9 @@ export function EmpresasView() {
 
   return (
     <div className="p-8">
+      {/* Upgrade modal */}
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} isFreePlan={isFreePlan} />}
+
       {/* Create modal */}
       {showCreate && currentOrg && (
         <CompanyModal
@@ -215,6 +280,12 @@ export function EmpresasView() {
           <p className="text-muted-foreground text-sm mt-1">{t("subtitle", { count: empresas.length })}</p>
         </div>
         <div className="flex items-center gap-3">
+          <span className={cn(
+            "text-xs font-medium px-3 py-1.5 rounded-full border",
+            atLimit ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-muted text-muted-foreground border-border"
+          )}>
+            {companies.length} / {maxCompanies} empresas
+          </span>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -225,7 +296,7 @@ export function EmpresasView() {
               className="pl-9 pr-4 py-2 text-sm bg-card border border-border rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
             />
           </div>
-          <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+          <button onClick={handleAddClick} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
             <Plus className="w-4 h-4" />{t("addCompany")}
           </button>
         </div>

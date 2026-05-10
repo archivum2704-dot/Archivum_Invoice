@@ -386,10 +386,10 @@ export default function LandingPage() {
               <ul className="px-6 py-5 space-y-3 flex-1">
                 {[
                   "1 usuario",
+                  "1 empresa",
                   "20 documentos almacenados",
                   "Facturas, albaranes, pedidos y recibos",
                   "Búsqueda y exportación CSV/Excel",
-                  "Gestión de empresas",
                 ].map(f => (
                   <li key={f} className="flex items-start gap-2.5 text-sm text-muted-foreground">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -422,10 +422,9 @@ export default function LandingPage() {
               <ul className="px-6 py-5 space-y-3 flex-1">
                 {[
                   "Todo lo del plan Gratuito",
-                  "5 usuarios incluidos",
-                  "500 documentos incluidos",
-                  "Usuarios extra: +2 € / usuario / mes",
-                  "Más documentos: +5 € / pack de 200 docs",
+                  "5 usuarios incluidos (+2 € / usuario / mes)",
+                  "20 empresas incluidas (+2 € / empresa / mes)",
+                  "500 documentos incluidos (+5 € / pack de 200 docs)",
                   "Gestión de permisos por carpeta",
                   "Soporte prioritario",
                 ].map(f => (
