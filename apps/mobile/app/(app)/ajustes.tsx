@@ -100,6 +100,10 @@ function statusColor(s: string) {
   return "#6B7280";
 }
 
+function isPaidActive(status: string) {
+  return status === "active" || status === "trialing";
+}
+
 function UsageBar({ value, max }: { value: number; max: number }) {
   const pct = Math.min(100, Math.round((value / Math.max(max, 1)) * 100));
   const color = pct >= 90 ? "#DC2626" : pct >= 70 ? "#D97706" : "#2563EB";
@@ -253,10 +257,10 @@ export default function AjustesScreen() {
                   <Text style={{ fontSize: 13, color: C.muted }}>Usuarios</Text>
                 </View>
                 <Text style={{ fontSize: 13, color: C.text, fontWeight: "600" }}>
-                  {plan.member_count} / {5 + plan.extra_users_quantity}
+                  {plan.member_count} / {isPaidActive(plan.subscription_status) ? 5 + plan.extra_users_quantity : 1}
                 </Text>
               </View>
-              <UsageBar value={plan.member_count} max={5 + plan.extra_users_quantity} />
+              <UsageBar value={plan.member_count} max={isPaidActive(plan.subscription_status) ? 5 + plan.extra_users_quantity : 1} />
             </View>
           )}
 
@@ -269,10 +273,10 @@ export default function AjustesScreen() {
                   <Text style={{ fontSize: 13, color: C.muted }}>Documentos</Text>
                 </View>
                 <Text style={{ fontSize: 13, color: C.text, fontWeight: "600" }}>
-                  {plan.document_count} / {500 + plan.extra_docs_quantity * 200}
+                  {plan.document_count} / {isPaidActive(plan.subscription_status) ? 500 + plan.extra_docs_quantity * 200 : 20}
                 </Text>
               </View>
-              <UsageBar value={plan.document_count} max={500 + plan.extra_docs_quantity * 200} />
+              <UsageBar value={plan.document_count} max={isPaidActive(plan.subscription_status) ? 500 + plan.extra_docs_quantity * 200 : 20} />
             </View>
           )}
 

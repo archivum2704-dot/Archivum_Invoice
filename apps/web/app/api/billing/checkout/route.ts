@@ -92,13 +92,13 @@ export async function POST(req: NextRequest) {
       lineItems.push({ price: docsPrice.data[0].id, quantity: orgExtras.extra_docs_quantity })
     }
 
-    // First-time subscription → 14-day trial
+    // First-time subscription → 7-day trial
     const isFirstTime = !org.stripe_subscription_id
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       line_items: lineItems,
-      ...(isFirstTime && { subscription_data: { trial_period_days: 14, metadata: { org_id: orgId } } }),
+      ...(isFirstTime && { subscription_data: { trial_period_days: 7, metadata: { org_id: orgId } } }),
       metadata: { org_id: orgId },
       success_url: `${APP_URL}/configuracion/billing?success=1`,
       cancel_url:  `${APP_URL}/configuracion/billing`,

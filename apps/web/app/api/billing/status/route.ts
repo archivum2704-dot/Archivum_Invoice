@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { computeLimits } from '@/lib/stripe'
+import { computeLimits, FREE_LIMITS } from '@/lib/stripe'
 
 export async function GET(req: NextRequest) {
   try {
@@ -48,19 +48,28 @@ export async function GET(req: NextRequest) {
     // If billing columns don't exist yet, use safe defaults
     const extraUsersQuantity = org?.extra_users_quantity ?? 0
     const extraDocsQuantity  = org?.extra_docs_quantity  ?? 0
-    const { maxUsers, maxDocs } = computeLimits(extraUsersQuantity, extraDocsQuantity)
+    const hasSubscription    = !!org?.stripe_subscription_id
+
+    // Limits: free tier when no active subscription, paid limits otherwise
+    const subscriptionStatus = org?.subscription_status ?? null
+    const isPaidActive = hasSubscription &&
+      (subscriptionStatus === 'active' || subscriptionStatus === 'trialing')
+
+    const { maxUsers, maxDocs } = isPaidActive
+      ? computeLimits(extraUsersQuantity, extraDocsQuantity)
+      : { maxUsers: FREE_LIMITS.users, maxDocs: FREE_LIMITS.docs }
 
     return NextResponse.json({
-      subscriptionStatus:  org?.subscription_status  ?? null,
-      trialEndsAt:         org?.trial_ends_at         ?? null,
-      currentPeriodEnd:    org?.current_period_end    ?? null,
+      subscriptionStatus,
+      trialEndsAt:         org?.trial_ends_at      ?? null,
+      currentPeriodEnd:    org?.current_period_end ?? null,
       extraUsersQuantity,
       extraDocsQuantity,
       documentCount:       documentCount ?? 0,
       memberCount:         memberCount   ?? 0,
       maxUsers,
       maxDocs,
-      hasSubscription:     !!org?.stripe_subscription_id,
+      hasSubscription,
       hasCustomer:         !!org?.stripe_customer_id,
       isAdmin:             ['owner', 'admin'].includes(member.role),
     })

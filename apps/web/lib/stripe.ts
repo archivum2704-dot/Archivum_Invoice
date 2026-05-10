@@ -18,10 +18,16 @@ export const PRICES = {
   extraDocs:  'archivum_extra_docs_monthly',  // €5/month per +200 docs
 } as const
 
-// Base plan limits
+// Free tier limits (no subscription)
+export const FREE_LIMITS = {
+  users: 1,
+  docs:  20,
+} as const
+
+// Paid plan base limits
 export const LIMITS = {
-  users:    5,
-  docs:     500,
+  users:       5,
+  docs:        500,
   docsPerPack: 200,
 } as const
 

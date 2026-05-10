@@ -192,66 +192,92 @@ export function BillingView() {
         <p className="text-muted-foreground text-sm mt-1">Gestiona tu suscripción y límites de uso</p>
       </div>
 
-      {/* Plan status card */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        <div className="p-5 border-b border-border flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <p className="text-base font-semibold text-foreground">Archivum Pro</p>
-              {billing && <StatusBadge status={billing.subscriptionStatus} />}
+      {/* Plans grid */}
+      <div className="grid sm:grid-cols-2 gap-4">
+
+        {/* Free plan */}
+        <div className={cn(
+          "bg-card border rounded-2xl overflow-hidden",
+          !billing?.hasSubscription ? "border-primary ring-2 ring-primary/20" : "border-border opacity-70"
+        )}>
+          <div className="p-5 border-b border-border">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-semibold text-foreground">Plan Gratuito</p>
+              {!billing?.hasSubscription && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 bg-primary/10 text-primary rounded-full border border-primary/20">Plan actual</span>
+              )}
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-2xl font-bold text-foreground">0 € <span className="text-sm font-normal text-muted-foreground">/ mes</span></p>
+            <p className="text-xs text-muted-foreground mt-1">Sin tarjeta de crédito. Para siempre.</p>
+          </div>
+          <ul className="px-5 py-4 space-y-2.5 text-sm text-muted-foreground">
+            {["1 usuario", "20 documentos", "Todas las funcionalidades"].map(f => (
+              <li key={f} className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                {f}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Pro plan */}
+        <div className={cn(
+          "bg-card border rounded-2xl overflow-hidden",
+          billing?.hasSubscription ? "border-primary ring-2 ring-primary/20" : "border-border"
+        )}>
+          <div className="p-5 border-b border-border">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-semibold text-foreground">Archivum Pro</p>
+              {billing?.hasSubscription
+                ? <StatusBadge status={billing.subscriptionStatus} />
+                : <span className="text-[10px] font-semibold px-2 py-0.5 bg-muted text-muted-foreground rounded-full border border-border">Recomendado</span>
+              }
+            </div>
+            <p className="text-2xl font-bold text-foreground">{totalCost} € <span className="text-sm font-normal text-muted-foreground">/ mes</span></p>
+            <p className="text-xs text-muted-foreground mt-1">
               {billing?.subscriptionStatus === 'trialing'
-                ? `Periodo de prueba — quedan ${daysLeft(billing.trialEndsAt)} días`
+                ? `Prueba activa — quedan ${daysLeft(billing.trialEndsAt)} días`
                 : billing?.currentPeriodEnd
                   ? `Próxima renovación: ${formatDate(billing.currentPeriodEnd)}`
-                  : "Sin suscripción activa"}
+                  : "7 días de prueba gratis · sin compromiso"}
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-foreground">{totalCost} €</p>
-            <p className="text-xs text-muted-foreground">/ mes</p>
-          </div>
-        </div>
-
-        {/* What's included */}
-        <div className="px-5 py-4 grid grid-cols-3 gap-4 text-center border-b border-border bg-muted/30">
-          {[
-            { icon: Users,    label: "Usuarios",      value: `${billing?.maxUsers ?? 5}` },
-            { icon: FileText, label: "Documentos",    value: `${(billing?.maxDocs ?? 500).toLocaleString("es-ES")}` },
-            { icon: Zap,      label: "Almacenamiento", value: "Ilimitado" },
-          ].map(({ icon: Icon, label, value }) => (
-            <div key={label}>
-              <Icon className="w-4 h-4 text-muted-foreground mx-auto mb-1" />
-              <p className="text-sm font-semibold text-foreground">{value}</p>
-              <p className="text-xs text-muted-foreground">{label}</p>
+          <ul className="px-5 py-4 space-y-2.5 text-sm text-muted-foreground">
+            {[
+              "5 usuarios incluidos (+2 €/usuario/mes)",
+              "500 documentos (+5 €/pack de 200 docs)",
+              "Todas las funcionalidades",
+              "Soporte prioritario",
+            ].map(f => (
+              <li key={f} className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                {f}
+              </li>
+            ))}
+          </ul>
+          {isOrgAdmin && (
+            <div className="px-5 pb-5">
+              {!billing?.hasSubscription ? (
+                <button
+                  onClick={handleCheckout}
+                  disabled={!!redirecting}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                >
+                  {redirecting === "checkout" ? "Redirigiendo..." : "Suscribirse — 7 días gratis"}
+                </button>
+              ) : (
+                <button
+                  onClick={handlePortal}
+                  disabled={!!redirecting}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border text-foreground text-sm font-medium rounded-xl hover:bg-muted disabled:opacity-60 transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  {redirecting === "portal" ? "Redirigiendo..." : "Gestionar pago y facturas"}
+                </button>
+              )}
             </div>
-          ))}
+          )}
         </div>
-
-        {/* CTA buttons */}
-        {isOrgAdmin && (
-          <div className="p-4 flex gap-2">
-            {!billing?.hasSubscription ? (
-              <button
-                onClick={handleCheckout}
-                disabled={!!redirecting}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors"
-              >
-                {redirecting === "checkout" ? "Redirigiendo..." : "Suscribirse — 14 días gratis"}
-              </button>
-            ) : (
-              <button
-                onClick={handlePortal}
-                disabled={!!redirecting}
-                className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border text-foreground text-sm font-medium rounded-xl hover:bg-muted disabled:opacity-60 transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                {redirecting === "portal" ? "Redirigiendo..." : "Gestionar pago e facturas"}
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Usage */}
