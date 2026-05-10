@@ -1,15 +1,17 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, Switch,
-  Alert, ActivityIndicator, Clipboard,
+  Alert, ActivityIndicator, Clipboard, Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   User, Building2, Copy, Check, Users, Globe, Moon,
-  Bell, LogOut, ChevronRight,
+  Bell, LogOut, ChevronRight, CreditCard, FileText, Zap,
+  CheckCircle, AlertTriangle, XCircle, Clock,
 } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { useTheme } from "@/context/theme-context";
+import { supabase } from "@/lib/supabase";
 
 const C = {
   blue: "#2563EB", blueL: "#EFF6FF",
@@ -66,12 +68,74 @@ function Row({
   return onPress ? <TouchableOpacity onPress={onPress}>{content}</TouchableOpacity> : content;
 }
 
+interface PlanInfo {
+  subscription_status: string;
+  extra_users_quantity: number;
+  extra_docs_quantity: number;
+  document_count: number;
+  member_count: number;
+}
+
+const APP_URL = "https://archivum2704-dot.vercel.app";
+
+function StatusIcon({ status }: { status: string }) {
+  if (status === "active")   return <CheckCircle  size={14} color="#16A34A" />;
+  if (status === "trialing") return <Clock        size={14} color="#2563EB" />;
+  if (status === "past_due") return <AlertTriangle size={14} color="#D97706" />;
+  return <XCircle size={14} color="#6B7280" />;
+}
+
+function statusLabel(s: string) {
+  const map: Record<string, string> = {
+    active: "Activa", trialing: "Prueba gratuita", past_due: "Pago pendiente",
+    canceled: "Cancelada", unpaid: "Impagada", incomplete: "Incompleta", paused: "Pausada",
+  };
+  return map[s] ?? s;
+}
+
+function statusColor(s: string) {
+  if (s === "active")   return "#16A34A";
+  if (s === "trialing") return "#2563EB";
+  if (s === "past_due") return "#D97706";
+  return "#6B7280";
+}
+
+function UsageBar({ value, max }: { value: number; max: number }) {
+  const pct = Math.min(100, Math.round((value / Math.max(max, 1)) * 100));
+  const color = pct >= 90 ? "#DC2626" : pct >= 70 ? "#D97706" : "#2563EB";
+  return (
+    <View style={{ height: 5, backgroundColor: "#E5E7EB", borderRadius: 3, marginTop: 6, overflow: "hidden" }}>
+      <View style={{ height: 5, width: `${pct}%`, backgroundColor: color, borderRadius: 3 }} />
+    </View>
+  );
+}
+
 export default function AjustesScreen() {
   const { profile, org, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const [copied,        setCopied]        = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [signingOut,    setSigningOut]    = useState(false);
+  const [plan,          setPlan]          = useState<PlanInfo | null>(null);
+
+  // Fetch plan info on mount
+  useEffect(() => {
+    if (!org?.id) return;
+    (async () => {
+      const [{ data: orgData }, { count: memberCount }] = await Promise.all([
+        supabase.from("organizations")
+          .select("subscription_status,extra_users_quantity,extra_docs_quantity,document_count")
+          .eq("id", org.id)
+          .single(),
+        supabase.from("organization_members")
+          .select("*", { count: "exact", head: true })
+          .eq("organization_id", org.id),
+      ]);
+      if (orgData) {
+        setPlan({ ...orgData, member_count: memberCount ?? 0 });
+      }
+    })();
+  }, [org?.id]);
 
   const handleCopy = useCallback(() => {
     if (org?.access_code) {
@@ -157,6 +221,69 @@ export default function AjustesScreen() {
               }
             </TouchableOpacity>
           </View>
+        </Card>
+
+        {/* Plan */}
+        <SectionLabel>Plan y facturación</SectionLabel>
+        <Card>
+          {/* Status row */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <CreditCard size={16} color={C.muted} />
+              <Text style={{ fontSize: 14, fontWeight: "600", color: C.text }}>Archivum Pro</Text>
+            </View>
+            {plan ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: statusColor(plan.subscription_status) + "18", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                <StatusIcon status={plan.subscription_status} />
+                <Text style={{ fontSize: 12, fontWeight: "600", color: statusColor(plan.subscription_status) }}>
+                  {statusLabel(plan.subscription_status)}
+                </Text>
+              </View>
+            ) : (
+              <ActivityIndicator size="small" color={C.blue} />
+            )}
+          </View>
+
+          {/* Usage: users */}
+          {plan && (
+            <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Users size={14} color={C.muted} />
+                  <Text style={{ fontSize: 13, color: C.muted }}>Usuarios</Text>
+                </View>
+                <Text style={{ fontSize: 13, color: C.text, fontWeight: "600" }}>
+                  {plan.member_count} / {5 + plan.extra_users_quantity}
+                </Text>
+              </View>
+              <UsageBar value={plan.member_count} max={5 + plan.extra_users_quantity} />
+            </View>
+          )}
+
+          {/* Usage: documents */}
+          {plan && (
+            <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <FileText size={14} color={C.muted} />
+                  <Text style={{ fontSize: 13, color: C.muted }}>Documentos</Text>
+                </View>
+                <Text style={{ fontSize: 13, color: C.text, fontWeight: "600" }}>
+                  {plan.document_count} / {500 + plan.extra_docs_quantity * 200}
+                </Text>
+              </View>
+              <UsageBar value={plan.document_count} max={500 + plan.extra_docs_quantity * 200} />
+            </View>
+          )}
+
+          {/* Manage button */}
+          <TouchableOpacity
+            onPress={() => Linking.openURL(`${APP_URL}/configuracion/billing`)}
+            style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 14 }}
+          >
+            <Text style={{ fontSize: 14, color: C.blue, fontWeight: "600" }}>Gestionar plan y facturación</Text>
+            <ChevronRight size={16} color={C.blue} />
+          </TouchableOpacity>
         </Card>
 
         {/* Preferences */}
