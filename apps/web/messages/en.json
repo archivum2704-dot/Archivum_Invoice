@@ -498,5 +498,102 @@
     "light": "Light",
     "dark": "Dark",
     "system": "System"
+  },
+  "tutorial": {
+    "skip": "Skip",
+    "next": "Next",
+    "back": "Back",
+    "start": "Get started",
+    "gotIt": "Got it",
+    "tip": "TIP",
+    "viewTutorial": "View welcome tutorial",
+    "viewTutorialHint": "Walk through how Archivum works step by step.",
+    "helpSection": "Help",
+    "helpSectionDesc": "Learn how to get the most out of Archivum.",
+    "slides": {
+      "welcome": {
+        "title": "Welcome to Archivum",
+        "description": "Your intelligent system to organize all your business documents.",
+        "b1": "Automatic AI processing",
+        "b2": "Access from any device",
+        "b3": "Secure and private data"
+      },
+      "upload": {
+        "title": "Upload and process documents",
+        "description": "Capture invoices, contracts and receipts. AI extracts the data automatically.",
+        "b1": "Supports PDFs, photos and scans",
+        "b2": "Extracts amounts, dates, tax IDs",
+        "b3": "No need to transcribe anything"
+      },
+      "companies": {
+        "title": "Organize by company",
+        "description": "Create one company per client or department and group their documents.",
+        "b1": "Free plan: 1 company",
+        "b2": "Pro plan: up to 20 companies",
+        "b3": "Add more for €2/company/month"
+      },
+      "team": {
+        "title": "Work as a team",
+        "description": "Invite teammates with custom roles and per-company permissions.",
+        "b1": "Roles: Admin, Member, Viewer",
+        "b2": "Granular access per company or folder",
+        "b3": "Free plan: 1 user · Pro: 5 + extras"
+      },
+      "search": {
+        "title": "Find anything instantly",
+        "description": "Smart search and filters by company, date, type or amount.",
+        "b1": "Search inside document content",
+        "b2": "Combinable filters",
+        "b3": "Sorted by relevance"
+      }
+    }
+  },
+  "coachmarks": {
+    "tipLabel": "TIP",
+    "gotIt": "Got it",
+    "empresasCreateFirst": {
+      "title": "Create your first company",
+      "description": "Group documents by client or department. The free plan includes 1 company."
+    },
+    "usersInviteFirst": {
+      "title": "Invite your team",
+      "description": "Add admins, members or viewers. Each role has different permissions over companies and folders."
+    },
+    "bibliotecaUploadFirst": {
+      "title": "Upload your first document",
+      "description": "Your documents will appear here. Start by uploading your first invoice or contract."
+    },
+    "subirDropzone": {
+      "title": "Start here",
+      "description": "Drag an invoice, contract or receipt here, or click to choose files. AI will extract the data automatically."
+    },
+    "subirCompany": {
+      "title": "Link to a company (required)",
+      "description": "Associate this document with one of your companies. If you haven't created any yet, do it from the Companies section."
+    },
+    "subirType": {
+      "title": "Document type (required)",
+      "description": "Choose whether it's an invoice, receipt, delivery note, contract, or other. This helps the AI extract data better."
+    },
+    "subirNumber": {
+      "title": "Document number (required)",
+      "description": "Identify the document uniquely (e.g. INV-2025-001)."
+    },
+    "subirDate": {
+      "title": "Issue date",
+      "description": "The date the document was issued. AI may suggest it automatically when you upload the file."
+    },
+    "subirAmount": {
+      "title": "Total amount",
+      "description": "Tax-inclusive amount. You can leave it empty and fill it in later."
+    },
+    "subirStatus": {
+      "title": "Document status",
+      "description": "Pending, paid, overdue… Helps you track each invoice's status."
+    },
+    "subirSubmit": {
+      "title": "Archive document",
+      "description": "When you're done, click this button to save. The document will appear in your Library."
+    }
   }
 }

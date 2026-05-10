@@ -37,6 +37,7 @@ const TAG_COLORS = ["bg-blue-100 text-blue-700", "bg-amber-100 text-amber-700", 
 
 export function BibliotecaView() {
   const t = useTranslations("documents.library")
+  const tHints = useTranslations("coachmarks")
   const tTypes = useTranslations("documents.types")
   const tStatuses = useTranslations("documents.statuses")
   const tActions = useTranslations("documents.actions")
@@ -697,7 +698,9 @@ export function BibliotecaView() {
                         className={cn(
                           "grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1.5fr_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-all duration-300 group relative cursor-grab active:cursor-grabbing select-none",
                           dragDocId === doc.id && "opacity-0",
-                          movingOutId === doc.id && "opacity-0 -translate-x-12 scale-y-0 pointer-events-none"
+                          movingOutId === doc.id && "opacity-0 -translate-x-12 scale-y-0 pointer-events-none",
+                          // Lift the active row above siblings so the move-to-folder dropdown isn't covered
+                          movingDoc === doc.id ? "z-30" : "z-0"
                         )}
                       >
                         <div
@@ -737,7 +740,7 @@ export function BibliotecaView() {
                               <MoveRight className="w-3.5 h-3.5 text-muted-foreground" />
                             </button>
                             {movingDoc === doc.id && (
-                              <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-xl shadow-lg z-30 overflow-hidden w-44">
+                              <div className="absolute right-0 top-full mt-1 bg-popover border border-border rounded-xl shadow-xl z-30 overflow-hidden w-44">
                                 <p className="px-3 py-2 text-xs font-semibold text-muted-foreground border-b border-border">{tFolders("moveToFolder")}</p>
                                 {(doc as any).folder_id && (
                                   <button
@@ -1040,8 +1043,8 @@ export function BibliotecaView() {
         <Coachmark
           id="biblioteca-upload-first"
           targetRef={uploadLinkRef}
-          title="Sube tu primer documento"
-          description="Aquí verás todos tus documentos. Empieza subiendo tu primera factura o contrato."
+          title={tHints("bibliotecaUploadFirst.title")}
+          description={tHints("bibliotecaUploadFirst.description")}
           placement="bottom"
         />
       )}

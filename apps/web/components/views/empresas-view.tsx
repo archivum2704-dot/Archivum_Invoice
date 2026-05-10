@@ -184,6 +184,7 @@ function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan
 export function EmpresasView() {
   const t       = useTranslations("companies")
   const tCommon = useTranslations("common")
+  const tHints  = useTranslations("coachmarks")
 
   const [search,       setSearch]       = useState("")
   const [showCreate,   setShowCreate]   = useState(false)
@@ -482,8 +483,8 @@ export function EmpresasView() {
         <Coachmark
           id="empresas-create-first"
           targetRef={addBtnRef}
-          title="Crea tu primera empresa"
-          description="Agrupa tus documentos por cliente o departamento. El plan gratuito incluye 1 empresa."
+          title={tHints("empresasCreateFirst.title")}
+          description={tHints("empresasCreateFirst.description")}
           placement="bottom"
         />
       )}

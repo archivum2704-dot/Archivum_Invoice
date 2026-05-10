@@ -488,6 +488,7 @@ function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan
 // ── Main users view ───────────────────────────────────────────────────────────
 export function UsersView() {
   const t = useTranslations("settings.members")
+  const tHints = useTranslations("coachmarks")
   const { currentOrg, userProfile, isOrgAdmin, loading: orgLoading } = useOrganization()
   const { members, loading: membersLoading, error: membersError, mutate } = useMembers(currentOrg?.id ?? null)
   const { billing } = useBilling(currentOrg?.id ?? null)
@@ -617,8 +618,8 @@ export function UsersView() {
         <Coachmark
           id="users-invite-first"
           targetRef={inviteBtnRef}
-          title="Invita a tu equipo"
-          description="Añade administradores, miembros o visores. Cada rol tiene permisos distintos sobre las empresas y carpetas."
+          title={tHints("usersInviteFirst.title")}
+          description={tHints("usersInviteFirst.description")}
           placement="bottom"
         />
       )}

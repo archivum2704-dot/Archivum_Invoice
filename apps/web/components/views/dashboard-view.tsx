@@ -386,7 +386,9 @@ export function DashboardView() {
                       key={doc.id}
                       className={cn(
                         "flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-all duration-150 group relative animate-slide-up-fade",
-                        deletingId === doc.id && "opacity-40 pointer-events-none"
+                        deletingId === doc.id && "opacity-40 pointer-events-none",
+                        // Lift the active row above siblings so the dropdown isn't covered by row stacking contexts
+                        openMenuId === doc.id ? "z-30" : "z-0"
                       )}
                       style={{ animationDelay: `${400 + idx * 50}ms` }}
                     >

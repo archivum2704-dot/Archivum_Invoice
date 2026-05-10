@@ -5,97 +5,46 @@ import {
   Sparkles, Upload, Building2, Users, Search,
   ArrowRight, ArrowLeft, X,
 } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 
 const TUTORIAL_KEY = "archivum_tutorial_completed_v1"
 
-interface Slide {
+interface SlideStyle {
+  key: "welcome" | "upload" | "companies" | "team" | "search"
   icon: typeof Sparkles
   iconBg: string
   iconText: string
   bulletDot: string
   buttonBg: string
   dotActive: string
-  title: string
-  description: string
-  bullets: string[]
 }
 
-const SLIDES: Slide[] = [
+const SLIDE_STYLES: SlideStyle[] = [
   {
-    icon: Sparkles,
-    iconBg:    "bg-blue-50 dark:bg-blue-950/30",
-    iconText:  "text-blue-600 dark:text-blue-400",
-    bulletDot: "bg-blue-500",
-    buttonBg:  "bg-blue-600 hover:bg-blue-700",
-    dotActive: "bg-blue-600",
-    title: "Bienvenido a Archivum",
-    description: "Tu sistema inteligente para organizar todos los documentos de tu empresa.",
-    bullets: [
-      "Procesamiento automático con IA",
-      "Acceso desde cualquier dispositivo",
-      "Datos seguros y privados",
-    ],
+    key: "welcome", icon: Sparkles,
+    iconBg: "bg-blue-50 dark:bg-blue-950/30",     iconText: "text-blue-600 dark:text-blue-400",
+    bulletDot: "bg-blue-500", buttonBg: "bg-blue-600 hover:bg-blue-700", dotActive: "bg-blue-600",
   },
   {
-    icon: Upload,
-    iconBg:    "bg-green-50 dark:bg-green-950/30",
-    iconText:  "text-green-600 dark:text-green-400",
-    bulletDot: "bg-green-500",
-    buttonBg:  "bg-green-600 hover:bg-green-700",
-    dotActive: "bg-green-600",
-    title: "Sube y procesa documentos",
-    description: "Captura facturas, contratos y recibos. La IA extrae los datos automáticamente.",
-    bullets: [
-      "Soporta PDF, fotos y escaneos",
-      "Extracción de importes, fechas, NIF/CIF",
-      "Sin necesidad de transcribir nada",
-    ],
+    key: "upload", icon: Upload,
+    iconBg: "bg-green-50 dark:bg-green-950/30",   iconText: "text-green-600 dark:text-green-400",
+    bulletDot: "bg-green-500", buttonBg: "bg-green-600 hover:bg-green-700", dotActive: "bg-green-600",
   },
   {
-    icon: Building2,
-    iconBg:    "bg-purple-50 dark:bg-purple-950/30",
-    iconText:  "text-purple-600 dark:text-purple-400",
-    bulletDot: "bg-purple-500",
-    buttonBg:  "bg-purple-600 hover:bg-purple-700",
-    dotActive: "bg-purple-600",
-    title: "Organiza por empresa",
-    description: "Crea una empresa por cada cliente o departamento y agrupa sus documentos.",
-    bullets: [
-      "Plan Gratis: 1 empresa",
-      "Plan Pro: hasta 20 empresas",
-      "Añade más por 2 €/empresa/mes",
-    ],
+    key: "companies", icon: Building2,
+    iconBg: "bg-purple-50 dark:bg-purple-950/30", iconText: "text-purple-600 dark:text-purple-400",
+    bulletDot: "bg-purple-500", buttonBg: "bg-purple-600 hover:bg-purple-700", dotActive: "bg-purple-600",
   },
   {
-    icon: Users,
-    iconBg:    "bg-orange-50 dark:bg-orange-950/30",
-    iconText:  "text-orange-600 dark:text-orange-400",
-    bulletDot: "bg-orange-500",
-    buttonBg:  "bg-orange-600 hover:bg-orange-700",
-    dotActive: "bg-orange-600",
-    title: "Trabaja en equipo",
-    description: "Invita a tu equipo con roles y permisos personalizados por empresa.",
-    bullets: [
-      "Roles: Administrador, Miembro, Visor",
-      "Acceso granular por empresa o carpeta",
-      "Plan Gratis: 1 usuario · Pro: 5 + extras",
-    ],
+    key: "team", icon: Users,
+    iconBg: "bg-orange-50 dark:bg-orange-950/30", iconText: "text-orange-600 dark:text-orange-400",
+    bulletDot: "bg-orange-500", buttonBg: "bg-orange-600 hover:bg-orange-700", dotActive: "bg-orange-600",
   },
   {
-    icon: Search,
-    iconBg:    "bg-amber-50 dark:bg-amber-950/30",
-    iconText:  "text-amber-600 dark:text-amber-400",
-    bulletDot: "bg-amber-500",
-    buttonBg:  "bg-amber-600 hover:bg-amber-700",
-    dotActive: "bg-amber-600",
-    title: "Encuentra todo al instante",
-    description: "Búsqueda inteligente y filtros por empresa, fecha, tipo o importe.",
-    bullets: [
-      "Búsqueda por contenido del documento",
-      "Filtros combinables",
-      "Ordenado por relevancia",
-    ],
+    key: "search", icon: Search,
+    iconBg: "bg-amber-50 dark:bg-amber-950/30",   iconText: "text-amber-600 dark:text-amber-400",
+    bulletDot: "bg-amber-500", buttonBg: "bg-amber-600 hover:bg-amber-700", dotActive: "bg-amber-600",
   },
 ]
 
@@ -116,13 +65,14 @@ interface TutorialModalProps {
 }
 
 export function TutorialModal({ open, onClose }: TutorialModalProps) {
+  const t = useTranslations("tutorial")
   const [page, setPage] = useState(0)
   const dialogRef = useRef<HTMLDivElement>(null)
 
-  const total = SLIDES.length
+  const total = SLIDE_STYLES.length
   const isLast = page === total - 1
   const isFirst = page === 0
-  const slide = SLIDES[page]
+  const slide = SLIDE_STYLES[page]
   const Icon = slide.icon
 
   // Reset to first slide each time it opens
@@ -167,7 +117,7 @@ export function TutorialModal({ open, onClose }: TutorialModalProps) {
         {/* Skip / close */}
         <button
           onClick={handleComplete}
-          aria-label="Saltar tutorial"
+          aria-label={t("skip")}
           className="absolute top-4 right-4 z-10 p-2 rounded-lg hover:bg-muted transition-colors"
         >
           <X className="w-4 h-4 text-muted-foreground" />
@@ -182,23 +132,23 @@ export function TutorialModal({ open, onClose }: TutorialModalProps) {
 
           {/* Title */}
           <h2 className="text-2xl font-bold text-foreground mb-3 tracking-tight">
-            {slide.title}
+            {t(`slides.${slide.key}.title`)}
           </h2>
 
           {/* Description */}
           <p className="text-sm text-muted-foreground mb-6 leading-relaxed max-w-sm">
-            {slide.description}
+            {t(`slides.${slide.key}.description`)}
           </p>
 
           {/* Bullets */}
           <div className="w-full space-y-2 mb-2">
-            {slide.bullets.map((b, i) => (
+            {(["b1", "b2", "b3"] as const).map((b) => (
               <div
-                key={i}
+                key={b}
                 className="flex items-center gap-3 bg-muted/40 border border-border rounded-xl px-4 py-3"
               >
                 <div className={cn("w-2 h-2 rounded-full shrink-0", slide.bulletDot)} />
-                <span className="text-sm text-foreground font-medium text-left">{b}</span>
+                <span className="text-sm text-foreground font-medium text-left">{t(`slides.${slide.key}.${b}`)}</span>
               </div>
             ))}
           </div>
@@ -237,14 +187,14 @@ export function TutorialModal({ open, onClose }: TutorialModalProps) {
               )}
             >
               <ArrowLeft className="w-4 h-4" />
-              Atrás
+              {t("back")}
             </button>
 
             <button
               onClick={handleComplete}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-2"
             >
-              Saltar
+              {t("skip")}
             </button>
 
             <button
@@ -254,7 +204,7 @@ export function TutorialModal({ open, onClose }: TutorialModalProps) {
                 slide.buttonBg
               )}
             >
-              {isLast ? "Empezar" : "Siguiente"}
+              {isLast ? t("start") : t("next")}
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

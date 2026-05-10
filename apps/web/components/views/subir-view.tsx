@@ -14,7 +14,7 @@ import { useOrganization } from "@/lib/context/organization-context"
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { useFolders } from "@/lib/hooks/use-folders"
 import { createClient } from "@/lib/supabase/client"
-import { Coachmark } from "@/components/coachmark"
+import { CoachmarkTour } from "@/components/coachmark"
 
 const CURRENCIES = [
   { code: "EUR", label: "€ Euro" },
@@ -67,6 +67,7 @@ export function SubirView() {
   const tFolders  = useTranslations("folders")
   const tPayment  = useTranslations("documents.paymentMethods")
   const tStorage  = useTranslations("settings.storage")
+  const tHints    = useTranslations("coachmarks")
   const { currentOrg, userProfile } = useOrganization()
   const { companies } = useCompanies(currentOrg?.id ?? null)
   const { folders } = useFolders(currentOrg?.id ?? null)
@@ -77,6 +78,13 @@ export function SubirView() {
   const [dragOver,   setDragOver]   = useState(false)
   const [files,      setFiles]      = useState<UploadedFile[]>([])
   const dropzoneRef = useRef<HTMLDivElement>(null)
+  const tipoRef     = useRef<HTMLDivElement>(null)
+  const numeroRef   = useRef<HTMLDivElement>(null)
+  const empresaRef  = useRef<HTMLDivElement>(null)
+  const importeRef  = useRef<HTMLDivElement>(null)
+  const fechaRef    = useRef<HTMLDivElement>(null)
+  const estadoRef   = useRef<HTMLDivElement>(null)
+  const submitRef   = useRef<HTMLButtonElement>(null)
   const [tipo,       setTipo]       = useState(fromType ?? "")
   const [empresa,    setEmpresa]    = useState("")
   const [estado,     setEstado]     = useState("")
@@ -389,7 +397,7 @@ export function SubirView() {
               <h2 className="text-sm font-semibold text-foreground mb-4">{t("docInfo")}</h2>
               <div className="grid grid-cols-2 gap-4">
 
-                <div>
+                <div ref={tipoRef}>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">{t("docType")}</label>
                   <div className="relative">
                     <select required value={tipo} onChange={e => setTipo(e.target.value)}
@@ -401,14 +409,14 @@ export function SubirView() {
                   </div>
                 </div>
 
-                <div>
+                <div ref={numeroRef}>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">{t("docNumber")}</label>
                   <input required type="text" placeholder="FAC-2024-0001" value={numero}
                     onChange={e => setNumero(e.target.value)}
                     className="w-full px-3 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground" />
                 </div>
 
-                <div>
+                <div ref={empresaRef}>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">
                     <Building2 className="w-3.5 h-3.5 inline mr-1" />{t("company")}
                   </label>
@@ -427,7 +435,7 @@ export function SubirView() {
                   </Link>
                 </div>
 
-                <div>
+                <div ref={importeRef}>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">{t("amount")}</label>
                   <div className="flex gap-2">
                     <input type="text" placeholder="0,00" value={importe} onChange={e => setImporte(e.target.value)}
@@ -442,7 +450,7 @@ export function SubirView() {
                   </div>
                 </div>
 
-                <div>
+                <div ref={fechaRef}>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">
                     <Calendar className="w-3.5 h-3.5 inline mr-1" />{t("issueDate")}
                   </label>
@@ -450,7 +458,7 @@ export function SubirView() {
                     className="w-full px-3 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground" />
                 </div>
 
-                <div>
+                <div ref={estadoRef}>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">{tFields("status")}</label>
                   <div className="relative">
                     <select value={estado} onChange={e => setEstado(e.target.value)}
@@ -542,6 +550,7 @@ export function SubirView() {
 
             <div className="bg-card border border-border rounded-xl p-5 space-y-3">
               <button
+                ref={submitRef}
                 type="submit"
                 disabled={loading}
                 className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
@@ -561,13 +570,19 @@ export function SubirView() {
         </div>
       </form>
 
-      {/* First-time hint: dropzone */}
-      <Coachmark
-        id="subir-dropzone"
-        targetRef={dropzoneRef}
-        title="Sube tu primer documento"
-        description="Arrastra una factura, contrato o recibo aquí, o haz click para elegir archivos. La IA extraerá los datos automáticamente."
-        placement="right"
+      {/* First-time guided tour through the upload form */}
+      <CoachmarkTour
+        id="subir-tour-v1"
+        steps={[
+          { key: "dropzone", targetRef: dropzoneRef, placement: "right",  title: tHints("subirDropzone.title"), description: tHints("subirDropzone.description") },
+          { key: "tipo",     targetRef: tipoRef,     placement: "bottom", title: tHints("subirType.title"),     description: tHints("subirType.description") },
+          { key: "numero",   targetRef: numeroRef,   placement: "bottom", title: tHints("subirNumber.title"),   description: tHints("subirNumber.description") },
+          { key: "empresa",  targetRef: empresaRef,  placement: "bottom", title: tHints("subirCompany.title"),  description: tHints("subirCompany.description") },
+          { key: "importe",  targetRef: importeRef,  placement: "bottom", title: tHints("subirAmount.title"),   description: tHints("subirAmount.description") },
+          { key: "fecha",    targetRef: fechaRef,    placement: "bottom", title: tHints("subirDate.title"),     description: tHints("subirDate.description") },
+          { key: "estado",   targetRef: estadoRef,   placement: "bottom", title: tHints("subirStatus.title"),   description: tHints("subirStatus.description") },
+          { key: "submit",   targetRef: submitRef,   placement: "left",   title: tHints("subirSubmit.title"),   description: tHints("subirSubmit.description") },
+        ]}
       />
     </div>
   )
