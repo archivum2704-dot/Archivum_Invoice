@@ -11,6 +11,7 @@ import {
 } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
+import { Coachmark } from "@/components/Coachmark";
 
 const C = {
   blue: "#2563EB", blueL: "#EFF6FF",
@@ -280,6 +281,16 @@ export default function BibliotecaScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* First-time hint */}
+      <Coachmark
+        id="biblioteca-empty"
+        active={!loading && docs.length === 0}
+        icon={<BookOpen size={32} color={C.blue} />}
+        title="Aquí verás tus documentos"
+        description="Cuando subas facturas, contratos o recibos aparecerán aquí. Toca el botón + para subir el primero."
+        position="center"
+      />
     </SafeAreaView>
   );
 }

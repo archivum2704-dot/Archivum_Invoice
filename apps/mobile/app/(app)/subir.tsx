@@ -11,6 +11,7 @@ import {
 } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
+import { Coachmark } from "@/components/Coachmark";
 
 const C = {
   blue: "#2563EB", blueL: "#EFF6FF", blueMed: "#DBEAFE",
@@ -397,6 +398,15 @@ export default function SubirScreen() {
           </ScrollView>
         )}
       </KeyboardAvoidingView>
+
+      {/* First-time hint */}
+      <Coachmark
+        id="subir-first-doc"
+        active={true}
+        icon={<Upload size={32} color={C.blue} />}
+        title="Sube tu primer documento"
+        description="Toma una foto o selecciona un PDF de tu galería. La IA extraerá los importes, fechas y datos automáticamente."
+      />
     </SafeAreaView>
   );
 }

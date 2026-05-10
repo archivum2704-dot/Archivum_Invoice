@@ -13,6 +13,7 @@ import {
 } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
+import { Coachmark } from "@/components/Coachmark";
 
 const APP_URL = "https://archivum2704-dot.vercel.app";
 
@@ -407,6 +408,16 @@ export default function EmpresasScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* First-time hint */}
+      <Coachmark
+        id="empresas-create-first"
+        active={!loading && companies.length === 0}
+        icon={<Building2 size={32} color={C.blue} />}
+        title="Crea tu primera empresa"
+        description="Agrupa tus documentos por cliente o departamento. El plan gratuito incluye 1 empresa."
+        position="bottom"
+      />
 
       {/* Modals */}
       <UpgradeModal

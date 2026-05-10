@@ -11,6 +11,7 @@ import {
 } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
+import { Coachmark } from "@/components/Coachmark";
 
 const APP_URL = "https://archivum2704-dot.vercel.app";
 
@@ -513,6 +514,16 @@ export default function EquipoScreen() {
           </View>
         </View>
       )}
+
+      {/* First-time hint */}
+      <Coachmark
+        id="equipo-invite-first"
+        active={!loading && isAdmin && members.length <= 1}
+        icon={<Users size={32} color={C.blue} />}
+        title="Invita a tu equipo"
+        description="Añade administradores, miembros o visores. Cada rol tiene permisos distintos sobre las empresas y carpetas."
+        position="bottom"
+      />
 
       {/* Modals */}
       <UpgradeModal
