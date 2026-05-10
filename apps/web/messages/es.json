@@ -447,6 +447,8 @@
         "cannot_add_self": "No puedes añadirte a ti mismo.",
         "not_authorized": "No tienes permiso para gestionar miembros.",
         "member_limit_reached": "Has alcanzado el límite de 3 usuarios. Elimina uno para añadir otro.",
+        "email_rate_limit": "Demasiados correos de invitación enviados. Espera unos minutos e inténtalo de nuevo, o configura un proveedor SMTP personalizado en Supabase.",
+        "invalid_email": "Este correo no es aceptado. Revisa la configuración de dominios en Supabase Authentication.",
         "generic": "Se produjo un error. Inténtalo de nuevo."
       }
     },

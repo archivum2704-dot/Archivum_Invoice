@@ -363,9 +363,15 @@ function CreateUserForm({ orgId, onSuccess }: { orgId: string; onSuccess: () => 
         member_limit_reached: t("errors.member_limit_reached"),
       }
       const mapped = msgMap[data.error]
-      // For unmapped errors, show the raw Supabase message so it's actionable
-      const rawMsg = data.detail ?? data.error ?? 'unknown'
-      setError(mapped ?? rawMsg)
+      // Supabase-level errors — map to friendly messages
+      const rawMsg = (data.detail ?? data.error ?? '') as string
+      const supabaseMap: [RegExp, string][] = [
+        [/rate limit/i,        t("errors.email_rate_limit")],
+        [/already registered/i, t("errors.already_member")],
+        [/invalid/i,           t("errors.invalid_email")],
+      ]
+      const supabaseMapped = supabaseMap.find(([re]) => re.test(rawMsg))?.[1]
+      setError(mapped ?? supabaseMapped ?? rawMsg)
       return
     }
 
