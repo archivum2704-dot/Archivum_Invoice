@@ -361,10 +361,10 @@ function CreateUserForm({ orgId, onSuccess }: { orgId: string; onSuccess: () => 
         already_member:       t("errors.already_member"),
         not_authorized:       t("errors.not_authorized"),
         member_limit_reached: t("errors.member_limit_reached"),
-        missing_fields:       t("errors.generic"),
-        server_error:         t("errors.generic"),
       }
-      setError(msgMap[data.error] ?? t("errors.generic"))
+      // Show mapped message, or fall back to the raw API error so we can diagnose it
+      const mapped = msgMap[data.error]
+      setError(mapped ?? `Error: ${data.error ?? 'unknown'}${data.detail ? ` — ${data.detail}` : ''} (HTTP ${res.status})`)
       return
     }
 
