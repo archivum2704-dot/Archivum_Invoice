@@ -3,6 +3,7 @@ import { useAuth } from "@/context/auth-context";
 import { View, ActivityIndicator } from "react-native";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTranslation } from "react-i18next";
 import {
   Home, BookOpen, Search, Building2, Users, Settings,
 } from "lucide-react-native";
@@ -13,6 +14,7 @@ const SURFACE = "#FFFFFF";
 const BORDER  = "#E5E7EB";
 
 export default function AppLayout() {
+  const { t } = useTranslation();
   const { session, loading } = useAuth();
   const pathname = usePathname();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
@@ -62,42 +64,42 @@ export default function AppLayout() {
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: "Inicio",
+          title: t("tabs.home"),
           tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="biblioteca"
         options={{
-          title: "Biblioteca",
+          title: t("tabs.library"),
           tabBarIcon: ({ color, size }) => <BookOpen size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="buscar"
         options={{
-          title: "Buscar",
+          title: t("tabs.search"),
           tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="empresas"
         options={{
-          title: "Empresas",
+          title: t("tabs.companies"),
           tabBarIcon: ({ color, size }) => <Building2 size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="equipo"
         options={{
-          title: "Equipo",
+          title: t("tabs.team"),
           tabBarIcon: ({ color, size }) => <Users size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="ajustes"
         options={{
-          title: "Ajustes",
+          title: t("tabs.settings"),
           tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />,
         }}
       />

@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
+import { useTranslation } from "react-i18next";
 
 const APP_URL = "https://archivum2704-dot.vercel.app";
 
@@ -345,6 +346,7 @@ function MemberCard({ member, isSelf, canManage, onRoleChange, onRemove }: {
 
 /* ── Main screen ─────────────────────────────────────────────────────────── */
 export default function EquipoScreen() {
+  const { t } = useTranslation();
   const { orgId, profile, session } = useAuth();
   const [members,      setMembers]      = useState<Member[]>([]);
   const [loading,      setLoading]      = useState(true);
@@ -520,8 +522,8 @@ export default function EquipoScreen() {
         id="equipo-invite-first"
         active={!loading && isAdmin && members.length <= 1}
         icon={<Users size={32} color={C.blue} />}
-        title="Invita a tu equipo"
-        description="Añade administradores, miembros o visores. Cada rol tiene permisos distintos sobre las empresas y carpetas."
+        title={t("coachmarks.equipoInviteFirst.title")}
+        description={t("coachmarks.equipoInviteFirst.description")}
         position="bottom"
       />
 

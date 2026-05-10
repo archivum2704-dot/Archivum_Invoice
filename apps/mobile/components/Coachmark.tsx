@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { X, ArrowRight } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTranslation } from "react-i18next";
 
 const COACHMARK_PREFIX = "@archivum/coachmark_";
 const { width: SW, height: SH } = Dimensions.get("window");
@@ -68,6 +69,7 @@ export function Coachmark({
   id, active, title, description, position = "center",
   force = false, icon, onDismiss,
 }: CoachmarkProps) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const fade = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.92)).current;
@@ -140,7 +142,7 @@ export function Coachmark({
           {/* Tag */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
             <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.blue }} />
-            <Text style={{ fontSize: 10, fontWeight: "800", color: C.blue, letterSpacing: 1 }}>CONSEJO</Text>
+            <Text style={{ fontSize: 10, fontWeight: "800", color: C.blue, letterSpacing: 1 }}>{t("coachmarks.tipLabel")}</Text>
           </View>
 
           {/* Title */}
@@ -161,7 +163,7 @@ export function Coachmark({
               flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
             }}
           >
-            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>Entendido</Text>
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>{t("common.gotIt")}</Text>
             <ArrowRight size={14} color="#fff" />
           </TouchableOpacity>
         </Animated.View>

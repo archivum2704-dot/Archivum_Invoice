@@ -10,6 +10,9 @@ import { AuthProvider } from "@/context/auth-context";
 import { ThemeProvider } from "@/context/theme-context";
 // Local supabase client (uses EXPO_PUBLIC_ env vars — avoids shared lib issues)
 import "@/lib/supabase";
+// i18n must be initialised before any component calls useTranslation()
+import { initI18n } from "@/lib/i18n";
+initI18n();
 
 SplashScreen.preventAutoHideAsync();
 

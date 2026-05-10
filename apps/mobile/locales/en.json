@@ -1,0 +1,142 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "loading": "Loading…",
+    "back": "Back",
+    "next": "Next",
+    "skip": "Skip",
+    "gotIt": "Got it",
+    "copy": "Copy",
+    "copied": "Copied",
+    "yes": "Yes",
+    "no": "No",
+    "you": "you"
+  },
+
+  "tabs": {
+    "home": "Home",
+    "library": "Library",
+    "search": "Search",
+    "companies": "Companies",
+    "team": "Team",
+    "settings": "Settings"
+  },
+
+  "tutorial": {
+    "skip": "Skip",
+    "next": "Next",
+    "back": "Back",
+    "start": "Get started",
+    "slides": {
+      "welcome": {
+        "title": "Welcome to Archivum",
+        "description": "Your intelligent system to organize all your business documents.",
+        "b1": "Automatic AI processing",
+        "b2": "Access from any device",
+        "b3": "Secure and private data"
+      },
+      "upload": {
+        "title": "Upload and process documents",
+        "description": "Capture invoices, contracts and receipts. AI extracts the data automatically.",
+        "b1": "Supports PDFs, photos and scans",
+        "b2": "Extracts amounts, dates, tax IDs",
+        "b3": "No need to transcribe anything"
+      },
+      "companies": {
+        "title": "Organize by company",
+        "description": "Create one company per client or department and group their documents.",
+        "b1": "Free plan: 1 company",
+        "b2": "Pro plan: up to 20 companies",
+        "b3": "Add more for €2/company/month"
+      },
+      "team": {
+        "title": "Work as a team",
+        "description": "Invite teammates with custom roles and per-company permissions.",
+        "b1": "Roles: Admin, Member, Viewer",
+        "b2": "Granular access per company or folder",
+        "b3": "Free plan: 1 user · Pro: 5 + extras"
+      },
+      "search": {
+        "title": "Find anything instantly",
+        "description": "Smart search and filters by company, date, type or amount.",
+        "b1": "Search inside document content",
+        "b2": "Combinable filters",
+        "b3": "Sorted by relevance"
+      }
+    }
+  },
+
+  "coachmarks": {
+    "tipLabel": "TIP",
+    "empresasCreateFirst": {
+      "title": "Create your first company",
+      "description": "Group documents by client or department. The free plan includes 1 company."
+    },
+    "equipoInviteFirst": {
+      "title": "Invite your team",
+      "description": "Add admins, members or viewers. Each role has different permissions over companies and folders."
+    },
+    "bibliotecaEmpty": {
+      "title": "Your documents will appear here",
+      "description": "When you upload invoices, contracts or receipts they will show up here. Tap the + button to upload the first one."
+    },
+    "subirFirst": {
+      "title": "Upload your first document",
+      "description": "Take a photo or pick a PDF from your gallery. AI will extract amounts, dates and data automatically."
+    }
+  },
+
+  "ajustes": {
+    "title": "Settings",
+    "sections": {
+      "organization": "Organization",
+      "billing": "Plan & billing",
+      "preferences": "Preferences",
+      "help": "Help"
+    },
+    "organization": {
+      "name": "Name",
+      "accessCode": "Access code"
+    },
+    "plan": {
+      "title": "Archivum Pro",
+      "users": "Users",
+      "documents": "Documents",
+      "companies": "Companies",
+      "manage": "Manage plan & billing",
+      "statuses": {
+        "active": "Active",
+        "trialing": "Free trial",
+        "past_due": "Past due",
+        "canceled": "Canceled",
+        "unpaid": "Unpaid",
+        "incomplete": "Incomplete",
+        "paused": "Paused"
+      }
+    },
+    "preferences": {
+      "language": "Language",
+      "theme": "Theme",
+      "notifications": "Notifications",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeSystem": "System"
+    },
+    "help": {
+      "tutorial": "View app tutorial"
+    },
+    "signOut": "Sign out",
+    "signOutConfirmTitle": "Sign out",
+    "signOutConfirmMessage": "Are you sure you want to sign out?",
+    "user": "User"
+  },
+
+  "language": {
+    "es": "Español",
+    "en": "English"
+  }
+}

@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
+import { useTranslation } from "react-i18next";
 
 const C = {
   blue: "#2563EB", blueL: "#EFF6FF",
@@ -80,6 +81,7 @@ function DocRow({ doc }: { doc: any }) {
 }
 
 export default function BibliotecaScreen() {
+  const { t } = useTranslation();
   const { orgId } = useAuth();
   const [docs,        setDocs]        = useState<any[]>([]);
   const [filtered,    setFiltered]    = useState<any[]>([]);
@@ -287,8 +289,8 @@ export default function BibliotecaScreen() {
         id="biblioteca-empty"
         active={!loading && docs.length === 0}
         icon={<BookOpen size={32} color={C.blue} />}
-        title="Aquí verás tus documentos"
-        description="Cuando subas facturas, contratos o recibos aparecerán aquí. Toca el botón + para subir el primero."
+        title={t("coachmarks.bibliotecaEmpty.title")}
+        description={t("coachmarks.bibliotecaEmpty.description")}
         position="center"
       />
     </SafeAreaView>

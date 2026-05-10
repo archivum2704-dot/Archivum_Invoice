@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
+import { useTranslation } from "react-i18next";
 
 const APP_URL = "https://archivum2704-dot.vercel.app";
 
@@ -263,6 +264,7 @@ function CompanyCard({ company, onMenu }: { company: Company; onMenu: () => void
 
 /* ── Main screen ─────────────────────────────────────────────────────────── */
 export default function EmpresasScreen() {
+  const { t } = useTranslation();
   const { orgId } = useAuth();
   const [companies,    setCompanies]    = useState<Company[]>([]);
   const [filtered,     setFiltered]     = useState<Company[]>([]);
@@ -414,8 +416,8 @@ export default function EmpresasScreen() {
         id="empresas-create-first"
         active={!loading && companies.length === 0}
         icon={<Building2 size={32} color={C.blue} />}
-        title="Crea tu primera empresa"
-        description="Agrupa tus documentos por cliente o departamento. El plan gratuito incluye 1 empresa."
+        title={t("coachmarks.empresasCreateFirst.title")}
+        description={t("coachmarks.empresasCreateFirst.description")}
         position="bottom"
       />
 

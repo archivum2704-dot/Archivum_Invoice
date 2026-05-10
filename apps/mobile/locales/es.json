@@ -1,0 +1,142 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "search": "Buscar",
+    "loading": "Cargando…",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "skip": "Saltar",
+    "gotIt": "Entendido",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "yes": "Sí",
+    "no": "No",
+    "you": "tú"
+  },
+
+  "tabs": {
+    "home": "Inicio",
+    "library": "Biblioteca",
+    "search": "Buscar",
+    "companies": "Empresas",
+    "team": "Equipo",
+    "settings": "Ajustes"
+  },
+
+  "tutorial": {
+    "skip": "Saltar",
+    "next": "Siguiente",
+    "back": "Atrás",
+    "start": "Empezar",
+    "slides": {
+      "welcome": {
+        "title": "Bienvenido a Archivum",
+        "description": "Tu sistema inteligente para organizar todos los documentos de tu empresa.",
+        "b1": "Procesamiento automático con IA",
+        "b2": "Acceso desde cualquier dispositivo",
+        "b3": "Datos seguros y privados"
+      },
+      "upload": {
+        "title": "Sube y procesa documentos",
+        "description": "Captura facturas, contratos y recibos. La IA extrae los datos automáticamente.",
+        "b1": "Soporta PDF, fotos y escaneos",
+        "b2": "Extracción de importes, fechas, NIF/CIF",
+        "b3": "Sin necesidad de transcribir nada"
+      },
+      "companies": {
+        "title": "Organiza por empresa",
+        "description": "Crea una empresa por cada cliente o departamento y agrupa sus documentos.",
+        "b1": "Plan Gratis: 1 empresa",
+        "b2": "Plan Pro: hasta 20 empresas",
+        "b3": "Añade más por 2 €/empresa/mes"
+      },
+      "team": {
+        "title": "Trabaja en equipo",
+        "description": "Invita a tu equipo con roles y permisos personalizados por empresa.",
+        "b1": "Roles: Administrador, Miembro, Visor",
+        "b2": "Acceso granular por empresa o carpeta",
+        "b3": "Plan Gratis: 1 usuario · Pro: 5 + extras"
+      },
+      "search": {
+        "title": "Encuentra todo al instante",
+        "description": "Búsqueda inteligente y filtros por empresa, fecha, tipo o importe.",
+        "b1": "Búsqueda por contenido del documento",
+        "b2": "Filtros combinables",
+        "b3": "Ordenado por relevancia"
+      }
+    }
+  },
+
+  "coachmarks": {
+    "tipLabel": "CONSEJO",
+    "empresasCreateFirst": {
+      "title": "Crea tu primera empresa",
+      "description": "Agrupa tus documentos por cliente o departamento. El plan gratuito incluye 1 empresa."
+    },
+    "equipoInviteFirst": {
+      "title": "Invita a tu equipo",
+      "description": "Añade administradores, miembros o visores. Cada rol tiene permisos distintos sobre las empresas y carpetas."
+    },
+    "bibliotecaEmpty": {
+      "title": "Aquí verás tus documentos",
+      "description": "Cuando subas facturas, contratos o recibos aparecerán aquí. Toca el botón + para subir el primero."
+    },
+    "subirFirst": {
+      "title": "Sube tu primer documento",
+      "description": "Toma una foto o selecciona un PDF de tu galería. La IA extraerá los importes, fechas y datos automáticamente."
+    }
+  },
+
+  "ajustes": {
+    "title": "Ajustes",
+    "sections": {
+      "organization": "Organización",
+      "billing": "Plan y facturación",
+      "preferences": "Preferencias",
+      "help": "Ayuda"
+    },
+    "organization": {
+      "name": "Nombre",
+      "accessCode": "Código de acceso"
+    },
+    "plan": {
+      "title": "Archivum Pro",
+      "users": "Usuarios",
+      "documents": "Documentos",
+      "companies": "Empresas",
+      "manage": "Gestionar plan y facturación",
+      "statuses": {
+        "active": "Activa",
+        "trialing": "Prueba gratuita",
+        "past_due": "Pago pendiente",
+        "canceled": "Cancelada",
+        "unpaid": "Impagada",
+        "incomplete": "Incompleta",
+        "paused": "Pausada"
+      }
+    },
+    "preferences": {
+      "language": "Idioma",
+      "theme": "Tema",
+      "notifications": "Notificaciones",
+      "themeLight": "Claro",
+      "themeDark": "Oscuro",
+      "themeSystem": "Sistema"
+    },
+    "help": {
+      "tutorial": "Ver tutorial de la app"
+    },
+    "signOut": "Cerrar sesión",
+    "signOutConfirmTitle": "Cerrar sesión",
+    "signOutConfirmMessage": "¿Estás seguro de que quieres cerrar sesión?",
+    "user": "Usuario"
+  },
+
+  "language": {
+    "es": "Español",
+    "en": "English"
+  }
+}

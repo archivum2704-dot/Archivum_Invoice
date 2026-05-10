@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
+import { useTranslation } from "react-i18next";
 
 const C = {
   blue: "#2563EB", blueL: "#EFF6FF", blueMed: "#DBEAFE",
@@ -305,6 +306,7 @@ function Step3({
 
 /* ── Main screen ─────────────────────────────────────────────────────────── */
 export default function SubirScreen() {
+  const { t } = useTranslation();
   const { orgId } = useAuth();
   const [step, setStep] = useState(1);
 
@@ -404,8 +406,8 @@ export default function SubirScreen() {
         id="subir-first-doc"
         active={true}
         icon={<Upload size={32} color={C.blue} />}
-        title="Sube tu primer documento"
-        description="Toma una foto o selecciona un PDF de tu galería. La IA extraerá los importes, fechas y datos automáticamente."
+        title={t("coachmarks.subirFirst.title")}
+        description={t("coachmarks.subirFirst.description")}
       />
     </SafeAreaView>
   );

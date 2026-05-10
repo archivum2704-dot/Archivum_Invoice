@@ -14,6 +14,8 @@ import {
 import { useAuth } from "@/context/auth-context";
 import { useTheme } from "@/context/theme-context";
 import { supabase } from "@/lib/supabase";
+import { useTranslation } from "react-i18next";
+import { setLanguage, type Lang } from "@/lib/i18n";
 
 const C = {
   blue: "#2563EB", blueL: "#EFF6FF",
@@ -89,13 +91,8 @@ function StatusIcon({ status }: { status: string }) {
   return <XCircle size={14} color="#6B7280" />;
 }
 
-function statusLabel(s: string) {
-  const map: Record<string, string> = {
-    active: "Activa", trialing: "Prueba gratuita", past_due: "Pago pendiente",
-    canceled: "Cancelada", unpaid: "Impagada", incomplete: "Incompleta", paused: "Pausada",
-  };
-  return map[s] ?? s;
-}
+// statusLabel removed — translated inline via i18next (ajustes.plan.statuses.*)
+
 
 function statusColor(s: string) {
   if (s === "active")   return "#16A34A";
@@ -119,6 +116,7 @@ function UsageBar({ value, max }: { value: number; max: number }) {
 }
 
 export default function AjustesScreen() {
+  const { t, i18n } = useTranslation();
   const { profile, org, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const [copied,        setCopied]        = useState(false);
@@ -157,33 +155,44 @@ export default function AjustesScreen() {
   }, [org?.access_code]);
 
   const handleSignOut = () => {
-    Alert.alert("Cerrar sesión", "¿Estás seguro de que quieres cerrar sesión?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Cerrar sesión", style: "destructive",
-        onPress: async () => { setSigningOut(true); await signOut(); },
-      },
-    ]);
+    Alert.alert(
+      t("ajustes.signOutConfirmTitle"),
+      t("ajustes.signOutConfirmMessage"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("ajustes.signOut"), style: "destructive",
+          onPress: async () => { setSigningOut(true); await signOut(); },
+        },
+      ]
+    );
   };
 
   const firstName = profile?.first_name ?? "";
   const lastName  = profile?.last_name  ?? "";
-  const fullName  = [firstName, lastName].filter(Boolean).join(" ") || "Usuario";
+  const fullName  = [firstName, lastName].filter(Boolean).join(" ") || t("ajustes.user");
   const initials  = [firstName[0], lastName[0]].filter(Boolean).join("").toUpperCase() || "U";
 
-  const THEMES: { key: "light" | "dark" | "system"; label: string }[] = [
-    { key: "light",  label: "Claro" },
-    { key: "dark",   label: "Oscuro" },
-    { key: "system", label: "Sistema" },
+  const THEMES: { key: "light" | "dark" | "system"; labelKey: string }[] = [
+    { key: "light",  labelKey: "ajustes.preferences.themeLight" },
+    { key: "dark",   labelKey: "ajustes.preferences.themeDark" },
+    { key: "system", labelKey: "ajustes.preferences.themeSystem" },
   ];
-  const LANGS = [{ key: "es", label: "Español" }, { key: "en", label: "English" }];
-  const [lang, setLang] = useState("es");
+  const LANGS: { key: Lang; label: string }[] = [
+    { key: "es", label: t("language.es") },
+    { key: "en", label: t("language.en") },
+  ];
+  const currentLang = (i18n.language?.split("-")[0] as Lang) ?? "es";
+
+  const handleLangChange = async (key: Lang) => {
+    await setLanguage(key);
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <Text style={{ fontSize: 22, fontWeight: "800", color: C.text, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 }}>
-          Ajustes
+          {t("ajustes.title")}
         </Text>
 
         {/* Profile card */}
@@ -204,15 +213,15 @@ export default function AjustesScreen() {
         </View>
 
         {/* Organization */}
-        <SectionLabel>Organización</SectionLabel>
+        <SectionLabel>{t("ajustes.sections.organization")}</SectionLabel>
         <Card>
           <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
-            <Text style={{ fontSize: 12, color: C.muted, marginBottom: 2 }}>Nombre</Text>
+            <Text style={{ fontSize: 12, color: C.muted, marginBottom: 2 }}>{t("ajustes.organization.name")}</Text>
             <Text style={{ fontSize: 14, fontWeight: "600", color: C.text }}>{org?.name ?? "—"}</Text>
           </View>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 14 }}>
             <View>
-              <Text style={{ fontSize: 12, color: C.muted, marginBottom: 2 }}>Código de acceso</Text>
+              <Text style={{ fontSize: 12, color: C.muted, marginBottom: 2 }}>{t("ajustes.organization.accessCode")}</Text>
               <Text style={{ fontSize: 18, fontWeight: "700", color: C.blue, fontFamily: "monospace", letterSpacing: 3 }}>
                 {org?.access_code ?? "—"}
               </Text>
@@ -227,27 +236,27 @@ export default function AjustesScreen() {
               }}
             >
               {copied
-                ? <><Check size={14} color={C.green} /><Text style={{ fontSize: 12, fontWeight: "600", color: C.green }}>Copiado</Text></>
-                : <><Copy  size={14} color={C.blue}  /><Text style={{ fontSize: 12, fontWeight: "600", color: C.blue }}>Copiar</Text></>
+                ? <><Check size={14} color={C.green} /><Text style={{ fontSize: 12, fontWeight: "600", color: C.green }}>{t("common.copied")}</Text></>
+                : <><Copy  size={14} color={C.blue}  /><Text style={{ fontSize: 12, fontWeight: "600", color: C.blue }}>{t("common.copy")}</Text></>
               }
             </TouchableOpacity>
           </View>
         </Card>
 
         {/* Plan */}
-        <SectionLabel>Plan y facturación</SectionLabel>
+        <SectionLabel>{t("ajustes.sections.billing")}</SectionLabel>
         <Card>
           {/* Status row */}
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <CreditCard size={16} color={C.muted} />
-              <Text style={{ fontSize: 14, fontWeight: "600", color: C.text }}>Archivum Pro</Text>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: C.text }}>{t("ajustes.plan.title")}</Text>
             </View>
             {plan ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: statusColor(plan.subscription_status) + "18", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
                 <StatusIcon status={plan.subscription_status} />
                 <Text style={{ fontSize: 12, fontWeight: "600", color: statusColor(plan.subscription_status) }}>
-                  {statusLabel(plan.subscription_status)}
+                  {t(`ajustes.plan.statuses.${plan.subscription_status}`, { defaultValue: plan.subscription_status })}
                 </Text>
               </View>
             ) : (
@@ -261,7 +270,7 @@ export default function AjustesScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Users size={14} color={C.muted} />
-                  <Text style={{ fontSize: 13, color: C.muted }}>Usuarios</Text>
+                  <Text style={{ fontSize: 13, color: C.muted }}>{t("ajustes.plan.users")}</Text>
                 </View>
                 <Text style={{ fontSize: 13, color: C.text, fontWeight: "600" }}>
                   {plan.member_count} / {isPaidActive(plan.subscription_status) ? 5 + plan.extra_users_quantity : 1}
@@ -277,7 +286,7 @@ export default function AjustesScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <FileText size={14} color={C.muted} />
-                  <Text style={{ fontSize: 13, color: C.muted }}>Documentos</Text>
+                  <Text style={{ fontSize: 13, color: C.muted }}>{t("ajustes.plan.documents")}</Text>
                 </View>
                 <Text style={{ fontSize: 13, color: C.text, fontWeight: "600" }}>
                   {plan.document_count} / {isPaidActive(plan.subscription_status) ? 500 + plan.extra_docs_quantity * 200 : 20}
@@ -293,7 +302,7 @@ export default function AjustesScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Building2 size={14} color={C.muted} />
-                  <Text style={{ fontSize: 13, color: C.muted }}>Empresas</Text>
+                  <Text style={{ fontSize: 13, color: C.muted }}>{t("ajustes.plan.companies")}</Text>
                 </View>
                 <Text style={{ fontSize: 13, color: C.text, fontWeight: "600" }}>
                   {plan.company_count} / {isPaidActive(plan.subscription_status) ? 20 + plan.extra_companies_quantity : 1}
@@ -308,25 +317,25 @@ export default function AjustesScreen() {
             onPress={() => Linking.openURL(`${APP_URL}/configuracion/billing`)}
             style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 14 }}
           >
-            <Text style={{ fontSize: 14, color: C.blue, fontWeight: "600" }}>Gestionar plan y facturación</Text>
+            <Text style={{ fontSize: 14, color: C.blue, fontWeight: "600" }}>{t("ajustes.plan.manage")}</Text>
             <ChevronRight size={16} color={C.blue} />
           </TouchableOpacity>
         </Card>
 
         {/* Preferences */}
-        <SectionLabel>Preferencias</SectionLabel>
+        <SectionLabel>{t("ajustes.sections.preferences")}</SectionLabel>
         <Card>
           {/* Language */}
           <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
               <Globe size={15} color={C.muted} />
-              <Text style={{ fontSize: 13, fontWeight: "500", color: C.text }}>Idioma</Text>
+              <Text style={{ fontSize: 13, fontWeight: "500", color: C.text }}>{t("ajustes.preferences.language")}</Text>
             </View>
             <View style={{ flexDirection: "row", backgroundColor: "#F3F4F6", borderRadius: 8, padding: 2 }}>
               {LANGS.map((l) => {
-                const active = lang === l.key;
+                const active = currentLang === l.key;
                 return (
-                  <TouchableOpacity key={l.key} onPress={() => setLang(l.key)} style={{
+                  <TouchableOpacity key={l.key} onPress={() => handleLangChange(l.key)} style={{
                     flex: 1, paddingVertical: 7, borderRadius: 6, alignItems: "center",
                     backgroundColor: active ? C.surface : "transparent",
                     shadowColor: active ? "#000" : "transparent",
@@ -343,19 +352,19 @@ export default function AjustesScreen() {
           <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
               <Moon size={15} color={C.muted} />
-              <Text style={{ fontSize: 13, fontWeight: "500", color: C.text }}>Tema</Text>
+              <Text style={{ fontSize: 13, fontWeight: "500", color: C.text }}>{t("ajustes.preferences.theme")}</Text>
             </View>
             <View style={{ flexDirection: "row", backgroundColor: "#F3F4F6", borderRadius: 8, padding: 2, gap: 2 }}>
-              {THEMES.map((t) => {
-                const active = theme === t.key;
+              {THEMES.map((th) => {
+                const active = theme === th.key;
                 return (
-                  <TouchableOpacity key={t.key} onPress={() => setTheme(t.key)} style={{
+                  <TouchableOpacity key={th.key} onPress={() => setTheme(th.key)} style={{
                     flex: 1, paddingVertical: 7, borderRadius: 6, alignItems: "center",
                     backgroundColor: active ? C.surface : "transparent",
                     shadowColor: active ? "#000" : "transparent",
                     shadowOpacity: active ? 0.1 : 0, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: active ? 1 : 0,
                   }}>
-                    <Text style={{ fontSize: 12, fontWeight: active ? "600" : "400", color: active ? C.blue : C.muted }}>{t.label}</Text>
+                    <Text style={{ fontSize: 12, fontWeight: active ? "600" : "400", color: active ? C.blue : C.muted }}>{t(th.labelKey)}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -366,7 +375,7 @@ export default function AjustesScreen() {
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 14 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <Bell size={15} color={C.muted} />
-              <Text style={{ fontSize: 13, fontWeight: "500", color: C.text }}>Notificaciones</Text>
+              <Text style={{ fontSize: 13, fontWeight: "500", color: C.text }}>{t("ajustes.preferences.notifications")}</Text>
             </View>
             <Switch
               value={notifications}
@@ -378,11 +387,11 @@ export default function AjustesScreen() {
         </Card>
 
         {/* Help */}
-        <SectionLabel>Ayuda</SectionLabel>
+        <SectionLabel>{t("ajustes.sections.help")}</SectionLabel>
         <Card>
           <Row
             icon={<HelpCircle size={16} color={C.muted} />}
-            label="Ver tutorial de la app"
+            label={t("ajustes.help.tutorial")}
             onPress={async () => {
               try { await AsyncStorage.removeItem("@archivum/onboarding_completed"); } catch {}
               router.push("/(app)/onboarding");
@@ -404,7 +413,7 @@ export default function AjustesScreen() {
           >
             {signingOut
               ? <ActivityIndicator size="small" color={C.red} />
-              : <><LogOut size={18} color={C.red} /><Text style={{ color: C.red, fontWeight: "600", fontSize: 15 }}>Cerrar sesión</Text></>
+              : <><LogOut size={18} color={C.red} /><Text style={{ color: C.red, fontWeight: "600", fontSize: 15 }}>{t("ajustes.signOut")}</Text></>
             }
           </TouchableOpacity>
         </View>
