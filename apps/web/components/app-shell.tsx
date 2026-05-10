@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { ReactNode } from "react"
 import { Menu } from "lucide-react"
 import { Sidebar } from "@/components/sidebar"
+import { TutorialAutoLauncher } from "@/components/tutorial-modal"
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -56,6 +57,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+
+      {/* First-login tutorial — shows once, persisted in localStorage */}
+      <TutorialAutoLauncher />
     </div>
   )
 }

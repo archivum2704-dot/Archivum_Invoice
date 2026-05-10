@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Settings, Copy, Check, Save } from "lucide-react"
+import { Settings, Copy, Check, Save, HelpCircle, Sparkles } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { useOrganization } from "@/lib/context/organization-context"
+import { TutorialModal, resetTutorial } from "@/components/tutorial-modal"
 
 // ── Access code card ──────────────────────────────────────────────────────────
 function AccessCodeCard({ code }: { code: string }) {
@@ -80,6 +81,7 @@ export function SettingsView() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved]   = useState(false)
   const [error, setError]   = useState<string | null>(null)
+  const [tutorialOpen, setTutorialOpen] = useState(false)
 
   const set = (key: keyof typeof form) => (v: string) => setForm(f => ({ ...f, [key]: v }))
 
@@ -160,6 +162,23 @@ export function SettingsView() {
           </div>
         </Section>
 
+        <Section title="Ayuda" description="Aprende cómo aprovechar Archivum al máximo.">
+          <button
+            type="button"
+            onClick={() => { resetTutorial(); setTutorialOpen(true); }}
+            className="flex items-center gap-3 w-full px-4 py-3 bg-card border border-border rounded-xl hover:border-primary/40 hover:bg-muted/40 transition-colors group"
+          >
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-semibold text-foreground">Ver tutorial de bienvenida</p>
+              <p className="text-xs text-muted-foreground">Repasa cómo funciona Archivum paso a paso.</p>
+            </div>
+            <HelpCircle className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          </button>
+        </Section>
+
 
         <div className="flex items-center gap-3 pt-6">
           <button type="submit" disabled={saving}
@@ -171,6 +190,8 @@ export function SettingsView() {
           {error  && <span className="text-sm text-destructive">{error}</span>}
         </div>
       </form>
+
+      <TutorialModal open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
     </div>
   )
 }
