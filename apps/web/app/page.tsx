@@ -7,10 +7,11 @@ import {
   FileText, Package, Receipt, FolderOpen,
   ArrowRight, CheckCircle2, Bell, BarChart3,
   Link2, Shield, Globe, Zap, Search, Download,
-  TrendingUp, Clock, AlertCircle, ChevronRight,
+  TrendingUp, Clock, AlertCircle, ChevronRight, Star,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Logo } from "@/components/logo"
+import { PLANS, ADDONS, PRICING_FAQ } from "@/lib/pricing"
 
 const SOCIAL_PROOF = [
   "Plan gratuito incluido",
@@ -362,100 +363,100 @@ export default function LandingPage() {
       </section>
 
       {/* ── Pricing ──────────────────────────────────────────────────────── */}
-      <section className="border-t border-border">
+      <section className="border-t border-border" id="precios">
         <div className="max-w-6xl mx-auto px-6 py-20">
           <div className="text-center mb-12">
             <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Precios</p>
             <h2 className="text-3xl font-bold text-foreground mb-4">
-              Empieza gratis. Crece cuando lo necesites.
+              Empieza gratis. Escala cuando lo necesites.
             </h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Sin letra pequeña. El plan gratuito no caduca. El Pro se puede cancelar en cualquier momento.
+            <p className="text-muted-foreground max-w-lg mx-auto">
+              La cuota de documentos <strong>no consumida se acumula</strong> al mes siguiente.
+              Sin letra pequeña. Cancela cuando quieras.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          {/* Plan cards — 3 columnas */}
+          <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
+            {Object.values(PLANS).map(plan => (
+              <div
+                key={plan.id}
+                className={`bg-card rounded-2xl overflow-hidden flex flex-col relative ${
+                  plan.highlight
+                    ? "border-2 border-primary shadow-lg shadow-primary/10"
+                    : "border border-border"
+                }`}
+              >
+                {plan.badge && (
+                  <div className="absolute top-4 right-4">
+                    <span className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 bg-primary text-primary-foreground rounded-full">
+                      <Star className="w-2.5 h-2.5" /> {plan.badge}
+                    </span>
+                  </div>
+                )}
+                <div className={`p-6 border-b border-border ${plan.highlight ? "bg-primary/5" : ""}`}>
+                  <p className={`text-xs font-bold uppercase tracking-wider mb-3 ${plan.highlight ? "text-primary" : "text-muted-foreground"}`}>
+                    {plan.name}
+                  </p>
+                  <div className="flex items-end gap-1 mb-1">
+                    <span className="text-4xl font-bold text-foreground">{plan.priceLabel}</span>
+                    {plan.price > 0 && (
+                      <span className="text-sm text-muted-foreground pb-1">{plan.priceSuffix}</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>
+                </div>
 
-            {/* Free */}
-            <div className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col">
-              <div className="p-6 border-b border-border">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Gratuito</p>
-                <p className="text-4xl font-bold text-foreground mb-1">0 €</p>
-                <p className="text-sm text-muted-foreground">Para siempre · Sin tarjeta</p>
-              </div>
-              <ul className="px-6 py-5 space-y-3 flex-1">
-                {[
-                  "1 usuario",
-                  "1 empresa",
-                  "20 documentos almacenados",
-                  "Facturas, albaranes, pedidos y recibos",
-                  "Búsqueda y exportación CSV/Excel",
-                ].map(f => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <div className="px-6 pb-6">
-                <Link
-                  href="/auth/signup"
-                  className="block w-full text-center px-4 py-2.5 border border-border text-foreground text-sm font-medium rounded-xl hover:bg-muted transition-colors"
-                >
-                  Crear cuenta gratis
-                </Link>
-              </div>
-            </div>
+                <ul className="px-6 py-5 space-y-3 flex-1">
+                  {plan.features.map(f => (
+                    <li key={f} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                      <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${plan.highlight ? "text-primary" : "text-emerald-500"}`} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
 
-            {/* Pro */}
-            <div className="bg-card border-2 border-primary rounded-2xl overflow-hidden flex flex-col relative">
-              <div className="absolute top-4 right-4">
-                <span className="text-[10px] font-bold px-2.5 py-1 bg-primary text-primary-foreground rounded-full">
-                  MÁS POPULAR
-                </span>
+                <div className="px-6 pb-6">
+                  <Link
+                    href="/auth/signup"
+                    className={`block w-full text-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors ${
+                      plan.highlight
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20"
+                        : "border border-border text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {plan.price === 0 ? "Crear cuenta gratis" : "Empezar ahora"}
+                  </Link>
+                  {plan.price === 0 && (
+                    <p className="text-center text-xs text-muted-foreground mt-2">Sin tarjeta · Para siempre</p>
+                  )}
+                </div>
               </div>
-              <div className="p-6 border-b border-border">
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Pro</p>
-                <p className="text-4xl font-bold text-foreground mb-1">10 €<span className="text-lg font-normal text-muted-foreground"> / mes</span></p>
-                <p className="text-sm text-muted-foreground">7 días de prueba gratis · Sin compromiso</p>
-              </div>
-              <ul className="px-6 py-5 space-y-3 flex-1">
-                {[
-                  "Todo lo del plan Gratuito",
-                  "5 usuarios incluidos (+2 € / usuario / mes)",
-                  "20 empresas incluidas (+2 € / empresa / mes)",
-                  "500 documentos incluidos (+5 € / pack de 200 docs)",
-                  "Gestión de permisos por carpeta",
-                  "Soporte prioritario",
-                ].map(f => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <div className="px-6 pb-6">
-                <Link
-                  href="/auth/signup"
-                  className="block w-full text-center px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
-                >
-                  Empezar prueba gratuita
-                </Link>
-                <p className="text-center text-xs text-muted-foreground mt-2">
-                  7 días gratis · Cancela cuando quieras
-                </p>
-              </div>
+            ))}
+          </div>
+
+          {/* Add-ons */}
+          <div className="max-w-5xl mx-auto mt-8">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 text-center">
+              Complementos disponibles en planes de pago
+            </p>
+            <div className="grid sm:grid-cols-3 gap-4">
+              {Object.values(ADDONS).map(addon => (
+                <div key={addon.label} className="flex items-center gap-3 bg-muted/40 border border-border rounded-xl px-4 py-3">
+                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{addon.label}</p>
+                    <p className="text-xs text-muted-foreground">{addon.sublabel}</p>
+                  </div>
+                  <span className="text-sm font-bold text-primary whitespace-nowrap">{addon.priceLabel}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* FAQ rápido */}
-          <div className="max-w-3xl mx-auto mt-10 grid sm:grid-cols-2 gap-4">
-            {[
-              { q: "¿El plan gratuito caduca?", a: "No. El plan gratuito es para siempre. No te pediremos tarjeta para usarlo." },
-              { q: "¿Qué pasa al acabar los 7 días de prueba?", a: "Si no introduces tarjeta, vuelves automáticamente al plan gratuito (1 usuario, 20 docs)." },
-              { q: "¿Puedo cancelar en cualquier momento?", a: "Sí. Sin permanencia ni penalización. Cancelas desde el panel de facturación y en el siguiente ciclo no se cobra." },
-              { q: "¿Los documentos del gratuito se borran si me suscribo?", a: "No. Todos tus documentos se conservan independientemente del plan." },
-            ].map(({ q, a }) => (
+          {/* FAQ */}
+          <div className="max-w-5xl mx-auto mt-10 grid sm:grid-cols-2 gap-4">
+            {PRICING_FAQ.map(({ q, a }) => (
               <div key={q} className="bg-muted/40 border border-border rounded-xl p-4">
                 <p className="text-sm font-semibold text-foreground mb-1.5">{q}</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">{a}</p>
@@ -472,7 +473,7 @@ export default function LandingPage() {
             Empieza a ordenar tu documentación hoy
           </h2>
           <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            Plan gratuito para siempre. Pro desde 10 €/mes con 7 días de prueba gratis. Sin permanencia.
+            Gratis para siempre · Starter desde 14,99 €/mes · Pro desde 24,99 €/mes. Sin permanencia.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link

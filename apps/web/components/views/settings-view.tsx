@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, Inbox, AlertTriangle } from "lucide-react"
+import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, Inbox, AlertTriangle, Zap, FileText, Users, Building2, TrendingUp } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { useOrganization } from "@/lib/context/organization-context"
 import { TutorialModal, resetTutorial } from "@/components/tutorial-modal"
 import { CancellationModal } from "@/components/cancellation-modal"
+import { PLANS, ADDONS, type PlanId } from "@/lib/pricing"
 
 // ── Access code card ──────────────────────────────────────────────────────────
 function AccessCodeCard({ code }: { code: string }) {
@@ -130,6 +131,45 @@ export function SettingsView() {
   const [cancelModalOpen, setCancelModalOpen]   = useState(false)
   const [cancelSuccess, setCancelSuccess]       = useState(false)
 
+  // Billing state
+  const [billing, setBilling] = useState<{
+    plan: PlanId
+    status: string
+    quotaPool: number
+    docCount: number
+    memberCount: number
+    companyCount: number
+    periodEnd: string | null
+  } | null>(null)
+
+  useEffect(() => {
+    if (!currentOrg?.id) return
+    const supabase = createClient()
+    Promise.all([
+      supabase.from("organizations")
+        .select("subscription_plan, subscription_status, doc_quota_pool, document_count, current_period_end")
+        .eq("id", currentOrg.id)
+        .single(),
+      supabase.from("organization_members")
+        .select("*", { count: "exact", head: true })
+        .eq("organization_id", currentOrg.id),
+      supabase.from("companies")
+        .select("*", { count: "exact", head: true })
+        .eq("organization_id", currentOrg.id),
+    ]).then(([{ data: org }, { count: members }, { count: companies }]) => {
+      if (!org) return
+      setBilling({
+        plan: (org.subscription_plan ?? "free") as PlanId,
+        status: org.subscription_status ?? "active",
+        quotaPool: org.doc_quota_pool ?? 0,
+        docCount: org.document_count ?? 0,
+        memberCount: members ?? 0,
+        companyCount: companies ?? 0,
+        periodEnd: org.current_period_end ?? null,
+      })
+    })
+  }, [currentOrg?.id])
+
   const set = (key: keyof typeof form) => (v: string) => setForm(f => ({ ...f, [key]: v }))
 
   // Sync form when org loads asynchronously
@@ -216,6 +256,143 @@ export function SettingsView() {
               <Field label={t("country")} value={form.country} onChange={set("country")} disabled={saving} />
             </div>
           </div>
+        </Section>
+
+        {/* ── Billing / Plan ─────────────────────────────────────────────── */}
+        <Section title="Plan y facturación" description="Tu suscripción actual, uso de cuota y opciones de mejora.">
+          {billing ? (() => {
+            const plan = PLANS[billing.plan]
+            const monthlyDocs = plan.docsPerMonth
+            const quotaUsedPercent = Math.min(100, Math.round(((monthlyDocs - billing.quotaPool) / monthlyDocs) * 100))
+            const periodEndLabel = billing.periodEnd
+              ? new Date(billing.periodEnd).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })
+              : null
+
+            return (
+              <div className="space-y-5">
+                {/* Current plan badge */}
+                <div className="flex items-center justify-between gap-4 p-4 border border-border rounded-xl bg-card">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Zap className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Plan {plan.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {plan.price === 0 ? "Gratuito · para siempre" : `${plan.priceLabel}/mes`}
+                        {periodEndLabel && ` · Próxima renovación: ${periodEndLabel}`}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={cn(
+                    "shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full",
+                    billing.status === "active"
+                      ? "bg-accent/10 text-accent"
+                      : billing.status === "canceled"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-yellow-500/10 text-yellow-600"
+                  )}>
+                    {billing.status === "active" ? "Activo" : billing.status === "canceled" ? "Cancelado" : "Pendiente"}
+                  </span>
+                </div>
+
+                {/* Quota bars */}
+                <div className="space-y-3">
+                  {/* Documents */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 font-medium text-foreground">
+                        <FileText className="w-3.5 h-3.5" /> Documentos disponibles
+                      </span>
+                      <span className="text-muted-foreground">
+                        {billing.quotaPool.toLocaleString("es-ES")} restantes de {monthlyDocs.toLocaleString("es-ES")} acumulados
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={cn("h-full rounded-full transition-all", quotaUsedPercent > 90 ? "bg-destructive" : "bg-primary")}
+                        style={{ width: `${quotaUsedPercent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Members */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 font-medium text-foreground">
+                        <Users className="w-3.5 h-3.5" /> Usuarios
+                      </span>
+                      <span className="text-muted-foreground">{billing.memberCount} activos</span>
+                    </div>
+                  </div>
+
+                  {/* Companies */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 font-medium text-foreground">
+                        <Building2 className="w-3.5 h-3.5" /> Empresas gestionadas
+                      </span>
+                      <span className="text-muted-foreground">{billing.companyCount} empresas</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Upgrade options (only for free/starter) */}
+                {billing.plan !== "pro" && (
+                  <div className="border border-border rounded-xl overflow-hidden">
+                    <div className="px-4 py-3 bg-muted/40 border-b border-border">
+                      <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        <TrendingUp className="w-3.5 h-3.5 text-primary" /> Mejorar plan
+                      </p>
+                    </div>
+                    <div className="divide-y divide-border">
+                      {(Object.values(PLANS) as typeof PLANS[keyof typeof PLANS][]).filter(p => p.price > (plan.price)).map(p => (
+                        <div key={p.id} className="flex items-center justify-between gap-4 px-4 py-3">
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{p.name} {p.badge && <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 px-1.5 py-0.5 rounded">{p.badge}</span>}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{p.docsPerMonth.toLocaleString("es-ES")} docs/mes · {p.priceLabel}{p.price > 0 ? "/mes" : ""}</p>
+                          </div>
+                          <a
+                            href={`mailto:hola@archivum.app?subject=Quiero mejorar al plan ${p.name}`}
+                            className="shrink-0 px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                          >
+                            Mejorar
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Add-ons */}
+                {billing.plan !== "free" && (
+                  <div className="border border-border rounded-xl overflow-hidden">
+                    <div className="px-4 py-3 bg-muted/40 border-b border-border">
+                      <p className="text-xs font-semibold text-foreground">Complementos disponibles</p>
+                    </div>
+                    <div className="divide-y divide-border">
+                      {Object.values(ADDONS).map(addon => (
+                        <div key={addon.label} className="flex items-center justify-between gap-4 px-4 py-3">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{addon.label}</p>
+                            <p className="text-xs text-muted-foreground">{addon.sublabel}</p>
+                          </div>
+                          <span className="shrink-0 text-sm font-semibold text-foreground">{addon.priceLabel}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="px-4 py-2.5 bg-muted/20 border-t border-border">
+                      <p className="text-xs text-muted-foreground">Para adquirir complementos, contacta con <a href="mailto:hola@archivum.app" className="text-primary hover:underline">hola@archivum.app</a></p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })() : (
+            <div className="h-24 flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
         </Section>
 
         <Section title="Ayuda" description="Aprende cómo aprovechar Archivum al máximo.">

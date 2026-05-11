@@ -17,6 +17,7 @@ import { useTheme } from "@/context/theme-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
 import { setLanguage, type Lang } from "@/lib/i18n";
+import { PLANS, type PlanId } from "@/lib/pricing";
 
 const C = {
   blue: "#2563EB", blueL: "#EFF6FF",
@@ -74,10 +75,12 @@ function Row({
 }
 
 interface PlanInfo {
+  subscription_plan: PlanId;
   subscription_status: string;
   extra_users_quantity: number;
   extra_docs_quantity: number;
   extra_companies_quantity: number;
+  doc_quota_pool: number;
   document_count: number;
   member_count: number;
   company_count: number;
@@ -131,7 +134,7 @@ export default function AjustesScreen() {
     (async () => {
       const [{ data: orgData }, { count: memberCount }, { count: companyCount }] = await Promise.all([
         supabase.from("organizations")
-          .select("subscription_status,extra_users_quantity,extra_docs_quantity,extra_companies_quantity,document_count")
+          .select("subscription_plan,subscription_status,extra_users_quantity,extra_docs_quantity,extra_companies_quantity,doc_quota_pool,document_count")
           .eq("id", org.id)
           .single(),
         supabase.from("organization_members")
@@ -142,7 +145,12 @@ export default function AjustesScreen() {
           .eq("organization_id", org.id),
       ]);
       if (orgData) {
-        setPlan({ ...orgData, member_count: memberCount ?? 0, company_count: companyCount ?? 0 });
+        setPlan({
+          ...orgData,
+          subscription_plan: (orgData.subscription_plan ?? "free") as PlanId,
+          member_count: memberCount ?? 0,
+          company_count: companyCount ?? 0,
+        });
       }
     })();
   }, [org?.id]);
@@ -251,7 +259,16 @@ export default function AjustesScreen() {
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <CreditCard size={16} color={C.muted} />
-              <Text style={{ fontSize: 14, fontWeight: "600", color: C.text }}>{t("ajustes.plan.title")}</Text>
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: "600", color: C.text }}>
+                  {plan ? `Plan ${PLANS[plan.subscription_plan].name}` : t("ajustes.plan.title")}
+                </Text>
+                {plan && (
+                  <Text style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
+                    {PLANS[plan.subscription_plan].price === 0 ? "Gratuito · para siempre" : PLANS[plan.subscription_plan].priceLabel}
+                  </Text>
+                )}
+              </View>
             </View>
             {plan ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: statusColor(plan.subscription_status) + "18", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
@@ -265,53 +282,68 @@ export default function AjustesScreen() {
             )}
           </View>
 
-          {/* Usage: users */}
-          {plan && (
-            <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Users size={14} color={C.muted} />
-                  <Text style={{ fontSize: 13, color: C.muted }}>{t("ajustes.plan.users")}</Text>
+          {/* Usage: documents (quota pool) */}
+          {plan && (() => {
+            const planData = PLANS[plan.subscription_plan];
+            const baseMonthly = planData.docsPerMonth;
+            const bonusDocs = plan.extra_docs_quantity * 200;
+            const totalPool = plan.doc_quota_pool; // remaining quota (cumulative)
+            const usedApprox = Math.max(0, baseMonthly + bonusDocs - totalPool);
+            return (
+              <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <FileText size={14} color={C.muted} />
+                    <Text style={{ fontSize: 13, color: C.muted }}>Documentos disponibles</Text>
+                  </View>
+                  <Text style={{ fontSize: 13, color: C.text, fontWeight: "600" }}>
+                    {totalPool.toLocaleString("es-ES")} restantes
+                  </Text>
                 </View>
-                <Text style={{ fontSize: 13, color: C.text, fontWeight: "600" }}>
-                  {plan.member_count} / {isPaidActive(plan.subscription_status) ? 5 + plan.extra_users_quantity : 1}
+                <UsageBar value={usedApprox} max={baseMonthly + bonusDocs} />
+                <Text style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
+                  Base: {baseMonthly}/mes · acumulativos{bonusDocs > 0 ? ` · +${bonusDocs} bono` : ""}
                 </Text>
               </View>
-              <UsageBar value={plan.member_count} max={isPaidActive(plan.subscription_status) ? 5 + plan.extra_users_quantity : 1} />
-            </View>
-          )}
+            );
+          })()}
 
-          {/* Usage: documents */}
-          {plan && (
-            <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <FileText size={14} color={C.muted} />
-                  <Text style={{ fontSize: 13, color: C.muted }}>{t("ajustes.plan.documents")}</Text>
+          {/* Usage: users */}
+          {plan && (() => {
+            const maxUsers = PLANS[plan.subscription_plan].users + plan.extra_users_quantity;
+            return (
+              <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Users size={14} color={C.muted} />
+                    <Text style={{ fontSize: 13, color: C.muted }}>{t("ajustes.plan.users")}</Text>
+                  </View>
+                  <Text style={{ fontSize: 13, color: C.text, fontWeight: "600" }}>
+                    {plan.member_count} / {maxUsers}
+                  </Text>
                 </View>
-                <Text style={{ fontSize: 13, color: C.text, fontWeight: "600" }}>
-                  {plan.document_count} / {isPaidActive(plan.subscription_status) ? 500 + plan.extra_docs_quantity * 200 : 20}
-                </Text>
+                <UsageBar value={plan.member_count} max={maxUsers} />
               </View>
-              <UsageBar value={plan.document_count} max={isPaidActive(plan.subscription_status) ? 500 + plan.extra_docs_quantity * 200 : 20} />
-            </View>
-          )}
+            );
+          })()}
 
           {/* Usage: companies */}
-          {plan && (
-            <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Building2 size={14} color={C.muted} />
-                  <Text style={{ fontSize: 13, color: C.muted }}>{t("ajustes.plan.companies")}</Text>
+          {plan && (() => {
+            return (
+              <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Building2 size={14} color={C.muted} />
+                    <Text style={{ fontSize: 13, color: C.muted }}>{t("ajustes.plan.companies")}</Text>
+                  </View>
+                  <Text style={{ fontSize: 13, color: C.text, fontWeight: "600" }}>
+                    {plan.company_count} empresa{plan.company_count !== 1 ? "s" : ""}
+                    {plan.extra_companies_quantity > 0 ? ` (+${plan.extra_companies_quantity} extra)` : ""}
+                  </Text>
                 </View>
-                <Text style={{ fontSize: 13, color: C.text, fontWeight: "600" }}>
-                  {plan.company_count} / {isPaidActive(plan.subscription_status) ? 20 + plan.extra_companies_quantity : 1}
-                </Text>
               </View>
-              <UsageBar value={plan.company_count} max={isPaidActive(plan.subscription_status) ? 20 + plan.extra_companies_quantity : 1} />
-            </View>
-          )}
+            );
+          })()}
 
           {/* Manage button */}
           <TouchableOpacity
