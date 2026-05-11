@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, Inbox } from "lucide-react"
+import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, Inbox, AlertTriangle } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { useOrganization } from "@/lib/context/organization-context"
 import { TutorialModal, resetTutorial } from "@/components/tutorial-modal"
+import { CancellationModal } from "@/components/cancellation-modal"
 
 // ── Access code card ──────────────────────────────────────────────────────────
 function AccessCodeCard({ code }: { code: string }) {
@@ -125,7 +126,9 @@ export function SettingsView() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved]   = useState(false)
   const [error, setError]   = useState<string | null>(null)
-  const [tutorialOpen, setTutorialOpen] = useState(false)
+  const [tutorialOpen, setTutorialOpen]         = useState(false)
+  const [cancelModalOpen, setCancelModalOpen]   = useState(false)
+  const [cancelSuccess, setCancelSuccess]       = useState(false)
 
   const set = (key: keyof typeof form) => (v: string) => setForm(f => ({ ...f, [key]: v }))
 
@@ -232,6 +235,36 @@ export function SettingsView() {
           </button>
         </Section>
 
+        {/* Danger zone — cancel subscription */}
+        <Section
+          title="Zona de peligro"
+          description="Acciones irreversibles. Léelas con atención antes de proceder."
+        >
+          <div className="border border-destructive/30 rounded-xl p-5 space-y-3 bg-destructive/5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Cancelar suscripción</p>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  Al cancelar perderás acceso a la subida, descarga y edición de documentos. Tienes 15 días para descargar todo antes de que la cuenta y sus datos sean eliminados.
+                </p>
+              </div>
+            </div>
+            {cancelSuccess ? (
+              <p className="text-sm text-accent font-medium">
+                ✓ Suscripción cancelada. Recibirás un correo de confirmación.
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setCancelModalOpen(true)}
+                className="px-4 py-2 text-sm font-medium text-destructive border border-destructive/40 rounded-lg hover:bg-destructive/10 transition-colors"
+              >
+                Cancelar mi suscripción
+              </button>
+            )}
+          </div>
+        </Section>
 
         <div className="flex items-center gap-3 pt-6">
           <button type="submit" disabled={saving}
@@ -245,6 +278,23 @@ export function SettingsView() {
       </form>
 
       <TutorialModal open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
+
+      <CancellationModal
+        open={cancelModalOpen}
+        onClose={() => setCancelModalOpen(false)}
+        onConfirm={async () => {
+          if (!currentOrg) return
+          const supabase = createClient()
+          // Call Stripe cancellation via an API route (Stripe integration handles the rest)
+          await fetch("/api/billing/cancel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orgId: currentOrg.id }),
+          })
+          setCancelModalOpen(false)
+          setCancelSuccess(true)
+        }}
+      />
     </div>
   )
 }

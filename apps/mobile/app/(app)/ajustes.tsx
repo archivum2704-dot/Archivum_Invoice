@@ -10,6 +10,7 @@ import {
   User, Building2, Copy, Check, Users, Globe, Moon,
   Bell, LogOut, ChevronRight, CreditCard, FileText,
   CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle,
+  Shield,
 } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { useTheme } from "@/context/theme-context";
@@ -398,6 +399,62 @@ export default function AjustesScreen() {
             }}
             border={false}
           />
+        </Card>
+
+        {/* Danger zone — cancel subscription */}
+        <SectionLabel>Zona de peligro</SectionLabel>
+        <Card>
+          <TouchableOpacity
+            onPress={() => {
+              Alert.alert(
+                "⚠️ Cancelar suscripción",
+                [
+                  "IMPORTANTE — Lee esto antes de continuar:",
+                  "",
+                  "1. Descarga todos tus documentos AHORA, porque una vez cancelada la suscripción no podrás acceder ni visualizar ningún documento.",
+                  "",
+                  "2. Si no renuevas en 15 días, tu cuenta y TODOS los datos (documentos, empresas, equipo) serán eliminados de forma permanente.",
+                  "",
+                  "3. Durante los 15 días de gracia no podrás subir, descargar ni editar documentos.",
+                ].join(""),
+                [
+                  { text: "Mantener suscripción", style: "cancel" },
+                  {
+                    text: "Sí, cancelar", style: "destructive",
+                    onPress: async () => {
+                      if (!org?.id) return;
+                      try {
+                        await fetch("https://archivum2704-dot.vercel.app/api/billing/cancel", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ orgId: org.id }),
+                        });
+                        Alert.alert(
+                          "Suscripción cancelada",
+                          "Tu suscripción ha sido cancelada. Tienes 15 días para descargar tus documentos antes de que la cuenta sea eliminada.",
+                          [{ text: "Entendido" }]
+                        );
+                      } catch {
+                        Alert.alert("Error", "No se pudo cancelar la suscripción. Inténtalo desde la web.");
+                      }
+                    },
+                  },
+                ]
+              );
+            }}
+            style={{ padding: 14 }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <AlertTriangle size={16} color={C.red} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, color: C.red, fontWeight: "600" }}>Cancelar suscripción</Text>
+                <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+                  Los datos serán eliminados 15 días después de cancelar.
+                </Text>
+              </View>
+              <ChevronRight size={16} color={C.red} />
+            </View>
+          </TouchableOpacity>
         </Card>
 
         {/* Sign out */}

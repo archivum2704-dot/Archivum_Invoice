@@ -41,12 +41,40 @@ const DOC_STATUSES = ["draft", "pending", "paid", "overdue", "cancelled"] as con
 
 const DEFAULT_TAGS = ["Obra", "Madrid", "Stock", "Software", "Anual", "Transporte", "Material", "Reforma", "Mantenimiento", "Logistica"]
 
-type UploadedFile = { file: File; name: string; size: string; kind: "image" | "pdf" }
+type UploadedFile = { file: File; name: string; size: string; kind: "image" | "pdf"; converting?: boolean }
 
 function formatSize(bytes: number): string {
   return bytes > 1024 * 1024
     ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
     : `${Math.round(bytes / 1024)} KB`
+}
+
+/** Convert any image file to a single-page PDF using pdf-lib (runs in the browser) */
+async function convertImageToPdf(imageFile: File): Promise<File> {
+  const { PDFDocument } = await import("pdf-lib")
+  const imageBytes = await imageFile.arrayBuffer()
+  const pdfDoc = await PDFDocument.create()
+
+  let embeddedImage
+  const mime = imageFile.type.toLowerCase()
+  if (mime === "image/jpeg" || mime === "image/jpg") {
+    embeddedImage = await pdfDoc.embedJpg(imageBytes)
+  } else {
+    embeddedImage = await pdfDoc.embedPng(imageBytes)
+  }
+
+  // Scale image to fit within A4 (595×842 pt) preserving aspect ratio
+  const A4_W = 595, A4_H = 842
+  const scale = Math.min(A4_W / embeddedImage.width, A4_H / embeddedImage.height)
+  const w = embeddedImage.width * scale
+  const h = embeddedImage.height * scale
+
+  const page = pdfDoc.addPage([w, h])
+  page.drawImage(embeddedImage, { x: 0, y: 0, width: w, height: h })
+
+  const pdfBytes = await pdfDoc.save()
+  const pdfName = imageFile.name.replace(/\.[^.]+$/, ".pdf")
+  return new File([new Blob([pdfBytes], { type: "application/pdf" })], pdfName, { type: "application/pdf" })
 }
 
 type ParentDoc = {
@@ -121,13 +149,30 @@ export function SubirView() {
       })
   }, [fromId])
 
-  const addFile = (f: File) => {
-    setFiles(prev => [...prev, {
-      file: f,
-      name: f.name,
-      size: formatSize(f.size),
-      kind: f.type.startsWith("image") ? "image" : "pdf",
-    }])
+  const addFile = async (f: File) => {
+    const isImage = f.type.startsWith("image/")
+    if (isImage) {
+      // Show converting placeholder
+      const placeholder: UploadedFile = { file: f, name: f.name, size: "…", kind: "image", converting: true }
+      setFiles(prev => [...prev, placeholder])
+      try {
+        const pdfFile = await convertImageToPdf(f)
+        setFiles(prev => prev.map(item =>
+          item.file === f
+            ? { file: pdfFile, name: pdfFile.name, size: formatSize(pdfFile.size), kind: "pdf", converting: false }
+            : item
+        ))
+      } catch {
+        // Conversion failed — use original image
+        setFiles(prev => prev.map(item =>
+          item.file === f
+            ? { file: f, name: f.name, size: formatSize(f.size), kind: "image", converting: false }
+            : item
+        ))
+      }
+    } else {
+      setFiles(prev => [...prev, { file: f, name: f.name, size: formatSize(f.size), kind: "pdf" }])
+    }
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -157,16 +202,39 @@ export function SubirView() {
       let fileSize: number | null = null
       let fileType: string | null = null
 
-      // 0. Check storage limit before uploading
-      if (files.length > 0) {
-        const { data: orgData } = await supabase
-          .from("organizations")
-          .select("storage_limit_bytes, storage_used_bytes")
-          .eq("id", currentOrg.id)
-          .single()
-        if (orgData) {
-          const wouldUse = (orgData.storage_used_bytes ?? 0) + files[0].file.size
-          if (wouldUse > (orgData.storage_limit_bytes ?? 1073741824)) {
+      // 0a. Check document quota pool
+      const { data: orgBilling } = await supabase
+        .from("organizations")
+        .select("doc_quota_pool, subscription_status, current_period_end, storage_limit_bytes, storage_used_bytes")
+        .eq("id", currentOrg.id)
+        .single()
+
+      if (orgBilling) {
+        // Subscription expired?
+        const now = new Date()
+        const periodEnd = orgBilling.current_period_end ? new Date(orgBilling.current_period_end) : null
+        const isExpired =
+          ["canceled", "unpaid"].includes(orgBilling.subscription_status ?? "") &&
+          periodEnd && now > periodEnd
+        if (isExpired) {
+          setError("Tu suscripción ha vencido. Renueva para poder subir documentos.")
+          setLoading(false)
+          return
+        }
+
+        // Quota exhausted?
+        if ((orgBilling.doc_quota_pool ?? 0) <= 0) {
+          setError(
+            "Has alcanzado el límite de documentos de tu plan. Espera a que se renueve tu cuota mensual o contrata documentos adicionales."
+          )
+          setLoading(false)
+          return
+        }
+
+        // 0b. Storage limit
+        if (files.length > 0) {
+          const wouldUse = (orgBilling.storage_used_bytes ?? 0) + files[0].file.size
+          if (wouldUse > (orgBilling.storage_limit_bytes ?? 1073741824)) {
             setError(tStorage("limitReached"))
             setLoading(false)
             return
@@ -372,17 +440,28 @@ export function SubirView() {
                   {files.map((f, i) => (
                     <div key={i} className="flex items-center gap-3 px-4 py-3">
                       <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                        {f.kind === "image" ? <Image className="w-4 h-4 text-muted-foreground" /> : <FileText className="w-4 h-4 text-muted-foreground" />}
+                        {f.converting
+                          ? <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                          : f.kind === "image"
+                            ? <Image className="w-4 h-4 text-muted-foreground" />
+                            : <FileText className="w-4 h-4 text-muted-foreground" />
+                        }
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-foreground truncate">{f.name}</p>
-                        <p className="text-xs text-muted-foreground">{f.size}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {f.converting ? "Convirtiendo a PDF…" : f.size}
+                        </p>
                       </div>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      {f.converting
+                        ? null
+                        : <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      }
                       <button
                         type="button"
                         onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
                         className="p-1 hover:bg-muted rounded transition-colors"
+                        disabled={f.converting}
                       >
                         <X className="w-3.5 h-3.5 text-muted-foreground" />
                       </button>

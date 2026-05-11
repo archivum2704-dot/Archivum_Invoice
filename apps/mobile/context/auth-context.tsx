@@ -1,6 +1,10 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { Alert } from "react-native";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const SESSION_KEY = "@archivum/device_session_id";
 
 interface Profile {
   id: string;
@@ -39,15 +43,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const orgId = profile?.current_org_id ?? null;
 
-  /* ── Load profile + org ────────────────────────────────────────────────── */
+  /* ── Load profile + org + single-device check ──────────────────────────── */
   const loadProfile = async (userId: string) => {
     const { data: p } = await supabase
       .from("profiles")
-      .select("id, first_name, last_name, current_org_id")
+      .select("id, first_name, last_name, current_org_id, active_session_id")
       .eq("id", userId)
       .single();
 
     if (!p) return;
+
+    // ── Single-device enforcement ──────────────────────────────────────────
+    const localSid = await AsyncStorage.getItem(SESSION_KEY).catch(() => null);
+
+    if (p.active_session_id && localSid && p.active_session_id !== localSid) {
+      // Another device has logged in — kick this session
+      await supabase.auth.signOut();
+      await AsyncStorage.removeItem(SESSION_KEY);
+      Alert.alert(
+        "Sesión cerrada",
+        "Tu cuenta ha iniciado sesión en otro dispositivo. Por seguridad, esta sesión ha sido cerrada.",
+        [{ text: "Entendido" }]
+      );
+      return;
+    }
+
     setProfile(p);
 
     if (p.current_org_id) {
@@ -88,15 +108,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  /* ── Register single-device session ────────────────────────────────────── */
+  const registerDeviceSession = async (userId: string) => {
+    const sessionId = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    await AsyncStorage.setItem(SESSION_KEY, sessionId).catch(() => {});
+    await supabase.from("profiles").update({ active_session_id: sessionId }).eq("id", userId);
+  };
+
   /* ── Sign in Empresa (owner/admin) ─────────────────────────────────────── */
   const signInEmpresa = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return error?.message ?? null;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return error.message;
+    if (data.user) await registerDeviceSession(data.user.id);
+    return null;
   };
 
   /* ── Sign in Usuario (member with company code) ─────────────────────────── */
   const signInUsuario = async (email: string, password: string, code: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return error.message;
 
     const upperCode = code.trim().toUpperCase();
@@ -114,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase.from("profiles").update({ current_org_id: orgData.id }).eq("id", user.id);
+      if (data.user) await registerDeviceSession(user.id);
     }
     setOrg(orgData);
     return null;
@@ -133,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* ── Sign out ───────────────────────────────────────────────────────────── */
   const signOut = async () => {
+    await AsyncStorage.removeItem(SESSION_KEY).catch(() => {});
     await supabase.auth.signOut();
     setProfile(null);
     setOrg(null);

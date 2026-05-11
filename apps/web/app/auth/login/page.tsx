@@ -43,12 +43,18 @@ export default function LoginPage() {
 
   const input = 'w-full px-3 py-2.5 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground'
 
+  // Register single-device session after any successful sign-in
+  const registerSession = async () => {
+    try { await fetch('/api/auth/register-session', { method: 'POST' }) } catch { /* non-fatal */ }
+  }
+
   const handleEmpresaLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true); setError(null)
     const supabase = createClient()
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
     if (authError) { setError(t('errors.invalidCredentials')); setLoading(false); return }
+    await registerSession()
     router.push('/dashboard'); router.refresh()
   }
 
@@ -67,6 +73,7 @@ export default function LoginPage() {
     }
     const { data: { user } } = await supabase.auth.getUser()
     if (user) await supabase.from('profiles').update({ current_org_id: org.id }).eq('id', user.id)
+    await registerSession()
     router.push('/dashboard'); router.refresh()
   }
 
