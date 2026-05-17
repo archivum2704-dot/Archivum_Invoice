@@ -71,9 +71,6 @@ importers:
       expo-localization:
         specifier: ^55.0.13
         version: 55.0.13(expo@55.0.17(@babel/core@7.29.0)(@expo/dom-webview@55.0.5)(@expo/metro-runtime@55.0.10)(expo-router@55.0.13)(react-dom@19.2.4(react@18.3.1))(react-native-worklets@packages+react-native-worklets)(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)(typescript@5.7.3))(react@18.3.1)
-      expo-print:
-        specifier: ~55.0.14
-        version: 55.0.14(expo@55.0.17(@babel/core@7.29.0)(@expo/dom-webview@55.0.5)(@expo/metro-runtime@55.0.10)(expo-router@55.0.13)(react-dom@19.2.4(react@18.3.1))(react-native-worklets@packages+react-native-worklets)(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)(typescript@5.7.3))(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))
       expo-router:
         specifier: ~55.0.13
         version: 55.0.13(@expo/log-box@55.0.11)(@expo/metro-runtime@55.0.10)(@types/react-dom@19.2.3(@types/react@18.3.28))(@types/react@18.3.28)(expo-constants@17.1.8)(expo-font@13.3.2)(expo-linking@7.1.7)(expo@55.0.17)(react-dom@19.2.4(react@18.3.1))(react-native-gesture-handler@2.24.0(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react-native-reanimated@3.17.5(@babel/core@7.29.0)(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react-native-safe-area-context@5.4.0(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react-native-screens@4.10.0(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
@@ -98,6 +95,9 @@ importers:
       nativewind:
         specifier: ^4.1.23
         version: 4.2.3(react-native-reanimated@3.17.5(@babel/core@7.29.0)(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react-native-safe-area-context@5.4.0(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react-native-svg@15.11.2(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)(tailwindcss@3.4.19(yaml@2.8.3))
+      pdf-lib:
+        specifier: ^1.17.1
+        version: 1.17.1
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -3562,12 +3562,6 @@ packages:
     peerDependenciesMeta:
       react-native-worklets:
         optional: true
-
-  expo-print@55.0.14:
-    resolution: {integrity: sha512-GNznEjRHUjJj3GRRElHff3t2xtarO1zakEBdlxuYBoY0G/Ae59XaBQdlpzTjhceAdASlqsrnugHlQz6bsZRDnw==}
-    peerDependencies:
-      expo: '*'
-      react-native: '*'
 
   expo-router@55.0.13:
     resolution: {integrity: sha512-cIBR5RmQtbr+b535mlbMhmm7lweVZXFtjzJOgJTutoxIApRztl816kFRFNesnVyqQ0LZrEU0a6vqa3i0wdlRQw==}
@@ -9456,11 +9450,6 @@ snapshots:
       react-native: 0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1)
     optionalDependencies:
       react-native-worklets: link:packages/react-native-worklets
-
-  expo-print@55.0.14(expo@55.0.17(@babel/core@7.29.0)(@expo/dom-webview@55.0.5)(@expo/metro-runtime@55.0.10)(expo-router@55.0.13)(react-dom@19.2.4(react@18.3.1))(react-native-worklets@packages+react-native-worklets)(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)(typescript@5.7.3))(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1)):
-    dependencies:
-      expo: 55.0.17(@babel/core@7.29.0)(@expo/dom-webview@55.0.5)(@expo/metro-runtime@55.0.10)(expo-router@55.0.13)(react-dom@19.2.4(react@18.3.1))(react-native-worklets@packages+react-native-worklets)(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)(typescript@5.7.3)
-      react-native: 0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1)
 
   expo-router@55.0.13(@expo/log-box@55.0.11)(@expo/metro-runtime@55.0.10)(@types/react-dom@19.2.3(@types/react@18.3.28))(@types/react@18.3.28)(expo-constants@17.1.8)(expo-font@13.3.2)(expo-linking@7.1.7)(expo@55.0.17)(react-dom@19.2.4(react@18.3.1))(react-native-gesture-handler@2.24.0(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react-native-reanimated@3.17.5(@babel/core@7.29.0)(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react-native-safe-area-context@5.4.0(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react-native-screens@4.10.0(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react-native@0.79.2(@babel/core@7.29.0)(@types/react@18.3.28)(react@18.3.1))(react@18.3.1):
     dependencies:

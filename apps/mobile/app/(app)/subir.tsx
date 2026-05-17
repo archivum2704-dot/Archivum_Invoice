@@ -8,6 +8,7 @@ import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
+import { PDFDocument } from "pdf-lib";
 import {
   ChevronLeft, Camera, Image as ImageIcon, FileText, Check,
   Upload, X, AlertTriangle,
@@ -52,26 +53,41 @@ interface PickedFile {
   converting?: boolean;
 }
 
-/* ── Convert any image URI to a PDF using expo-print (lazy import) ──────── */
+/* ── Convert any image URI to a PDF using pdf-lib (pure JS, no native) ─── */
 async function convertImageToPdf(imageUri: string): Promise<string> {
-  // Read image as base64
   const base64 = await FileSystem.readAsStringAsync(imageUri, {
     encoding: FileSystem.EncodingType.Base64,
   });
   const ext = imageUri.split(".").pop()?.toLowerCase() ?? "jpg";
-  const mime = ext === "png" ? "image/png" : "image/jpeg";
+  const isJpeg = ext !== "png";
 
-  const html = `<!DOCTYPE html>
-<html><body style="margin:0;padding:0;background:#fff;">
-  <img src="data:${mime};base64,${base64}"
-       style="width:100%;height:auto;display:block;" />
-</body></html>`;
+  const pdfDoc = await PDFDocument.create();
+  const img = isJpeg
+    ? await pdfDoc.embedJpg(Uint8Array.from(atob(base64), c => c.charCodeAt(0)))
+    : await pdfDoc.embedPng(Uint8Array.from(atob(base64), c => c.charCodeAt(0)));
 
-  // Dynamic import keeps expo-print out of the top-level bundle parse,
-  // which prevents the PlatformConstants crash in Expo Go.
-  const Print = await import("expo-print");
-  const { uri } = await Print.printToFileAsync({ html, base64: false });
-  return uri; // local PDF file path
+  // Scale image to fit A4 (595 x 842 pt) with margins
+  const A4_W = 595, A4_H = 842, MARGIN = 24;
+  const maxW = A4_W - MARGIN * 2, maxH = A4_H - MARGIN * 2;
+  const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+  const w = img.width * scale, h = img.height * scale;
+
+  const page = pdfDoc.addPage([A4_W, A4_H]);
+  page.drawImage(img, {
+    x: (A4_W - w) / 2,
+    y: (A4_H - h) / 2,
+    width: w,
+    height: h,
+  });
+
+  const pdfBytes = await pdfDoc.save();
+  const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
+
+  const outUri = FileSystem.cacheDirectory + `doc_${Date.now()}.pdf`;
+  await FileSystem.writeAsStringAsync(outUri, pdfBase64, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  return outUri;
 }
 
 /* ── Step indicator ─────────────────────────────────────────────────────── */
