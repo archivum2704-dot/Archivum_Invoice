@@ -1,0 +1,10 @@
+{
+  "name": "react-native-worklets",
+  "version": "0.0.1",
+  "description": "Stub for babel-preset-expo@55 compatibility in pnpm monorepo",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./plugin": "./plugin.js"
+  }
+}
