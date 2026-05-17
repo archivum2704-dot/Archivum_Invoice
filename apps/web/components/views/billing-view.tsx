@@ -366,44 +366,62 @@ export function BillingView() {
             </div>
 
             {/* Cost summary */}
-            <div className="mt-4 pt-4 border-t border-border space-y-1.5 text-sm">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Plan {currentPlan.name}</span>
-                <span>{currentPlan.price === 0 ? "0 €" : `${currentPlan.priceLabel}/mes`}</span>
-              </div>
-              {usersCost > 0 && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>{effectiveExtraUsers} usuario{effectiveExtraUsers !== 1 ? "s" : ""} extra</span>
-                  <span>{(effectiveExtraUsers * ADDONS.extraUser.price).toFixed(2).replace(".", ",")} €/mes</span>
-                </div>
-              )}
-              {effectiveExtraDocs > 0 && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>{effectiveExtraDocs} bono{effectiveExtraDocs !== 1 ? "s" : ""} docs</span>
-                  <span>{(effectiveExtraDocs * ADDONS.extraDocs.price).toFixed(2).replace(".", ",")} € (único)</span>
-                </div>
-              )}
-              <div className="flex justify-between font-semibold text-foreground pt-1.5 border-t border-border">
-                <span>Total / mes</span>
-                <span>{totalCost === 0 ? "Gratis" : `${totalCost.toFixed(2).replace(".", ",")} €`}</span>
-              </div>
-            </div>
+            {(() => {
+              const oneTimeCost = effectiveExtraDocs * ADDONS.extraDocs.price
+              return (
+                <div className="mt-4 pt-4 border-t border-border space-y-1.5 text-sm">
+                  {/* Monthly lines */}
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Recurrente / mes</p>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Plan {currentPlan.name}</span>
+                    <span>{currentPlan.price === 0 ? "0 €" : `${currentPlan.priceLabel}/mes`}</span>
+                  </div>
+                  {usersCost > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>{effectiveExtraUsers} usuario{effectiveExtraUsers !== 1 ? "s" : ""} extra</span>
+                      <span>{usersCost.toFixed(2).replace(".", ",")} €/mes</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-border">
+                    <span>Total mensual</span>
+                    <span>{totalCost === 0 ? "Gratis" : `${totalCost.toFixed(2).replace(".", ",")} €`}</span>
+                  </div>
 
-            {addonsChanged && !billing?.hasSubscription && (
-              <p className="mt-3 text-xs text-muted-foreground">Suscríbete al plan base para activar extras.</p>
+                  {/* One-time lines */}
+                  {effectiveExtraDocs > 0 && (
+                    <>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground pt-3">Pago único (hoy)</p>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>{effectiveExtraDocs} bono{effectiveExtraDocs !== 1 ? "s" : ""} × 250 docs</span>
+                        <span>{oneTimeCost.toFixed(2).replace(".", ",")} €</span>
+                      </div>
+                      <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-border">
+                        <span>Total a cobrar hoy</span>
+                        <span className="text-primary">{oneTimeCost.toFixed(2).replace(".", ",")} €</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
+
+            {/* Action button — visible siempre que haya cambios y el plan esté activo */}
+            {addonsChanged && !isActive && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                {billing?.hasSubscription
+                  ? "Tu suscripción no está activa. Reactívala para aplicar cambios."
+                  : "Suscríbete a un plan de pago para activar estos extras."}
+              </p>
             )}
-            {addonsChanged && billing?.hasSubscription && !isActive && (
-              <p className="mt-3 text-xs text-muted-foreground">Tu suscripción no está activa. Reactívala para aplicar cambios.</p>
-            )}
-            {addonsChanged && billing?.hasSubscription && isActive && (
+            {addonsChanged && isActive && (
               <div className="mt-4 flex items-center gap-2">
                 <button onClick={handleSaveAddons} disabled={saving}
-                  className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors">
-                  {saving ? "Guardando..." : "Guardar cambios"}
+                  className="flex-1 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors">
+                  {saving ? "Aplicando cambios..." : "Confirmar y aplicar"}
                 </button>
                 <button
-                  onClick={() => { setExtraUsers(billing.extraUsersQuantity); setExtraDocs(billing.extraDocsQuantity) }}
-                  className="px-4 py-2 border border-border text-sm rounded-xl hover:bg-muted transition-colors">
+                  onClick={() => { setExtraUsers(billing!.extraUsersQuantity); setExtraDocs(billing!.extraDocsQuantity) }}
+                  className="px-4 py-2.5 border border-border text-sm rounded-xl hover:bg-muted transition-colors">
                   Cancelar
                 </button>
               </div>
