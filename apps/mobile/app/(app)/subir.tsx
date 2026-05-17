@@ -7,7 +7,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import * as Print from "expo-print";
 import * as FileSystem from "expo-file-system";
 import {
   ChevronLeft, Camera, Image as ImageIcon, FileText, Check,
@@ -53,7 +52,7 @@ interface PickedFile {
   converting?: boolean;
 }
 
-/* ── Convert any image URI to a PDF using expo-print ─────────────────────── */
+/* ── Convert any image URI to a PDF using expo-print (lazy import) ──────── */
 async function convertImageToPdf(imageUri: string): Promise<string> {
   // Read image as base64
   const base64 = await FileSystem.readAsStringAsync(imageUri, {
@@ -68,6 +67,9 @@ async function convertImageToPdf(imageUri: string): Promise<string> {
        style="width:100%;height:auto;display:block;" />
 </body></html>`;
 
+  // Dynamic import keeps expo-print out of the top-level bundle parse,
+  // which prevents the PlatformConstants crash in Expo Go.
+  const Print = await import("expo-print");
   const { uri } = await Print.printToFileAsync({ html, base64: false });
   return uri; // local PDF file path
 }
