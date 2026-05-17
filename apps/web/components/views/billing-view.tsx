@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useBilling } from "@/lib/hooks/use-billing"
 import type { BillingStatus } from "@/lib/hooks/use-billing"
+import { PLANS, ADDONS } from "@/lib/pricing"
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function formatDate(iso: string | null) {
@@ -125,12 +126,15 @@ export function BillingView() {
       effectiveExtraCompanies !== billing.extraCompaniesQuantity
     : false
 
-  // Monthly cost breakdown
-  const baseCost      = 10
-  const usersCost     = effectiveExtraUsers     * 2
-  const docsCost      = effectiveExtraDocs      * 5
-  const companiesCost = effectiveExtraCompanies * 2
-  const totalCost     = baseCost + usersCost + docsCost + companiesCost
+  // Determine current plan from billing data
+  const currentPlanId = (billing as any)?.plan ?? "free"
+  const currentPlan   = PLANS[currentPlanId as keyof typeof PLANS] ?? PLANS.free
+
+  // Monthly cost breakdown (extra docs are one-time, not recurring)
+  const baseCost      = currentPlan.price
+  const usersCost     = effectiveExtraUsers     * ADDONS.extraUser.price
+  const companiesCost = effectiveExtraCompanies * ADDONS.extraCompany.price
+  const totalCost     = baseCost + usersCost + companiesCost
 
   async function handleCheckout() {
     setRedirecting("checkout")
@@ -202,93 +206,80 @@ export function BillingView() {
         <p className="text-muted-foreground text-sm mt-1">Gestiona tu suscripción y límites de uso</p>
       </div>
 
-      {/* Plans grid */}
-      <div className="grid sm:grid-cols-2 gap-4">
+      {/* Plans grid — 3 columnas */}
+      <div className="grid sm:grid-cols-3 gap-4">
+        {Object.values(PLANS).map(plan => {
+          const isCurrent = plan.id === currentPlanId
+          const isPaid    = plan.price > 0
 
-        {/* Free plan */}
-        <div className={cn(
-          "bg-card border rounded-2xl overflow-hidden",
-          !billing?.hasSubscription ? "border-primary ring-2 ring-primary/20" : "border-border opacity-70"
-        )}>
-          <div className="p-5 border-b border-border">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-sm font-semibold text-foreground">Plan Gratuito</p>
-              {!billing?.hasSubscription && (
-                <span className="text-[10px] font-semibold px-2 py-0.5 bg-primary/10 text-primary rounded-full border border-primary/20">Plan actual</span>
+          return (
+            <div key={plan.id} className={cn(
+              "bg-card border rounded-2xl overflow-hidden flex flex-col",
+              isCurrent ? "border-primary ring-2 ring-primary/20" : "border-border",
+              !isCurrent && plan.id !== "pro" ? "opacity-80" : "",
+            )}>
+              <div className={cn("p-5 border-b border-border", plan.highlight ? "bg-primary/5" : "")}>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-semibold text-foreground">{plan.name}</p>
+                  {isCurrent
+                    ? billing?.subscriptionStatus && isPaid
+                      ? <StatusBadge status={billing.subscriptionStatus} />
+                      : <span className="text-[10px] font-semibold px-2 py-0.5 bg-primary/10 text-primary rounded-full border border-primary/20">Plan actual</span>
+                    : plan.highlight
+                      ? <span className="text-[10px] font-bold px-2 py-0.5 bg-primary text-primary-foreground rounded-full">MÁS POPULAR</span>
+                      : null
+                  }
+                </div>
+                <div className="flex items-end gap-1">
+                  <p className="text-2xl font-bold text-foreground">{plan.priceLabel}</p>
+                  {isPaid && <span className="text-sm font-normal text-muted-foreground pb-0.5">{plan.priceSuffix}</span>}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {isCurrent && billing?.subscriptionStatus === "trialing"
+                    ? `Prueba activa — quedan ${daysLeft(billing.trialEndsAt)} días`
+                    : isCurrent && billing?.currentPeriodEnd && isPaid
+                      ? `Próxima renovación: ${formatDate(billing.currentPeriodEnd)}`
+                      : isPaid
+                        ? "Sin permanencia · cancela cuando quieras"
+                        : "Sin tarjeta de crédito · Para siempre"}
+                </p>
+              </div>
+
+              <ul className="px-5 py-4 space-y-2 flex-1 text-sm text-muted-foreground">
+                {plan.features.map(f => (
+                  <li key={f} className="flex items-start gap-2">
+                    <CheckCircle2 className={cn("w-4 h-4 shrink-0 mt-0.5", plan.highlight ? "text-primary" : "text-emerald-500")} />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+
+              {isOrgAdmin && !isCurrent && isPaid && (
+                <div className="px-5 pb-5">
+                  <button
+                    onClick={handleCheckout}
+                    disabled={!!redirecting}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                  >
+                    {redirecting === "checkout" ? "Redirigiendo..." : `Pasarse a ${plan.name}`}
+                  </button>
+                </div>
+              )}
+              {isOrgAdmin && isCurrent && isPaid && (
+                <div className="px-5 pb-5">
+                  <button
+                    onClick={handlePortal}
+                    disabled={!!redirecting}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border text-foreground text-sm font-medium rounded-xl hover:bg-muted disabled:opacity-60 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    {redirecting === "portal" ? "Redirigiendo..." : "Gestionar pago y facturas"}
+                  </button>
+                </div>
               )}
             </div>
-            <p className="text-2xl font-bold text-foreground">0 € <span className="text-sm font-normal text-muted-foreground">/ mes</span></p>
-            <p className="text-xs text-muted-foreground mt-1">Sin tarjeta de crédito. Para siempre.</p>
-          </div>
-          <ul className="px-5 py-4 space-y-2.5 text-sm text-muted-foreground">
-            {["1 usuario", "1 empresa", "20 documentos", "Todas las funcionalidades"].map(f => (
-              <li key={f} className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                {f}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Pro plan */}
-        <div className={cn(
-          "bg-card border rounded-2xl overflow-hidden",
-          billing?.hasSubscription ? "border-primary ring-2 ring-primary/20" : "border-border"
-        )}>
-          <div className="p-5 border-b border-border">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-sm font-semibold text-foreground">Archivum Pro</p>
-              {billing?.hasSubscription
-                ? <StatusBadge status={billing.subscriptionStatus} />
-                : <span className="text-[10px] font-semibold px-2 py-0.5 bg-muted text-muted-foreground rounded-full border border-border">Recomendado</span>
-              }
-            </div>
-            <p className="text-2xl font-bold text-foreground">{totalCost} € <span className="text-sm font-normal text-muted-foreground">/ mes</span></p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {billing?.subscriptionStatus === 'trialing'
-                ? `Prueba activa — quedan ${daysLeft(billing.trialEndsAt)} días`
-                : billing?.currentPeriodEnd
-                  ? `Próxima renovación: ${formatDate(billing.currentPeriodEnd)}`
-                  : "7 días de prueba gratis · sin compromiso"}
-            </p>
-          </div>
-          <ul className="px-5 py-4 space-y-2.5 text-sm text-muted-foreground">
-            {[
-              "5 usuarios incluidos (+2 €/usuario/mes)",
-              "20 empresas incluidas (+2 €/empresa/mes)",
-              "500 documentos (+5 €/pack de 200 docs)",
-              "Todas las funcionalidades",
-              "Soporte prioritario",
-            ].map(f => (
-              <li key={f} className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                {f}
-              </li>
-            ))}
-          </ul>
-          {isOrgAdmin && (
-            <div className="px-5 pb-5">
-              {!billing?.hasSubscription ? (
-                <button
-                  onClick={handleCheckout}
-                  disabled={!!redirecting}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors"
-                >
-                  {redirecting === "checkout" ? "Redirigiendo..." : "Suscribirse — 7 días gratis"}
-                </button>
-              ) : (
-                <button
-                  onClick={handlePortal}
-                  disabled={!!redirecting}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border text-foreground text-sm font-medium rounded-xl hover:bg-muted disabled:opacity-60 transition-colors"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  {redirecting === "portal" ? "Redirigiendo..." : "Gestionar pago y facturas"}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+          )
+        })}
       </div>
 
       {/* Usage */}
@@ -342,55 +333,57 @@ export function BillingView() {
           </div>
 
           <AddonStepper
-            label="Usuarios adicionales"
-            sublabel="+1 usuario por unidad"
+            label={ADDONS.extraUser.label}
+            sublabel={ADDONS.extraUser.sublabel}
             value={effectiveExtraUsers}
             onChange={(v) => setExtraUsers(v)}
-            price="2 € / usuario / mes"
+            price={ADDONS.extraUser.priceLabel}
             disabled={false}
           />
           <AddonStepper
-            label="Pack de documentos"
-            sublabel="+200 documentos por pack"
+            label={ADDONS.extraDocs.label}
+            sublabel={ADDONS.extraDocs.sublabel}
             value={effectiveExtraDocs}
             onChange={(v) => setExtraDocs(v)}
-            price="5 € / pack / mes"
+            price={ADDONS.extraDocs.priceLabel}
             disabled={false}
           />
           <AddonStepper
-            label="Empresas adicionales"
-            sublabel="+1 empresa por unidad"
+            label={ADDONS.extraCompany.label}
+            sublabel={ADDONS.extraCompany.sublabel}
             value={effectiveExtraCompanies}
             onChange={(v) => setExtraCompanies(v)}
-            price="2 € / empresa / mes"
+            price={ADDONS.extraCompany.priceLabel}
             disabled={false}
           />
 
           {/* Cost summary */}
           <div className="mt-4 pt-4 border-t border-border space-y-1.5 text-sm">
             <div className="flex justify-between text-muted-foreground">
-              <span>Plan base</span><span>10 €</span>
+              <span>Plan {currentPlan.name}</span>
+              <span>{currentPlan.price === 0 ? "0 €" : `${currentPlan.priceLabel}/mes`}</span>
             </div>
             {usersCost > 0 && (
               <div className="flex justify-between text-muted-foreground">
                 <span>{effectiveExtraUsers} usuario{effectiveExtraUsers !== 1 ? "s" : ""} extra</span>
-                <span>{usersCost} €</span>
+                <span>{(effectiveExtraUsers * ADDONS.extraUser.price).toFixed(2).replace(".", ",")} €/mes</span>
               </div>
             )}
-            {docsCost > 0 && (
+            {effectiveExtraDocs > 0 && (
               <div className="flex justify-between text-muted-foreground">
-                <span>{effectiveExtraDocs} pack{effectiveExtraDocs !== 1 ? "s" : ""} de documentos</span>
-                <span>{docsCost} €</span>
+                <span>{effectiveExtraDocs} bono{effectiveExtraDocs !== 1 ? "s" : ""} de documentos</span>
+                <span>{(effectiveExtraDocs * ADDONS.extraDocs.price).toFixed(2).replace(".", ",")} € (pago único)</span>
               </div>
             )}
             {companiesCost > 0 && (
               <div className="flex justify-between text-muted-foreground">
                 <span>{effectiveExtraCompanies} empresa{effectiveExtraCompanies !== 1 ? "s" : ""} extra</span>
-                <span>{companiesCost} €</span>
+                <span>{(effectiveExtraCompanies * ADDONS.extraCompany.price).toFixed(2).replace(".", ",")} €/mes</span>
               </div>
             )}
             <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-border">
-              <span>Total / mes</span><span>{totalCost} €</span>
+              <span>Total / mes</span>
+              <span>{totalCost === 0 ? "Gratis" : `${totalCost.toFixed(2).replace(".", ",")} €`}</span>
             </div>
           </div>
 
@@ -433,17 +426,13 @@ export function BillingView() {
         </div>
       )}
 
-      {/* Base plan summary */}
+      {/* Current plan summary */}
       <div className="bg-muted/40 border border-border rounded-2xl p-5">
-        <p className="text-sm font-semibold text-foreground mb-3">Plan Base — 10 € / mes</p>
+        <p className="text-sm font-semibold text-foreground mb-3">
+          Plan {currentPlan.name} — {currentPlan.price === 0 ? "Gratuito" : `${currentPlan.priceLabel} / mes`}
+        </p>
         <ul className="space-y-2 text-sm text-muted-foreground">
-          {[
-            "5 usuarios incluidos",
-            "500 documentos almacenados",
-            "Gestión de carpetas y permisos",
-            "Exportación CSV y Excel",
-            "14 días de prueba gratuita",
-          ].map(item => (
+          {currentPlan.features.map(item => (
             <li key={item} className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
               {item}

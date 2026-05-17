@@ -452,8 +452,8 @@ function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan
         </h2>
         <p className="text-sm text-muted-foreground mb-5">
           {isFreePlan
-            ? "El plan gratuito incluye 1 usuario. Actualiza al plan Pro para añadir hasta 5 usuarios, o añade usuarios extra a partir de 2 €/usuario/mes."
-            : "Has alcanzado el límite de usuarios de tu plan. Añade usuarios extra desde la sección de Facturación a partir de 2 €/usuario/mes."}
+            ? "El plan gratuito incluye 1 usuario. Actualiza al plan Starter o Pro para añadir usuarios extra a 4,99 €/usuario/mes."
+            : "Has alcanzado el límite de usuarios de tu plan. Añade usuarios extra desde la sección de Facturación a 4,99 €/usuario/mes."}
         </p>
 
         <div className="space-y-2">
