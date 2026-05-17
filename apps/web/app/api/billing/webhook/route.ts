@@ -53,13 +53,27 @@ export async function POST(req: NextRequest) {
         if (!orgId) break
 
         const sub = await getStripe().subscriptions.retrieve(session.subscription as string)
-        const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null
+        const trialEnd  = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null
         const periodEnd = new Date(sub.current_period_end * 1000).toISOString()
+
+        // Detect which base plan was purchased
+        const checkoutPlanMap: Record<string, string> = {
+          [PRICES.starter]:  'starter',
+          [PRICES.business]: 'business',
+          [PRICES.pro]:      'pro',
+        }
+        const checkoutPlanItem = sub.items.data.find(
+          i => i.price.lookup_key && checkoutPlanMap[i.price.lookup_key]
+        )
+        const checkoutPlan = checkoutPlanItem?.price.lookup_key
+          ? (checkoutPlanMap[checkoutPlanItem.price.lookup_key] ?? 'starter')
+          : 'starter'
 
         await admin.from('organizations').update({
           stripe_customer_id:     session.customer as string,
           stripe_subscription_id: sub.id,
           subscription_status:    sub.status as any,
+          subscription_plan:      checkoutPlan,
           trial_ends_at:          trialEnd,
           current_period_end:     periodEnd,
         }).eq('id', orgId)
@@ -79,12 +93,24 @@ export async function POST(req: NextRequest) {
         const extraDocsItem      = sub.items.data.find(i => i.price.lookup_key === PRICES.extraDocs)
         const extraCompaniesItem = sub.items.data.find(i => i.price.lookup_key === PRICES.extraCompanies)
 
+        // Detect active plan from subscription items
+        const planMap: Record<string, string> = {
+          [PRICES.starter]:  'starter',
+          [PRICES.business]: 'business',
+          [PRICES.pro]:      'pro',
+        }
+        const activePlanItem = sub.items.data.find(i => i.price.lookup_key && planMap[i.price.lookup_key])
+        const detectedPlan   = activePlanItem?.price.lookup_key
+          ? (planMap[activePlanItem.price.lookup_key] ?? null)
+          : null
+
         const update: Record<string, any> = {
           subscription_status:       sub.status,
           current_period_end:        new Date(sub.current_period_end * 1000).toISOString(),
           extra_users_quantity:      extraUsersItem?.quantity     ?? 0,
           extra_docs_quantity:       extraDocsItem?.quantity      ?? 0,
           extra_companies_quantity:  extraCompaniesItem?.quantity ?? 0,
+          ...(detectedPlan && { subscription_plan: detectedPlan }),
         }
         if (sub.trial_end) update.trial_ends_at = new Date(sub.trial_end * 1000).toISOString()
 

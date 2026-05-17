@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { getStripe, PRICES } from '@/lib/stripe'
+import type { PlanId } from '@/lib/pricing'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://archivum2704-dot.vercel.app'
+
+// Map PlanId → Stripe lookup key
+const PLAN_PRICE_KEY: Record<Exclude<PlanId, 'free'>, string> = {
+  starter:  PRICES.starter,
+  business: PRICES.business,
+  pro:      PRICES.pro,
+}
 
 function getAdmin() {
   return createAdminClient(
@@ -15,8 +23,11 @@ function getAdmin() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { orgId } = await req.json()
+    const { orgId, planId = 'starter' } = await req.json() as { orgId: string; planId?: PlanId }
     if (!orgId) return NextResponse.json({ error: 'missing_org' }, { status: 400 })
+    if (planId === 'free' || !PLAN_PRICE_KEY[planId as Exclude<PlanId, 'free'>]) {
+      return NextResponse.json({ error: 'invalid_plan' }, { status: 400 })
+    }
 
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -44,7 +55,7 @@ export async function POST(req: NextRequest) {
     if (!org) return NextResponse.json({ error: 'org_not_found' }, { status: 404 })
 
     // Already has an active subscription — redirect to portal instead
-    if (org.stripe_subscription_id && ['active', 'trialing', 'past_due'].includes(org.subscription_status)) {
+    if (org.stripe_subscription_id && ['active', 'trialing', 'past_due'].includes(org.subscription_status ?? '')) {
       return NextResponse.json({ error: 'already_subscribed' }, { status: 409 })
     }
 
@@ -61,24 +72,25 @@ export async function POST(req: NextRequest) {
       await admin.from('organizations').update({ stripe_customer_id: customerId }).eq('id', orgId)
     }
 
-    // Build line items
-    const lineItems: { price: string; quantity: number }[] = []
+    const stripe   = getStripe()
+    const lookupKey = PLAN_PRICE_KEY[planId as Exclude<PlanId, 'free'>]
 
-    // Fetch price IDs by lookup key
-    const stripe = getStripe()
+    // Fetch base plan price
     const [basePrice, usersPrice, docsPrice] = await Promise.all([
-      stripe.prices.list({ lookup_keys: [PRICES.base],       limit: 1 }),
-      stripe.prices.list({ lookup_keys: [PRICES.extraUsers], limit: 1 }),
-      stripe.prices.list({ lookup_keys: [PRICES.extraDocs],  limit: 1 }),
+      stripe.prices.list({ lookup_keys: [lookupKey],          limit: 1 }),
+      stripe.prices.list({ lookup_keys: [PRICES.extraUsers],  limit: 1 }),
+      stripe.prices.list({ lookup_keys: [PRICES.extraDocs],   limit: 1 }),
     ])
 
     if (!basePrice.data[0]) {
-      return NextResponse.json({ error: 'stripe_price_not_found', detail: PRICES.base }, { status: 500 })
+      return NextResponse.json({ error: 'stripe_price_not_found', detail: lookupKey }, { status: 500 })
     }
-    lineItems.push({ price: basePrice.data[0].id, quantity: 1 })
 
-    // Extra users / docs added after subscription via update-addons
-    // Include them in checkout only if org already had some (re-subscribe case)
+    const lineItems: { price: string; quantity: number }[] = [
+      { price: basePrice.data[0].id, quantity: 1 },
+    ]
+
+    // Re-subscribe case: restore previously purchased extras
     const { data: orgExtras } = await admin
       .from('organizations')
       .select('extra_users_quantity, extra_docs_quantity')
@@ -98,8 +110,13 @@ export async function POST(req: NextRequest) {
       customer: customerId,
       mode: 'subscription',
       line_items: lineItems,
-      ...(isFirstTime && { subscription_data: { trial_period_days: 7, metadata: { org_id: orgId } } }),
-      metadata: { org_id: orgId },
+      ...(isFirstTime && {
+        subscription_data: {
+          trial_period_days: 7,
+          metadata: { org_id: orgId, plan_id: planId },
+        },
+      }),
+      metadata: { org_id: orgId, plan_id: planId },
       success_url: `${APP_URL}/configuracion/billing?success=1`,
       cancel_url:  `${APP_URL}/configuracion/billing`,
       allow_promotion_codes: true,

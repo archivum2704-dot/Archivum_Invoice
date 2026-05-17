@@ -107,23 +107,20 @@ export function BillingView() {
   const { currentOrg, isOrgAdmin } = useOrganization()
   const { billing, loading, mutate } = useBilling(currentOrg?.id ?? null)
 
-  const [extraUsers,     setExtraUsers]     = useState<number | null>(null)
-  const [extraDocs,      setExtraDocs]      = useState<number | null>(null)
-  const [extraCompanies, setExtraCompanies] = useState<number | null>(null)
+  const [extraUsers, setExtraUsers] = useState<number | null>(null)
+  const [extraDocs,  setExtraDocs]  = useState<number | null>(null)
   const [saving, setSaving]         = useState(false)
   const [redirecting, setRedirecting] = useState<"checkout" | "portal" | null>(null)
   const [addonMsg, setAddonMsg]     = useState<string | null>(null)
 
   // Initialise steppers from server data on first load
-  const effectiveExtraUsers     = extraUsers     ?? billing?.extraUsersQuantity     ?? 0
-  const effectiveExtraDocs      = extraDocs      ?? billing?.extraDocsQuantity      ?? 0
-  const effectiveExtraCompanies = extraCompanies ?? billing?.extraCompaniesQuantity ?? 0
+  const effectiveExtraUsers = extraUsers ?? billing?.extraUsersQuantity ?? 0
+  const effectiveExtraDocs  = extraDocs  ?? billing?.extraDocsQuantity  ?? 0
 
   const isActive = billing?.subscriptionStatus === 'active' || billing?.subscriptionStatus === 'trialing'
   const addonsChanged = billing
-    ? effectiveExtraUsers     !== billing.extraUsersQuantity     ||
-      effectiveExtraDocs      !== billing.extraDocsQuantity      ||
-      effectiveExtraCompanies !== billing.extraCompaniesQuantity
+    ? effectiveExtraUsers !== billing.extraUsersQuantity ||
+      effectiveExtraDocs  !== billing.extraDocsQuantity
     : false
 
   // Determine current plan from billing data
@@ -131,17 +128,16 @@ export function BillingView() {
   const currentPlan   = PLANS[currentPlanId as keyof typeof PLANS] ?? PLANS.free
 
   // Monthly cost breakdown (extra docs are one-time, not recurring)
-  const baseCost      = currentPlan.price
-  const usersCost     = effectiveExtraUsers     * ADDONS.extraUser.price
-  const companiesCost = effectiveExtraCompanies * ADDONS.extraCompany.price
-  const totalCost     = baseCost + usersCost + companiesCost
+  const baseCost  = currentPlan.price
+  const usersCost = effectiveExtraUsers * ADDONS.extraUser.price
+  const totalCost = baseCost + usersCost
 
-  async function handleCheckout() {
+  async function handleCheckout(planId: string) {
     setRedirecting("checkout")
     const res = await fetch("/api/billing/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orgId: currentOrg?.id }),
+      body: JSON.stringify({ orgId: currentOrg?.id, planId }),
     })
     const data = await res.json()
     setRedirecting(null)
@@ -172,9 +168,8 @@ export function BillingView() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         orgId: currentOrg?.id,
-        extraUsers:     effectiveExtraUsers,
-        extraDocs:      effectiveExtraDocs,
-        extraCompanies: effectiveExtraCompanies,
+        extraUsers: effectiveExtraUsers,
+        extraDocs:  effectiveExtraDocs,
       }),
     })
     const data = await res.json()
@@ -207,7 +202,7 @@ export function BillingView() {
       </div>
 
       {/* Plans grid — 3 columnas */}
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {Object.values(PLANS).map(plan => {
           const isCurrent = plan.id === currentPlanId
           const isPaid    = plan.price > 0
@@ -257,7 +252,7 @@ export function BillingView() {
               {isOrgAdmin && !isCurrent && isPaid && (
                 <div className="px-5 pb-5">
                   <button
-                    onClick={handleCheckout}
+                    onClick={() => handleCheckout(plan.id)}
                     disabled={!!redirecting}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors"
                   >
@@ -348,14 +343,6 @@ export function BillingView() {
             price={ADDONS.extraDocs.priceLabel}
             disabled={false}
           />
-          <AddonStepper
-            label={ADDONS.extraCompany.label}
-            sublabel={ADDONS.extraCompany.sublabel}
-            value={effectiveExtraCompanies}
-            onChange={(v) => setExtraCompanies(v)}
-            price={ADDONS.extraCompany.priceLabel}
-            disabled={false}
-          />
 
           {/* Cost summary */}
           <div className="mt-4 pt-4 border-t border-border space-y-1.5 text-sm">
@@ -373,12 +360,6 @@ export function BillingView() {
               <div className="flex justify-between text-muted-foreground">
                 <span>{effectiveExtraDocs} bono{effectiveExtraDocs !== 1 ? "s" : ""} de documentos</span>
                 <span>{(effectiveExtraDocs * ADDONS.extraDocs.price).toFixed(2).replace(".", ",")} € (pago único)</span>
-              </div>
-            )}
-            {companiesCost > 0 && (
-              <div className="flex justify-between text-muted-foreground">
-                <span>{effectiveExtraCompanies} empresa{effectiveExtraCompanies !== 1 ? "s" : ""} extra</span>
-                <span>{(effectiveExtraCompanies * ADDONS.extraCompany.price).toFixed(2).replace(".", ",")} €/mes</span>
               </div>
             )}
             <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-border">
@@ -410,7 +391,6 @@ export function BillingView() {
                 onClick={() => {
                   setExtraUsers(billing.extraUsersQuantity)
                   setExtraDocs(billing.extraDocsQuantity)
-                  setExtraCompanies(billing.extraCompaniesQuantity)
                 }}
                 className="px-4 py-2 border border-border text-sm rounded-xl hover:bg-muted transition-colors"
               >

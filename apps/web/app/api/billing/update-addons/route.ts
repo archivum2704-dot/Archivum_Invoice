@@ -5,11 +5,11 @@ import { getStripe, PRICES } from '@/lib/stripe'
 
 export async function POST(req: NextRequest) {
   try {
-    const { orgId, extraUsers, extraDocs, extraCompanies } = await req.json()
-    if (!orgId || extraUsers == null || extraDocs == null || extraCompanies == null) {
+    const { orgId, extraUsers, extraDocs, extraCompanies = 0 } = await req.json()
+    if (!orgId || extraUsers == null || extraDocs == null) {
       return NextResponse.json({ error: 'missing_fields' }, { status: 400 })
     }
-    if (extraUsers < 0 || extraDocs < 0 || extraCompanies < 0) {
+    if (extraUsers < 0 || extraDocs < 0) {
       return NextResponse.json({ error: 'invalid_quantity' }, { status: 400 })
     }
 

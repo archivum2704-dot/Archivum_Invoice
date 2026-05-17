@@ -1,15 +1,19 @@
 import useSWR from 'swr'
 
 export interface BillingStatus {
+  plan:                'free' | 'starter' | 'business' | 'pro'
   subscriptionStatus:  'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'incomplete' | 'paused'
   trialEndsAt:         string | null
   currentPeriodEnd:    string | null
   extraUsersQuantity:  number
   extraDocsQuantity:   number
+  extraCompaniesQuantity: number
   documentCount:       number
   memberCount:         number
+  companyCount:        number
   maxUsers:            number
   maxDocs:             number
+  maxCompanies:        number
   hasSubscription:     boolean
   hasCustomer:         boolean
   isAdmin:             boolean
