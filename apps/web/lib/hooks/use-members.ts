@@ -40,7 +40,7 @@ async function fetchMembers(orgId: string): Promise<OrgMember[]> {
     .eq('organization_id', orgId)
     .order('joined_at')
 
-  if (!error) return (data ?? []) as OrgMember[]
+  if (!error) return (data ?? []) as unknown as OrgMember[]
 
   // Fallback: fetch members without profile join (RLS may block cross-user profile reads)
   const { data: fallback, error: fallbackError } = await supabase

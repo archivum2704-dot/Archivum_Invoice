@@ -28,7 +28,7 @@ async function fetchOverdue(orgId: string): Promise<OverdueDoc[]> {
     .order("due_date", { ascending: true })
 
   if (error) throw error
-  return (data ?? []) as OverdueDoc[]
+  return (data ?? []) as unknown as OverdueDoc[]
 }
 
 export function useOverdueDocs(orgId: string | null) {

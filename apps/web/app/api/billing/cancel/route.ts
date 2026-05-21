@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import Stripe from 'stripe'
+import { getStripe } from '@/lib/stripe'
 
 function getAdmin() {
   return createAdminClient(
@@ -56,8 +56,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Cancel via Stripe at period end
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-04-30.basil' })
-    await stripe.subscriptions.update(org.stripe_subscription_id, {
+    await getStripe().subscriptions.update(org.stripe_subscription_id, {
       cancel_at_period_end: true,
     })
 

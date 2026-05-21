@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
         ? items.push({ id: existingUsersItem.id, quantity: extraUsers })
         : usersPrice.data[0] && items.push({ price: usersPrice.data[0].id, quantity: extraUsers })
     } else if (existingUsersItem) {
-      items.push({ id: existingUsersItem.id, deleted: true })
+      items.push({ id: existingUsersItem.id, quantity: 0, deleted: true })
     }
 
     // Extra docs
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         ? items.push({ id: existingDocsItem.id, quantity: extraDocs })
         : docsPrice.data[0] && items.push({ price: docsPrice.data[0].id, quantity: extraDocs })
     } else if (existingDocsItem) {
-      items.push({ id: existingDocsItem.id, deleted: true })
+      items.push({ id: existingDocsItem.id, quantity: 0, deleted: true })
     }
 
     // Extra companies
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
         ? items.push({ id: existingCompaniesItem.id, quantity: extraCompanies })
         : companiesPrice.data[0] && items.push({ price: companiesPrice.data[0].id, quantity: extraCompanies })
     } else if (existingCompaniesItem) {
-      items.push({ id: existingCompaniesItem.id, deleted: true })
+      items.push({ id: existingCompaniesItem.id, quantity: 0, deleted: true })
     }
 
     if (items.length === 0) {

@@ -19,6 +19,27 @@ import { useDocuments } from "@/lib/hooks/use-documents"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
+const DOC_TYPE_LABELS: Record<string, string> = {
+  invoice_issued:   'Factura emitida',
+  invoice_received: 'Factura recibida',
+  order:            'Pedido',
+  receipt:          'Recibo',
+  delivery_note:    'Albarán',
+  quote:            'Presupuesto',
+  contract:         'Contrato',
+  payroll:          'Nómina',
+  tax:              'Impuesto',
+  other:            'Otro',
+}
+
+const DOC_STATUS_LABELS: Record<string, string> = {
+  draft:     'Borrador',
+  pending:   'Pendiente',
+  paid:      'Pagado',
+  overdue:   'Vencido',
+  cancelled: 'Cancelado',
+}
+
 export function CompanyDashboardView() {
   const { currentOrg } = useOrganization()
   const { documents, loading } = useDocuments(currentOrg?.id || null)
@@ -29,22 +50,22 @@ export function CompanyDashboardView() {
 
   const filteredDocuments = useMemo(() => {
     return documents.filter(doc => {
-      const matchesSearch = 
-        doc.document_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ((doc as any).metadata as any)?.customer_name?.toLowerCase().includes(searchQuery.toLowerCase())
-      
+      const matchesSearch =
+        (doc.document_number ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        doc.description?.toLowerCase().includes(searchQuery.toLowerCase())
+
       const matchesType = filterType === "all" || doc.document_type === filterType
       const matchesStatus = filterStatus === "all" || doc.status === filterStatus
-      
+
       return matchesSearch && matchesType && matchesStatus
     })
   }, [documents, searchQuery, filterType, filterStatus])
 
-  // Stats calculation
+  // Stats calculation — types aligned with DocumentType enum
   const stats = [
     { label: "Documentos", value: filteredDocuments.length, icon: FolderOpen, color: "text-primary" },
-    { label: "Facturas", value: filteredDocuments.filter(d => d.document_type === 'invoice').length, icon: FileText, color: "text-blue-500" },
-    { label: "Reportes", value: filteredDocuments.filter(d => d.document_type === 'report').length, icon: Package, color: "text-orange-500" },
+    { label: "Facturas", value: filteredDocuments.filter(d => d.document_type === 'invoice_issued' || d.document_type === 'invoice_received').length, icon: FileText, color: "text-blue-500" },
+    { label: "Pedidos", value: filteredDocuments.filter(d => d.document_type === 'order').length, icon: Package, color: "text-orange-500" },
     { label: "Recibos", value: filteredDocuments.filter(d => d.document_type === 'receipt').length, icon: Receipt, color: "text-green-500" },
   ]
 
@@ -84,9 +105,15 @@ export function CompanyDashboardView() {
               onChange={(e) => setFilterType(e.target.value)}
             >
               <option value="all">Todos los tipos</option>
-              <option value="invoice">Facturas</option>
-              <option value="report">Reportes</option>
+              <option value="invoice_issued">Facturas emitidas</option>
+              <option value="invoice_received">Facturas recibidas</option>
+              <option value="order">Pedidos</option>
               <option value="receipt">Recibos</option>
+              <option value="delivery_note">Albaranes</option>
+              <option value="quote">Presupuestos</option>
+              <option value="contract">Contratos</option>
+              <option value="payroll">Nóminas</option>
+              <option value="other">Otros</option>
             </select>
 
             <select 
@@ -95,9 +122,11 @@ export function CompanyDashboardView() {
               onChange={(e) => setFilterStatus(e.target.value)}
             >
               <option value="all">Cualquier estado</option>
-              <option value="sent">Enviado</option>
               <option value="draft">Borrador</option>
+              <option value="pending">Pendiente</option>
+              <option value="paid">Pagado</option>
               <option value="overdue">Vencido</option>
+              <option value="cancelled">Cancelado</option>
             </select>
 
             <Button variant="outline" className="gap-2">
@@ -155,38 +184,44 @@ export function CompanyDashboardView() {
               ) : (
                 filteredDocuments.map((doc) => (
                   <tr key={doc.id} className="hover:bg-muted/30 transition-colors group cursor-pointer">
-                    <td className="px-6 py-4 font-medium text-foreground">{doc.document_number}</td>
+                    <td className="px-6 py-4 font-medium text-foreground">{doc.document_number ?? '—'}</td>
                     <td className="px-6 py-4">
                       <span className={cn(
                         "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
-                        doc.document_type === 'invoice' ? "bg-blue-100 text-blue-700" :
-                        doc.document_type === 'report' ? "bg-orange-100 text-orange-700" :
-                        "bg-green-100 text-green-700"
+                        (doc.document_type === 'invoice_issued' || doc.document_type === 'invoice_received')
+                          ? "bg-blue-100 text-blue-700"
+                          : doc.document_type === 'order'
+                            ? "bg-orange-100 text-orange-700"
+                            : "bg-green-100 text-green-700"
                       )}>
-                        {doc.document_type === 'invoice' ? 'Factura' : 
-                         doc.document_type === 'report' ? 'Reporte' : 'Recibo'}
+                        {DOC_TYPE_LABELS[doc.document_type] ?? doc.document_type}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-muted-foreground">
-                      {new Date(doc.date).toLocaleDateString('es-ES')}
+                      {doc.issue_date ? new Date(doc.issue_date).toLocaleDateString('es-ES') : '—'}
                     </td>
                     <td className="px-6 py-4">
                       <span className={cn(
                         "flex items-center gap-1.5 text-xs font-semibold",
-                        doc.status === 'sent' ? "text-green-600" :
-                        doc.status === 'draft' ? "text-yellow-600" : "text-red-600"
+                        doc.status === 'paid' ? "text-green-600" :
+                        doc.status === 'draft' ? "text-yellow-600" :
+                        doc.status === 'pending' ? "text-blue-600" :
+                        doc.status === 'overdue' ? "text-red-600" : "text-muted-foreground"
                       )}>
                         <div className={cn(
                           "w-1.5 h-1.5 rounded-full",
-                          doc.status === 'sent' ? "bg-green-600" :
-                          doc.status === 'draft' ? "bg-yellow-600" : "bg-red-600"
+                          doc.status === 'paid' ? "bg-green-600" :
+                          doc.status === 'draft' ? "bg-yellow-600" :
+                          doc.status === 'pending' ? "bg-blue-600" :
+                          doc.status === 'overdue' ? "bg-red-600" : "bg-muted-foreground"
                         )} />
-                        {doc.status === 'sent' ? 'Enviado' : 
-                         doc.status === 'draft' ? 'Borrador' : 'Vencido'}
+                        {DOC_STATUS_LABELS[doc.status] ?? doc.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right font-bold text-foreground">
-                      {doc.total_amount.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                      {doc.total != null
+                        ? doc.total.toLocaleString('es-ES', { minimumFractionDigits: 2 }) + ' €'
+                        : '—'}
                     </td>
                   </tr>
                 ))

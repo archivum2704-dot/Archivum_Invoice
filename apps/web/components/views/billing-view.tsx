@@ -389,22 +389,44 @@ export function BillingView() {
             {/* Cost summary — only shown when adding something */}
             {addonsChanged && (
               <div className="mt-4 pt-4 border-t border-border space-y-1.5 text-sm">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Recurrente / mes</p>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Plan {currentPlan.name}</span>
-                  <span>{baseCost === 0 ? "0 €" : `${baseCost.toFixed(2).replace(".", ",")} €/mes`}</span>
-                </div>
-                {(contractedUsers + effectiveExtraUsers) > 0 && (
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>{contractedUsers + effectiveExtraUsers} usuario{(contractedUsers + effectiveExtraUsers) !== 1 ? "s" : ""} extra</span>
-                    <span>{usersCost.toFixed(2).replace(".", ",")} €/mes</span>
-                  </div>
-                )}
-                <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-border">
-                  <span>Nuevo total mensual</span>
-                  <span>{totalCost === 0 ? "Gratis" : `${totalCost.toFixed(2).replace(".", ",")} €`}</span>
-                </div>
 
+                {/* ── Recurring section ── */}
+                {effectiveExtraUsers > 0 && (
+                  <>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {isActive ? "Cambio recurrente" : "Recurrente / mes"}
+                    </p>
+
+                    {/* Only show plan line when the user doesn't have an active subscription yet */}
+                    {!isActive && baseCost > 0 && (
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Plan {currentPlan.name}</span>
+                        <span>{baseCost.toFixed(2).replace(".", ",")} €/mes</span>
+                      </div>
+                    )}
+
+                    {/* New users being added */}
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>
+                        {isActive
+                          ? `+${effectiveExtraUsers} usuario${effectiveExtraUsers !== 1 ? "s" : ""} nuevo${effectiveExtraUsers !== 1 ? "s" : ""}`
+                          : `${contractedUsers + effectiveExtraUsers} usuario${(contractedUsers + effectiveExtraUsers) !== 1 ? "s" : ""} extra`}
+                      </span>
+                      <span>
+                        {isActive
+                          ? `+${newUsersCost.toFixed(2).replace(".", ",")} €/mes`
+                          : `${usersCost.toFixed(2).replace(".", ",")} €/mes`}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-border">
+                      <span>Nuevo total mensual</span>
+                      <span>{totalCost === 0 ? "Gratis" : `${totalCost.toFixed(2).replace(".", ",")} €`}</span>
+                    </div>
+                  </>
+                )}
+
+                {/* ── One-time section ── */}
                 {effectiveExtraDocs > 0 && (() => {
                   const oneTimeCost = effectiveExtraDocs * ADDONS.extraDocs.price
                   return (

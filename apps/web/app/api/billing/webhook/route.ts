@@ -52,9 +52,9 @@ export async function POST(req: NextRequest) {
         const orgId = await getOrgId(admin, session.customer as string, session.metadata?.org_id)
         if (!orgId) break
 
-        const sub = await getStripe().subscriptions.retrieve(session.subscription as string)
+        const sub = await getStripe().subscriptions.retrieve(session.subscription as string) as any
         const trialEnd  = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null
-        const periodEnd = new Date(sub.current_period_end * 1000).toISOString()
+        const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null
 
         // Detect which base plan was purchased
         const checkoutPlanMap: Record<string, string> = {
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
           [PRICES.pro]:      'pro',
         }
         const checkoutPlanItem = sub.items.data.find(
-          i => i.price.lookup_key && checkoutPlanMap[i.price.lookup_key]
+          (i: any) => i.price.lookup_key && checkoutPlanMap[i.price.lookup_key]
         )
         const checkoutPlan = checkoutPlanItem?.price.lookup_key
           ? (checkoutPlanMap[checkoutPlanItem.price.lookup_key] ?? 'starter')
@@ -85,13 +85,13 @@ export async function POST(req: NextRequest) {
 
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
-        const sub = event.data.object as Stripe.Subscription
+        const sub = event.data.object as any  // cast to any for cross-version Stripe field access
         const orgId = await getOrgId(admin, sub.customer as string, sub.metadata?.org_id)
         if (!orgId) break
 
-        const extraUsersItem     = sub.items.data.find(i => i.price.lookup_key === PRICES.extraUsers)
-        const extraDocsItem      = sub.items.data.find(i => i.price.lookup_key === PRICES.extraDocs)
-        const extraCompaniesItem = sub.items.data.find(i => i.price.lookup_key === PRICES.extraCompanies)
+        const extraUsersItem     = sub.items.data.find((i: any) => i.price.lookup_key === PRICES.extraUsers)
+        const extraDocsItem      = sub.items.data.find((i: any) => i.price.lookup_key === PRICES.extraDocs)
+        const extraCompaniesItem = sub.items.data.find((i: any) => i.price.lookup_key === PRICES.extraCompanies)
 
         // Detect active plan from subscription items
         const planMap: Record<string, string> = {
@@ -99,14 +99,14 @@ export async function POST(req: NextRequest) {
           [PRICES.business]: 'business',
           [PRICES.pro]:      'pro',
         }
-        const activePlanItem = sub.items.data.find(i => i.price.lookup_key && planMap[i.price.lookup_key])
+        const activePlanItem = sub.items.data.find((i: any) => i.price.lookup_key && planMap[i.price.lookup_key])
         const detectedPlan   = activePlanItem?.price.lookup_key
           ? (planMap[activePlanItem.price.lookup_key] ?? null)
           : null
 
         const update: Record<string, any> = {
           subscription_status:       sub.status,
-          current_period_end:        new Date(sub.current_period_end * 1000).toISOString(),
+          current_period_end:        sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
           extra_users_quantity:      extraUsersItem?.quantity     ?? 0,
           extra_docs_quantity:       extraDocsItem?.quantity      ?? 0,
           extra_companies_quantity:  extraCompaniesItem?.quantity ?? 0,
