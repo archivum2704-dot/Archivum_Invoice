@@ -89,16 +89,13 @@ export function BillingView() {
   const { currentOrg, isOrgAdmin } = useOrganization()
   const { billing, loading, mutate } = useBilling(currentOrg?.id ?? null)
 
-  const [extraUsers, setExtraUsers] = useState(0)
-  const [extraDocs,  setExtraDocs]  = useState(0)
-  const [saving, setSaving]           = useState(false)
-  const [redirecting, setRedirecting] = useState<"checkout" | "portal" | null>(null)
-  const [addonMsg, setAddonMsg]       = useState<string | null>(null)
-
-  // Steppers always start at 0 — customer adds what they need.
-  // Current contracted quantities shown as read-only info.
-  const effectiveExtraUsers = extraUsers
-  const effectiveExtraDocs  = extraDocs
+  const [extraUsers, setExtraUsers]     = useState(0)
+  const [extraDocs,  setExtraDocs]      = useState(0)
+  const [saving, setSaving]             = useState(false)
+  const [redirecting, setRedirecting]   = useState<"checkout" | "portal" | null>(null)
+  const [addonMsg, setAddonMsg]         = useState<string | null>(null)
+  // Plan selected but not yet purchased — lets the user configure extras before checkout
+  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null)
 
   const isActive      = billing?.subscriptionStatus === "active" || billing?.subscriptionStatus === "trialing"
   const addonsChanged = extraUsers > 0 || extraDocs > 0
@@ -109,18 +106,31 @@ export function BillingView() {
   const contractedUsers = billing?.extraUsersQuantity ?? 0
   const contractedDocs  = billing?.extraDocsQuantity  ?? 0
 
-  // Monthly cost = base plan + ALL users (existing + new)
-  const baseCost    = currentPlan.price
-  const usersCost   = (contractedUsers + effectiveExtraUsers) * ADDONS.extraUser.price
-  const totalCost   = baseCost + usersCost
-  // Incremental monthly cost from what the user is adding right now
-  const newUsersCost = effectiveExtraUsers * ADDONS.extraUser.price
+  // Plan the user has selected to purchase (not yet active)
+  const pendingPlan = pendingPlanId ? PLANS[pendingPlanId as keyof typeof PLANS] : null
 
-  async function handleCheckout(planId: string) {
+  // Which plan to use for cost calculations
+  const displayPlan = pendingPlan ?? currentPlan
+
+  // Monthly cost = base plan + ALL users (existing + new)
+  const baseCost     = displayPlan.price
+  const usersCost    = (contractedUsers + extraUsers) * ADDONS.extraUser.price
+  const totalCost    = baseCost + usersCost
+  const newUsersCost = extraUsers * ADDONS.extraUser.price
+
+  // Extras panel is shown when active (manage existing) OR when user picked a plan to buy
+  const showExtras = isActive || pendingPlanId !== null
+
+  async function handleCheckout(planId: string, withExtraUsers = 0, withExtraDocs = 0) {
     setRedirecting("checkout")
     const res  = await fetch("/api/billing/checkout", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orgId: currentOrg?.id, planId }),
+      body: JSON.stringify({
+        orgId: currentOrg?.id,
+        planId,
+        extraUsers: withExtraUsers,
+        extraDocs:  withExtraDocs,
+      }),
     })
     const data = await res.json()
     setRedirecting(null)
@@ -146,8 +156,8 @@ export function BillingView() {
       // Send accumulated total (existing + what user is adding now)
       body: JSON.stringify({
         orgId: currentOrg?.id,
-        extraUsers: contractedUsers + effectiveExtraUsers,
-        extraDocs:  contractedDocs  + effectiveExtraDocs,
+        extraUsers: contractedUsers + extraUsers,
+        extraDocs:  contractedDocs  + extraDocs,
       }),
     })
     const data = await res.json()
@@ -263,18 +273,45 @@ export function BillingView() {
               {/* CTA */}
               <div className="p-4 pt-2">
                 {isOrgAdmin && !isCurrent && isPaid && (
-                  <button
-                    onClick={() => handleCheckout(plan.id)}
-                    disabled={!!redirecting}
-                    className={cn(
-                      "w-full py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60",
-                      isUpgrade
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "bg-muted text-foreground hover:bg-muted/80 border border-border",
+                  <>
+                    {isActive ? (
+                      /* Already subscribed: go straight to checkout/portal for plan change */
+                      <button
+                        onClick={() => handleCheckout(plan.id)}
+                        disabled={!!redirecting}
+                        className={cn(
+                          "w-full py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60",
+                          isUpgrade
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : "bg-muted text-foreground hover:bg-muted/80 border border-border",
+                        )}
+                      >
+                        {redirecting === "checkout" ? "Redirigiendo..." : isUpgrade ? `Mejorar a ${plan.name}` : `Cambiar a ${plan.name}`}
+                      </button>
+                    ) : pendingPlanId === plan.id ? (
+                      /* This plan is selected — show deselect option */
+                      <button
+                        onClick={() => { setPendingPlanId(null); setExtraUsers(0); setExtraDocs(0) }}
+                        className="w-full py-2.5 rounded-xl text-sm font-semibold bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors"
+                      >
+                        ✓ Seleccionado — cambiar
+                      </button>
+                    ) : (
+                      /* Select this plan (shows extras panel below) */
+                      <button
+                        onClick={() => { setPendingPlanId(plan.id); setExtraUsers(0); setExtraDocs(0) }}
+                        disabled={!!redirecting}
+                        className={cn(
+                          "w-full py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60",
+                          isUpgrade
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : "bg-muted text-foreground hover:bg-muted/80 border border-border",
+                        )}
+                      >
+                        {isUpgrade ? `Mejorar a ${plan.name}` : `Cambiar a ${plan.name}`}
+                      </button>
                     )}
-                  >
-                    {redirecting === "checkout" ? "Redirigiendo..." : isUpgrade ? `Mejorar a ${plan.name}` : `Cambiar a ${plan.name}`}
-                  </button>
+                  </>
                 )}
                 {isOrgAdmin && isCurrent && isPaid && (
                   <button
@@ -351,17 +388,21 @@ export function BillingView() {
         </div>
 
         {/* Extras */}
-        {isOrgAdmin && (
+        {isOrgAdmin && showExtras && (
           <div className="bg-card border border-border rounded-2xl p-6 flex flex-col">
             <div className="mb-5">
-              <p className="text-sm font-semibold text-foreground">Extras</p>
+              <p className="text-sm font-semibold text-foreground">
+                {pendingPlan ? `Extras para el plan ${pendingPlan.name}` : "Extras"}
+              </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Amplía tus límites en cualquier momento. Los cambios se prorratean.
+                {pendingPlan
+                  ? "Añade usuarios o bonos de documentos a tu nuevo plan. Opcional."
+                  : "Amplía tus límites en cualquier momento. Los cambios se prorratean."}
               </p>
             </div>
 
-            {/* Already contracted — read-only info */}
-            {(contractedUsers > 0 || contractedDocs > 0) && (
+            {/* Already contracted — read-only info (only for active subscriptions) */}
+            {isActive && (contractedUsers > 0 || contractedDocs > 0) && (
               <div className="mb-4 px-3 py-2.5 bg-muted/50 rounded-xl text-xs text-muted-foreground space-y-0.5">
                 <p className="font-medium text-foreground text-[11px] uppercase tracking-wide mb-1">Actualmente contratado</p>
                 {contractedUsers > 0 && <p>· {contractedUsers} usuario{contractedUsers !== 1 ? "s" : ""} adicional{contractedUsers !== 1 ? "es" : ""}</p>}
@@ -373,67 +414,69 @@ export function BillingView() {
               <AddonStepper
                 label={ADDONS.extraUser.label}
                 sublabel={ADDONS.extraUser.sublabel}
-                value={effectiveExtraUsers}
+                value={extraUsers}
                 onChange={setExtraUsers}
                 price={ADDONS.extraUser.priceLabel}
               />
               <AddonStepper
                 label={ADDONS.extraDocs.label}
                 sublabel={ADDONS.extraDocs.sublabel}
-                value={effectiveExtraDocs}
+                value={extraDocs}
                 onChange={setExtraDocs}
                 price={ADDONS.extraDocs.priceLabel}
               />
             </div>
 
-            {/* Cost summary — only shown when adding something */}
-            {addonsChanged && (
+            {/* Cost summary */}
+            {(addonsChanged || pendingPlan) && (
               <div className="mt-4 pt-4 border-t border-border space-y-1.5 text-sm">
 
-                {/* ── Recurring section ── */}
-                {effectiveExtraUsers > 0 && (
+                {/* Plan line — only when buying a new plan */}
+                {pendingPlan && (
                   <>
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      {isActive ? "Cambio recurrente" : "Recurrente / mes"}
-                    </p>
-
-                    {/* Only show plan line when the user doesn't have an active subscription yet */}
-                    {!isActive && baseCost > 0 && (
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>Plan {currentPlan.name}</span>
-                        <span>{baseCost.toFixed(2).replace(".", ",")} €/mes</span>
-                      </div>
-                    )}
-
-                    {/* New users being added */}
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Resumen del pedido</p>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>
-                        {isActive
-                          ? `+${effectiveExtraUsers} usuario${effectiveExtraUsers !== 1 ? "s" : ""} nuevo${effectiveExtraUsers !== 1 ? "s" : ""}`
-                          : `${contractedUsers + effectiveExtraUsers} usuario${(contractedUsers + effectiveExtraUsers) !== 1 ? "s" : ""} extra`}
-                      </span>
-                      <span>
-                        {isActive
-                          ? `+${newUsersCost.toFixed(2).replace(".", ",")} €/mes`
-                          : `${usersCost.toFixed(2).replace(".", ",")} €/mes`}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-border">
-                      <span>Nuevo total mensual</span>
-                      <span>{totalCost === 0 ? "Gratis" : `${totalCost.toFixed(2).replace(".", ",")} €`}</span>
+                      <span>Plan {pendingPlan.name}</span>
+                      <span>{pendingPlan.price.toFixed(2).replace(".", ",")} €/mes</span>
                     </div>
                   </>
                 )}
 
-                {/* ── One-time section ── */}
-                {effectiveExtraDocs > 0 && (() => {
-                  const oneTimeCost = effectiveExtraDocs * ADDONS.extraDocs.price
+                {/* Recurring extras */}
+                {extraUsers > 0 && (
+                  <>
+                    {!pendingPlan && (
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {isActive ? "Cambio recurrente" : "Recurrente / mes"}
+                      </p>
+                    )}
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>
+                        {isActive
+                          ? `+${extraUsers} usuario${extraUsers !== 1 ? "s" : ""} nuevo${extraUsers !== 1 ? "s" : ""}`
+                          : `${extraUsers} usuario${extraUsers !== 1 ? "s" : ""} extra`}
+                      </span>
+                      <span>+{newUsersCost.toFixed(2).replace(".", ",")} €/mes</span>
+                    </div>
+                  </>
+                )}
+
+                {/* Total monthly */}
+                {(pendingPlan || extraUsers > 0) && (
+                  <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-border">
+                    <span>{pendingPlan ? "Total mensual" : "Nuevo total mensual"}</span>
+                    <span>{totalCost.toFixed(2).replace(".", ",")} €</span>
+                  </div>
+                )}
+
+                {/* One-time doc bonos */}
+                {extraDocs > 0 && (() => {
+                  const oneTimeCost = extraDocs * ADDONS.extraDocs.price
                   return (
                     <>
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground pt-3">Pago único (hoy)</p>
                       <div className="flex justify-between text-muted-foreground">
-                        <span>{effectiveExtraDocs} bono{effectiveExtraDocs !== 1 ? "s" : ""} × 250 docs</span>
+                        <span>{extraDocs} bono{extraDocs !== 1 ? "s" : ""} × 250 docs</span>
                         <span>{oneTimeCost.toFixed(2).replace(".", ",")} €</span>
                       </div>
                       <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-border">
@@ -446,14 +489,26 @@ export function BillingView() {
               </div>
             )}
 
-            {addonsChanged && !isActive && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                {billing?.hasSubscription
-                  ? "Tu suscripción no está activa. Reactívala para aplicar cambios."
-                  : "Suscríbete a un plan de pago para activar estos extras."}
-              </p>
-            )}
-            {addonsChanged && isActive && (
+            {/* Action buttons */}
+            {pendingPlan ? (
+              /* Pre-checkout: go to Stripe with selected plan + extras */
+              <div className="mt-4 flex items-center gap-2">
+                <button
+                  onClick={() => handleCheckout(pendingPlan.id, extraUsers, extraDocs)}
+                  disabled={!!redirecting}
+                  className="flex-1 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                >
+                  {redirecting === "checkout" ? "Redirigiendo..." : `Contratar plan ${pendingPlan.name}`}
+                </button>
+                <button
+                  onClick={() => { setPendingPlanId(null); setExtraUsers(0); setExtraDocs(0) }}
+                  className="px-4 py-2.5 border border-border text-sm rounded-xl hover:bg-muted transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : addonsChanged && isActive ? (
+              /* Active subscription: save addon changes */
               <div className="mt-4 flex items-center gap-2">
                 <button onClick={handleSaveAddons} disabled={saving}
                   className="flex-1 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors">
@@ -465,7 +520,12 @@ export function BillingView() {
                   Cancelar
                 </button>
               </div>
-            )}
+            ) : addonsChanged && !isActive && !pendingPlan ? (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Selecciona un plan de pago para activar estos extras.
+              </p>
+            ) : null}
+
             {addonMsg && (
               <p className={cn("mt-3 text-xs", addonMsg.startsWith("Error") ? "text-destructive" : "text-emerald-600")}>
                 {addonMsg}

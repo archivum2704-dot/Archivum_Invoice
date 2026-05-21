@@ -23,7 +23,9 @@ function getAdmin() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { orgId, planId = 'starter' } = await req.json() as { orgId: string; planId?: PlanId }
+    const { orgId, planId = 'starter', extraUsers = 0, extraDocs = 0 } = await req.json() as {
+      orgId: string; planId?: PlanId; extraUsers?: number; extraDocs?: number
+    }
     if (!orgId) return NextResponse.json({ error: 'missing_org' }, { status: 400 })
     if (planId === 'free' || !PLAN_PRICE_KEY[planId as Exclude<PlanId, 'free'>]) {
       return NextResponse.json({ error: 'invalid_plan' }, { status: 400 })
@@ -90,18 +92,21 @@ export async function POST(req: NextRequest) {
       { price: basePrice.data[0].id, quantity: 1 },
     ]
 
-    // Re-subscribe case: restore previously purchased extras
+    // Extras: use values passed from the UI, or fall back to previously purchased quantities
     const { data: orgExtras } = await admin
       .from('organizations')
       .select('extra_users_quantity, extra_docs_quantity')
       .eq('id', orgId)
       .single()
 
-    if (orgExtras?.extra_users_quantity && usersPrice.data[0]) {
-      lineItems.push({ price: usersPrice.data[0].id, quantity: orgExtras.extra_users_quantity })
+    const finalExtraUsers = extraUsers > 0 ? extraUsers : (orgExtras?.extra_users_quantity ?? 0)
+    const finalExtraDocs  = extraDocs  > 0 ? extraDocs  : (orgExtras?.extra_docs_quantity  ?? 0)
+
+    if (finalExtraUsers > 0 && usersPrice.data[0]) {
+      lineItems.push({ price: usersPrice.data[0].id, quantity: finalExtraUsers })
     }
-    if (orgExtras?.extra_docs_quantity && docsPrice.data[0]) {
-      lineItems.push({ price: docsPrice.data[0].id, quantity: orgExtras.extra_docs_quantity })
+    if (finalExtraDocs > 0 && docsPrice.data[0]) {
+      lineItems.push({ price: docsPrice.data[0].id, quantity: finalExtraDocs })
     }
 
     // First-time subscription → 7-day trial
