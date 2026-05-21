@@ -89,25 +89,32 @@ export function BillingView() {
   const { currentOrg, isOrgAdmin } = useOrganization()
   const { billing, loading, mutate } = useBilling(currentOrg?.id ?? null)
 
-  const [extraUsers, setExtraUsers] = useState<number | null>(null)
-  const [extraDocs,  setExtraDocs]  = useState<number | null>(null)
+  const [extraUsers, setExtraUsers] = useState(0)
+  const [extraDocs,  setExtraDocs]  = useState(0)
   const [saving, setSaving]           = useState(false)
   const [redirecting, setRedirecting] = useState<"checkout" | "portal" | null>(null)
   const [addonMsg, setAddonMsg]       = useState<string | null>(null)
 
-  const effectiveExtraUsers = extraUsers ?? billing?.extraUsersQuantity ?? 0
-  const effectiveExtraDocs  = extraDocs  ?? billing?.extraDocsQuantity  ?? 0
+  // Steppers always start at 0 — customer adds what they need.
+  // Current contracted quantities shown as read-only info.
+  const effectiveExtraUsers = extraUsers
+  const effectiveExtraDocs  = extraDocs
 
   const isActive      = billing?.subscriptionStatus === "active" || billing?.subscriptionStatus === "trialing"
-  const addonsChanged = billing
-    ? effectiveExtraUsers !== billing.extraUsersQuantity || effectiveExtraDocs !== billing.extraDocsQuantity
-    : false
+  const addonsChanged = extraUsers > 0 || extraDocs > 0
 
   const currentPlanId = billing?.plan ?? "free"
   const currentPlan   = PLANS[currentPlanId as keyof typeof PLANS] ?? PLANS.free
-  const baseCost      = currentPlan.price
-  const usersCost     = effectiveExtraUsers * ADDONS.extraUser.price
-  const totalCost     = baseCost + usersCost
+  // Already-contracted quantities (read-only, shown as info)
+  const contractedUsers = billing?.extraUsersQuantity ?? 0
+  const contractedDocs  = billing?.extraDocsQuantity  ?? 0
+
+  // Monthly cost = base plan + ALL users (existing + new)
+  const baseCost    = currentPlan.price
+  const usersCost   = (contractedUsers + effectiveExtraUsers) * ADDONS.extraUser.price
+  const totalCost   = baseCost + usersCost
+  // Incremental monthly cost from what the user is adding right now
+  const newUsersCost = effectiveExtraUsers * ADDONS.extraUser.price
 
   async function handleCheckout(planId: string) {
     setRedirecting("checkout")
@@ -136,7 +143,12 @@ export function BillingView() {
     setSaving(true); setAddonMsg(null)
     const res  = await fetch("/api/billing/update-addons", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orgId: currentOrg?.id, extraUsers: effectiveExtraUsers, extraDocs: effectiveExtraDocs }),
+      // Send accumulated total (existing + what user is adding now)
+      body: JSON.stringify({
+        orgId: currentOrg?.id,
+        extraUsers: contractedUsers + effectiveExtraUsers,
+        extraDocs:  contractedDocs  + effectiveExtraDocs,
+      }),
     })
     const data = await res.json()
     setSaving(false)
@@ -348,6 +360,15 @@ export function BillingView() {
               </p>
             </div>
 
+            {/* Already contracted — read-only info */}
+            {(contractedUsers > 0 || contractedDocs > 0) && (
+              <div className="mb-4 px-3 py-2.5 bg-muted/50 rounded-xl text-xs text-muted-foreground space-y-0.5">
+                <p className="font-medium text-foreground text-[11px] uppercase tracking-wide mb-1">Actualmente contratado</p>
+                {contractedUsers > 0 && <p>· {contractedUsers} usuario{contractedUsers !== 1 ? "s" : ""} adicional{contractedUsers !== 1 ? "es" : ""}</p>}
+                {contractedDocs > 0 && <p>· {contractedDocs} bono{contractedDocs !== 1 ? "s" : ""} de documentos</p>}
+              </div>
+            )}
+
             <div className="flex-1">
               <AddonStepper
                 label={ADDONS.extraUser.label}
@@ -365,30 +386,28 @@ export function BillingView() {
               />
             </div>
 
-            {/* Cost summary */}
-            {(() => {
-              const oneTimeCost = effectiveExtraDocs * ADDONS.extraDocs.price
-              return (
-                <div className="mt-4 pt-4 border-t border-border space-y-1.5 text-sm">
-                  {/* Monthly lines */}
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Recurrente / mes</p>
+            {/* Cost summary — only shown when adding something */}
+            {addonsChanged && (
+              <div className="mt-4 pt-4 border-t border-border space-y-1.5 text-sm">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Recurrente / mes</p>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Plan {currentPlan.name}</span>
+                  <span>{baseCost === 0 ? "0 €" : `${baseCost.toFixed(2).replace(".", ",")} €/mes`}</span>
+                </div>
+                {(contractedUsers + effectiveExtraUsers) > 0 && (
                   <div className="flex justify-between text-muted-foreground">
-                    <span>Plan {currentPlan.name}</span>
-                    <span>{currentPlan.price === 0 ? "0 €" : `${currentPlan.priceLabel}/mes`}</span>
+                    <span>{contractedUsers + effectiveExtraUsers} usuario{(contractedUsers + effectiveExtraUsers) !== 1 ? "s" : ""} extra</span>
+                    <span>{usersCost.toFixed(2).replace(".", ",")} €/mes</span>
                   </div>
-                  {usersCost > 0 && (
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>{effectiveExtraUsers} usuario{effectiveExtraUsers !== 1 ? "s" : ""} extra</span>
-                      <span>{usersCost.toFixed(2).replace(".", ",")} €/mes</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-border">
-                    <span>Total mensual</span>
-                    <span>{totalCost === 0 ? "Gratis" : `${totalCost.toFixed(2).replace(".", ",")} €`}</span>
-                  </div>
+                )}
+                <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-border">
+                  <span>Nuevo total mensual</span>
+                  <span>{totalCost === 0 ? "Gratis" : `${totalCost.toFixed(2).replace(".", ",")} €`}</span>
+                </div>
 
-                  {/* One-time lines */}
-                  {effectiveExtraDocs > 0 && (
+                {effectiveExtraDocs > 0 && (() => {
+                  const oneTimeCost = effectiveExtraDocs * ADDONS.extraDocs.price
+                  return (
                     <>
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground pt-3">Pago único (hoy)</p>
                       <div className="flex justify-between text-muted-foreground">
@@ -400,12 +419,11 @@ export function BillingView() {
                         <span className="text-primary">{oneTimeCost.toFixed(2).replace(".", ",")} €</span>
                       </div>
                     </>
-                  )}
-                </div>
-              )
-            })()}
+                  )
+                })()}
+              </div>
+            )}
 
-            {/* Action button — visible siempre que haya cambios y el plan esté activo */}
             {addonsChanged && !isActive && (
               <p className="mt-3 text-xs text-muted-foreground">
                 {billing?.hasSubscription
@@ -420,7 +438,7 @@ export function BillingView() {
                   {saving ? "Aplicando cambios..." : "Confirmar y aplicar"}
                 </button>
                 <button
-                  onClick={() => { setExtraUsers(billing!.extraUsersQuantity); setExtraDocs(billing!.extraDocsQuantity) }}
+                  onClick={() => { setExtraUsers(0); setExtraDocs(0); setAddonMsg(null) }}
                   className="px-4 py-2.5 border border-border text-sm rounded-xl hover:bg-muted transition-colors">
                   Cancelar
                 </button>
