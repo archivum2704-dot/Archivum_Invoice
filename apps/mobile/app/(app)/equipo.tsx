@@ -384,7 +384,7 @@ export default function EquipoScreen() {
         .eq("id", orgId)
         .single(),
     ]);
-    setMembers((memberData ?? []) as Member[]);
+    setMembers((memberData ?? []) as unknown as Member[]);
     if (orgData) setPlan(orgData as PlanInfo);
     setLoading(false);
     setRefreshing(false);

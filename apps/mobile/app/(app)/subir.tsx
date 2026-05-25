@@ -56,7 +56,7 @@ interface PickedFile {
 /* ── Convert any image URI to a PDF using pdf-lib (pure JS, no native) ─── */
 async function convertImageToPdf(imageUri: string): Promise<string> {
   const base64 = await FileSystem.readAsStringAsync(imageUri, {
-    encoding: FileSystem.EncodingType.Base64,
+    encoding: 'base64',
   });
   const ext = imageUri.split(".").pop()?.toLowerCase() ?? "jpg";
   const isJpeg = ext !== "png";
@@ -83,9 +83,9 @@ async function convertImageToPdf(imageUri: string): Promise<string> {
   const pdfBytes = await pdfDoc.save();
   const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
 
-  const outUri = FileSystem.cacheDirectory + `doc_${Date.now()}.pdf`;
+  const outUri = FileSystem.Paths.cache.uri + `doc_${Date.now()}.pdf`;
   await FileSystem.writeAsStringAsync(outUri, pdfBase64, {
-    encoding: FileSystem.EncodingType.Base64,
+    encoding: 'base64',
   });
   return outUri;
 }
@@ -522,7 +522,7 @@ export default function SubirScreen() {
       if (pickedFile) {
         const storagePath = `${orgId}/${Date.now()}_${pickedFile.name}`;
         const fileContent = await FileSystem.readAsStringAsync(pickedFile.uri, {
-          encoding: FileSystem.EncodingType.Base64,
+          encoding: 'base64',
         });
 
         // Decode base64 to Uint8Array for Supabase upload
