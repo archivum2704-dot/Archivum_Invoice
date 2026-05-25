@@ -89,7 +89,7 @@ function DocRow({ doc }: { doc: any }) {
             {doc.document_number}
           </Text>
           <Text style={{ fontSize: 13, fontWeight: "700", color: C.text }}>
-            {doc.amount != null ? `€${Number(doc.amount).toLocaleString("es-ES", { minimumFractionDigits: 2 })}` : "—"}
+            {doc.total != null ? `€${Number(doc.total).toLocaleString("es-ES", { minimumFractionDigits: 2 })}` : "—"}
           </Text>
         </View>
         <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 3, alignItems: "center" }}>
@@ -120,7 +120,7 @@ export default function DashboardScreen() {
 
     const { data: allDocs } = await supabase
       .from("documents")
-      .select("id, document_number, status, amount, issue_date, companies(name)")
+      .select("id, document_number, status, total, issue_date, companies(name)")
       .eq("organization_id", orgId)
       .order("created_at", { ascending: false });
 
@@ -130,7 +130,7 @@ export default function DashboardScreen() {
     const paidDocs    = docs.filter((d) => d.status === "paid");
     const pendingDocs = docs.filter((d) => d.status === "pending");
     const overdueDocs = docs.filter((d) => d.status === "overdue");
-    const sum = (arr: any[]) => arr.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    const sum = (arr: any[]) => arr.reduce((s, d) => s + (Number(d.total) || 0), 0);
 
     setKpi({
       paid:     sum(paidDocs),    paidN:    paidDocs.length,

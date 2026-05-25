@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, Switch,
-  Alert, ActivityIndicator, Clipboard, Linking,
+  Alert, ActivityIndicator, Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -12,6 +12,7 @@ import {
   CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle,
   Shield,
 } from "lucide-react-native";
+import * as Clipboard from "expo-clipboard";
 import { useAuth } from "@/context/auth-context";
 import { useTheme } from "@/context/theme-context";
 import { supabase } from "@/lib/supabase";
@@ -121,7 +122,7 @@ function UsageBar({ value, max }: { value: number; max: number }) {
 
 export default function AjustesScreen() {
   const { t, i18n } = useTranslation();
-  const { profile, org, signOut } = useAuth();
+  const { profile, org, signOut, session } = useAuth();
   const { theme, setTheme } = useTheme();
   const [copied,        setCopied]        = useState(false);
   const [notifications, setNotifications] = useState(true);
@@ -155,9 +156,9 @@ export default function AjustesScreen() {
     })();
   }, [org?.id]);
 
-  const handleCopy = useCallback(() => {
+  const handleCopy = useCallback(async () => {
     if (org?.access_code) {
-      Clipboard.setString(org.access_code);
+      await Clipboard.setStringAsync(org.access_code);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     }
@@ -458,7 +459,10 @@ export default function AjustesScreen() {
                       try {
                         await fetch("https://archivum2704-dot.vercel.app/api/billing/cancel", {
                           method: "POST",
-                          headers: { "Content-Type": "application/json" },
+                          headers: {
+                            "Content-Type": "application/json",
+                            ...(session?.access_token ? { "Authorization": `Bearer ${session.access_token}` } : {}),
+                          },
                           body: JSON.stringify({ orgId: org.id }),
                         });
                         Alert.alert(

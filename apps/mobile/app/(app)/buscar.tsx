@@ -46,7 +46,7 @@ function DocRow({ doc }: { doc: any }) {
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text style={{ fontSize: 13, fontWeight: "600", color: C.text, fontFamily: "monospace" }} numberOfLines={1}>{doc.document_number}</Text>
           <Text style={{ fontSize: 13, fontWeight: "700", color: C.text }}>
-            {doc.amount != null ? `€${Number(doc.amount).toLocaleString("es-ES", { minimumFractionDigits: 2 })}` : "—"}
+            {doc.total != null ? `€${Number(doc.total).toLocaleString("es-ES", { minimumFractionDigits: 2 })}` : "—"}
           </Text>
         </View>
         <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 3, alignItems: "center" }}>
@@ -77,7 +77,7 @@ export default function BuscarScreen() {
 
     let qb = supabase
       .from("documents")
-      .select("id, document_number, document_type, status, amount, issue_date, companies(name)")
+      .select("id, document_number, document_type, status, total, issue_date, companies(name)")
       .eq("organization_id", orgId);
 
     // Text search across number and company name
@@ -87,8 +87,8 @@ export default function BuscarScreen() {
 
     if (s === "date_desc")    qb = qb.order("issue_date", { ascending: false });
     if (s === "date_asc")     qb = qb.order("issue_date", { ascending: true });
-    if (s === "amount_desc")  qb = qb.order("amount", { ascending: false });
-    if (s === "amount_asc")   qb = qb.order("amount", { ascending: true });
+    if (s === "amount_desc")  qb = qb.order("total", { ascending: false });
+    if (s === "amount_asc")   qb = qb.order("total", { ascending: true });
 
     const { data } = await qb;
     setResults(data ?? []);

@@ -1,13 +1,13 @@
-'use client';
 import { useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  KeyboardAvoidingView, Platform, ActivityIndicator,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Building2, User, Eye, EyeOff } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
+import { supabase } from "@/lib/supabase";
 
 const C = {
   blue: "#2563EB", blueL: "#EFF6FF", blueMed: "#DBEAFE",
@@ -172,7 +172,21 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
               {tab === "empresa" && (
-                <TouchableOpacity style={{ alignSelf: "flex-end", marginTop: 6 }}>
+                <TouchableOpacity
+                  style={{ alignSelf: "flex-end", marginTop: 6 }}
+                  onPress={async () => {
+                    if (!email.trim()) {
+                      Alert.alert("Email requerido", "Escribe tu correo electrónico para recuperar la contraseña.");
+                      return;
+                    }
+                    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email.trim());
+                    if (resetErr) {
+                      Alert.alert("Error", resetErr.message);
+                    } else {
+                      Alert.alert("Correo enviado", "Revisa tu bandeja de entrada para restablecer tu contraseña.");
+                    }
+                  }}
+                >
                   <Text style={{ fontSize: 13, color: C.blue, fontWeight: "500" }}>
                     ¿Olvidaste tu contraseña?
                   </Text>

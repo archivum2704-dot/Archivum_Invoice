@@ -63,7 +63,7 @@ function DocRow({ doc }: { doc: any }) {
             {doc.document_number}
           </Text>
           <Text style={{ fontSize: 13, fontWeight: "700", color: C.text }}>
-            {doc.amount != null ? `€${Number(doc.amount).toLocaleString("es-ES", { minimumFractionDigits: 2 })}` : "—"}
+            {doc.total != null ? `€${Number(doc.total).toLocaleString("es-ES", { minimumFractionDigits: 2 })}` : "—"}
           </Text>
         </View>
         <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 3, alignItems: "center" }}>
@@ -96,7 +96,7 @@ export default function BibliotecaScreen() {
     if (!orgId) { setLoading(false); return; }
     const { data } = await supabase
       .from("documents")
-      .select("id, document_number, document_type, status, amount, issue_date, companies(name)")
+      .select("id, document_number, document_type, status, total, issue_date, companies(name)")
       .eq("organization_id", orgId)
       .order("created_at", { ascending: false });
     setDocs(data ?? []);

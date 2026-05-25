@@ -107,7 +107,7 @@ export default function DocumentoDetailScreen() {
   }
 
   const sm = STATUS[doc.status] ?? STATUS.draft;
-  const fmt = (n: number | null) =>
+  const fmt = (n: number | null | undefined) =>
     n != null ? `€${n.toLocaleString("es-ES", { minimumFractionDigits: 2 })}` : "—";
   const fmtDate = (s: string | null) =>
     s ? new Date(s.includes("T") ? s : `${s}T12:00:00`).toLocaleDateString("es-ES") : "—";
@@ -146,7 +146,7 @@ export default function DocumentoDetailScreen() {
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, marginBottom: 12 }}>
           <View>
             <Text style={{ fontSize: 13, color: C.muted, fontFamily: "monospace" }}>{doc.document_number}</Text>
-            <Text style={{ fontSize: 24, fontWeight: "800", color: C.text }}>{fmt(doc.amount)}</Text>
+            <Text style={{ fontSize: 24, fontWeight: "800", color: C.text }}>{fmt(doc.total)}</Text>
           </View>
           <View style={{ backgroundColor: sm.bg, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6 }}>
             <Text style={{ fontSize: 14, fontWeight: "600", color: sm.color }}>{sm.label}</Text>
@@ -185,13 +185,15 @@ export default function DocumentoDetailScreen() {
           <Field label="Fecha emisión" value={fmtDate(doc.issue_date)} />
           <Field label="Fecha vencimiento" value={fmtDate(doc.due_date)} />
           <Field label="Fecha pago" value={fmtDate(doc.payment_date)} />
-          <Field label="Base imponible" value={doc.taxable_base != null ? fmt(doc.taxable_base) : null} />
-          <Field label={`IVA (${doc.vat_rate ?? 0}%)`} value={
-            doc.taxable_base != null && doc.vat_rate != null
-              ? fmt(doc.taxable_base * doc.vat_rate / 100)
-              : null
+          <Field label="Base imponible" value={doc.subtotal != null ? fmt(doc.subtotal) : null} />
+          <Field label={`IVA (${doc.tax_rate ?? 0}%)`} value={
+            doc.tax_amount != null
+              ? fmt(doc.tax_amount)
+              : doc.subtotal != null && doc.tax_rate != null
+                ? fmt(doc.subtotal * doc.tax_rate / 100)
+                : null
           } />
-          <Field label="Total" value={fmt(doc.amount)} />
+          <Field label="Total" value={fmt(doc.total)} />
           <Field label="Notas" value={doc.notes} />
           <Field label="Descripción" value={doc.description} />
         </View>

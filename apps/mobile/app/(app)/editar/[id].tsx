@@ -68,9 +68,9 @@ export default function EditarScreen() {
       if (!data) return;
       setDocNumber(data.document_number ?? "");
       setStatus(data.status ?? "pending");
-      setAmount(data.amount != null ? String(data.amount) : "");
-      setTaxable(data.taxable_base != null ? String(data.taxable_base) : "");
-      setVatRate(data.vat_rate != null ? String(data.vat_rate) : "");
+      setAmount(data.total != null ? String(data.total) : "");
+      setTaxable(data.subtotal != null ? String(data.subtotal) : "");
+      setVatRate(data.tax_rate != null ? String(data.tax_rate) : "");
       setIssueDate(data.issue_date ?? "");
       setDueDate(data.due_date ?? "");
       setPayDate(data.payment_date ?? "");
@@ -82,17 +82,24 @@ export default function EditarScreen() {
 
   const handleSave = async () => {
     setSaving(true);
+    const baseAmount = taxable ? parseFloat(taxable.replace(",", ".")) : null;
+    const rate       = vatRate ? parseFloat(vatRate.replace(",", ".")) : null;
+    const taxAmount  = baseAmount != null && rate != null ? baseAmount * rate / 100 : null;
+    const totalVal   = amount ? parseFloat(amount.replace(",", ".")) : (baseAmount != null ? baseAmount + (taxAmount ?? 0) : null);
+
     await supabase.from("documents").update({
       document_number: docNumber.trim(),
       status,
-      amount:       amount    ? parseFloat(amount.replace(",", "."))  : null,
-      taxable_base: taxable   ? parseFloat(taxable.replace(",", ".")) : null,
-      vat_rate:     vatRate   ? parseFloat(vatRate.replace(",", ".")) : null,
+      total:        totalVal,
+      subtotal:     baseAmount,
+      tax_rate:     rate,
+      tax_amount:   taxAmount,
       issue_date:   issueDate || null,
       due_date:     dueDate   || null,
       payment_date: payDate   || null,
       notes:        notes.trim()  || null,
       description:  desc.trim()   || null,
+      updated_at:   new Date().toISOString(),
     }).eq("id", id);
     setSaving(false);
     setSaved(true);

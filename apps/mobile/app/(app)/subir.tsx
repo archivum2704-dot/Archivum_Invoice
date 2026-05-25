@@ -560,14 +560,21 @@ export default function SubirScreen() {
         companyId = comp?.id ?? null;
       }
 
+      const baseAmount = taxable  ? parseFloat(taxable.replace(",", "."))  : null;
+      const rate       = vatRate  ? parseFloat(vatRate.replace(",", "."))  : null;
+      const taxAmount  = baseAmount != null && rate != null ? baseAmount * rate / 100 : null;
+      const totalVal   = amount   ? parseFloat(amount.replace(",", "."))  : (baseAmount != null ? baseAmount + (taxAmount ?? 0) : null);
+
       const { error: insertErr } = await supabase.from("documents").insert({
         organization_id: orgId,
         company_id:     companyId,
         document_number: docNumber.trim() || null,
         document_type:  docType,
         status,
-        total:           amount  ? parseFloat(amount.replace(",", "."))  : null,
-        tax_rate:        vatRate ? parseFloat(vatRate.replace(",", ".")) : null,
+        total:           totalVal,
+        subtotal:        baseAmount,
+        tax_rate:        rate,
+        tax_amount:      taxAmount,
         issue_date:      issueDate || null,
         due_date:        dueDate   || null,
         notes:           notes.trim() || null,
