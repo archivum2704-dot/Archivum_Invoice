@@ -446,7 +446,7 @@ export function DashboardView() {
                               {tCommon("viewDocument")}
                             </Link>
                             <Link
-                              href={`/editar/${doc.id}`}
+                              href={`/factura/${doc.id}/editar`}
                               onClick={() => setOpenMenuId(null)}
                               className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
                             >
