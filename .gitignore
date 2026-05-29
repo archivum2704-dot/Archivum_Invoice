@@ -33,3 +33,5 @@ ios/
 
 .vercel
 tsconfig.tsbuildinfo
+apps/web/tsconfig.tsbuildinfo
+package-lock.json
