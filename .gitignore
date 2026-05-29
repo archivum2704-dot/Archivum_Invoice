@@ -32,3 +32,4 @@ ios/
 *.pem
 
 .vercel
+tsconfig.tsbuildinfo
