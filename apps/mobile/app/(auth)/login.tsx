@@ -8,18 +8,13 @@ import { router } from "expo-router";
 import { Building2, User, Eye, EyeOff } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
-
-const C = {
-  blue: "#2563EB", blueL: "#EFF6FF", blueMed: "#DBEAFE",
-  red: "#DC2626", redL: "#FEF2F2",
-  bg: "#F9FAFB", surface: "#FFFFFF",
-  text: "#111827", muted: "#6B7280",
-  border: "#E5E7EB", input: "#E5E7EB",
-};
+import { useColors } from "@/lib/colors";
+import { Logo } from "@/components/Logo";
 
 type Tab = "empresa" | "usuario";
 
 export default function LoginScreen() {
+  const C = useColors();
   const { signInEmpresa, signInUsuario } = useAuth();
   const [tab,         setTab]         = useState<Tab>("empresa");
   const [email,       setEmail]       = useState("");
@@ -48,6 +43,9 @@ export default function LoginScreen() {
     }
   };
 
+  const labelStyle = { fontSize: 13, fontWeight: "500" as const, color: C.text, marginBottom: 6 };
+  const inputStyle = { borderWidth: 1.5, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: C.text, backgroundColor: C.inputBg };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <KeyboardAvoidingView
@@ -61,12 +59,8 @@ export default function LoginScreen() {
         >
           {/* Logo */}
           <View style={{ alignItems: "center", paddingTop: 48, paddingBottom: 36 }}>
-            <View style={{
-              width: 72, height: 72, borderRadius: 18,
-              backgroundColor: C.blue, alignItems: "center", justifyContent: "center",
-              marginBottom: 14,
-            }}>
-              <Text style={{ fontSize: 36, color: "#fff" }}>A</Text>
+            <View style={{ marginBottom: 14 }}>
+              <Logo size={72} />
             </View>
             <Text style={{ fontSize: 26, fontWeight: "800", color: C.text, letterSpacing: -0.5 }}>
               archivum
@@ -78,7 +72,7 @@ export default function LoginScreen() {
 
           {/* Tab switcher */}
           <View style={{
-            flexDirection: "row", backgroundColor: "#F3F4F6",
+            flexDirection: "row", backgroundColor: C.segmentBg,
             borderRadius: 12, padding: 3, marginBottom: 24,
           }}>
             {(["empresa", "usuario"] as Tab[]).map((t) => {
@@ -118,9 +112,9 @@ export default function LoginScreen() {
           <View style={{ gap: 16 }}>
             {tab === "usuario" && (
               <View>
-                <Text style={styles.label}>Código de empresa</Text>
+                <Text style={labelStyle}>Código de empresa</Text>
                 <TextInput
-                  style={[styles.input, { letterSpacing: 4, fontFamily: "monospace", textTransform: "uppercase" }]}
+                  style={[inputStyle, { letterSpacing: 4, fontFamily: "monospace", textTransform: "uppercase" }]}
                   placeholder="AB-1234"
                   placeholderTextColor={C.muted}
                   value={code}
@@ -135,9 +129,9 @@ export default function LoginScreen() {
             )}
 
             <View>
-              <Text style={styles.label}>Correo electrónico</Text>
+              <Text style={labelStyle}>Correo electrónico</Text>
               <TextInput
-                style={styles.input}
+                style={inputStyle}
                 placeholder="david@empresa.com"
                 placeholderTextColor={C.muted}
                 value={email}
@@ -148,10 +142,10 @@ export default function LoginScreen() {
             </View>
 
             <View>
-              <Text style={styles.label}>Contraseña</Text>
+              <Text style={labelStyle}>Contraseña</Text>
               <View style={{ position: "relative" }}>
                 <TextInput
-                  style={[styles.input, { paddingRight: 48 }]}
+                  style={[inputStyle, { paddingRight: 48 }]}
                   placeholder="••••••••"
                   placeholderTextColor={C.muted}
                   value={password}
@@ -242,14 +236,3 @@ export default function LoginScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = {
-  label: {
-    fontSize: 13, fontWeight: "500" as const, color: "#111827", marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1.5, borderColor: "#E5E7EB", borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: "#111827", backgroundColor: "#FFFFFF",
-  },
-};

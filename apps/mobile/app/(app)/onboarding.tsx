@@ -8,37 +8,14 @@ import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
 import {
-  Sparkles, Upload, Building2, Users, Search, ArrowRight,
+  Upload, Building2, Users, Search, ArrowRight,
 } from "lucide-react-native";
+import { useColors } from "@/lib/colors";
+import { Logo } from "@/components/Logo";
 
 const { width: W } = Dimensions.get("window");
 
-const C = {
-  blue: "#2563EB", blueL: "#EFF6FF",
-  green: "#16A34A", greenL: "#F0FDF4",
-  yellow: "#D97706", yellowL: "#FFFBEB",
-  purple: "#7C3AED", purpleL: "#F5F3FF",
-  orange: "#EA580C", orangeL: "#FFF7ED",
-  bg: "#F9FAFB", surface: "#FFFFFF",
-  text: "#111827", muted: "#6B7280", border: "#E5E7EB",
-};
-
 type SlideKey = "welcome" | "upload" | "companies" | "team" | "search";
-
-interface SlideStyle {
-  key: SlideKey;
-  icon: React.ReactNode;
-  iconBg: string;
-  iconColor: string;
-}
-
-const SLIDE_STYLES: SlideStyle[] = [
-  { key: "welcome",   icon: <Sparkles  size={42} color={C.blue}   />, iconBg: C.blueL,   iconColor: C.blue   },
-  { key: "upload",    icon: <Upload    size={42} color={C.green}  />, iconBg: C.greenL,  iconColor: C.green  },
-  { key: "companies", icon: <Building2 size={42} color={C.purple} />, iconBg: C.purpleL, iconColor: C.purple },
-  { key: "team",      icon: <Users     size={42} color={C.orange} />, iconBg: C.orangeL, iconColor: C.orange },
-  { key: "search",    icon: <Search    size={42} color={C.yellow} />, iconBg: C.yellowL, iconColor: C.yellow },
-];
 
 const ONBOARDING_KEY = "@archivum/onboarding_completed";
 
@@ -53,8 +30,22 @@ export async function isOnboardingCompleted(): Promise<boolean> {
 
 export default function OnboardingScreen() {
   const { t } = useTranslation();
+  const C = useColors();
   const scrollRef = useRef<ScrollView>(null);
   const [page, setPage] = useState(0);
+
+  const purple = "#7C3AED";
+  const purpleL = "#F5F3FF";
+  const orange = "#EA580C";
+  const orangeL = "#FFF7ED";
+
+  const SLIDE_STYLES = [
+    { key: "welcome" as SlideKey,   icon: <Logo size={60} />, iconBg: C.blueL,   iconColor: C.blue   },
+    { key: "upload" as SlideKey,    icon: <Upload    size={42} color={C.green}  />, iconBg: C.greenL,  iconColor: C.green  },
+    { key: "companies" as SlideKey, icon: <Building2 size={42} color={purple}   />, iconBg: purpleL,   iconColor: purple   },
+    { key: "team" as SlideKey,      icon: <Users     size={42} color={orange}   />, iconBg: orangeL,   iconColor: orange   },
+    { key: "search" as SlideKey,    icon: <Search    size={42} color={C.yellow} />, iconBg: C.yellowL, iconColor: C.yellow },
+  ];
 
   const total = SLIDE_STYLES.length;
   const isLast = page === total - 1;

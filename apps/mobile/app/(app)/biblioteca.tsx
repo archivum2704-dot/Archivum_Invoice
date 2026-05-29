@@ -13,38 +13,16 @@ import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
 import { useTranslation } from "react-i18next";
+import { useColors } from "@/lib/colors";
 
-const C = {
-  blue: "#2563EB", blueL: "#EFF6FF",
-  green: "#16A34A", greenL: "#F0FDF4",
-  yellow: "#D97706", yellowL: "#FFFBEB",
-  red: "#DC2626", redL: "#FEF2F2",
-  bg: "#F9FAFB", surface: "#FFFFFF",
-  text: "#111827", muted: "#6B7280", border: "#E5E7EB",
-};
-
-const STATUS: Record<string, { label: string; bg: string; color: string }> = {
-  paid:      { label: "Pagado",    bg: "#F0FDF4", color: "#16A34A" },
-  pending:   { label: "Pendiente", bg: "#FFFBEB", color: "#D97706" },
-  overdue:   { label: "Vencido",   bg: "#FEF2F2", color: "#DC2626" },
-  draft:     { label: "Borrador",  bg: "#F3F4F6", color: "#6B7280" },
-  cancelled: { label: "Cancelado", bg: "#F3F4F6", color: "#6B7280" },
-};
-
-const DOC_TYPES: Record<string, string> = {
-  all: "Todos",
-  invoice_issued:   "Facturas emitidas",
-  invoice_received: "Facturas recibidas",
-  delivery_note:    "Albaranes",
-  order:            "Pedidos",
-  receipt:          "Recibos",
-  payroll:          "Nóminas",
-  contract:         "Contratos",
-  quote:            "Presupuestos",
-  other:            "Otros",
-};
-
-function DocRow({ doc }: { doc: any }) {
+function DocRow({ doc, C, t }: { doc: any; C: any; t: any }) {
+  const STATUS: Record<string, { label: string; bg: string; color: string }> = {
+    paid:      { label: t("status.paid"),      bg: C.greenL, color: C.green },
+    pending:   { label: t("status.pending"),   bg: C.yellowL, color: C.yellow },
+    overdue:   { label: t("status.overdue"),   bg: C.redL, color: C.red },
+    draft:     { label: t("status.draft"),     bg: C.segmentBg, color: C.muted },
+    cancelled: { label: t("status.cancelled"), bg: C.segmentBg, color: C.muted },
+  };
   const sm = STATUS[doc.status] ?? STATUS.draft;
   return (
     <TouchableOpacity
@@ -68,7 +46,7 @@ function DocRow({ doc }: { doc: any }) {
         </View>
         <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 3, alignItems: "center" }}>
           <Text style={{ fontSize: 12, color: C.muted }} numberOfLines={1}>
-            {doc.companies?.name ?? "Sin empresa"} · {DOC_TYPES[doc.document_type] ?? doc.document_type}
+            {doc.companies?.name ?? t("common.noCompany")} · {t(`docTypesPlural.${doc.document_type}`, { defaultValue: doc.document_type })}
           </Text>
           <View style={{ backgroundColor: sm.bg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
             <Text style={{ fontSize: 11, fontWeight: "600", color: sm.color }}>{sm.label}</Text>
@@ -82,6 +60,7 @@ function DocRow({ doc }: { doc: any }) {
 
 export default function BibliotecaScreen() {
   const { t } = useTranslation();
+  const C = useColors();
   const { orgId } = useAuth();
   const [docs,        setDocs]        = useState<any[]>([]);
   const [filtered,    setFiltered]    = useState<any[]>([]);
@@ -91,6 +70,27 @@ export default function BibliotecaScreen() {
   const [refreshing,  setRefreshing]  = useState(false);
   const [filterModal, setFilterModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
+
+  const DOC_TYPES: Record<string, string> = {
+    all:              t("docTypesPlural.all"),
+    invoice_issued:   t("docTypesPlural.invoice_issued"),
+    invoice_received: t("docTypesPlural.invoice_received"),
+    delivery_note:    t("docTypesPlural.delivery_note"),
+    order:            t("docTypesPlural.order"),
+    receipt:          t("docTypesPlural.receipt"),
+    payroll:          t("docTypesPlural.payroll"),
+    contract:         t("docTypesPlural.contract"),
+    quote:            t("docTypesPlural.quote"),
+    other:            t("docTypesPlural.other"),
+  };
+
+  const STATUS: Record<string, { label: string; bg: string; color: string }> = {
+    paid:      { label: t("status.paid"),      bg: C.greenL, color: C.green },
+    pending:   { label: t("status.pending"),   bg: C.yellowL, color: C.yellow },
+    overdue:   { label: t("status.overdue"),   bg: C.redL, color: C.red },
+    draft:     { label: t("status.draft"),     bg: C.segmentBg, color: C.muted },
+    cancelled: { label: t("status.cancelled"), bg: C.segmentBg, color: C.muted },
+  };
 
   const load = useCallback(async () => {
     if (!orgId) { setLoading(false); return; }
@@ -124,11 +124,11 @@ export default function BibliotecaScreen() {
 
   const onRefresh = () => { setRefreshing(true); load(); };
 
-  const chips = Object.keys(DOC_TYPES).slice(0, 6); // Show first 6
+  const chips = Object.keys(DOC_TYPES).slice(0, 6);
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center" }}>
+      <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator size="large" color={C.blue} />
       </SafeAreaView>
     );
@@ -137,22 +137,22 @@ export default function BibliotecaScreen() {
   const hasFilters = activeType !== "all" || statusFilter !== "all";
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+    <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: C.bg }}>
       {/* Sticky header */}
       <View style={{ paddingHorizontal: 16, paddingTop: 8, backgroundColor: C.bg }}>
-        <Text style={{ fontSize: 22, fontWeight: "800", color: C.text, marginBottom: 10 }}>Biblioteca</Text>
+        <Text style={{ fontSize: 22, fontWeight: "800", color: C.text, marginBottom: 10 }}>{t("biblioteca.title")}</Text>
 
         {/* Search + filter */}
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
           <View style={{
             flex: 1, flexDirection: "row", alignItems: "center", gap: 8,
-            backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border,
+            backgroundColor: C.inputBg, borderWidth: 1.5, borderColor: C.border,
             borderRadius: 10, paddingHorizontal: 12,
           }}>
             <Search size={16} color={C.muted} />
             <TextInput
               style={{ flex: 1, fontSize: 14, color: C.text, paddingVertical: 10 }}
-              placeholder="Buscar documentos…"
+              placeholder={t("biblioteca.searchPlaceholder")}
               placeholderTextColor={C.muted}
               value={query}
               onChangeText={setQuery}
@@ -184,7 +184,7 @@ export default function BibliotecaScreen() {
               return (
                 <TouchableOpacity
                   key={type}
-                  onPress={() => setActiveType(type)}
+                  onPress={() => setActiveType(active && type !== "all" ? "all" : type)}
                   style={{
                     paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999,
                     backgroundColor: active ? C.blue : C.surface,
@@ -201,7 +201,7 @@ export default function BibliotecaScreen() {
         </ScrollView>
 
         <Text style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>
-          {filtered.length} documentos encontrados
+          {t("biblioteca.docsFound", { count: filtered.length })}
         </Text>
       </View>
 
@@ -209,16 +209,16 @@ export default function BibliotecaScreen() {
       {filtered.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 12 }}>
           <BookOpen size={56} color={C.muted} />
-          <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>Sin resultados</Text>
+          <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{t("biblioteca.noResults")}</Text>
           <Text style={{ fontSize: 13, color: C.muted, textAlign: "center" }}>
-            No hay documentos que coincidan con los filtros aplicados.
+            {t("biblioteca.noResultsDesc")}
           </Text>
           {hasFilters && (
             <TouchableOpacity
               onPress={() => { setActiveType("all"); setStatusFilter("all"); setQuery(""); }}
               style={{ backgroundColor: C.blue, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 8, marginTop: 4 }}
             >
-              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>Limpiar filtros</Text>
+              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>{t("biblioteca.clearFilters")}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -226,7 +226,7 @@ export default function BibliotecaScreen() {
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <DocRow doc={item} />}
+          renderItem={({ item }) => <DocRow doc={item} C={C} t={t} />}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.blue} />}
           contentContainerStyle={{ backgroundColor: C.surface }}
           showsVerticalScrollIndicator={false}
@@ -248,18 +248,18 @@ export default function BibliotecaScreen() {
 
       {/* Filter modal */}
       <Modal visible={filterModal} animationType="slide" transparent onRequestClose={() => setFilterModal(false)}>
-        <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,.45)" }} activeOpacity={1} onPress={() => setFilterModal(false)} />
+        <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={() => setFilterModal(false)} />
         <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 24 }}>
           {/* Handle */}
           <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 4 }} />
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 }}>
-            <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>Filtros avanzados</Text>
+            <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>{t("biblioteca.advancedFilters")}</Text>
             <TouchableOpacity onPress={() => { setActiveType("all"); setStatusFilter("all"); }}>
-              <Text style={{ fontSize: 13, color: C.muted }}>Limpiar</Text>
+              <Text style={{ fontSize: 13, color: C.muted }}>{t("biblioteca.clear")}</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={{ fontSize: 12, fontWeight: "600", color: C.muted, paddingHorizontal: 16, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>Estado</Text>
+          <Text style={{ fontSize: 12, fontWeight: "600", color: C.muted, paddingHorizontal: 16, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>{t("biblioteca.statusLabel")}</Text>
           {["all", "pending", "paid", "overdue", "draft", "cancelled"].map((s) => (
             <TouchableOpacity
               key={s}
@@ -267,7 +267,7 @@ export default function BibliotecaScreen() {
               style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border }}
             >
               <Text style={{ fontSize: 14, color: s === statusFilter ? C.blue : C.text, fontWeight: s === statusFilter ? "600" : "400" }}>
-                {s === "all" ? "Todos" : STATUS[s]?.label ?? s}
+                {s === "all" ? t("common.all") : STATUS[s]?.label ?? s}
               </Text>
               {s === statusFilter && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.blue }} />}
             </TouchableOpacity>
@@ -278,7 +278,7 @@ export default function BibliotecaScreen() {
               onPress={() => setFilterModal(false)}
               style={{ backgroundColor: C.blue, borderRadius: 10, paddingVertical: 14, alignItems: "center" }}
             >
-              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>Aplicar filtros</Text>
+              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>{t("biblioteca.applyFilters")}</Text>
             </TouchableOpacity>
           </View>
         </View>

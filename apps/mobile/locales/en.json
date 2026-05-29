@@ -5,7 +5,7 @@
     "delete": "Delete",
     "edit": "Edit",
     "search": "Search",
-    "loading": "Loading…",
+    "loading": "Loading...",
     "back": "Back",
     "next": "Next",
     "skip": "Skip",
@@ -14,7 +14,15 @@
     "copied": "Copied",
     "yes": "Yes",
     "no": "No",
-    "you": "you"
+    "you": "you",
+    "noCompany": "No company",
+    "docs": "docs",
+    "all": "All",
+    "notNow": "Not now",
+    "saving": "Saving...",
+    "error": "Error",
+    "viewPlans": "View plans & pricing",
+    "unknownError": "Unknown error"
   },
 
   "tabs": {
@@ -24,6 +32,270 @@
     "companies": "Companies",
     "team": "Team",
     "settings": "Settings"
+  },
+
+  "status": {
+    "paid": "Paid",
+    "pending": "Pending",
+    "overdue": "Overdue",
+    "draft": "Draft",
+    "cancelled": "Cancelled"
+  },
+
+  "docTypes": {
+    "all": "All",
+    "invoice_issued": "Issued invoice",
+    "invoice_received": "Received invoice",
+    "delivery_note": "Delivery note",
+    "order": "Order",
+    "receipt": "Receipt",
+    "payroll": "Payroll",
+    "contract": "Contract",
+    "quote": "Quote",
+    "tax": "Tax document",
+    "other": "Other"
+  },
+
+  "docTypesPlural": {
+    "all": "All",
+    "invoice_issued": "Issued invoices",
+    "invoice_received": "Received invoices",
+    "delivery_note": "Delivery notes",
+    "order": "Orders",
+    "receipt": "Receipts",
+    "payroll": "Payrolls",
+    "contract": "Contracts",
+    "quote": "Quotes",
+    "other": "Other"
+  },
+
+  "dashboard": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "overdueAlert": "{{count}} overdue document",
+    "overdueAlert_plural": "{{count}} overdue documents",
+    "uncollected": "uncollected",
+    "view": "View",
+    "paid": "Collected",
+    "pending": "Pending",
+    "overdue": "Overdue",
+    "monthlyActivity": "Monthly activity",
+    "docsArchived": "Archived documents",
+    "recentDocs": "Recent documents",
+    "viewAll": "View all",
+    "noDocs": "No documents",
+    "uploadFirst": "Upload your first document to get started"
+  },
+
+  "biblioteca": {
+    "title": "Library",
+    "searchPlaceholder": "Search documents...",
+    "docsFound": "{{count}} documents found",
+    "noResults": "No results",
+    "noResultsDesc": "No documents match the applied filters.",
+    "clearFilters": "Clear filters",
+    "advancedFilters": "Advanced filters",
+    "clear": "Clear",
+    "statusLabel": "Status",
+    "applyFilters": "Apply filters"
+  },
+
+  "buscar": {
+    "title": "Search",
+    "placeholder": "Search by number, company, type...",
+    "resultsFor": "{{count}} result for \"{{query}}\"",
+    "resultsFor_plural": "{{count}} results for \"{{query}}\"",
+    "sortBy": "Sort by",
+    "searchAny": "Search any document",
+    "searchHint": "Type a document number, company name or any data.",
+    "noResults": "No results",
+    "tryOther": "Try different search terms.",
+    "sortDateDesc": "Date ↓",
+    "sortDateAsc": "Date ↑",
+    "sortAmountDesc": "Amount ↓",
+    "sortAmountAsc": "Amount ↑"
+  },
+
+  "documento": {
+    "detail": "Detail",
+    "deleteTitle": "Delete document",
+    "deleteConfirm": "Are you sure? This action cannot be undone.",
+    "openFile": "Tap to open the file",
+    "noFile": "No attached file",
+    "download": "Download",
+    "downloadError": "Could not open the file.",
+    "notFound": "Document not found",
+    "info": "Information",
+    "type": "Type",
+    "company": "Company",
+    "supplierCif": "Supplier Tax ID",
+    "issueDate": "Issue date",
+    "dueDate": "Due date",
+    "paymentDate": "Payment date",
+    "subtotal": "Subtotal",
+    "vat": "VAT",
+    "total": "Total",
+    "notes": "Notes",
+    "description": "Description"
+  },
+
+  "editar": {
+    "title": "Edit document",
+    "notFound": "Document not found",
+    "docNumber": "Document number",
+    "docType": "Document type",
+    "status": "Status",
+    "company": "Company",
+    "selectCompany": "No company",
+    "issueDate": "Issue date",
+    "dueDate": "Due date",
+    "paymentDate": "Payment date",
+    "subtotal": "Subtotal",
+    "taxRate": "VAT %",
+    "total": "Total",
+    "notes": "Notes",
+    "description": "Description",
+    "saveChanges": "Save changes",
+    "saved": "Changes saved",
+    "saveError": "Error saving",
+    "dates": "Dates",
+    "amounts": "Amounts",
+    "information": "Information",
+    "dangerZone": "Danger zone",
+    "dangerHint": "This action cannot be easily undone.",
+    "markCancelled": "Mark as cancelled",
+    "markCancelledTitle": "Mark as cancelled",
+    "markCancelledConfirm": "Are you sure? The status will change to cancelled."
+  },
+
+  "empresas": {
+    "title": "Companies",
+    "companiesCount": "{{current}} / {{max}} companies",
+    "searchPlaceholder": "Search company, Tax ID...",
+    "noResults": "No results",
+    "noCompanies": "No companies",
+    "tryOther": "Try a different search term.",
+    "addFirst": "Add your first company to get started.",
+    "addCompany": "Add company",
+    "suspended": "Suspended",
+    "sector": "Sector",
+    "documents": "Documents",
+    "viewDocs": "View documents",
+    "suspend": "Suspend",
+    "reactivate": "Reactivate",
+    "editCompany": "Edit company",
+    "newCompany": "New company",
+    "nameLabel": "Name *",
+    "cifLabel": "Tax ID",
+    "sectorLabel": "Sector",
+    "createCompany": "Create company",
+    "saveChanges": "Save changes",
+    "deleteTitle": "Delete company",
+    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? Its documents will be unassigned.",
+    "limitTitle": "Company limit reached",
+    "limitDesc": "Your current plan allows up to {{max}} company(ies). Upgrade to Pro or add extra companies for €2/company/month.",
+    "limitBullet1": "Free plan: 1 company",
+    "limitBullet2": "Pro plan: 20 companies included",
+    "limitBullet3": "+€2/month per extra company"
+  },
+
+  "equipo": {
+    "title": "Team",
+    "usersCount": "{{current}} / {{max}} user",
+    "usersCount_plural": "{{current}} / {{max}} users",
+    "noMembers": "No members",
+    "inviteHint": "Invite your team to collaborate on Archivum.",
+    "inviteUser": "Invite user",
+    "changeRole": "Change role",
+    "removeMember": "Remove member",
+    "removeConfirm": "Are you sure you want to remove {{name}} from the organization?",
+    "availableRoles": "Available roles",
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member",
+      "viewer": "Viewer"
+    },
+    "roleDesc": {
+      "admin": "Full management except billing",
+      "member": "Access to assigned companies",
+      "viewer": "Read only"
+    },
+    "roleLegend": {
+      "admin": "Full management",
+      "member": "Assigned access",
+      "viewer": "Read only"
+    },
+    "invite": {
+      "title": "Invite user",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email *",
+      "role": "Role",
+      "send": "Send invitation",
+      "success": "Invitation sent successfully",
+      "emailHint": "The user will receive an email to activate their account.",
+      "errors": {
+        "already_member": "This user is already a member of the organization.",
+        "not_authorized": "You don't have permission to invite users.",
+        "member_limit_reached": "You've reached your plan's user limit.",
+        "missing_fields": "Please fill in all required fields.",
+        "server_error": "Server error. Please try again.",
+        "connection": "Connection error. Check your internet."
+      }
+    },
+    "limitFree": "Free plan limit",
+    "limitReached": "User limit reached",
+    "limitDescFree": "The free plan includes 1 user. Upgrade to Pro to add up to 5 users.",
+    "limitDescPaid": "You've reached {{max}} users. Add extra users for €2/user/month.",
+    "limitBullet1": "Free plan: 1 user",
+    "limitBullet2": "Pro plan: 5 users included",
+    "limitBullet3": "+€2/month per extra user"
+  },
+
+  "subir": {
+    "title": "Upload document",
+    "stepFile": "File",
+    "stepMeta": "Metadata",
+    "stepConfirm": "Confirm",
+    "tapToSelect": "Tap to select",
+    "fileHint": "PDF, JPG, PNG — max. 25 MB",
+    "autoConvert": "Images are automatically converted to PDF",
+    "convertingPdf": "Converting to PDF…",
+    "camera": "Camera",
+    "gallery": "Gallery",
+    "files": "Files",
+    "continue": "Continue →",
+    "back": "← Back",
+    "noFile": "No file",
+    "docTypeLabel": "Document type *",
+    "docNumberLabel": "Document number *",
+    "companyLabel": "Company / Client *",
+    "issueDateLabel": "Issue date",
+    "dueDateLabel": "Due date",
+    "totalLabel": "Total amount (€)",
+    "subtotalLabel": "Subtotal (€)",
+    "vatLabel": "VAT %",
+    "statusLabel": "Status",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Observations, internal references…",
+    "summary": "Summary",
+    "archive": "Archive document",
+    "editData": "← Edit data",
+    "successTitle": "✓ Document archived",
+    "successMsg": "{{name}} archived successfully.",
+    "viewLibrary": "View library",
+    "uploadAnother": "Upload another",
+    "quotaExpired": "Your subscription has expired. Renew it to upload documents.",
+    "quotaReached": "You've reached your plan's document limit. The quota renews next month or you can add extra documents.",
+    "quotaEmpty": "Quota exhausted",
+    "goBack": "Go back",
+    "errorCamera": "Could not access camera or gallery.",
+    "errorFile": "Could not open the file.",
+    "errorArchive": "Could not archive the document."
   },
 
   "tutorial": {
@@ -96,7 +368,8 @@
       "organization": "Organization",
       "billing": "Plan & billing",
       "preferences": "Preferences",
-      "help": "Help"
+      "help": "Help",
+      "danger": "Danger zone"
     },
     "organization": {
       "name": "Name",
@@ -107,6 +380,11 @@
       "users": "Users",
       "documents": "Documents",
       "companies": "Companies",
+      "docsAvailable": "Available documents",
+      "remaining": "{{count}} remaining",
+      "baseMonthly": "Base: {{count}}/mo · cumulative",
+      "bonusDocs": " · +{{count}} bonus",
+      "freeForever": "Free · forever",
       "manage": "Manage plan & billing",
       "statuses": {
         "active": "Active",
@@ -129,10 +407,37 @@
     "help": {
       "tutorial": "View app tutorial"
     },
+    "cancelSub": {
+      "title": "Cancel subscription",
+      "subtitle": "Data will be deleted 15 days after cancellation.",
+      "warning": "IMPORTANT — Read this before continuing:\n\n1. Download all your documents NOW, because once the subscription is cancelled you won't be able to access or view any document.\n\n2. If you don't renew within 15 days, your account and ALL data (documents, companies, team) will be permanently deleted.\n\n3. During the 15-day grace period you won't be able to upload, download or edit documents.",
+      "keep": "Keep subscription",
+      "confirm": "Yes, cancel",
+      "done": "Subscription cancelled",
+      "doneDesc": "Your subscription has been cancelled. You have 15 days to download your documents before the account is deleted.",
+      "error": "Could not cancel the subscription. Try from the web."
+    },
     "signOut": "Sign out",
     "signOutConfirmTitle": "Sign out",
     "signOutConfirmMessage": "Are you sure you want to sign out?",
     "user": "User"
+  },
+
+  "register": {
+    "title": "Create account",
+    "subtitle": "Fill in your details to register on Archivum.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email address",
+    "password": "Password",
+    "passwordHint": "Min. 8 characters",
+    "confirmPassword": "Confirm password",
+    "submit": "Create account",
+    "hasAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "errorMismatch": "Passwords do not match",
+    "errorMinLength": "Password must be at least 8 characters",
+    "errorAlreadyRegistered": "This email is already registered"
   },
 
   "language": {

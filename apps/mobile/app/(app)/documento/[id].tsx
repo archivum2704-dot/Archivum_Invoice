@@ -1,47 +1,21 @@
 import { useEffect, useState } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, ActivityIndicator,
-  Linking, Alert, Share,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import {
-  ChevronLeft, MoreVertical, Download, Pencil, Trash2,
-  FileText, Link as LinkIcon,
+  ChevronLeft, Download, Pencil, Trash2,
+  FileText,
 } from "lucide-react-native";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import { supabase } from "@/lib/supabase";
+import { useColors } from "@/lib/colors";
+import { useTranslation } from "react-i18next";
 
-const C = {
-  blue: "#2563EB", blueL: "#EFF6FF",
-  green: "#16A34A", greenL: "#F0FDF4",
-  yellow: "#D97706", yellowL: "#FFFBEB",
-  red: "#DC2626", redL: "#FEF2F2",
-  bg: "#F9FAFB", surface: "#FFFFFF",
-  text: "#111827", muted: "#6B7280", border: "#E5E7EB",
-};
-
-const STATUS: Record<string, { label: string; bg: string; color: string }> = {
-  paid:      { label: "Pagado",    bg: "#F0FDF4", color: "#16A34A" },
-  pending:   { label: "Pendiente", bg: "#FFFBEB", color: "#D97706" },
-  overdue:   { label: "Vencido",   bg: "#FEF2F2", color: "#DC2626" },
-  draft:     { label: "Borrador",  bg: "#F3F4F6", color: "#6B7280" },
-  cancelled: { label: "Cancelado", bg: "#F3F4F6", color: "#6B7280" },
-};
-
-const DOC_TYPE_LABELS: Record<string, string> = {
-  invoice_issued:   "Factura emitida",
-  invoice_received: "Factura recibida",
-  delivery_note:    "Albarán",
-  order:            "Pedido",
-  receipt:          "Recibo",
-  payroll:          "Nómina",
-  contract:         "Contrato",
-  quote:            "Presupuesto",
-  tax:              "Doc. fiscal",
-  other:            "Otro",
-};
-
-function Field({ label, value }: { label: string; value: string | null | undefined }) {
+function Field({ label, value, C }: { label: string; value: string | null | undefined; C: any }) {
   if (value == null || value === "") return null;
   return (
     <View style={{ flexDirection: "row", justifyContent: "space-between", padding: 11, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border }}>
@@ -55,6 +29,16 @@ export default function DocumentoDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [doc,     setDoc]     = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const C = useColors();
+  const { t } = useTranslation();
+
+  const STATUS: Record<string, { label: string; bg: string; color: string }> = {
+    paid:      { label: t("status.paid"),      bg: C.greenL, color: C.green },
+    pending:   { label: t("status.pending"),   bg: C.yellowL, color: C.yellow },
+    overdue:   { label: t("status.overdue"),   bg: C.redL, color: C.red },
+    draft:     { label: t("status.draft"),     bg: C.segmentBg, color: C.muted },
+    cancelled: { label: t("status.cancelled"), bg: C.segmentBg, color: C.muted },
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -70,10 +54,10 @@ export default function DocumentoDetailScreen() {
   }, [id]);
 
   const handleDelete = () => {
-    Alert.alert("Eliminar documento", "¿Estás seguro? Esta acción no se puede deshacer.", [
-      { text: "Cancelar", style: "cancel" },
+    Alert.alert(t("documento.deleteTitle"), t("documento.deleteConfirm"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Eliminar", style: "destructive",
+        text: t("common.delete"), style: "destructive",
         onPress: async () => {
           await supabase.from("documents").delete().eq("id", id);
           router.back();
@@ -82,8 +66,40 @@ export default function DocumentoDetailScreen() {
     ]);
   };
 
+  const [downloading, setDownloading] = useState(false);
+
   const handleDownload = async () => {
-    if (doc?.file_url) await Linking.openURL(doc.file_url);
+    if (!doc?.file_url) return;
+    setDownloading(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from("documents")
+        .createSignedUrl(doc.file_url, 3600);
+      if (error || !data?.signedUrl) throw error ?? new Error("No URL");
+
+      // Determine filename from path
+      const parts = doc.file_url.split("/");
+      const filename = parts[parts.length - 1] || "document.pdf";
+      const localUri = FileSystem.cacheDirectory + filename;
+
+      // Download to device cache
+      const download = await FileSystem.downloadAsync(data.signedUrl, localUri);
+      if (download.status !== 200) throw new Error("Download failed");
+
+      // Open native share sheet so user can save/open
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(download.uri, {
+          mimeType: download.headers?.["content-type"] || "application/pdf",
+          UTI: "public.data",
+        });
+      } else {
+        Alert.alert(t("common.error"), t("documento.downloadError"));
+      }
+    } catch {
+      Alert.alert(t("common.error"), t("documento.downloadError"));
+    } finally {
+      setDownloading(false);
+    }
   };
 
   if (loading) {
@@ -98,9 +114,9 @@ export default function DocumentoDetailScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center", gap: 12 }}>
         <FileText size={48} color={C.muted} />
-        <Text style={{ fontSize: 16, fontWeight: "600", color: C.text }}>Documento no encontrado</Text>
+        <Text style={{ fontSize: 16, fontWeight: "600", color: C.text }}>{t("documento.notFound")}</Text>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ color: C.blue }}>Volver</Text>
+          <Text style={{ color: C.blue }}>{t("common.back")}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -119,7 +135,7 @@ export default function DocumentoDetailScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ChevronLeft size={24} color={C.blue} />
         </TouchableOpacity>
-        <Text style={{ flex: 1, fontSize: 16, fontWeight: "700", color: C.text }}>Detalle</Text>
+        <Text style={{ flex: 1, fontSize: 16, fontWeight: "700", color: C.text }}>{t("documento.detail")}</Text>
         <TouchableOpacity onPress={handleDelete}>
           <Trash2 size={20} color={C.red} />
         </TouchableOpacity>
@@ -131,14 +147,14 @@ export default function DocumentoDetailScreen() {
           onPress={handleDownload}
           style={{
             height: 160, marginHorizontal: 16, marginBottom: 14,
-            backgroundColor: "#F1F5F9", borderRadius: 14, borderWidth: 1, borderColor: C.border,
+            backgroundColor: C.segmentBg, borderRadius: 14, borderWidth: 1, borderColor: C.border,
             alignItems: "center", justifyContent: "center", gap: 8,
           }}
           disabled={!doc.file_url}
         >
-          <FileText size={48} color="#94A3B8" />
+          <FileText size={48} color={C.muted} />
           <Text style={{ fontSize: 12, color: C.muted }}>
-            {doc.file_url ? "Toca para abrir el archivo" : "Sin archivo adjunto"}
+            {doc.file_url ? t("documento.openFile") : t("documento.noFile")}
           </Text>
         </TouchableOpacity>
 
@@ -156,8 +172,8 @@ export default function DocumentoDetailScreen() {
         {/* Action buttons */}
         <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, marginBottom: 16 }}>
           {[
-            { icon: <Download size={18} color={C.blue} />, label: "Descargar", onPress: handleDownload, disabled: !doc.file_url },
-            { icon: <Pencil  size={18} color={C.blue} />, label: "Editar",     onPress: () => router.push(`/(app)/editar/${id}`) },
+            { icon: downloading ? <ActivityIndicator size={18} color={C.blue} /> : <Download size={18} color={C.blue} />, label: t("documento.download"), onPress: handleDownload, disabled: !doc.file_url || downloading },
+            { icon: <Pencil  size={18} color={C.blue} />, label: t("common.edit"),     onPress: () => router.push(`/(app)/editar/${id}`) },
           ].map((btn) => (
             <TouchableOpacity
               key={btn.label}
@@ -177,25 +193,25 @@ export default function DocumentoDetailScreen() {
         {/* Data fields */}
         <View style={{ backgroundColor: C.surface, borderRadius: 14, marginHorizontal: 16, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 }}>
           <Text style={{ fontSize: 11, fontWeight: "700", color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, padding: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border }}>
-            Información
+            {t("documento.info")}
           </Text>
-          <Field label="Tipo" value={DOC_TYPE_LABELS[doc.document_type] ?? doc.document_type} />
-          <Field label="Empresa" value={doc.companies?.name} />
-          <Field label="CIF proveedor" value={doc.companies?.cif} />
-          <Field label="Fecha emisión" value={fmtDate(doc.issue_date)} />
-          <Field label="Fecha vencimiento" value={fmtDate(doc.due_date)} />
-          <Field label="Fecha pago" value={fmtDate(doc.payment_date)} />
-          <Field label="Base imponible" value={doc.subtotal != null ? fmt(doc.subtotal) : null} />
-          <Field label={`IVA (${doc.tax_rate ?? 0}%)`} value={
+          <Field C={C} label={t("documento.type")} value={t(`docTypes.${doc.document_type}`, { defaultValue: doc.document_type })} />
+          <Field C={C} label={t("documento.company")} value={doc.companies?.name} />
+          <Field C={C} label={t("documento.supplierCif")} value={doc.companies?.cif} />
+          <Field C={C} label={t("documento.issueDate")} value={fmtDate(doc.issue_date)} />
+          <Field C={C} label={t("documento.dueDate")} value={fmtDate(doc.due_date)} />
+          <Field C={C} label={t("documento.paymentDate")} value={fmtDate(doc.payment_date)} />
+          <Field C={C} label={t("documento.subtotal")} value={doc.subtotal != null ? fmt(doc.subtotal) : null} />
+          <Field C={C} label={`${t("documento.vat")} (${doc.tax_rate ?? 0}%)`} value={
             doc.tax_amount != null
               ? fmt(doc.tax_amount)
               : doc.subtotal != null && doc.tax_rate != null
                 ? fmt(doc.subtotal * doc.tax_rate / 100)
                 : null
           } />
-          <Field label="Total" value={fmt(doc.total)} />
-          <Field label="Notas" value={doc.notes} />
-          <Field label="Descripción" value={doc.description} />
+          <Field C={C} label={t("documento.total")} value={fmt(doc.total)} />
+          <Field C={C} label={t("documento.notes")} value={doc.notes} />
+          <Field C={C} label={t("documento.description")} value={doc.description} />
         </View>
 
         <View style={{ height: 24 }} />

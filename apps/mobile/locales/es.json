@@ -5,7 +5,7 @@
     "delete": "Eliminar",
     "edit": "Editar",
     "search": "Buscar",
-    "loading": "Cargando…",
+    "loading": "Cargando...",
     "back": "Atrás",
     "next": "Siguiente",
     "skip": "Saltar",
@@ -14,7 +14,15 @@
     "copied": "Copiado",
     "yes": "Sí",
     "no": "No",
-    "you": "tú"
+    "you": "tú",
+    "noCompany": "Sin empresa",
+    "docs": "docs",
+    "all": "Todos",
+    "notNow": "Ahora no",
+    "saving": "Guardando...",
+    "error": "Error",
+    "viewPlans": "Ver planes y precios",
+    "unknownError": "Error desconocido"
   },
 
   "tabs": {
@@ -24,6 +32,270 @@
     "companies": "Empresas",
     "team": "Equipo",
     "settings": "Ajustes"
+  },
+
+  "status": {
+    "paid": "Pagado",
+    "pending": "Pendiente",
+    "overdue": "Vencido",
+    "draft": "Borrador",
+    "cancelled": "Cancelado"
+  },
+
+  "docTypes": {
+    "all": "Todos",
+    "invoice_issued": "Factura emitida",
+    "invoice_received": "Factura recibida",
+    "delivery_note": "Albarán",
+    "order": "Pedido",
+    "receipt": "Recibo",
+    "payroll": "Nómina",
+    "contract": "Contrato",
+    "quote": "Presupuesto",
+    "tax": "Doc. fiscal",
+    "other": "Otro"
+  },
+
+  "docTypesPlural": {
+    "all": "Todos",
+    "invoice_issued": "Facturas emitidas",
+    "invoice_received": "Facturas recibidas",
+    "delivery_note": "Albaranes",
+    "order": "Pedidos",
+    "receipt": "Recibos",
+    "payroll": "Nóminas",
+    "contract": "Contratos",
+    "quote": "Presupuestos",
+    "other": "Otros"
+  },
+
+  "dashboard": {
+    "greeting": {
+      "morning": "Buenos días",
+      "afternoon": "Buenas tardes",
+      "evening": "Buenas noches"
+    },
+    "overdueAlert": "{{count}} documento vencido",
+    "overdueAlert_plural": "{{count}} documentos vencidos",
+    "uncollected": "sin cobrar",
+    "view": "Ver",
+    "paid": "Cobrado",
+    "pending": "Pendiente",
+    "overdue": "Vencido",
+    "monthlyActivity": "Actividad mensual",
+    "docsArchived": "Documentos archivados",
+    "recentDocs": "Documentos recientes",
+    "viewAll": "Ver todos",
+    "noDocs": "Sin documentos",
+    "uploadFirst": "Sube tu primer documento para comenzar"
+  },
+
+  "biblioteca": {
+    "title": "Biblioteca",
+    "searchPlaceholder": "Buscar documentos...",
+    "docsFound": "{{count}} documentos encontrados",
+    "noResults": "Sin resultados",
+    "noResultsDesc": "No hay documentos que coincidan con los filtros aplicados.",
+    "clearFilters": "Limpiar filtros",
+    "advancedFilters": "Filtros avanzados",
+    "clear": "Limpiar",
+    "statusLabel": "Estado",
+    "applyFilters": "Aplicar filtros"
+  },
+
+  "buscar": {
+    "title": "Buscador",
+    "placeholder": "Buscar por número, empresa, tipo...",
+    "resultsFor": "{{count}} resultado para \"{{query}}\"",
+    "resultsFor_plural": "{{count}} resultados para \"{{query}}\"",
+    "sortBy": "Ordenar por",
+    "searchAny": "Busca cualquier documento",
+    "searchHint": "Escribe un número de documento, nombre de empresa o cualquier dato.",
+    "noResults": "Sin resultados",
+    "tryOther": "Prueba con otros términos de búsqueda.",
+    "sortDateDesc": "Fecha ↓",
+    "sortDateAsc": "Fecha ↑",
+    "sortAmountDesc": "Importe ↓",
+    "sortAmountAsc": "Importe ↑"
+  },
+
+  "documento": {
+    "detail": "Detalle",
+    "deleteTitle": "Eliminar documento",
+    "deleteConfirm": "¿Estás seguro? Esta acción no se puede deshacer.",
+    "openFile": "Toca para abrir el archivo",
+    "noFile": "Sin archivo adjunto",
+    "download": "Descargar",
+    "downloadError": "No se pudo abrir el archivo.",
+    "notFound": "Documento no encontrado",
+    "info": "Información",
+    "type": "Tipo",
+    "company": "Empresa",
+    "supplierCif": "CIF proveedor",
+    "issueDate": "Fecha emisión",
+    "dueDate": "Fecha vencimiento",
+    "paymentDate": "Fecha pago",
+    "subtotal": "Base imponible",
+    "vat": "IVA",
+    "total": "Total",
+    "notes": "Notas",
+    "description": "Descripción"
+  },
+
+  "editar": {
+    "title": "Editar documento",
+    "notFound": "Documento no encontrado",
+    "docNumber": "Número de documento",
+    "docType": "Tipo de documento",
+    "status": "Estado",
+    "company": "Empresa",
+    "selectCompany": "Sin empresa",
+    "issueDate": "Fecha emisión",
+    "dueDate": "Fecha vencimiento",
+    "paymentDate": "Fecha pago",
+    "subtotal": "Subtotal",
+    "taxRate": "% IVA",
+    "total": "Total",
+    "notes": "Notas",
+    "description": "Descripción",
+    "saveChanges": "Guardar cambios",
+    "saved": "Cambios guardados",
+    "saveError": "Error al guardar",
+    "dates": "Fechas",
+    "amounts": "Importes",
+    "information": "Información",
+    "dangerZone": "Zona de peligro",
+    "dangerHint": "Esta acción no se puede deshacer fácilmente.",
+    "markCancelled": "Marcar como cancelado",
+    "markCancelledTitle": "Marcar como cancelado",
+    "markCancelledConfirm": "¿Estás seguro? El estado cambiará a cancelado."
+  },
+
+  "empresas": {
+    "title": "Empresas",
+    "companiesCount": "{{current}} / {{max}} empresas",
+    "searchPlaceholder": "Buscar empresa, CIF...",
+    "noResults": "Sin resultados",
+    "noCompanies": "Sin empresas",
+    "tryOther": "Prueba otro término de búsqueda.",
+    "addFirst": "Añade tu primera empresa para comenzar.",
+    "addCompany": "Añadir empresa",
+    "suspended": "Suspendida",
+    "sector": "Sector",
+    "documents": "Documentos",
+    "viewDocs": "Ver documentos",
+    "suspend": "Suspender",
+    "reactivate": "Reactivar",
+    "editCompany": "Editar empresa",
+    "newCompany": "Nueva empresa",
+    "nameLabel": "Nombre *",
+    "cifLabel": "CIF/NIF",
+    "sectorLabel": "Sector",
+    "createCompany": "Crear empresa",
+    "saveChanges": "Guardar cambios",
+    "deleteTitle": "Eliminar empresa",
+    "deleteConfirm": "¿Estás seguro de que quieres eliminar \"{{name}}\"? Sus documentos quedarán sin empresa asignada.",
+    "limitTitle": "Límite de empresas alcanzado",
+    "limitDesc": "Tu plan actual permite hasta {{max}} empresa(s). Actualiza a Pro o añade empresas adicionales por 2€/empresa/mes.",
+    "limitBullet1": "Plan Gratis: 1 empresa",
+    "limitBullet2": "Plan Pro: 20 empresas incluidas",
+    "limitBullet3": "+2€/mes por empresa adicional"
+  },
+
+  "equipo": {
+    "title": "Equipo",
+    "usersCount": "{{current}} / {{max}} usuario",
+    "usersCount_plural": "{{current}} / {{max}} usuarios",
+    "noMembers": "Sin miembros",
+    "inviteHint": "Invita a tu equipo para colaborar en Archivum.",
+    "inviteUser": "Invitar usuario",
+    "changeRole": "Cambiar rol",
+    "removeMember": "Eliminar miembro",
+    "removeConfirm": "¿Estás seguro de que quieres eliminar a {{name}} de la organización?",
+    "availableRoles": "Roles disponibles",
+    "roles": {
+      "owner": "Propietario",
+      "admin": "Administrador",
+      "member": "Miembro",
+      "viewer": "Visor"
+    },
+    "roleDesc": {
+      "admin": "Gestión total excepto facturación",
+      "member": "Acceso a empresas asignadas",
+      "viewer": "Solo lectura"
+    },
+    "roleLegend": {
+      "admin": "Gestión total",
+      "member": "Acceso asignado",
+      "viewer": "Solo lectura"
+    },
+    "invite": {
+      "title": "Invitar usuario",
+      "firstName": "Nombre",
+      "lastName": "Apellido",
+      "email": "Email *",
+      "role": "Rol",
+      "send": "Enviar invitación",
+      "success": "Invitación enviada correctamente",
+      "emailHint": "El usuario recibirá un correo para activar su cuenta.",
+      "errors": {
+        "already_member": "Este usuario ya es miembro de la organización.",
+        "not_authorized": "No tienes permisos para invitar usuarios.",
+        "member_limit_reached": "Has alcanzado el límite de usuarios de tu plan.",
+        "missing_fields": "Completa todos los campos requeridos.",
+        "server_error": "Error del servidor. Inténtalo de nuevo.",
+        "connection": "Error de conexión. Comprueba tu internet."
+      }
+    },
+    "limitFree": "Límite del plan gratuito",
+    "limitReached": "Límite de usuarios alcanzado",
+    "limitDescFree": "El plan gratuito incluye 1 usuario. Actualiza a Pro para añadir hasta 5 usuarios.",
+    "limitDescPaid": "Has llegado a {{max}} usuarios. Añade usuarios extra por 2€/usuario/mes.",
+    "limitBullet1": "Plan Gratis: 1 usuario",
+    "limitBullet2": "Plan Pro: 5 usuarios incluidos",
+    "limitBullet3": "+2€/mes por usuario adicional"
+  },
+
+  "subir": {
+    "title": "Subir documento",
+    "stepFile": "Archivo",
+    "stepMeta": "Metadatos",
+    "stepConfirm": "Confirmar",
+    "tapToSelect": "Toca para seleccionar",
+    "fileHint": "PDF, JPG, PNG — máx. 25 MB",
+    "autoConvert": "Las imágenes se convierten a PDF automáticamente",
+    "convertingPdf": "Convirtiendo a PDF…",
+    "camera": "Cámara",
+    "gallery": "Galería",
+    "files": "Archivos",
+    "continue": "Continuar →",
+    "back": "← Atrás",
+    "noFile": "Sin archivo",
+    "docTypeLabel": "Tipo de documento *",
+    "docNumberLabel": "Número de documento *",
+    "companyLabel": "Empresa / Cliente *",
+    "issueDateLabel": "Fecha de emisión",
+    "dueDateLabel": "Fecha de vencimiento",
+    "totalLabel": "Importe total (€)",
+    "subtotalLabel": "Base imponible (€)",
+    "vatLabel": "% IVA",
+    "statusLabel": "Estado",
+    "notesLabel": "Notas",
+    "notesPlaceholder": "Observaciones, referencias internas…",
+    "summary": "Resumen",
+    "archive": "Archivar documento",
+    "editData": "← Editar datos",
+    "successTitle": "✓ Documento archivado",
+    "successMsg": "{{name}} archivado correctamente.",
+    "viewLibrary": "Ver biblioteca",
+    "uploadAnother": "Subir otro",
+    "quotaExpired": "Tu suscripción ha vencido. Renuévala para poder subir documentos.",
+    "quotaReached": "Has alcanzado el límite de documentos de tu plan. La cuota se renueva el próximo mes o puedes contratar documentos adicionales.",
+    "quotaEmpty": "Cuota agotada",
+    "goBack": "Volver",
+    "errorCamera": "No se pudo acceder a la cámara o galería.",
+    "errorFile": "No se pudo abrir el archivo.",
+    "errorArchive": "No se pudo archivar el documento."
   },
 
   "tutorial": {
@@ -96,7 +368,8 @@
       "organization": "Organización",
       "billing": "Plan y facturación",
       "preferences": "Preferencias",
-      "help": "Ayuda"
+      "help": "Ayuda",
+      "danger": "Zona de peligro"
     },
     "organization": {
       "name": "Nombre",
@@ -107,6 +380,11 @@
       "users": "Usuarios",
       "documents": "Documentos",
       "companies": "Empresas",
+      "docsAvailable": "Documentos disponibles",
+      "remaining": "{{count}} restantes",
+      "baseMonthly": "Base: {{count}}/mes · acumulativos",
+      "bonusDocs": " · +{{count}} bono",
+      "freeForever": "Gratuito · para siempre",
       "manage": "Gestionar plan y facturación",
       "statuses": {
         "active": "Activa",
@@ -129,10 +407,37 @@
     "help": {
       "tutorial": "Ver tutorial de la app"
     },
+    "cancelSub": {
+      "title": "Cancelar suscripción",
+      "subtitle": "Los datos serán eliminados 15 días después de cancelar.",
+      "warning": "IMPORTANTE — Lee esto antes de continuar:\n\n1. Descarga todos tus documentos AHORA, porque una vez cancelada la suscripción no podrás acceder ni visualizar ningún documento.\n\n2. Si no renuevas en 15 días, tu cuenta y TODOS los datos (documentos, empresas, equipo) serán eliminados de forma permanente.\n\n3. Durante los 15 días de gracia no podrás subir, descargar ni editar documentos.",
+      "keep": "Mantener suscripción",
+      "confirm": "Sí, cancelar",
+      "done": "Suscripción cancelada",
+      "doneDesc": "Tu suscripción ha sido cancelada. Tienes 15 días para descargar tus documentos antes de que la cuenta sea eliminada.",
+      "error": "No se pudo cancelar la suscripción. Inténtalo desde la web."
+    },
     "signOut": "Cerrar sesión",
     "signOutConfirmTitle": "Cerrar sesión",
     "signOutConfirmMessage": "¿Estás seguro de que quieres cerrar sesión?",
     "user": "Usuario"
+  },
+
+  "register": {
+    "title": "Crear cuenta",
+    "subtitle": "Completa tus datos para registrarte en Archivum.",
+    "firstName": "Nombre",
+    "lastName": "Apellidos",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "passwordHint": "Mín. 8 caracteres",
+    "confirmPassword": "Confirmar contraseña",
+    "submit": "Crear cuenta",
+    "hasAccount": "¿Ya tienes cuenta?",
+    "signIn": "Inicia sesión",
+    "errorMismatch": "Las contraseñas no coinciden",
+    "errorMinLength": "La contraseña debe tener al menos 8 caracteres",
+    "errorAlreadyRegistered": "Este email ya está registrado"
   },
 
   "language": {

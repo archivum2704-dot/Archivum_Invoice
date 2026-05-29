@@ -15,6 +15,7 @@ import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
 import { useTranslation } from "react-i18next";
+import { useColors } from "@/lib/colors";
 
 const APP_URL = "https://archivum2704-dot.vercel.app";
 
@@ -27,15 +28,6 @@ interface PlanInfo {
   extra_companies_quantity: number;
 }
 
-const C = {
-  blue: "#2563EB", blueL: "#EFF6FF",
-  green: "#16A34A", greenL: "#F0FDF4",
-  yellow: "#D97706", yellowL: "#FFFBEB",
-  red: "#DC2626", redL: "#FEF2F2",
-  bg: "#F9FAFB", surface: "#FFFFFF",
-  text: "#111827", muted: "#6B7280", border: "#E5E7EB",
-};
-
 interface Company {
   id: string;
   name: string;
@@ -46,52 +38,40 @@ interface Company {
 }
 
 /* ── Upgrade modal ───────────────────────────────────────────────────────── */
-function UpgradeModal({ visible, maxCompanies, onClose }: { visible: boolean; maxCompanies: number; onClose: () => void }) {
+function UpgradeModal({ visible, maxCompanies, onClose, C, t }: { visible: boolean; maxCompanies: number; onClose: () => void; C: any; t: any }) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,.45)" }} activeOpacity={1} onPress={onClose} />
+      <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
       <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 28 }}>
         <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 16 }} />
-
-        {/* Icon */}
         <View style={{ alignItems: "center", marginBottom: 12 }}>
           <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
             <Lock size={26} color={C.blue} />
           </View>
         </View>
-
         <Text style={{ fontSize: 18, fontWeight: "800", color: C.text, textAlign: "center", paddingHorizontal: 24, marginBottom: 8 }}>
-          Límite de empresas alcanzado
+          {t("empresas.limitTitle")}
         </Text>
         <Text style={{ fontSize: 14, color: C.muted, textAlign: "center", paddingHorizontal: 24, lineHeight: 20, marginBottom: 20 }}>
-          Tu plan actual permite hasta {maxCompanies} {maxCompanies === 1 ? "empresa" : "empresas"}.
-          Actualiza a Pro o añade empresas adicionales por 2€/empresa/mes.
+          {t("empresas.limitDesc", { max: maxCompanies })}
         </Text>
-
-        {/* Bullets */}
         <View style={{ marginHorizontal: 24, marginBottom: 20, gap: 8 }}>
-          {[
-            "Plan Gratis: 1 empresa",
-            "Plan Pro: 20 empresas incluidas",
-            "+2€/mes por empresa adicional",
-          ].map((line) => (
+          {[t("empresas.limitBullet1"), t("empresas.limitBullet2"), t("empresas.limitBullet3")].map((line) => (
             <View key={line} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.blue }} />
               <Text style={{ fontSize: 13, color: C.text }}>{line}</Text>
             </View>
           ))}
         </View>
-
         <TouchableOpacity
           onPress={() => { onClose(); Linking.openURL(`${APP_URL}/configuracion/billing`); }}
           style={{ marginHorizontal: 24, backgroundColor: C.blue, borderRadius: 12, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}
         >
-          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Ver planes y precios</Text>
+          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("common.viewPlans")}</Text>
           <ArrowRight size={16} color="#fff" />
         </TouchableOpacity>
-
         <TouchableOpacity onPress={onClose} style={{ marginTop: 10, alignItems: "center", paddingVertical: 10 }}>
-          <Text style={{ fontSize: 14, color: C.muted }}>Ahora no</Text>
+          <Text style={{ fontSize: 14, color: C.muted }}>{t("common.notNow")}</Text>
         </TouchableOpacity>
       </View>
     </Modal>
@@ -100,10 +80,10 @@ function UpgradeModal({ visible, maxCompanies, onClose }: { visible: boolean; ma
 
 /* ── Company form modal (create / edit) ─────────────────────────────────── */
 function CompanyModal({
-  visible, onClose, onSaved, orgId, initial,
+  visible, onClose, onSaved, orgId, initial, C, t,
 }: {
   visible: boolean; onClose: () => void; onSaved: () => void;
-  orgId: string; initial?: Company | null;
+  orgId: string; initial?: Company | null; C: any; t: any;
 }) {
   const isEdit = !!initial;
   const [name,    setName]    = useState(initial?.name    ?? "");
@@ -122,37 +102,42 @@ function CompanyModal({
   const handleSave = async () => {
     if (!name.trim()) return;
     setSaving(true);
+    let error: any;
     if (isEdit && initial) {
-      await supabase.from("companies").update({ name: name.trim(), cif: cif.trim() || null, sector: sector.trim() || null }).eq("id", initial.id);
+      ({ error } = await supabase.from("companies").update({ name: name.trim(), cif: cif.trim() || null, sector: sector.trim() || null }).eq("id", initial.id));
     } else {
-      await supabase.from("companies").insert({ organization_id: orgId, name: name.trim(), cif: cif.trim() || null, sector: sector.trim() || null, is_active: true });
+      ({ error } = await supabase.from("companies").insert({ organization_id: orgId, name: name.trim(), cif: cif.trim() || null, sector: sector.trim() || null, is_active: true }));
     }
     setSaving(false);
+    if (error) {
+      Alert.alert(t("common.error"), error.message ?? t("common.unknownError"));
+      return;
+    }
     onSaved();
     onClose();
   };
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,.45)" }} activeOpacity={1} onPress={onClose} />
+      <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
       <View style={{ backgroundColor: C.surface, borderRadius: 20, maxHeight: "75%", overflow: "hidden" }}>
         <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12 }} />
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: C.border }}>
-          <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>{isEdit ? "Editar empresa" : "Nueva empresa"}</Text>
-          <TouchableOpacity onPress={onClose} style={{ backgroundColor: "#F3F4F6", borderRadius: 8, padding: 6 }}>
+          <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>{isEdit ? t("empresas.editCompany") : t("empresas.newCompany")}</Text>
+          <TouchableOpacity onPress={onClose} style={{ backgroundColor: C.segmentBg, borderRadius: 8, padding: 6 }}>
             <X size={16} color={C.muted} />
           </TouchableOpacity>
         </View>
         <ScrollView style={{ padding: 16 }} keyboardShouldPersistTaps="handled">
           {[
-            { label: "Nombre *", value: name, setter: setName, placeholder: "Iberdrola SA" },
-            { label: "CIF/NIF",  value: cif,  setter: setCif,  placeholder: "A-95075578" },
-            { label: "Sector",   value: sector, setter: setSector, placeholder: "Energía" },
+            { label: t("empresas.nameLabel"), value: name, setter: setName, placeholder: "Iberdrola SA" },
+            { label: t("empresas.cifLabel"),  value: cif,  setter: setCif,  placeholder: "A-95075578" },
+            { label: t("empresas.sectorLabel"), value: sector, setter: setSector, placeholder: "Energía" },
           ].map((f) => (
             <View key={f.label} style={{ marginBottom: 12 }}>
               <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 5 }}>{f.label}</Text>
               <TextInput
-                style={{ borderWidth: 1.5, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: C.text, backgroundColor: C.surface }}
+                style={{ borderWidth: 1.5, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: C.text, backgroundColor: C.inputBg }}
                 placeholder={f.placeholder} placeholderTextColor={C.muted}
                 value={f.value} onChangeText={f.setter}
               />
@@ -163,7 +148,7 @@ function CompanyModal({
             style={{ backgroundColor: C.blue, borderRadius: 10, paddingVertical: 14, alignItems: "center", marginBottom: 16, opacity: (saving || !name.trim()) ? 0.6 : 1 }}
           >
             <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
-              {saving ? "Guardando…" : (isEdit ? "Guardar cambios" : "Crear empresa")}
+              {saving ? t("common.saving") : (isEdit ? t("empresas.saveChanges") : t("empresas.createCompany"))}
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -174,30 +159,30 @@ function CompanyModal({
 
 /* ── Action menu modal ───────────────────────────────────────────────────── */
 function ActionMenu({
-  visible, company, onClose, onEdit, onToggle, onDelete,
+  visible, company, onClose, onEdit, onToggle, onDelete, C, t,
 }: {
   visible: boolean; company: Company | null; onClose: () => void;
-  onEdit: () => void; onToggle: () => void; onDelete: () => void;
+  onEdit: () => void; onToggle: () => void; onDelete: () => void; C: any; t: any;
 }) {
   if (!company) return null;
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,.45)" }} activeOpacity={1} onPress={onClose} />
+      <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
       <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 24 }}>
         <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 8 }} />
         <Text style={{ fontSize: 15, fontWeight: "700", color: C.text, paddingHorizontal: 20, paddingBottom: 8 }} numberOfLines={1}>
           {company.name}
         </Text>
         {[
-          { icon: <FileText size={18} color={C.blue} />,   label: "Ver documentos",   action: () => { onClose(); router.push(`/(app)/biblioteca?empresa=${company.id}`); } },
-          { icon: <Pencil size={18} color={C.text} />,     label: "Editar",            action: () => { onClose(); onEdit(); } },
+          { icon: <FileText size={18} color={C.blue} />,   label: t("empresas.viewDocs"),   action: () => { onClose(); router.push(`/(app)/biblioteca?empresa=${company.id}`); } },
+          { icon: <Pencil size={18} color={C.text} />,     label: t("common.edit"),         action: () => { onClose(); onEdit(); } },
           { icon: company.is_active
               ? <PauseCircle size={18} color={C.yellow} />
               : <PlayCircle  size={18} color={C.green}  />,
-            label: company.is_active ? "Suspender" : "Reactivar",
+            label: company.is_active ? t("empresas.suspend") : t("empresas.reactivate"),
             action: () => { onClose(); onToggle(); }
           },
-          { icon: <Trash2 size={18} color={C.red} />,     label: "Eliminar",          action: () => { onClose(); onDelete(); }, danger: true },
+          { icon: <Trash2 size={18} color={C.red} />, label: t("common.delete"), action: () => { onClose(); onDelete(); }, danger: true },
         ].map((item) => (
           <TouchableOpacity
             key={item.label} onPress={item.action}
@@ -213,7 +198,7 @@ function ActionMenu({
 }
 
 /* ── Company card ────────────────────────────────────────────────────────── */
-function CompanyCard({ company, onMenu }: { company: Company; onMenu: () => void }) {
+function CompanyCard({ company, onMenu, C, t }: { company: Company; onMenu: () => void; C: any; t: any }) {
   return (
     <View style={{
       backgroundColor: C.surface, borderRadius: 14, marginHorizontal: 16, marginBottom: 10,
@@ -231,7 +216,7 @@ function CompanyCard({ company, onMenu }: { company: Company; onMenu: () => void
                 <Text style={{ fontSize: 15, fontWeight: "700", color: C.text }} numberOfLines={1}>{company.name}</Text>
                 {!company.is_active && (
                   <View style={{ backgroundColor: C.yellowL, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 1 }}>
-                    <Text style={{ fontSize: 10, fontWeight: "600", color: C.yellow }}>Suspendida</Text>
+                    <Text style={{ fontSize: 10, fontWeight: "600", color: C.yellow }}>{t("empresas.suspended")}</Text>
                   </View>
                 )}
               </View>
@@ -248,12 +233,12 @@ function CompanyCard({ company, onMenu }: { company: Company; onMenu: () => void
         <View style={{ flexDirection: "row", gap: 16, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border }}>
           {company.sector && (
             <View>
-              <Text style={{ fontSize: 11, color: C.muted }}>Sector</Text>
+              <Text style={{ fontSize: 11, color: C.muted }}>{t("empresas.sector")}</Text>
               <Text style={{ fontSize: 12, fontWeight: "600", color: C.text }}>{company.sector}</Text>
             </View>
           )}
           <View>
-            <Text style={{ fontSize: 11, color: C.muted }}>Documentos</Text>
+            <Text style={{ fontSize: 11, color: C.muted }}>{t("empresas.documents")}</Text>
             <Text style={{ fontSize: 12, fontWeight: "600", color: C.text }}>{company.doc_count ?? 0}</Text>
           </View>
         </View>
@@ -265,6 +250,7 @@ function CompanyCard({ company, onMenu }: { company: Company; onMenu: () => void
 /* ── Main screen ─────────────────────────────────────────────────────────── */
 export default function EmpresasScreen() {
   const { t } = useTranslation();
+  const C = useColors();
   const { orgId } = useAuth();
   const [companies,    setCompanies]    = useState<Company[]>([]);
   const [filtered,     setFiltered]     = useState<Company[]>([]);
@@ -279,11 +265,15 @@ export default function EmpresasScreen() {
 
   const maxCompanies = plan
     ? (isPaidActive(plan.subscription_status) ? 20 + plan.extra_companies_quantity : 1)
-    : 1;
+    : 999; // Don't block while plan is loading
 
-  const atLimit = companies.length >= maxCompanies;
+  const atLimit = plan != null && companies.length >= maxCompanies;
 
   const handleAddPress = () => {
+    if (!orgId) {
+      Alert.alert(t("common.error"), t("common.unknownError"));
+      return;
+    }
     if (atLimit) { setUpgradeOpen(true); }
     else         { setCreateOpen(true);  }
   };
@@ -323,12 +313,12 @@ export default function EmpresasScreen() {
 
   const handleDelete = (c: Company) => {
     Alert.alert(
-      "Eliminar empresa",
-      `¿Estás seguro de que quieres eliminar "${c.name}"? Sus documentos quedarán sin empresa asignada.`,
+      t("empresas.deleteTitle"),
+      t("empresas.deleteConfirm", { name: c.name }),
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Eliminar", style: "destructive",
+          text: t("common.delete"), style: "destructive",
           onPress: async () => { await supabase.from("companies").delete().eq("id", c.id); load(); },
         },
       ]
@@ -337,22 +327,22 @@ export default function EmpresasScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center" }}>
+      <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator size="large" color={C.blue} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+    <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: C.bg }}>
       {/* Header */}
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <View>
-            <Text style={{ fontSize: 22, fontWeight: "800", color: C.text }}>Empresas</Text>
+            <Text style={{ fontSize: 22, fontWeight: "800", color: C.text }}>{t("empresas.title")}</Text>
             {plan && (
               <Text style={{ fontSize: 12, color: atLimit ? C.red : C.muted, marginTop: 1 }}>
-                {companies.length} / {maxCompanies} empresas
+                {t("empresas.companiesCount", { current: companies.length, max: maxCompanies })}
               </Text>
             )}
           </View>
@@ -366,12 +356,12 @@ export default function EmpresasScreen() {
 
         <View style={{
           flexDirection: "row", alignItems: "center", gap: 8,
-          backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12,
+          backgroundColor: C.inputBg, borderWidth: 1.5, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12,
         }}>
           <Search size={16} color={C.muted} />
           <TextInput
             style={{ flex: 1, fontSize: 14, color: C.text, paddingVertical: 10 }}
-            placeholder="Buscar empresa, CIF…"
+            placeholder={t("empresas.searchPlaceholder")}
             placeholderTextColor={C.muted}
             value={query}
             onChangeText={setQuery}
@@ -384,17 +374,17 @@ export default function EmpresasScreen() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 12 }}>
           <Building2 size={56} color={C.muted} />
           <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>
-            {query ? "Sin resultados" : "Sin empresas"}
+            {query ? t("empresas.noResults") : t("empresas.noCompanies")}
           </Text>
           <Text style={{ fontSize: 13, color: C.muted, textAlign: "center" }}>
-            {query ? "Prueba otro término de búsqueda." : "Añade tu primera empresa para comenzar."}
+            {query ? t("empresas.tryOther") : t("empresas.addFirst")}
           </Text>
           {!query && (
             <TouchableOpacity
               onPress={handleAddPress}
               style={{ backgroundColor: C.blue, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 8, marginTop: 4 }}
             >
-              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>Añadir empresa</Text>
+              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>{t("empresas.addCompany")}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -403,7 +393,7 @@ export default function EmpresasScreen() {
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <CompanyCard company={item} onMenu={() => setMenuTarget(item)} />
+            <CompanyCard company={item} onMenu={() => setMenuTarget(item)} C={C} t={t} />
           )}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.blue} />}
           contentContainerStyle={{ paddingTop: 4, paddingBottom: 24 }}
@@ -422,31 +412,15 @@ export default function EmpresasScreen() {
       />
 
       {/* Modals */}
-      <UpgradeModal
-        visible={upgradeOpen}
-        maxCompanies={maxCompanies}
-        onClose={() => setUpgradeOpen(false)}
-      />
-      <CompanyModal
-        visible={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onSaved={load}
-        orgId={orgId!}
-      />
-      <CompanyModal
-        visible={!!editTarget}
-        initial={editTarget}
-        onClose={() => setEditTarget(null)}
-        onSaved={load}
-        orgId={orgId!}
-      />
+      <UpgradeModal visible={upgradeOpen} maxCompanies={maxCompanies} onClose={() => setUpgradeOpen(false)} C={C} t={t} />
+      <CompanyModal visible={createOpen} onClose={() => setCreateOpen(false)} onSaved={load} orgId={orgId!} C={C} t={t} />
+      <CompanyModal visible={!!editTarget} initial={editTarget} onClose={() => setEditTarget(null)} onSaved={load} orgId={orgId!} C={C} t={t} />
       <ActionMenu
-        visible={!!menuTarget}
-        company={menuTarget}
-        onClose={() => setMenuTarget(null)}
+        visible={!!menuTarget} company={menuTarget} onClose={() => setMenuTarget(null)}
         onEdit={() => { setEditTarget(menuTarget); setMenuTarget(null); }}
         onToggle={() => { if (menuTarget) handleToggle(menuTarget); setMenuTarget(null); }}
         onDelete={() => { if (menuTarget) handleDelete(menuTarget); }}
+        C={C} t={t}
       />
     </SafeAreaView>
   );

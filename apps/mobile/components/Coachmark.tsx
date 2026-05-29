@@ -6,15 +6,10 @@ import {
 import { X, ArrowRight } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
+import { useColors } from "@/lib/colors";
 
 const COACHMARK_PREFIX = "@archivum/coachmark_";
 const { width: SW, height: SH } = Dimensions.get("window");
-
-const C = {
-  blue: "#2563EB",
-  text: "#111827", muted: "#6B7280", border: "#E5E7EB",
-  surface: "#FFFFFF",
-};
 
 export async function isCoachmarkSeen(id: string): Promise<boolean> {
   try { return (await AsyncStorage.getItem(COACHMARK_PREFIX + id)) === "true"; }
@@ -70,6 +65,7 @@ export function Coachmark({
   force = false, icon, onDismiss,
 }: CoachmarkProps) {
   const { t } = useTranslation();
+  const C = useColors();
   const [visible, setVisible] = useState(false);
   const fade = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.92)).current;

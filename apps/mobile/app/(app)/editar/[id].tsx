@@ -7,33 +7,20 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft, Check } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
-
-const C = {
-  blue: "#2563EB", red: "#DC2626", redL: "#FEF2F2",
-  greenL: "#F0FDF4", green: "#16A34A",
-  bg: "#F9FAFB", surface: "#FFFFFF",
-  text: "#111827", muted: "#6B7280", border: "#E5E7EB",
-};
-
-const STATUS_OPTIONS = [
-  { key: "draft",     label: "Borrador" },
-  { key: "pending",   label: "Pendiente" },
-  { key: "paid",      label: "Pagado" },
-  { key: "overdue",   label: "Vencido" },
-  { key: "cancelled", label: "Cancelado" },
-];
+import { useColors } from "@/lib/colors";
+import { useTranslation } from "react-i18next";
 
 function Field({
-  label, value, onChangeText, keyboardType = "default", placeholder,
+  label, value, onChangeText, keyboardType = "default", placeholder, C,
 }: {
   label: string; value: string; onChangeText: (v: string) => void;
-  keyboardType?: any; placeholder?: string;
+  keyboardType?: any; placeholder?: string; C: any;
 }) {
   return (
     <View style={{ padding: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border }}>
       <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 6 }}>{label}</Text>
       <TextInput
-        style={{ fontSize: 14, color: C.text, borderWidth: 1.5, borderColor: C.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.surface }}
+        style={{ fontSize: 14, color: C.text, borderWidth: 1.5, borderColor: C.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.inputBg }}
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
@@ -46,6 +33,8 @@ function Field({
 
 export default function EditarScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const C = useColors();
+  const { t } = useTranslation();
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
   const [saved,    setSaved]    = useState(false);
@@ -61,6 +50,14 @@ export default function EditarScreen() {
   const [payDate,   setPayDate]   = useState("");
   const [notes,     setNotes]     = useState("");
   const [desc,      setDesc]      = useState("");
+
+  const STATUS_OPTIONS = [
+    { key: "draft",     label: t("status.draft") },
+    { key: "pending",   label: t("status.pending") },
+    { key: "paid",      label: t("status.paid") },
+    { key: "overdue",   label: t("status.overdue") },
+    { key: "cancelled", label: t("status.cancelled") },
+  ];
 
   useEffect(() => {
     if (!id) return;
@@ -107,10 +104,10 @@ export default function EditarScreen() {
   };
 
   const handleCancel = () => {
-    Alert.alert("Marcar como cancelado", "¿Estás seguro? El estado cambiará a cancelado.", [
-      { text: "No", style: "cancel" },
+    Alert.alert(t("editar.markCancelledTitle"), t("editar.markCancelledConfirm"), [
+      { text: t("common.no"), style: "cancel" },
       {
-        text: "Sí, cancelar", style: "destructive",
+        text: t("common.yes"), style: "destructive",
         onPress: async () => {
           await supabase.from("documents").update({ status: "cancelled" }).eq("id", id);
           router.back();
@@ -127,6 +124,18 @@ export default function EditarScreen() {
     );
   }
 
+  const sectionStyle = {
+    fontSize: 11, fontWeight: "700" as const, color: C.muted,
+    letterSpacing: 1, textTransform: "uppercase" as const,
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6,
+  };
+
+  const cardStyle = {
+    backgroundColor: C.surface, borderRadius: 14, marginHorizontal: 16,
+    overflow: "hidden" as const, shadowColor: "#000", shadowOpacity: 0.06,
+    shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2,
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
@@ -135,7 +144,7 @@ export default function EditarScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <ChevronLeft size={24} color={C.blue} />
           </TouchableOpacity>
-          <Text style={{ flex: 1, fontSize: 17, fontWeight: "700", color: C.text }}>Editar documento</Text>
+          <Text style={{ flex: 1, fontSize: 17, fontWeight: "700", color: C.text }}>{t("editar.title")}</Text>
           <TouchableOpacity
             onPress={handleSave}
             disabled={saving}
@@ -144,19 +153,19 @@ export default function EditarScreen() {
             {saving
               ? <ActivityIndicator size="small" color="#fff" />
               : saved
-                ? <><Check size={14} color="#fff" /><Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>Guardado</Text></>
-                : <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>Guardar</Text>
+                ? <><Check size={14} color="#fff" /><Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>{t("editar.saved")}</Text></>
+                : <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>{t("common.save")}</Text>
             }
           </TouchableOpacity>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* Información */}
-          <Text style={sectionStyle}>Información</Text>
+          <Text style={sectionStyle}>{t("editar.information")}</Text>
           <View style={cardStyle}>
-            <Field label="Número de documento" value={docNumber} onChangeText={setDocNumber} placeholder="FAC-2025-0001" />
+            <Field C={C} label={t("editar.docNumber")} value={docNumber} onChangeText={setDocNumber} placeholder="FAC-2025-0001" />
             <View style={{ padding: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border }}>
-              <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 8 }}>Estado</Text>
+              <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 8 }}>{t("editar.status")}</Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                 {STATUS_OPTIONS.map((opt) => (
                   <TouchableOpacity
@@ -177,49 +186,49 @@ export default function EditarScreen() {
           </View>
 
           {/* Fechas */}
-          <Text style={sectionStyle}>Fechas</Text>
+          <Text style={sectionStyle}>{t("editar.dates")}</Text>
           <View style={cardStyle}>
-            <Field label="Fecha de emisión"    value={issueDate} onChangeText={setIssueDate} placeholder="2025-01-15" />
-            <Field label="Fecha de vencimiento" value={dueDate}   onChangeText={setDueDate}   placeholder="2025-02-15" />
-            <Field label="Fecha de pago"        value={payDate}   onChangeText={setPayDate}   placeholder="2025-01-20" />
+            <Field C={C} label={t("editar.issueDate")}   value={issueDate} onChangeText={setIssueDate} placeholder="2025-01-15" />
+            <Field C={C} label={t("editar.dueDate")}     value={dueDate}   onChangeText={setDueDate}   placeholder="2025-02-15" />
+            <Field C={C} label={t("editar.paymentDate")} value={payDate}   onChangeText={setPayDate}   placeholder="2025-01-20" />
           </View>
 
           {/* Importes */}
-          <Text style={sectionStyle}>Importes</Text>
+          <Text style={sectionStyle}>{t("editar.amounts")}</Text>
           <View style={cardStyle}>
-            <Field label="Importe total (€)" value={amount}  onChangeText={setAmount}  keyboardType="numeric" placeholder="4280.00" />
-            <Field label="Base imponible (€)" value={taxable} onChangeText={setTaxable} keyboardType="numeric" placeholder="3537.19" />
-            <Field label="% IVA"              value={vatRate} onChangeText={setVatRate} keyboardType="numeric" placeholder="21" />
+            <Field C={C} label={t("editar.total")} value={amount}  onChangeText={setAmount}  keyboardType="numeric" placeholder="4280.00" />
+            <Field C={C} label={t("editar.subtotal")} value={taxable} onChangeText={setTaxable} keyboardType="numeric" placeholder="3537.19" />
+            <Field C={C} label={t("editar.taxRate")} value={vatRate} onChangeText={setVatRate} keyboardType="numeric" placeholder="21" />
           </View>
 
           {/* Notas */}
-          <Text style={sectionStyle}>Notas</Text>
+          <Text style={sectionStyle}>{t("editar.notes")}</Text>
           <View style={cardStyle}>
             <View style={{ padding: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border }}>
-              <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 6 }}>Descripción</Text>
+              <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 6 }}>{t("editar.description")}</Text>
               <TextInput
-                style={{ fontSize: 14, color: C.text, borderWidth: 1.5, borderColor: C.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.surface, minHeight: 60 }}
-                value={desc} onChangeText={setDesc} multiline placeholder="Descripción del documento…" placeholderTextColor={C.muted}
+                style={{ fontSize: 14, color: C.text, borderWidth: 1.5, borderColor: C.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.inputBg, minHeight: 60 }}
+                value={desc} onChangeText={setDesc} multiline placeholder="..." placeholderTextColor={C.muted}
               />
             </View>
             <View style={{ padding: 12, paddingHorizontal: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 6 }}>Notas internas</Text>
+              <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 6 }}>{t("editar.notes")}</Text>
               <TextInput
-                style={{ fontSize: 14, color: C.text, borderWidth: 1.5, borderColor: C.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.surface, minHeight: 60 }}
-                value={notes} onChangeText={setNotes} multiline placeholder="Notas internas…" placeholderTextColor={C.muted}
+                style={{ fontSize: 14, color: C.text, borderWidth: 1.5, borderColor: C.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.inputBg, minHeight: 60 }}
+                value={notes} onChangeText={setNotes} multiline placeholder="..." placeholderTextColor={C.muted}
               />
             </View>
           </View>
 
           {/* Danger zone */}
           <View style={{ margin: 16, marginTop: 8, backgroundColor: C.redL, borderWidth: 1, borderColor: "rgba(220,38,38,.2)", borderRadius: 12, padding: 16 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: C.red, marginBottom: 4 }}>Zona de peligro</Text>
-            <Text style={{ fontSize: 12, color: "#991B1B", marginBottom: 12 }}>Esta acción no se puede deshacer fácilmente.</Text>
+            <Text style={{ fontSize: 13, fontWeight: "700", color: C.red, marginBottom: 4 }}>{t("editar.dangerZone")}</Text>
+            <Text style={{ fontSize: 12, color: C.red, marginBottom: 12, opacity: 0.8 }}>{t("editar.dangerHint")}</Text>
             <TouchableOpacity
               onPress={handleCancel}
               style={{ borderWidth: 1, borderColor: C.red, borderRadius: 8, paddingVertical: 10, alignItems: "center" }}
             >
-              <Text style={{ color: C.red, fontWeight: "600", fontSize: 13 }}>Marcar como cancelado</Text>
+              <Text style={{ color: C.red, fontWeight: "600", fontSize: 13 }}>{t("editar.markCancelled")}</Text>
             </TouchableOpacity>
           </View>
 
@@ -229,15 +238,3 @@ export default function EditarScreen() {
     </SafeAreaView>
   );
 }
-
-const sectionStyle = {
-  fontSize: 11, fontWeight: "700" as const, color: "#6B7280",
-  letterSpacing: 1, textTransform: "uppercase" as const,
-  paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6,
-};
-
-const cardStyle = {
-  backgroundColor: "#FFFFFF", borderRadius: 14, marginHorizontal: 16,
-  overflow: "hidden" as const, shadowColor: "#000", shadowOpacity: 0.06,
-  shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2,
-};

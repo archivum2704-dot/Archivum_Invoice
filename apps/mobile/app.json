@@ -1,25 +1,40 @@
 {
   "expo": {
-    "name": "Invoice SaaS",
-    "slug": "invoice-saas",
+    "name": "Archivum",
+    "slug": "archivum",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "invoice-saas",
+    "icon": "./assets/images/icon.png",
+    "scheme": "archivum",
     "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.invoicesaas.app"
+      "bundleIdentifier": "com.archivum.app",
+      "icon": "./assets/images/icon.png"
     },
     "android": {
-      "package": "com.invoicesaas.app"
+      "package": "com.archivum.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      }
     },
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      "expo-localization",
+      "expo-secure-store",
+      "expo-sharing"
     ],
     "newArchEnabled": false,
     "experiments": {

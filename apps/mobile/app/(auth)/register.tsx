@@ -7,14 +7,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { ChevronLeft, Eye, EyeOff } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
-
-const C = {
-  blue: "#2563EB", red: "#DC2626", redL: "#FEF2F2",
-  bg: "#F9FAFB", surface: "#FFFFFF",
-  text: "#111827", muted: "#6B7280", border: "#E5E7EB",
-};
+import { useColors } from "@/lib/colors";
+import { useTranslation } from "react-i18next";
 
 export default function RegisterScreen() {
+  const C = useColors();
+  const { t } = useTranslation();
   const { signUp } = useAuth();
   const [firstName,    setFirstName]    = useState("");
   const [lastName,     setLastName]     = useState("");
@@ -27,17 +25,23 @@ export default function RegisterScreen() {
   const [error,        setError]        = useState<string | null>(null);
 
   const handleRegister = async () => {
-    if (password !== confirm) { setError("Las contraseñas no coinciden"); return; }
-    if (password.length < 8)  { setError("La contraseña debe tener al menos 8 caracteres"); return; }
+    if (password !== confirm) { setError(t("register.errorMismatch")); return; }
+    if (password.length < 8)  { setError(t("register.errorMinLength")); return; }
     setLoading(true);
     setError(null);
     const err = await signUp(email.trim(), password, firstName.trim(), lastName.trim());
     setLoading(false);
     if (err) {
-      setError(err === "User already registered" ? "Este email ya está registrado" : err);
+      setError(err === "User already registered" ? t("register.errorAlreadyRegistered") : err);
     } else {
       router.replace("/(auth)/login");
     }
+  };
+
+  const labelStyle = { fontSize: 13, fontWeight: "500" as const, color: C.text, marginBottom: 6 };
+  const inputStyle = {
+    borderWidth: 1.5, borderColor: C.border, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: C.text, backgroundColor: C.inputBg,
   };
 
   return (
@@ -57,41 +61,41 @@ export default function RegisterScreen() {
               <ChevronLeft size={24} color={C.blue} />
             </TouchableOpacity>
             <Text style={{ fontSize: 22, fontWeight: "800", color: C.text, letterSpacing: -0.5 }}>
-              Crear cuenta
+              {t("register.title")}
             </Text>
           </View>
           <Text style={{ fontSize: 14, color: C.muted, marginBottom: 28 }}>
-            Completa tus datos para registrarte en Archivum.
+            {t("register.subtitle")}
           </Text>
 
           <View style={{ gap: 16 }}>
             {/* Name row */}
             <View style={{ flexDirection: "row", gap: 12 }}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Nombre</Text>
-                <TextInput style={styles.input} placeholder="David" placeholderTextColor={C.muted} value={firstName} onChangeText={setFirstName} />
+                <Text style={labelStyle}>{t("register.firstName")}</Text>
+                <TextInput style={inputStyle} placeholder="David" placeholderTextColor={C.muted} value={firstName} onChangeText={setFirstName} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Apellidos</Text>
-                <TextInput style={styles.input} placeholder="Martínez" placeholderTextColor={C.muted} value={lastName} onChangeText={setLastName} />
+                <Text style={labelStyle}>{t("register.lastName")}</Text>
+                <TextInput style={inputStyle} placeholder="Martínez" placeholderTextColor={C.muted} value={lastName} onChangeText={setLastName} />
               </View>
             </View>
 
             <View>
-              <Text style={styles.label}>Correo electrónico</Text>
+              <Text style={labelStyle}>{t("register.email")}</Text>
               <TextInput
-                style={styles.input} placeholder="david@empresa.com"
+                style={inputStyle} placeholder="david@empresa.com"
                 placeholderTextColor={C.muted} value={email} onChangeText={setEmail}
                 keyboardType="email-address" autoCapitalize="none"
               />
             </View>
 
             <View>
-              <Text style={styles.label}>Contraseña</Text>
+              <Text style={labelStyle}>{t("register.password")}</Text>
               <View>
                 <TextInput
-                  style={[styles.input, { paddingRight: 48 }]}
-                  placeholder="Mín. 8 caracteres" placeholderTextColor={C.muted}
+                  style={[inputStyle, { paddingRight: 48 }]}
+                  placeholder={t("register.passwordHint")} placeholderTextColor={C.muted}
                   value={password} onChangeText={setPassword}
                   secureTextEntry={!showPwd}
                 />
@@ -105,10 +109,10 @@ export default function RegisterScreen() {
             </View>
 
             <View>
-              <Text style={styles.label}>Confirmar contraseña</Text>
+              <Text style={labelStyle}>{t("register.confirmPassword")}</Text>
               <View>
                 <TextInput
-                  style={[styles.input, { paddingRight: 48 }]}
+                  style={[inputStyle, { paddingRight: 48 }]}
                   placeholder="••••••••" placeholderTextColor={C.muted}
                   value={confirm} onChangeText={setConfirm}
                   secureTextEntry={!showConfirm}
@@ -135,15 +139,15 @@ export default function RegisterScreen() {
             >
               {loading
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>Crear cuenta</Text>
+                : <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>{t("register.submit")}</Text>
               }
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 24, alignItems: "center" }}>
             <Text style={{ fontSize: 14, color: C.muted }}>
-              ¿Ya tienes cuenta?{" "}
-              <Text style={{ color: C.blue, fontWeight: "600" }}>Inicia sesión</Text>
+              {t("register.hasAccount")}{" "}
+              <Text style={{ color: C.blue, fontWeight: "600" }}>{t("register.signIn")}</Text>
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -151,11 +155,3 @@ export default function RegisterScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = {
-  label: { fontSize: 13, fontWeight: "500" as const, color: "#111827", marginBottom: 6 },
-  input: {
-    borderWidth: 1.5, borderColor: "#E5E7EB", borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: "#111827", backgroundColor: "#FFFFFF",
-  },
-};

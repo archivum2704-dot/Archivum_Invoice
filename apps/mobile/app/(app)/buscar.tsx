@@ -1,38 +1,26 @@
 import { useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  ScrollView, ActivityIndicator, Modal,
+  ActivityIndicator, Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Search, X, ChevronDown, FileText, ChevronRight } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
-
-const C = {
-  blue: "#2563EB", blueL: "#EFF6FF", blueMed: "#DBEAFE",
-  green: "#16A34A", yellow: "#D97706", red: "#DC2626",
-  bg: "#F9FAFB", surface: "#FFFFFF",
-  text: "#111827", muted: "#6B7280", border: "#E5E7EB",
-};
-
-const STATUS: Record<string, { label: string; bg: string; color: string }> = {
-  paid:      { label: "Pagado",    bg: "#F0FDF4", color: "#16A34A" },
-  pending:   { label: "Pendiente", bg: "#FFFBEB", color: "#D97706" },
-  overdue:   { label: "Vencido",   bg: "#FEF2F2", color: "#DC2626" },
-  draft:     { label: "Borrador",  bg: "#F3F4F6", color: "#6B7280" },
-  cancelled: { label: "Cancelado", bg: "#F3F4F6", color: "#6B7280" },
-};
+import { useColors } from "@/lib/colors";
+import { useTranslation } from "react-i18next";
 
 type SortKey = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
-const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "date_desc",   label: "Fecha ↓" },
-  { key: "date_asc",    label: "Fecha ↑" },
-  { key: "amount_desc", label: "Importe ↓" },
-  { key: "amount_asc",  label: "Importe ↑" },
-];
 
-function DocRow({ doc }: { doc: any }) {
+function DocRow({ doc, C, t }: { doc: any; C: any; t: any }) {
+  const STATUS: Record<string, { label: string; bg: string; color: string }> = {
+    paid:      { label: t("status.paid"),      bg: C.greenL, color: C.green },
+    pending:   { label: t("status.pending"),   bg: C.yellowL, color: C.yellow },
+    overdue:   { label: t("status.overdue"),   bg: C.redL, color: C.red },
+    draft:     { label: t("status.draft"),     bg: C.segmentBg, color: C.muted },
+    cancelled: { label: t("status.cancelled"), bg: C.segmentBg, color: C.muted },
+  };
   const sm = STATUS[doc.status] ?? STATUS.draft;
   return (
     <TouchableOpacity
@@ -50,7 +38,7 @@ function DocRow({ doc }: { doc: any }) {
           </Text>
         </View>
         <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 3, alignItems: "center" }}>
-          <Text style={{ fontSize: 12, color: C.muted }} numberOfLines={1}>{doc.companies?.name ?? "Sin empresa"}</Text>
+          <Text style={{ fontSize: 12, color: C.muted }} numberOfLines={1}>{doc.companies?.name ?? t("common.noCompany")}</Text>
           <View style={{ backgroundColor: sm.bg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
             <Text style={{ fontSize: 11, fontWeight: "600", color: sm.color }}>{sm.label}</Text>
           </View>
@@ -63,12 +51,21 @@ function DocRow({ doc }: { doc: any }) {
 
 export default function BuscarScreen() {
   const { orgId } = useAuth();
+  const C = useColors();
+  const { t } = useTranslation();
   const [query,      setQuery]      = useState("");
   const [results,    setResults]    = useState<any[]>([]);
   const [loading,    setLoading]    = useState(false);
   const [sort,       setSort]       = useState<SortKey>("date_desc");
   const [sortModal,  setSortModal]  = useState(false);
   const [searched,   setSearched]   = useState(false);
+
+  const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+    { key: "date_desc",   label: t("buscar.sortDateDesc") },
+    { key: "date_asc",    label: t("buscar.sortDateAsc") },
+    { key: "amount_desc", label: t("buscar.sortAmountDesc") },
+    { key: "amount_asc",  label: t("buscar.sortAmountAsc") },
+  ];
 
   const search = useCallback(async (q: string, s: SortKey) => {
     if (!orgId || !q.trim()) { setResults([]); setSearched(false); return; }
@@ -80,7 +77,6 @@ export default function BuscarScreen() {
       .select("id, document_number, document_type, status, total, issue_date, companies(name)")
       .eq("organization_id", orgId);
 
-    // Text search across number and company name
     if (q.trim()) {
       qb = qb.or(`document_number.ilike.%${q}%`);
     }
@@ -110,20 +106,20 @@ export default function BuscarScreen() {
   const activeSort = SORT_OPTIONS.find((o) => o.key === sort)!;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+    <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
-        <Text style={{ fontSize: 22, fontWeight: "800", color: C.text, marginBottom: 10 }}>Buscador</Text>
+        <Text style={{ fontSize: 22, fontWeight: "800", color: C.text, marginBottom: 10 }}>{t("buscar.title")}</Text>
 
         {/* Search bar */}
         <View style={{
           flexDirection: "row", alignItems: "center", gap: 8,
-          backgroundColor: C.surface, borderWidth: 1.5, borderColor: query ? C.blue : C.border,
+          backgroundColor: C.inputBg, borderWidth: 1.5, borderColor: query ? C.blue : C.border,
           borderRadius: 10, paddingHorizontal: 12, marginBottom: 10,
         }}>
           <Search size={16} color={C.muted} />
           <TextInput
             style={{ flex: 1, fontSize: 15, color: C.text, paddingVertical: 11 }}
-            placeholder="Buscar por número, empresa, tipo…"
+            placeholder={t("buscar.placeholder")}
             placeholderTextColor={C.muted}
             value={query}
             onChangeText={handleQuery}
@@ -140,7 +136,7 @@ export default function BuscarScreen() {
         {searched && (
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
             <Text style={{ fontSize: 12, color: C.muted }}>
-              {results.length} resultado{results.length !== 1 ? "s" : ""} para "{query}"
+              {t("buscar.resultsFor", { count: results.length, query })}
             </Text>
             <TouchableOpacity
               onPress={() => setSortModal(true)}
@@ -165,24 +161,24 @@ export default function BuscarScreen() {
       ) : !searched ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 12 }}>
           <Search size={56} color={C.muted} />
-          <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>Busca cualquier documento</Text>
+          <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{t("buscar.searchAny")}</Text>
           <Text style={{ fontSize: 13, color: C.muted, textAlign: "center" }}>
-            Escribe un número de documento, nombre de empresa o cualquier dato.
+            {t("buscar.searchHint")}
           </Text>
         </View>
       ) : results.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 12 }}>
           <Search size={56} color={C.muted} />
-          <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>Sin resultados</Text>
+          <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{t("buscar.noResults")}</Text>
           <Text style={{ fontSize: 13, color: C.muted, textAlign: "center" }}>
-            Prueba con otros términos de búsqueda.
+            {t("buscar.tryOther")}
           </Text>
         </View>
       ) : (
         <FlatList
           data={results}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <DocRow doc={item} />}
+          renderItem={({ item }) => <DocRow doc={item} C={C} t={t} />}
           contentContainerStyle={{ backgroundColor: C.surface }}
           showsVerticalScrollIndicator={false}
         />
@@ -190,10 +186,10 @@ export default function BuscarScreen() {
 
       {/* Sort modal */}
       <Modal visible={sortModal} animationType="slide" transparent onRequestClose={() => setSortModal(false)}>
-        <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,.45)" }} activeOpacity={1} onPress={() => setSortModal(false)} />
+        <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={() => setSortModal(false)} />
         <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 24 }}>
           <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 4 }} />
-          <Text style={{ fontSize: 16, fontWeight: "700", color: C.text, padding: 16, paddingBottom: 8 }}>Ordenar por</Text>
+          <Text style={{ fontSize: 16, fontWeight: "700", color: C.text, padding: 16, paddingBottom: 8 }}>{t("buscar.sortBy")}</Text>
           {SORT_OPTIONS.map((o) => (
             <TouchableOpacity
               key={o.key}
