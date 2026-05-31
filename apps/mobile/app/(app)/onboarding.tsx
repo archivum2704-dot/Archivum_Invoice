@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import {
-  View, Text, TouchableOpacity, ScrollView, Dimensions,
-  NativeSyntheticEvent, NativeScrollEvent,
+  View, Text, TouchableOpacity, ScrollView, Dimensions, TextInput,
+  NativeSyntheticEvent, NativeScrollEvent, ActivityIndicator, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -12,12 +12,22 @@ import {
 } from "lucide-react-native";
 import { useColors } from "@/lib/colors";
 import { Logo } from "@/components/Logo";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/auth-context";
 
 const { width: W } = Dimensions.get("window");
 
 type SlideKey = "welcome" | "upload" | "companies" | "team" | "search";
 
 const ONBOARDING_KEY = "@archivum/onboarding_completed";
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
 export async function isOnboardingCompleted(): Promise<boolean> {
   try {
@@ -31,8 +41,12 @@ export async function isOnboardingCompleted(): Promise<boolean> {
 export default function OnboardingScreen() {
   const { t } = useTranslation();
   const C = useColors();
+  const { refreshProfile } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
   const [page, setPage] = useState(0);
+  const [showOrgSetup, setShowOrgSetup] = useState(false);
+  const [orgName, setOrgName] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const purple = "#7C3AED";
   const purpleL = "#F5F3FF";
@@ -57,20 +71,103 @@ export default function OnboardingScreen() {
   };
 
   const goNext = () => {
-    if (isLast) { complete(); return; }
+    if (isLast) { setShowOrgSetup(true); return; }
     scrollRef.current?.scrollTo({ x: (page + 1) * W, animated: true });
   };
 
-  const complete = async () => {
+  const handleSkip = () => setShowOrgSetup(true);
+
+  const handleCreateOrg = async () => {
+    if (!orgName.trim()) return;
+    setCreating(true);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { router.replace("/(auth)/login"); return; }
+
+    const { error } = await supabase.rpc("create_organization_with_owner", {
+      org_name: orgName.trim(),
+      org_slug: slugify(orgName),
+      owner_id: user.id,
+    });
+
+    if (error) {
+      setCreating(false);
+      Alert.alert("Error", error.message);
+      return;
+    }
+
+    await refreshProfile();
     try { await AsyncStorage.setItem(ONBOARDING_KEY, "true"); } catch {}
     router.replace("/(app)/dashboard");
   };
 
+  // ── Org setup screen ──────────────────────────────────────────────────────
+  if (showOrgSetup) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+        <View style={{ flex: 1, paddingHorizontal: 28, justifyContent: "center" }}>
+          <View style={{
+            width: 80, height: 80, borderRadius: 40, backgroundColor: C.blueL,
+            alignItems: "center", justifyContent: "center", alignSelf: "center", marginBottom: 28,
+          }}>
+            <Building2 size={38} color={C.blue} />
+          </View>
+
+          <Text style={{ fontSize: 26, fontWeight: "800", color: C.text, textAlign: "center", marginBottom: 8, letterSpacing: -0.5 }}>
+            {t("onboarding.orgSetup.title")}
+          </Text>
+          <Text style={{ fontSize: 15, color: C.muted, textAlign: "center", lineHeight: 22, marginBottom: 32 }}>
+            {t("onboarding.orgSetup.description")}
+          </Text>
+
+          <Text style={{ fontSize: 13, fontWeight: "600", color: C.text, marginBottom: 8 }}>
+            {t("onboarding.orgSetup.nameLabel")}
+          </Text>
+          <TextInput
+            value={orgName}
+            onChangeText={setOrgName}
+            placeholder={t("onboarding.orgSetup.namePlaceholder")}
+            placeholderTextColor={C.muted}
+            style={{
+              borderWidth: 1.5, borderColor: orgName.trim() ? C.blue : C.border,
+              borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
+              fontSize: 16, color: C.text, backgroundColor: C.inputBg, marginBottom: 24,
+            }}
+            autoFocus
+            returnKeyType="done"
+            onSubmitEditing={handleCreateOrg}
+          />
+
+          <TouchableOpacity
+            onPress={handleCreateOrg}
+            disabled={!orgName.trim() || creating}
+            style={{
+              backgroundColor: orgName.trim() ? C.blue : C.border,
+              borderRadius: 14, paddingVertical: 16,
+              flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            {creating
+              ? <ActivityIndicator color="#fff" />
+              : <>
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
+                    {t("onboarding.orgSetup.createButton")}
+                  </Text>
+                  <ArrowRight size={18} color="#fff" />
+                </>
+            }
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Tutorial slides ───────────────────────────────────────────────────────
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       {/* Skip */}
       <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 16, paddingTop: 8 }}>
-        <TouchableOpacity onPress={complete} style={{ paddingVertical: 8, paddingHorizontal: 12 }}>
+        <TouchableOpacity onPress={handleSkip} style={{ paddingVertical: 8, paddingHorizontal: 12 }}>
           <Text style={{ fontSize: 14, color: C.muted, fontWeight: "600" }}>{t("tutorial.skip")}</Text>
         </TouchableOpacity>
       </View>
