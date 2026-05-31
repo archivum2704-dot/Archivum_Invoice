@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+import { PLANS, type PlanId } from "@/lib/pricing";
 
 const APP_URL = "https://archivum2704-dot.vercel.app";
 
@@ -38,6 +39,7 @@ interface Member {
 interface PlanInfo {
   subscription_status: string;
   extra_users_quantity: number;
+  subscription_plan: string;
 }
 
 function isPaidActive(status: string) {
@@ -335,7 +337,13 @@ export default function EquipoScreen() {
   const [roleTarget,   setRoleTarget]   = useState<Member | null>(null);
 
   const maxUsers = plan
-    ? (isPaidActive(plan.subscription_status) ? 5 + plan.extra_users_quantity : 1)
+    ? (() => {
+        const planId = (plan.subscription_plan ?? "free") as PlanId;
+        const basePlanUsers = (PLANS[planId] ?? PLANS.free).users;
+        return isPaidActive(plan.subscription_status)
+          ? basePlanUsers + plan.extra_users_quantity
+          : PLANS.free.users;
+      })()
     : 999; // Don't block while plan is loading
   const atLimit = plan != null && members.length >= maxUsers;
 
@@ -365,7 +373,7 @@ export default function EquipoScreen() {
         .order("created_at"),
       supabase
         .from("organizations")
-        .select("subscription_status, extra_users_quantity")
+        .select("subscription_status, extra_users_quantity, subscription_plan")
         .eq("id", orgId)
         .single(),
     ]);

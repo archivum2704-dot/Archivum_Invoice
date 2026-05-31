@@ -451,7 +451,7 @@
         "already_member": "This user is already a member.",
         "cannot_add_self": "You cannot add yourself.",
         "not_authorized": "You don't have permission to manage members.",
-        "member_limit_reached": "You've reached the limit of 3 users. Remove one to add another.",
+        "member_limit_reached": "You've reached the limit of {maxUsers} users. Remove one to add another.",
         "email_rate_limit": "Too many invitation emails sent. Please wait a few minutes and try again, or configure a custom SMTP provider in Supabase.",
         "invalid_email": "This email address is not accepted. Check your Supabase auth settings for domain restrictions.",
         "generic": "An error occurred. Please try again."

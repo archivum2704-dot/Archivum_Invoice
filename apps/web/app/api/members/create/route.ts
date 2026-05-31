@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { PLANS, type PlanId } from '@/lib/pricing'
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
     // Enforce dynamic user limit based on subscription
     const { data: orgBilling } = await admin
       .from('organizations')
-      .select('subscription_status, stripe_subscription_id, extra_users_quantity')
+      .select('subscription_status, stripe_subscription_id, extra_users_quantity, subscription_plan')
       .eq('id', orgId)
       .single()
 
@@ -74,8 +75,11 @@ export async function POST(req: NextRequest) {
     const hasPaidSub = !!orgBilling?.stripe_subscription_id
     const isPaidActive = hasPaidSub && (status === 'active' || status === 'trialing')
 
-    // Free plan: 1 user max. Paid plan: 5 + extras.
-    const maxUsers = isPaidActive ? 5 + (orgBilling?.extra_users_quantity ?? 0) : 1
+    const planId = (orgBilling?.subscription_plan ?? 'free') as PlanId
+    const basePlanUsers = (PLANS[planId] ?? PLANS.free).users
+    const maxUsers = isPaidActive
+      ? basePlanUsers + (orgBilling?.extra_users_quantity ?? 0)
+      : PLANS.free.users
 
     const { count: memberCount } = await admin
       .from('organization_members')
