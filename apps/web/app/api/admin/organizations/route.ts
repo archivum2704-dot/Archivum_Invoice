@@ -26,7 +26,7 @@ export async function GET(_req: NextRequest) {
   const [orgsResult, membersResult, docsResult] = await Promise.all([
     admin.from('organizations').select('*').order('created_at', { ascending: false }),
     admin.from('organization_members').select('organization_id, user_id, role, profiles(email, first_name, last_name)'),
-    admin.from('documents').select('organization_id'),
+    admin.from('documents').select('organization_id, file_size'),
   ])
 
   // Log errors for debugging but don't fail silently
@@ -46,8 +46,13 @@ export async function GET(_req: NextRequest) {
   }
 
   const docCountByOrg = new Map<string, number>()
+  const storageByOrg = new Map<string, number>()
   for (const d of docs) {
     docCountByOrg.set(d.organization_id, (docCountByOrg.get(d.organization_id) ?? 0) + 1)
+    // Compute real storage from each document's file_size — robust against the
+    // storage_used_bytes trigger not being applied in some environments
+    const size = (d as any).file_size ?? 0
+    storageByOrg.set(d.organization_id, (storageByOrg.get(d.organization_id) ?? 0) + size)
   }
 
   const result = orgs.map((org: any) => {
@@ -67,7 +72,8 @@ export async function GET(_req: NextRequest) {
       trial_ends_at:          org.trial_ends_at            ?? null,
       deletion_scheduled_at:  org.deletion_scheduled_at   ?? null,
       storage_limit_bytes:    org.storage_limit_bytes      ?? 0,
-      storage_used_bytes:     org.storage_used_bytes       ?? 0,
+      // Prefer the real computed sum from documents; fall back to the stored column
+      storage_used_bytes:     storageByOrg.get(org.id)     ?? org.storage_used_bytes ?? 0,
       member_count:           orgMembers.length,
       document_count:         docCountByOrg.get(org.id)   ?? 0,
       owner_email:            (owner?.profiles as any)?.email ?? null,
