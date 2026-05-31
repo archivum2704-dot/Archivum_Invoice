@@ -1,5 +1,6 @@
 import useSWR from "swr"
 import { createClient } from "@/lib/supabase/client"
+import { ALL_ORGS_ID } from "@/lib/context/organization-context"
 
 export type OverdueDoc = {
   id: string
@@ -19,10 +20,13 @@ async function fetchOverdue(orgId: string): Promise<OverdueDoc[]> {
   // Fetch docs that are either:
   //   a) explicitly status=overdue, OR
   //   b) status=pending with a due_date that has already passed
-  const { data, error } = await supabase
+  let query = supabase
     .from("documents")
     .select("id, document_number, document_type, status, due_date, total, currency, company:companies(name)")
-    .eq("organization_id", orgId)
+  if (orgId !== ALL_ORGS_ID) {
+    query = query.eq("organization_id", orgId)
+  }
+  const { data, error } = await query
     .or(`status.eq.overdue,and(status.eq.pending,due_date.lt.${today})`)
     .not("due_date", "is", null)
     .order("due_date", { ascending: true })

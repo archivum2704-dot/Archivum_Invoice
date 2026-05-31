@@ -1,6 +1,7 @@
 import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/lib/supabase/types'
+import { ALL_ORGS_ID } from '@/lib/context/organization-context'
 
 type Company = Database['public']['Tables']['companies']['Row']
 
@@ -9,20 +10,19 @@ export type CompanyWithCount = Company & { doc_count: number }
 async function fetchCompanies(orgId: string): Promise<CompanyWithCount[]> {
   const supabase = createClient()
 
+  // Build queries — when viewing all orgs (super admin), skip the org filter
+  let companiesQuery = supabase.from('companies').select('*').eq('is_active', true)
+  let countsQuery = supabase.from('documents').select('company_id').not('company_id', 'is', null)
+  if (orgId !== ALL_ORGS_ID) {
+    companiesQuery = companiesQuery.eq('organization_id', orgId)
+    countsQuery = countsQuery.eq('organization_id', orgId)
+  }
+
   // Fetch companies + document counts in parallel
   const [{ data: companiesData, error: companiesErr }, { data: countsData, error: countsErr }] =
     await Promise.all([
-      supabase
-        .from('companies')
-        .select('*')
-        .eq('organization_id', orgId)
-        .eq('is_active', true)
-        .order('name'),
-      supabase
-        .from('documents')
-        .select('company_id')
-        .eq('organization_id', orgId)
-        .not('company_id', 'is', null),
+      companiesQuery.order('name'),
+      countsQuery,
     ])
 
   if (companiesErr) throw companiesErr

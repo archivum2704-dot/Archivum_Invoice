@@ -1,6 +1,7 @@
 import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/lib/supabase/types'
+import { ALL_ORGS_ID } from '@/lib/context/organization-context'
 
 type DocumentRow = Database['public']['Tables']['documents']['Row']
 
@@ -10,11 +11,14 @@ export type Document = DocumentRow & {
 
 async function fetchDocuments(orgId: string): Promise<Document[]> {
   const supabase = createClient()
-  const { data, error } = await supabase
+  let query = supabase
     .from('documents')
     .select('*, company:companies(name, cif)')
-    .eq('organization_id', orgId)
-    .order('created_at', { ascending: false })
+  // ALL_ORGS_ID: super admins see documents across every organization (RLS allows it)
+  if (orgId !== ALL_ORGS_ID) {
+    query = query.eq('organization_id', orgId)
+  }
+  const { data, error } = await query.order('created_at', { ascending: false })
 
   if (error) throw error
   return (data ?? []) as Document[]
