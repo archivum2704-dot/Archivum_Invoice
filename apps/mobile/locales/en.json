@@ -24,7 +24,6 @@
     "viewPlans": "View plans & pricing",
     "unknownError": "Unknown error"
   },
-
   "tabs": {
     "home": "Home",
     "library": "Library",
@@ -33,7 +32,6 @@
     "team": "Team",
     "settings": "Settings"
   },
-
   "status": {
     "paid": "Paid",
     "pending": "Pending",
@@ -41,7 +39,6 @@
     "draft": "Draft",
     "cancelled": "Cancelled"
   },
-
   "docTypes": {
     "all": "All",
     "invoice_issued": "Issued invoice",
@@ -55,7 +52,6 @@
     "tax": "Tax document",
     "other": "Other"
   },
-
   "docTypesPlural": {
     "all": "All",
     "invoice_issued": "Issued invoices",
@@ -68,7 +64,6 @@
     "quote": "Quotes",
     "other": "Other"
   },
-
   "dashboard": {
     "greeting": {
       "morning": "Good morning",
@@ -89,7 +84,6 @@
     "noDocs": "No documents",
     "uploadFirst": "Upload your first document to get started"
   },
-
   "biblioteca": {
     "title": "Library",
     "searchPlaceholder": "Search documents...",
@@ -102,7 +96,6 @@
     "statusLabel": "Status",
     "applyFilters": "Apply filters"
   },
-
   "buscar": {
     "title": "Search",
     "placeholder": "Search by number, company, type...",
@@ -118,7 +111,6 @@
     "sortAmountDesc": "Amount ↓",
     "sortAmountAsc": "Amount ↑"
   },
-
   "documento": {
     "detail": "Detail",
     "deleteTitle": "Delete document",
@@ -141,7 +133,6 @@
     "notes": "Notes",
     "description": "Description"
   },
-
   "editar": {
     "title": "Edit document",
     "notFound": "Document not found",
@@ -170,7 +161,6 @@
     "markCancelledTitle": "Mark as cancelled",
     "markCancelledConfirm": "Are you sure? The status will change to cancelled."
   },
-
   "empresas": {
     "title": "Companies",
     "companiesCount": "{{current}} / {{max}} companies",
@@ -201,7 +191,6 @@
     "limitBullet2": "Pro plan: 20 companies included",
     "limitBullet3": "+€2/month per extra company"
   },
-
   "equipo": {
     "title": "Team",
     "usersCount": "{{current}} / {{max}} user",
@@ -255,7 +244,6 @@
     "limitBullet2": "Pro plan: 5 users included",
     "limitBullet3": "+€2/month per extra user"
   },
-
   "subir": {
     "title": "Upload document",
     "stepFile": "File",
@@ -297,7 +285,6 @@
     "errorFile": "Could not open the file.",
     "errorArchive": "Could not archive the document."
   },
-
   "tutorial": {
     "skip": "Skip",
     "next": "Next",
@@ -341,7 +328,6 @@
       }
     }
   },
-
   "coachmarks": {
     "tipLabel": "TIP",
     "empresasCreateFirst": {
@@ -361,7 +347,6 @@
       "description": "Take a photo or pick a PDF from your gallery. AI will extract amounts, dates and data automatically."
     }
   },
-
   "ajustes": {
     "title": "Settings",
     "sections": {
@@ -422,7 +407,6 @@
     "signOutConfirmMessage": "Are you sure you want to sign out?",
     "user": "User"
   },
-
   "register": {
     "title": "Create account",
     "subtitle": "Fill in your details to register on Archivum.",
@@ -439,9 +423,17 @@
     "errorMinLength": "Password must be at least 8 characters",
     "errorAlreadyRegistered": "This email is already registered"
   },
-
   "language": {
     "es": "Español",
     "en": "English"
+  },
+  "onboarding": {
+    "orgSetup": {
+      "title": "Create your company",
+      "description": "Before you start, tell us your company name. You can change it later in settings.",
+      "nameLabel": "Company name",
+      "namePlaceholder": "Acme Ltd",
+      "createButton": "Create company & get started"
+    }
   }
 }
