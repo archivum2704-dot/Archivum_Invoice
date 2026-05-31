@@ -7,17 +7,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { PDFDocument } from "pdf-lib";
 import {
   ChevronLeft, Camera, Image as ImageIcon, FileText, Check,
-  Upload, X, AlertTriangle,
+  Upload, X, AlertTriangle, Building2, Plus,
 } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+
+interface Company { id: string; name: string; }
 
 /* ── Convert any image URI to a PDF using pdf-lib (pure JS, no native) ─── */
 async function convertImageToPdf(imageUri: string): Promise<string> {
@@ -39,9 +41,11 @@ async function convertImageToPdf(imageUri: string): Promise<string> {
   page.drawImage(img, { x: (A4_W - w) / 2, y: (A4_H - h) / 2, width: w, height: h });
 
   const pdfBytes = await pdfDoc.save();
-  const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
+  let binary = "";
+  for (let i = 0; i < pdfBytes.length; i++) binary += String.fromCharCode(pdfBytes[i]);
+  const pdfBase64 = btoa(binary);
 
-  const outUri = FileSystem.Paths.cache.uri + `doc_${Date.now()}.pdf`;
+  const outUri = FileSystem.cacheDirectory + `doc_${Date.now()}.pdf`;
   await FileSystem.writeAsStringAsync(outUri, pdfBase64, { encoding: 'base64' });
   return outUri;
 }
@@ -94,6 +98,13 @@ function Step1({ onNext, pickedFile, setPickedFile, C, t }: {
 
   const pickImage = async (useCamera: boolean) => {
     try {
+      if (useCamera) {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm.granted) { Alert.alert(t("common.error"), t("subir.errorCamera")); return; }
+      } else {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) { Alert.alert(t("common.error"), t("subir.errorCamera")); return; }
+      }
       const result = useCamera
         ? await ImagePicker.launchCameraAsync({ mediaTypes: "images", quality: 0.9 })
         : await ImagePicker.launchImageLibraryAsync({ mediaTypes: "images", quality: 0.9 });
@@ -180,8 +191,73 @@ function Step1({ onNext, pickedFile, setPickedFile, C, t }: {
   );
 }
 
+/* ── Company selector (matches web behaviour) ───────────────────────────── */
+function CompanyPicker({ companies, companyId, setCompanyId, onCreate, creating, C, t }: {
+  companies: Company[]; companyId: string | null; setCompanyId: (id: string | null) => void;
+  onCreate: (name: string) => Promise<void>; creating: boolean; C: any; t: any;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+
+  const submitNew = async () => {
+    if (!newName.trim()) return;
+    await onCreate(newName.trim());
+    setNewName("");
+    setAdding(false);
+  };
+
+  return (
+    <View>
+      <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 6 }}>
+        <Building2 size={12} color={C.muted} /> {t("subir.companyLabel")}
+      </Text>
+
+      {companies.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+          <View style={{ flexDirection: "row", gap: 6 }}>
+            {companies.map((c) => (
+              <TouchableOpacity key={c.id} onPress={() => setCompanyId(companyId === c.id ? null : c.id)}
+                style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: companyId === c.id ? C.blue : C.border, backgroundColor: companyId === c.id ? C.blue : C.surface }}>
+                <Text style={{ fontSize: 12, fontWeight: "500", color: companyId === c.id ? "#fff" : C.muted }}>{c.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      )}
+
+      {companies.length === 0 && !adding && (
+        <Text style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>{t("subir.noCompanies")}</Text>
+      )}
+
+      {adding ? (
+        <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+          <TextInput
+            style={{ flex: 1, borderWidth: 1.5, borderColor: C.blue, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: C.text, backgroundColor: C.inputBg }}
+            placeholder={t("subir.newCompanyPlaceholder")} placeholderTextColor={C.muted}
+            value={newName} onChangeText={setNewName} autoFocus onSubmitEditing={submitNew} returnKeyType="done"
+          />
+          <TouchableOpacity onPress={submitNew} disabled={creating || !newName.trim()}
+            style={{ backgroundColor: newName.trim() ? C.blue : C.border, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 12 }}>
+            {creating ? <ActivityIndicator color="#fff" size="small" /> : <Check size={18} color="#fff" />}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => { setAdding(false); setNewName(""); }} style={{ padding: 8 }}>
+            <X size={18} color={C.muted} />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity onPress={() => setAdding(true)} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <Plus size={14} color={C.blue} />
+          <Text style={{ fontSize: 13, color: C.blue, fontWeight: "500" }}>
+            {companies.length === 0 ? t("subir.addFirstCompany") : t("subir.newCompany")}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
 /* ── Step 2: Metadata ───────────────────────────────────────────────────── */
-function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, companyName, setCompanyName, amount, setAmount, taxable, setTaxable, vatRate, setVatRate, issueDate, setIssueDate, dueDate, setDueDate, status, setStatus, notes, setNotes, pickedFile, C, t }: any) {
+function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, companies, companyId, setCompanyId, onCreateCompany, creatingCompany, amount, setAmount, taxable, setTaxable, vatRate, setVatRate, issueDate, setIssueDate, dueDate, setDueDate, status, setStatus, notes, setNotes, pickedFile, C, t }: any) {
   const DOC_TYPES = [
     { key: "invoice_received", label: t("docTypes.invoice_received") },
     { key: "invoice_issued",   label: t("docTypes.invoice_issued") },
@@ -230,9 +306,11 @@ function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, c
           </ScrollView>
         </View>
 
+        {/* Company selector */}
+        <CompanyPicker companies={companies} companyId={companyId} setCompanyId={setCompanyId} onCreate={onCreateCompany} creating={creatingCompany} C={C} t={t} />
+
         {[
           { label: t("subir.docNumberLabel"), value: docNumber, setter: setDocNumber, ph: "FAC-2025-0001" },
-          { label: t("subir.companyLabel"),   value: companyName, setter: setCompanyName, ph: "..." },
           { label: t("subir.issueDateLabel"), value: issueDate, setter: setIssueDate, ph: "2025-01-15" },
           { label: t("subir.dueDateLabel"),   value: dueDate, setter: setDueDate, ph: "2025-02-15" },
           { label: t("subir.totalLabel"),     value: amount, setter: setAmount, ph: "4280.00", keyboard: "numeric" },
@@ -337,10 +415,14 @@ export default function SubirScreen() {
   const [quotaOk,  setQuotaOk]  = useState(true);
   const [quotaMsg, setQuotaMsg] = useState<string | null>(null);
 
+  // Companies
+  const [companies,       setCompanies]       = useState<Company[]>([]);
+  const [companyId,       setCompanyId]       = useState<string | null>(null);
+  const [creatingCompany, setCreatingCompany] = useState(false);
+
   // Form fields
   const [docType,     setDocType]     = useState("invoice_received");
   const [docNumber,   setDocNumber]   = useState("");
-  const [companyName, setCompanyName] = useState("");
   const [amount,      setAmount]      = useState("");
   const [taxable,     setTaxable]     = useState("");
   const [vatRate,     setVatRate]     = useState("21");
@@ -349,6 +431,32 @@ export default function SubirScreen() {
   const [status,      setStatus]      = useState("pending");
   const [notes,       setNotes]       = useState("");
   const [saving,      setSaving]      = useState(false);
+
+  const loadCompanies = useCallback(async () => {
+    if (!orgId) return;
+    const { data } = await supabase
+      .from("companies")
+      .select("id, name")
+      .eq("organization_id", orgId)
+      .order("name");
+    setCompanies(data ?? []);
+  }, [orgId]);
+
+  useEffect(() => { loadCompanies(); }, [loadCompanies]);
+
+  const handleCreateCompany = async (name: string) => {
+    if (!orgId) { Alert.alert(t("common.error"), t("common.unknownError")); return; }
+    setCreatingCompany(true);
+    const { data, error } = await supabase
+      .from("companies")
+      .insert({ organization_id: orgId, name, is_active: true })
+      .select("id, name")
+      .single();
+    setCreatingCompany(false);
+    if (error || !data) { Alert.alert(t("common.error"), error?.message ?? t("common.unknownError")); return; }
+    setCompanies((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+    setCompanyId(data.id);
+  };
 
   useEffect(() => {
     if (!orgId) return;
@@ -383,13 +491,8 @@ export default function SubirScreen() {
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
         const { error: storageErr } = await supabase.storage.from("documents").upload(storagePath, bytes, { contentType: pickedFile.mimeType, upsert: false });
-        if (!storageErr) { fileUrl = storagePath; fileName = pickedFile.name; fileSize = pickedFile.size; fileType = pickedFile.mimeType; }
-      }
-
-      let companyId: string | null = null;
-      if (companyName.trim()) {
-        const { data: comp } = await supabase.from("companies").select("id").eq("organization_id", orgId).ilike("name", `%${companyName.trim()}%`).limit(1).single();
-        companyId = comp?.id ?? null;
+        if (storageErr) throw storageErr;
+        fileUrl = storagePath; fileName = pickedFile.name; fileSize = pickedFile.size; fileType = pickedFile.mimeType;
       }
 
       const baseAmount = taxable ? parseFloat(taxable.replace(",", ".")) : null;
@@ -409,13 +512,15 @@ export default function SubirScreen() {
       setSaving(false);
       Alert.alert(t("subir.successTitle"), t("subir.successMsg", { name: docNumber || "Documento" }), [
         { text: t("subir.viewLibrary"), onPress: () => router.replace("/(app)/biblioteca") },
-        { text: t("subir.uploadAnother"), onPress: () => { setStep(1); setPickedFile(null); setDocNumber(""); setAmount(""); setCompanyName(""); setNotes(""); setTaxable(""); setVatRate("21"); setIssueDate(""); setDueDate(""); } },
+        { text: t("subir.uploadAnother"), onPress: () => { setStep(1); setPickedFile(null); setDocNumber(""); setAmount(""); setCompanyId(null); setNotes(""); setTaxable(""); setVatRate("21"); setIssueDate(""); setDueDate(""); } },
       ]);
     } catch (err: any) {
       setSaving(false);
       Alert.alert(t("common.error"), err?.message ?? t("subir.errorArchive"));
     }
   };
+
+  const selectedCompanyName = companies.find((c) => c.id === companyId)?.name ?? "";
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
@@ -439,8 +544,8 @@ export default function SubirScreen() {
           <>
             <StepIndicator current={step} C={C} t={t} />
             {step === 1 && <ScrollView><Step1 onNext={() => setStep(2)} pickedFile={pickedFile} setPickedFile={setPickedFile} C={C} t={t} /></ScrollView>}
-            {step === 2 && <Step2 onNext={() => setStep(3)} onBack={() => setStep(1)} pickedFile={pickedFile} docType={docType} setDocType={setDocType} docNumber={docNumber} setDocNumber={setDocNumber} companyName={companyName} setCompanyName={setCompanyName} amount={amount} setAmount={setAmount} taxable={taxable} setTaxable={setTaxable} vatRate={vatRate} setVatRate={setVatRate} issueDate={issueDate} setIssueDate={setIssueDate} dueDate={dueDate} setDueDate={setDueDate} status={status} setStatus={setStatus} notes={notes} setNotes={setNotes} C={C} t={t} />}
-            {step === 3 && <ScrollView><Step3 onSubmit={handleSubmit} onBack={() => setStep(2)} saving={saving} pickedFile={pickedFile} docType={docType} docNumber={docNumber} companyName={companyName} amount={amount} issueDate={issueDate} dueDate={dueDate} status={status} notes={notes} C={C} t={t} /></ScrollView>}
+            {step === 2 && <Step2 onNext={() => setStep(3)} onBack={() => setStep(1)} pickedFile={pickedFile} docType={docType} setDocType={setDocType} docNumber={docNumber} setDocNumber={setDocNumber} companies={companies} companyId={companyId} setCompanyId={setCompanyId} onCreateCompany={handleCreateCompany} creatingCompany={creatingCompany} amount={amount} setAmount={setAmount} taxable={taxable} setTaxable={setTaxable} vatRate={vatRate} setVatRate={setVatRate} issueDate={issueDate} setIssueDate={setIssueDate} dueDate={dueDate} setDueDate={setDueDate} status={status} setStatus={setStatus} notes={notes} setNotes={setNotes} C={C} t={t} />}
+            {step === 3 && <ScrollView><Step3 onSubmit={handleSubmit} onBack={() => setStep(2)} saving={saving} pickedFile={pickedFile} docType={docType} docNumber={docNumber} companyName={selectedCompanyName} amount={amount} issueDate={issueDate} dueDate={dueDate} status={status} notes={notes} C={C} t={t} /></ScrollView>}
           </>
         ) : (
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 16 }}>
