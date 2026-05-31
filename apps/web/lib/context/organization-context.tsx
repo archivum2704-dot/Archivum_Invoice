@@ -8,6 +8,16 @@ type Organization = Database['public']['Tables']['organizations']['Row']
 type OrganizationMember = Database['public']['Tables']['organization_members']['Row']
 type Profile = Database['public']['Tables']['profiles']['Row']
 
+/** Sentinel id for the aggregated "Todas las empresas" view — super admin only */
+export const ALL_ORGS_ID = '__all__'
+
+/** Virtual organization entry representing the global aggregate */
+const ALL_ORGS_ENTRY = {
+  id: ALL_ORGS_ID,
+  name: 'Todas las empresas',
+  slug: ALL_ORGS_ID,
+} as unknown as Organization
+
 interface OrganizationContextType {
   currentOrg: Organization | null
   userOrgs: Organization[]
@@ -64,9 +74,14 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
           .order('name')
 
         if (orgsError) throw orgsError
-        setUserOrgs(allOrgs ?? [])
+        // Prepend the virtual "Todas las empresas" aggregate entry for super admins
+        setUserOrgs([ALL_ORGS_ENTRY, ...(allOrgs ?? [])])
 
-        const activeOrg = allOrgs?.find(o => o.id === profile.current_org_id) ?? allOrgs?.[0] ?? null
+        const activeOrg =
+          (profile.current_org_id === ALL_ORGS_ID ? ALL_ORGS_ENTRY : null) ??
+          allOrgs?.find(o => o.id === profile.current_org_id) ??
+          allOrgs?.[0] ??
+          ALL_ORGS_ENTRY
         setCurrentOrg(activeOrg)
         setCurrentMember(null)
         setLoading(false)
@@ -128,10 +143,13 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
     setCurrentOrg(org)
 
-    await supabase
-      .from('profiles')
-      .update({ current_org_id: orgId })
-      .eq('id', user.id)
+    // The virtual aggregate id is not a real UUID — don't persist it to the DB
+    if (orgId !== ALL_ORGS_ID) {
+      await supabase
+        .from('profiles')
+        .update({ current_org_id: orgId })
+        .eq('id', user.id)
+    }
 
     if (userProfile?.platform_role !== 'super_admin') {
       const { data: member } = await supabase
