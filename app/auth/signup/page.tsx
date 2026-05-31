@@ -43,28 +43,9 @@ export default function SignupPage() {
     }
 
     try {
-      const supabase = createClient()
-      const { error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-          },
-        },
-      })
-
-      if (authError) {
-        setError(authError.message)
-        setLoading(false)
-        return
-      }
-
-      // For development/testing: redirect to onboarding
-      // Note: Email confirmation may be required depending on Supabase project settings
-      router.push('/onboarding')
+      // DEMO MODE: Registration not available
+      setError('El registro no está disponible en el modo demo. Use las credenciales de prueba en la página de inicio de sesión.')
+      setLoading(false)
     } catch (err) {
       setError('An unexpected error occurred')
       setLoading(false)

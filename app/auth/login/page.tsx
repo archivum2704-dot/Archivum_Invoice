@@ -55,6 +55,13 @@ export default function LoginPage() {
           <p className="text-muted-foreground">Archivo digital de facturación</p>
         </div>
 
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+          <p className="font-semibold mb-1">Modo Demo — credenciales de prueba:</p>
+          <p>Admin: <span className="font-mono">admin@test.com</span></p>
+          <p>Empresa: <span className="font-mono">empresa@test.com</span></p>
+          <p className="text-xs text-blue-600 mt-1">Cualquier contraseña es válida.</p>
+        </div>
+
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">

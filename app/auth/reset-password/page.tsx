@@ -18,18 +18,9 @@ export default function ResetPasswordPage() {
     setError(null)
 
     try {
-      const supabase = createClient()
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/update-password`,
-      })
-
-      if (resetError) {
-        setError(resetError.message)
-        setLoading(false)
-        return
-      }
-
-      setSuccess(true)
+      // DEMO MODE: Password reset not available
+      setError('La recuperación de contraseña no está disponible en el modo demo. Use las credenciales de prueba.')
+      setLoading(false)
     } catch (err) {
       setError('An unexpected error occurred')
       setLoading(false)
