@@ -367,7 +367,7 @@ function CreateUserForm({ orgId, onSuccess }: { orgId: string; onSuccess: () => 
       const msgMap: Record<string, string> = {
         already_member:       t("errors.already_member"),
         not_authorized:       t("errors.not_authorized"),
-        member_limit_reached: t("errors.member_limit_reached"),
+        member_limit_reached: t("errors.member_limit_reached", { maxUsers: data.maxUsers ?? "?" }),
       }
       const mapped = msgMap[data.error]
       // Supabase-level errors — map to friendly messages
