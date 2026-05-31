@@ -283,7 +283,11 @@
     "goBack": "Volver",
     "errorCamera": "No se pudo acceder a la cámara o galería.",
     "errorFile": "No se pudo abrir el archivo.",
-    "errorArchive": "No se pudo archivar el documento."
+    "errorArchive": "No se pudo archivar el documento.",
+    "noCompanies": "Aún no tienes empresas. Crea la primera para asociar el documento.",
+    "addFirstCompany": "Añadir primera empresa",
+    "newCompany": "Nueva empresa",
+    "newCompanyPlaceholder": "Nombre de la empresa"
   },
   "tutorial": {
     "skip": "Saltar",
