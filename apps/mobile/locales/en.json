@@ -283,7 +283,11 @@
     "goBack": "Go back",
     "errorCamera": "Could not access camera or gallery.",
     "errorFile": "Could not open the file.",
-    "errorArchive": "Could not archive the document."
+    "errorArchive": "Could not archive the document.",
+    "noCompanies": "You don't have any companies yet. Create the first one to link the document.",
+    "addFirstCompany": "Add first company",
+    "newCompany": "New company",
+    "newCompanyPlaceholder": "Company name"
   },
   "tutorial": {
     "skip": "Skip",
