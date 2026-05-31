@@ -632,7 +632,7 @@ function BillingTab({ orgs }: { orgs: AdminOrg[] }) {
     orgs.filter(o => o.subscription_status && o.subscription_status !== 'canceled')
         .filter(o => {
           const q = search.toLowerCase()
-          return !q || o.name.toLowerCase().includes(q) || o.owner_email?.toLowerCase().includes(q) ?? false
+          return !q || o.name.toLowerCase().includes(q) || (o.owner_email?.toLowerCase().includes(q) ?? false)
         }),
     [orgs, search])
 
