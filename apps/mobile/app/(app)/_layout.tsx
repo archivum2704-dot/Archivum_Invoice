@@ -13,7 +13,7 @@ import {
 export default function AppLayout() {
   const { t } = useTranslation();
   const C = useColors();
-  const { session, loading } = useAuth();
+  const { session, loading, orgId } = useAuth();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
@@ -41,7 +41,10 @@ export default function AppLayout() {
   }
 
   if (!session) return <Redirect href="/(auth)/login" />;
-  if (needsOnboarding && !isOnboardingRoute) return <Redirect href="/(app)/onboarding" />;
+  // A user without an organization can never create companies/documents.
+  // Force them through onboarding (which has the org-setup screen), regardless
+  // of whether the tutorial was already marked as completed.
+  if ((needsOnboarding || !orgId) && !isOnboardingRoute) return <Redirect href="/(app)/onboarding" />;
 
   return (
     <Tabs

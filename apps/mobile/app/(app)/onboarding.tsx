@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, Dimensions, TextInput,
   NativeSyntheticEvent, NativeScrollEvent, ActivityIndicator, Alert,
@@ -41,12 +41,21 @@ export async function isOnboardingCompleted(): Promise<boolean> {
 export default function OnboardingScreen() {
   const { t } = useTranslation();
   const C = useColors();
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, orgId } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
   const [page, setPage] = useState(0);
   const [showOrgSetup, setShowOrgSetup] = useState(false);
   const [orgName, setOrgName] = useState("");
   const [creating, setCreating] = useState(false);
+
+  // If the user already finished the tutorial but still has no organization,
+  // skip the slides and go straight to org setup so they aren't stuck.
+  useEffect(() => {
+    (async () => {
+      const completed = await isOnboardingCompleted();
+      if (completed && !orgId) setShowOrgSetup(true);
+    })();
+  }, [orgId]);
 
   const purple = "#7C3AED";
   const purpleL = "#F5F3FF";
