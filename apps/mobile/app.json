@@ -34,7 +34,14 @@
       "expo-font",
       "expo-localization",
       "expo-secure-store",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Archivum necesita acceso a tu galería para subir documentos.",
+          "cameraPermission": "Archivum necesita acceso a tu cámara para fotografiar documentos."
+        }
+      ]
     ],
     "newArchEnabled": false,
     "experiments": {
