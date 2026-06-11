@@ -18,20 +18,16 @@ async function requireSuperAdmin() {
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const caller = await requireSuperAdmin()
-  if (!caller) return NextResponse.json({ error: 'unauthorized' }, { status: 403 })
+  const user = await requireSuperAdmin()
+  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 403 })
   const { id } = await params
 
-  // Prevent self-demotion from super_admin
-  if (id === caller.id) {
-    const body = await req.json()
-    if (body.platform_role && body.platform_role !== 'super_admin') {
-      return NextResponse.json({ error: 'cannot_demote_self' }, { status: 400 })
-    }
-  }
-
   const body = await req.json()
-  const allowed = ['first_name', 'last_name', 'platform_role']
+  const allowed = [
+    'name', 'is_active', 'subscription_plan', 'subscription_status',
+    'extra_users_quantity', 'extra_docs_quantity', 'doc_quota_pool',
+    'current_period_end', 'stripe_subscription_id', 'stripe_customer_id',
+  ]
   const update: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) update[key] = body[key]
@@ -42,31 +38,46 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const admin = getAdminClient()
-  const { error } = await admin.from('profiles').update(update).eq('id', id)
+  const { error } = await admin.from('organizations').update(update).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ success: true })
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const caller = await requireSuperAdmin()
-  if (!caller) return NextResponse.json({ error: 'unauthorized' }, { status: 403 })
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await requireSuperAdmin()
+  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 403 })
   const { id } = await params
-
-  if (id === caller.id) {
-    return NextResponse.json({ error: 'cannot_delete_self' }, { status: 400 })
-  }
 
   const admin = getAdminClient()
 
-  // Remove from all orgs
-  await admin.from('organization_members').delete().eq('user_id', id)
+  // Get members before deleting to clean up orphaned auth users
+  const { data: members } = await admin
+    .from('organization_members')
+    .select('user_id')
+    .eq('organization_id', id)
 
-  // Delete auth user (cascades to profile via DB trigger if set, otherwise also delete profile)
-  const { error } = await admin.auth.admin.deleteUser(id)
-  if (error) {
-    // Fallback: delete profile manually
-    await admin.from('profiles').delete().eq('id', id)
+  // Delete org (cascades to members, companies, documents if FK CASCADE is set)
+  // We delete child tables explicitly for safety
+  await Promise.all([
+    admin.from('documents').delete().eq('organization_id', id),
+    admin.from('companies').delete().eq('organization_id', id),
+    admin.from('organization_members').delete().eq('organization_id', id),
+  ])
+
+  const { error } = await admin.from('organizations').delete().eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Delete auth users who no longer belong to any org
+  const userIds = [...new Set((members ?? []).map(m => m.user_id))]
+  for (const uid of userIds) {
+    const { count } = await admin
+      .from('organization_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', uid)
+    if ((count ?? 0) === 0) {
+      await admin.auth.admin.deleteUser(uid)
+    }
   }
 
   return NextResponse.json({ success: true })
