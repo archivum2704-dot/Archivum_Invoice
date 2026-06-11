@@ -17,12 +17,13 @@ async function requireSuperAdmin() {
   return profile?.platform_role === 'super_admin' ? user : null
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const caller = await requireSuperAdmin()
   if (!caller) return NextResponse.json({ error: 'unauthorized' }, { status: 403 })
+  const { id } = await params
 
   // Prevent self-demotion from super_admin
-  if (params.id === caller.id) {
+  if (id === caller.id) {
     const body = await req.json()
     if (body.platform_role && body.platform_role !== 'super_admin') {
       return NextResponse.json({ error: 'cannot_demote_self' }, { status: 400 })
@@ -41,30 +42,31 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const admin = getAdminClient()
-  const { error } = await admin.from('profiles').update(update).eq('id', params.id)
+  const { error } = await admin.from('profiles').update(update).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ success: true })
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const caller = await requireSuperAdmin()
   if (!caller) return NextResponse.json({ error: 'unauthorized' }, { status: 403 })
+  const { id } = await params
 
-  if (params.id === caller.id) {
+  if (id === caller.id) {
     return NextResponse.json({ error: 'cannot_delete_self' }, { status: 400 })
   }
 
   const admin = getAdminClient()
 
   // Remove from all orgs
-  await admin.from('organization_members').delete().eq('user_id', params.id)
+  await admin.from('organization_members').delete().eq('user_id', id)
 
   // Delete auth user (cascades to profile via DB trigger if set, otherwise also delete profile)
-  const { error } = await admin.auth.admin.deleteUser(params.id)
+  const { error } = await admin.auth.admin.deleteUser(id)
   if (error) {
     // Fallback: delete profile manually
-    await admin.from('profiles').delete().eq('id', params.id)
+    await admin.from('profiles').delete().eq('id', id)
   }
 
   return NextResponse.json({ success: true })
