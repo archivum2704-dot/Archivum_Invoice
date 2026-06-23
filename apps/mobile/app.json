@@ -49,6 +49,12 @@
     "newArchEnabled": false,
     "experiments": {
       "typedRoutes": true
+    },
+    "owner": "zafiadom14",
+    "extra": {
+      "eas": {
+        "projectId": "48362d1f-a346-46c7-9dab-f4a12a6eb78e"
+      }
     }
   }
 }
