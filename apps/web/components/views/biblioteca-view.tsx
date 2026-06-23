@@ -794,6 +794,7 @@ export function BibliotecaView() {
                 // Use original path for extension detection, signed URL for actual src
                 const origPath = (previewDoc as any).file_url as string | null
                 const isImage = origPath ? /\.(jpe?g|png|gif|webp|svg)(\?|$)/i.test(origPath) : false
+                const isPdf = origPath ? /\.pdf(\?|$)/i.test(origPath) : false
                 const hasFile = !!origPath
                 // Clamp position so card stays within viewport
                 const cardW = 288, cardH = 420
@@ -820,7 +821,7 @@ export function BibliotecaView() {
                       {thumbReady && previewUrl && (
                         isImage ? (
                           <img src={previewUrl} alt="" className="w-full h-full object-cover" />
-                        ) : (
+                        ) : isPdf ? (
                           /* Render embed at 3× size, scale down to thumbnail */
                           <div style={{
                             position: 'absolute', top: 0, left: 0,
@@ -834,6 +835,11 @@ export function BibliotecaView() {
                               type="application/pdf"
                               style={{ width: '100%', height: '100%' }}
                             />
+                          </div>
+                        ) : (
+                          /* Office / other formats — no inline preview */
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <PIcon className="w-8 h-8 text-muted-foreground/30" />
                           </div>
                         )
                       )}

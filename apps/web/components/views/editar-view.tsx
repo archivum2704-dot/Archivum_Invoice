@@ -426,7 +426,7 @@ export function EditarView({ id }: EditarViewProps) {
                 </div>
               )}
 
-              <input ref={fileRef} type="file" accept=".pdf,image/*" className="hidden"
+              <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/csv,text/plain" className="hidden"
                 onChange={e => { if (e.target.files?.[0]) setNewFile(e.target.files[0]) }} />
               <button type="button" onClick={() => fileRef.current?.click()}
                 className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium text-muted-foreground border border-dashed border-border rounded-lg hover:border-accent hover:text-accent transition-colors">
