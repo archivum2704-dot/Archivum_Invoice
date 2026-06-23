@@ -25,7 +25,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -55,6 +59,9 @@
       "eas": {
         "projectId": "48362d1f-a346-46c7-9dab-f4a12a6eb78e"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/48362d1f-a346-46c7-9dab-f4a12a6eb78e"
     }
   }
 }
