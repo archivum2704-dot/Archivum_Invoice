@@ -7,7 +7,14 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "lint": "eslint .",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "doctor": "expo-doctor",
+    "build:dev:android": "eas build --profile development --platform android",
+    "build:dev:ios": "eas build --profile development --platform ios",
+    "build:preview": "eas build --profile preview --platform android",
+    "build:preview:ios": "eas build --profile preview --platform ios",
+    "build:prod": "eas build --profile production --platform all",
+    "submit:prod": "eas submit --profile production --platform all"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
@@ -56,6 +63,7 @@
     "@expo/ngrok": "^4.1.0",
     "@types/react": "~18.3.0",
     "@types/react-native": "^0.73.0",
+    "eas-cli": "^16.0.0",
     "tailwindcss": "^3.4.0",
     "typescript": "5.9.3"
   }
