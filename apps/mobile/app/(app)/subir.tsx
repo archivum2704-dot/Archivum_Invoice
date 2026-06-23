@@ -125,7 +125,21 @@ function Step1({ onNext, pickedFile, setPickedFile, C, t }: {
 
   const pickDocument = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: ["application/pdf", "image/*"], copyToCacheDirectory: true });
+      const result = await DocumentPicker.getDocumentAsync({
+        type: [
+          "application/pdf",
+          "image/*",
+          "application/msword",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "application/vnd.ms-excel",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "application/vnd.ms-powerpoint",
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          "text/csv",
+          "text/plain",
+        ],
+        copyToCacheDirectory: true,
+      });
       if (result.canceled || !result.assets?.[0]) return;
       const asset = result.assets[0];
       if (asset.mimeType?.startsWith("image/")) {
@@ -157,7 +171,7 @@ function Step1({ onNext, pickedFile, setPickedFile, C, t }: {
           <>
             <View style={{ width: 48, height: 60, backgroundColor: C.blueMed, borderRadius: 8, alignItems: "center", justifyContent: "center" }}><FileText size={24} color={C.blue} /></View>
             <Text style={{ fontSize: 15, fontWeight: "600", color: C.blue }} numberOfLines={1}>{pickedFile.name}</Text>
-            <Text style={{ fontSize: 12, color: C.muted }}>PDF · {formatSize(pickedFile.size)}</Text>
+            <Text style={{ fontSize: 12, color: C.muted }}>{(pickedFile.name.split(".").pop() ?? "FILE").toUpperCase()} · {formatSize(pickedFile.size)}</Text>
             <TouchableOpacity onPress={() => setPickedFile(null)} style={{ position: "absolute", top: 12, right: 12 }}><X size={16} color={C.muted} /></TouchableOpacity>
           </>
         ) : (
@@ -287,7 +301,7 @@ function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, c
           <View style={{ width: 44, height: 56, backgroundColor: C.blueL, borderRadius: 6, alignItems: "center", justifyContent: "center" }}><FileText size={20} color={C.blue} /></View>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 13, fontWeight: "600", color: C.text }} numberOfLines={1}>{pickedFile?.name ?? t("subir.noFile")}</Text>
-            <Text style={{ fontSize: 12, color: C.muted }}>PDF · {pickedFile ? formatSize(pickedFile.size) : "—"}</Text>
+            <Text style={{ fontSize: 12, color: C.muted }}>{pickedFile ? `${(pickedFile.name.split(".").pop() ?? "FILE").toUpperCase()} · ${formatSize(pickedFile.size)}` : "—"}</Text>
           </View>
         </View>
 

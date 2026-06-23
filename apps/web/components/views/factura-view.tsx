@@ -373,20 +373,48 @@ export function FacturaView({ id }: FacturaViewProps) {
             (() => {
               const name = (doc.file_name ?? "").toLowerCase()
               const isImage = /\.(jpe?g|png|webp|gif)$/i.test(name)
-              return isImage ? (
-                <div className="w-full h-full flex items-center justify-center p-6 overflow-auto">
-                  <img
+              const isPdf = /\.pdf$/i.test(name) || (doc.file_type ?? "") === "application/pdf"
+              if (isImage) {
+                return (
+                  <div className="w-full h-full flex items-center justify-center p-6 overflow-auto">
+                    <img
+                      src={pdfUrl}
+                      alt={doc.file_name ?? "Document preview"}
+                      className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                    />
+                  </div>
+                )
+              }
+              if (isPdf) {
+                return (
+                  <iframe
                     src={pdfUrl}
-                    alt={doc.file_name ?? "Document preview"}
-                    className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                    className="w-full h-full border-0"
+                    title={doc.file_name ?? "Document preview"}
                   />
+                )
+              }
+              // Office / other formats can't be previewed inline — offer download
+              return (
+                <div className="flex flex-col items-center justify-center w-full h-full gap-5 text-muted-foreground p-6">
+                  <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center">
+                    <FileText className="w-10 h-10 opacity-40" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-foreground break-all max-w-xs">{doc.file_name}</p>
+                    <p className="text-xs mt-1 text-muted-foreground max-w-xs">
+                      Este tipo de archivo no se puede previsualizar. Descárgalo para abrirlo.
+                    </p>
+                  </div>
+                  <a
+                    href={pdfUrl}
+                    download={doc.file_name ?? "document"}
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    {tActions("download")}
+                  </a>
                 </div>
-              ) : (
-                <iframe
-                  src={pdfUrl}
-                  className="w-full h-full border-0"
-                  title={doc.file_name ?? "Document preview"}
-                />
               )
             })()
           ) : (

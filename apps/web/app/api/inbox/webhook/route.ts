@@ -27,6 +27,23 @@ import { createClient as createAdminClient } from "@supabase/supabase-js"
 
 const MAX_ATTACHMENT_SIZE = 25 * 1024 * 1024 // 25 MB
 const ALLOWED_MIME_PREFIXES = ["application/pdf", "image/"]
+// Office / text formats accepted in addition to the prefixes above.
+// Kept in sync with the 'documents' bucket allowed_mime_types (migration 20260623).
+const ALLOWED_MIME_EXACT = new Set([
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/csv",
+  "text/plain",
+])
+
+function isAllowedMime(contentType: string): boolean {
+  const mime = contentType.split(";")[0].trim().toLowerCase()
+  return ALLOWED_MIME_PREFIXES.some(p => mime.startsWith(p)) || ALLOWED_MIME_EXACT.has(mime)
+}
 
 function getAdmin() {
   return createAdminClient(
@@ -127,7 +144,7 @@ async function decodeAttachments(
       }
 
       if (data.byteLength > MAX_ATTACHMENT_SIZE) continue
-      if (!ALLOWED_MIME_PREFIXES.some(p => contentType.startsWith(p))) continue
+      if (!isAllowedMime(contentType)) continue
 
       out.push({ filename, contentType, data })
     } catch (e) {
@@ -174,7 +191,7 @@ export async function POST(req: NextRequest) {
       const file = form.get(`attachment-${i}`)
       if (file instanceof File) {
         if (file.size > MAX_ATTACHMENT_SIZE) continue
-        if (!ALLOWED_MIME_PREFIXES.some(p => file.type.startsWith(p))) continue
+        if (!isAllowedMime(file.type)) continue
         attachments.push({
           filename: file.name,
           contentType: file.type,

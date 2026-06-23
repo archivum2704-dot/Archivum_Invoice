@@ -41,7 +41,24 @@ const DOC_STATUSES = ["draft", "pending", "paid", "overdue", "cancelled"] as con
 
 const DEFAULT_TAGS = ["Obra", "Madrid", "Stock", "Software", "Anual", "Transporte", "Material", "Reforma", "Mantenimiento", "Logistica"]
 
-type UploadedFile = { file: File; name: string; size: string; kind: "image" | "pdf"; converting?: boolean }
+type UploadedFile = { file: File; name: string; size: string; kind: "image" | "pdf" | "file"; converting?: boolean }
+
+// File types accepted by the uploader (in addition to images, which get
+// converted to PDF). Kept in sync with the 'documents' storage bucket's
+// allowed_mime_types (see supabase migration 20260623).
+const ACCEPTED_FILE_TYPES = [
+  ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".csv", ".txt",
+  "image/*",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/csv",
+  "text/plain",
+].join(",")
 
 function formatSize(bytes: number): string {
   return bytes > 1024 * 1024
@@ -171,7 +188,8 @@ export function SubirView() {
         ))
       }
     } else {
-      setFiles(prev => [...prev, { file: f, name: f.name, size: formatSize(f.size), kind: "pdf" }])
+      const isPdf = f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")
+      setFiles(prev => [...prev, { file: f, name: f.name, size: formatSize(f.size), kind: isPdf ? "pdf" : "file" }])
     }
   }
 
@@ -414,7 +432,7 @@ export function SubirView() {
               )}
             >
               <input
-                ref={fileRef} type="file" multiple accept=".pdf,image/*" className="hidden"
+                ref={fileRef} type="file" multiple accept={ACCEPTED_FILE_TYPES} className="hidden"
                 onChange={e => { if (e.target.files) Array.from(e.target.files).forEach(addFile) }}
               />
               <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
@@ -425,6 +443,7 @@ export function SubirView() {
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> PDF</span>
                 <span className="flex items-center gap-1.5"><Image className="w-3.5 h-3.5" /> JPG, PNG</span>
+                <span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Word, Excel</span>
                 <span className="flex items-center gap-1.5"><Scan className="w-3.5 h-3.5" /> Scans</span>
               </div>
               <p className="text-xs text-muted-foreground/60 mt-2">{t("maxSize")}</p>
