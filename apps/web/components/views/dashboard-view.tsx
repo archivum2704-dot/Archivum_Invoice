@@ -1,183 +1,99 @@
 "use client"
 
-import { useState, useMemo, useRef, useEffect } from "react"
+import { useState, useMemo } from "react"
 import {
-  FileText, Receipt, Package, FolderOpen,
-  TrendingUp, Clock, CheckCircle2, AlertCircle,
-  MoreHorizontal, ChevronRight, Plus, Search, Building2, X,
-  Euro, ArrowUpRight, Eye, Pencil, Trash2,
+  FileText, Users, Clock, CheckCircle2, AlertCircle,
+  TrendingUp, TrendingDown, ChevronRight, Plus, Search, Building2, X, FolderOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useTranslations, useLocale } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useDocuments } from "@/lib/hooks/use-documents"
+import { useCompanies } from "@/lib/hooks/use-companies"
 import { useOverdueDocs } from "@/lib/hooks/use-overdue-docs"
 import { OnboardingChecklist } from "@/components/onboarding-checklist"
-import { createClient } from "@/lib/supabase/client"
-import type { DocumentStatus, DocumentType } from "@/lib/supabase/types"
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
+import type { DocumentStatus } from "@/lib/supabase/types"
+import { BarChart, Bar, ResponsiveContainer, Cell } from "recharts"
 
-const STATUS_STYLES: Record<DocumentStatus, string> = {
-  paid:      "bg-[var(--status-paid)]/10 text-[var(--status-paid)]",
-  pending:   "bg-[var(--status-pending)]/10 text-[var(--status-pending)]",
-  overdue:   "bg-[var(--status-overdue)]/10 text-[var(--status-overdue)]",
-  draft:     "bg-muted text-muted-foreground",
-  cancelled: "bg-muted text-muted-foreground",
-}
-
-const TYPE_STYLES: Record<string, string> = {
-  invoice_issued:   "bg-accent/10 text-accent",
-  invoice_received: "bg-primary/10 text-primary",
-  delivery_note:    "bg-primary/10 text-primary",
-  receipt:          "bg-secondary-foreground/10 text-muted-foreground",
-  order:            "bg-blue-100/50 text-blue-600",
+// Traffic-light dot colour by document status
+const DOT_COLORS: Record<DocumentStatus, string> = {
+  paid:      "bg-[var(--status-paid)]",
+  pending:   "bg-[var(--status-pending)]",
+  overdue:   "bg-[var(--status-overdue)]",
+  draft:     "bg-muted-foreground/40",
+  cancelled: "bg-muted-foreground/40",
 }
 
 export function DashboardView() {
   const t = useTranslations("dashboard")
-  const tDoc = useTranslations("documents")
   const tCommon = useTranslations("common")
   const locale = useLocale()
-  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [dismissedOverdue, setDismissedOverdue] = useState(false)
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
+
   const { currentOrg, userProfile, loading: orgLoading } = useOrganization()
-  const { documents, loading: docsLoading, mutate } = useDocuments(currentOrg?.id ?? null)
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpenMenuId(null)
-      }
-    }
-    document.addEventListener("mousedown", handler)
-    return () => document.removeEventListener("mousedown", handler)
-  }, [])
-
-  const handleDelete = async (id: string) => {
-    if (!confirm(tCommon("deleteConfirm"))) return
-    setDeletingId(id)
-    setOpenMenuId(null)
-    const supabase = createClient()
-    await supabase.from("documents").delete().eq("id", id)
-    await mutate()
-    setDeletingId(null)
-  }
+  const { documents, loading: docsLoading } = useDocuments(currentOrg?.id ?? null)
+  const { companies, loading: companiesLoading } = useCompanies(currentOrg?.id ?? null)
   const { overdueDocs, overdueCount } = useOverdueDocs(currentOrg?.id ?? null)
 
-  const loading = orgLoading || docsLoading
-
-  const recentDocs = documents.slice(0, 6)
-
-  const kpis = useMemo(() => {
-    const sum = (pred: (d: typeof documents[0]) => boolean) =>
-      documents.filter(pred).reduce((acc, d) => acc + (d.total ?? 0), 0)
-
-    const paidAmount    = sum(d => d.status === "paid")
-    const pendingAmount = sum(d => d.status === "pending")
-    const overdueAmount = sum(d => d.status === "overdue")
-    const totalDocs     = documents.length
-
-    const fmt = (n: number) =>
-      n >= 1_000_000
-        ? `${(n / 1_000_000).toFixed(1)}M €`
-        : n >= 10_000
-        ? `${(n / 1_000).toFixed(1)}k €`
-        : n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €"
-
-    return [
-      {
-        label: t("stats.totalDocuments"),
-        value: String(totalDocs),
-        sub: `${documents.filter(d => {
-          if (!d.issue_date) return false
-          const parts = d.issue_date.split("-")
-          if (parts.length !== 3) return false
-          return parseInt(parts[1], 10) - 1 === new Date().getMonth() && parseInt(parts[0], 10) === new Date().getFullYear()
-        }).length} ${t("stats.thisMonth")}`,
-        icon: FolderOpen,
-        iconBg: "bg-primary/10",
-        iconColor: "text-primary",
-        isAmount: false,
-      },
-      {
-        label: t("kpi.collected"),
-        value: fmt(paidAmount),
-        sub: t("kpi.docsPaid", { n: documents.filter(d => d.status === "paid").length }),
-        icon: CheckCircle2,
-        iconBg: "bg-[var(--status-paid)]/10",
-        iconColor: "text-[var(--status-paid)]",
-        isAmount: true,
-      },
-      {
-        label: t("kpi.pending"),
-        value: fmt(pendingAmount),
-        sub: t("kpi.docsPending", { n: documents.filter(d => d.status === "pending").length }),
-        icon: Clock,
-        iconBg: "bg-[var(--status-pending)]/10",
-        iconColor: "text-[var(--status-pending)]",
-        isAmount: true,
-      },
-      {
-        label: t("kpi.overdue"),
-        value: fmt(overdueAmount),
-        sub: t("kpi.docsOverdue", { n: documents.filter(d => d.status === "overdue").length }),
-        icon: AlertCircle,
-        iconBg: "bg-[var(--status-overdue)]/10",
-        iconColor: "text-[var(--status-overdue)]",
-        isAmount: true,
-      },
-    ]
-  }, [documents, locale])
-
-  const paidCount        = documents.filter(d => d.status === "paid").length
-  const pendingCount     = documents.filter(d => d.status === "pending").length
-  const overdueBarCount  = documents.filter(d => d.status === "overdue").length
-  const total = paidCount + pendingCount + overdueBarCount || 1
-
-  const amountByStatus = useMemo(() => {
-    const sum = (status: string) =>
-      documents.filter(d => d.status === status).reduce((acc, d) => acc + (d.total ?? 0), 0)
-    return { paid: sum("paid"), pending: sum("pending"), overdue: sum("overdue") }
-  }, [documents])
+  const loading = orgLoading || docsLoading || companiesLoading
 
   const firstName = userProfile?.first_name ?? ""
 
-  // Resolve --primary CSS variable at render time so Recharts SVG fill works
-  const barColor = typeof window !== "undefined"
-    ? getComputedStyle(document.documentElement).getPropertyValue("--primary").trim()
-    : "oklch(0.28 0.08 255)"
+  const fmtEur = (n: number) => `${n.toLocaleString(locale, { maximumFractionDigits: 0 })} €`
 
-  const monthlyData = loading ? [] : (() => {
+  // Amounts by status
+  const { paidAmount, pendingAmount } = useMemo(() => {
+    const sum = (status: DocumentStatus) =>
+      documents.filter(d => d.status === status).reduce((acc, d) => acc + (d.total ?? 0), 0)
+    return { paidAmount: sum("paid"), pendingAmount: sum("pending") }
+  }, [documents])
+
+  // Revenue invoiced per month over the last 6 months
+  const monthlyRevenue = useMemo(() => {
     const now = new Date()
     return Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1)
       const year = d.getFullYear()
-      const month = d.getMonth()   // 0-indexed
-      const count = documents.filter(doc => {
-        if (!doc.issue_date) return false
-        // Parse YYYY-MM-DD as local date to avoid UTC-offset shifting the month
+      const month = d.getMonth()
+      const value = documents.reduce((acc, doc) => {
+        if (!doc.issue_date) return acc
         const parts = doc.issue_date.split("-")
-        if (parts.length !== 3) return false
-        const docYear  = parseInt(parts[0], 10)
-        const docMonth = parseInt(parts[1], 10) - 1  // to 0-indexed
-        return docYear === year && docMonth === month
-      }).length
-      return {
-        month: d.toLocaleDateString(locale, { month: "short" }),
-        docs: count,
-      }
+        if (parts.length !== 3) return acc
+        const docYear = parseInt(parts[0], 10)
+        const docMonth = parseInt(parts[1], 10) - 1
+        if (docYear === year && docMonth === month) return acc + (doc.total ?? 0)
+        return acc
+      }, 0)
+      return { month: d.toLocaleDateString(locale, { month: "short" }), value }
     })
-  })()
+  }, [documents, locale])
+
+  const thisMonthRevenue = monthlyRevenue[5]?.value ?? 0
+  const lastMonthRevenue = monthlyRevenue[4]?.value ?? 0
+  const pctChange =
+    lastMonthRevenue > 0
+      ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
+      : thisMonthRevenue > 0 ? 100 : 0
+  const trendUp = pctChange >= 0
+  const hasRevenue = monthlyRevenue.some(m => m.value > 0)
+
+  const stats = [
+    { label: t("stats.invoices"), value: String(documents.length),  icon: FileText,     iconBg: "bg-primary/10",                iconColor: "text-primary" },
+    { label: t("clients"),        value: String(companies.length),  icon: Users,        iconBg: "bg-accent/10",                 iconColor: "text-accent" },
+    { label: t("kpi.collected"),  value: fmtEur(paidAmount),        icon: CheckCircle2, iconBg: "bg-[var(--status-paid)]/10",    iconColor: "text-[var(--status-paid)]" },
+    { label: t("pendingShort"),   value: fmtEur(pendingAmount),     icon: Clock,        iconBg: "bg-[var(--status-pending)]/10", iconColor: "text-[var(--status-pending)]" },
+  ]
+
+  const recentDocs = documents.slice(0, 5)
+
+  const barColor = typeof window !== "undefined"
+    ? getComputedStyle(document.documentElement).getPropertyValue("--primary").trim()
+    : "oklch(0.28 0.08 255)"
 
   return (
-    <div className="p-6 sm:p-8">
+    <div className="p-6 sm:p-8 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 animate-slide-up-fade">
         <div>
@@ -221,7 +137,7 @@ export function DashboardView() {
 
       {/* Overdue alert banner */}
       {overdueCount > 0 && !dismissedOverdue && (
-        <div className="mb-6 flex items-start gap-3 px-4 py-3.5 bg-[var(--status-overdue)]/8 border border-[var(--status-overdue)]/25 rounded-2xl animate-slide-up-fade" style={{ animationDelay: "60ms" }}>
+        <div className="mb-6 flex items-start gap-3 px-4 py-3.5 bg-[var(--status-overdue)]/8 border border-[var(--status-overdue)]/25 rounded-2xl animate-slide-up-fade">
           <AlertCircle className="w-4 h-4 text-[var(--status-overdue)] mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground">
@@ -229,360 +145,162 @@ export function DashboardView() {
             </p>
             <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
               {overdueDocs.slice(0, 3).map(doc => (
-                <Link
-                  key={doc.id}
-                  href={`/factura/${doc.id}`}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
+                <Link key={doc.id} href={`/factura/${doc.id}`} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                   {doc.document_number ?? doc.id.slice(0, 8)}
-                  {doc.due_date && (
-                    <span className="text-[var(--status-overdue)] ml-1">
-                      · {new Date(doc.due_date).toLocaleDateString(locale, { day: "numeric", month: "short" })}
-                    </span>
-                  )}
                 </Link>
               ))}
-              {overdueCount > 3 && (
-                <Link href="/biblioteca?status=overdue" className="text-xs text-accent hover:underline">
-                  +{overdueCount - 3} más →
-                </Link>
-              )}
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Link
-              href="/biblioteca?status=overdue"
-              className="text-xs font-medium text-[var(--status-overdue)] hover:underline"
-            >
+            <Link href="/biblioteca?status=overdue" className="text-xs font-medium text-[var(--status-overdue)] hover:underline">
               Ver todos
             </Link>
-            <button
-              onClick={() => setDismissedOverdue(true)}
-              className="p-1 rounded hover:bg-muted transition-colors"
-            >
+            <button onClick={() => setDismissedOverdue(true)} className="p-1 rounded hover:bg-muted transition-colors">
               <X className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
           </div>
         </div>
       )}
 
+      {/* Onboarding checklist — auto-hides when completed or dismissed */}
+      <div className="mb-6">
+        <OnboardingChecklist orgId={currentOrg?.id ?? null} />
+      </div>
+
       {loading ? (
-        /* ── Skeleton loading state ─────────────────────────────────── */
-        <>
-          {/* KPI skeleton */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        /* ── Skeleton ─────────────────────────────────────── */
+        <div className="space-y-6">
+          <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+            <div className="skeleton h-3 w-32" />
+            <div className="skeleton h-9 w-40" />
+            <div className="skeleton h-12 w-full" />
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[0, 1, 2, 3].map(i => (
-              <div key={i} className="p-1 rounded-2xl bg-border/40">
-                <div className="bg-card rounded-[calc(1rem-2px)] p-5 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="skeleton h-3 w-20" />
-                    <div className="skeleton w-8 h-8 rounded-lg" style={{ borderRadius: 8 }} />
-                  </div>
-                  <div className="skeleton h-7 w-24" />
-                  <div className="skeleton h-2.5 w-16" />
-                </div>
+              <div key={i} className="bg-card border border-border rounded-2xl p-5 space-y-3">
+                <div className="skeleton w-8 h-8 rounded-lg" style={{ borderRadius: 8 }} />
+                <div className="skeleton h-6 w-20" />
+                <div className="skeleton h-3 w-16" />
               </div>
             ))}
           </div>
-          {/* Content skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-card border border-border rounded-2xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-border">
-                <div className="skeleton h-3.5 w-32" />
-              </div>
-              {[0, 1, 2, 3, 4].map(i => (
-                <div key={i} className="flex items-center gap-4 px-5 py-4 border-b border-border last:border-0">
-                  <div className="skeleton w-9 h-9 rounded-xl flex-shrink-0" style={{ borderRadius: 10 }} />
-                  <div className="flex-1 space-y-2">
-                    <div className="skeleton h-3.5 w-36" />
-                    <div className="skeleton h-2.5 w-20" />
-                  </div>
-                  <div className="skeleton h-5 w-16 rounded-full" />
-                  <div className="skeleton h-3.5 w-20" />
-                </div>
-              ))}
-            </div>
-            <div className="space-y-5">
-              <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
-                <div className="skeleton h-3.5 w-24" />
-                {[0, 1, 2].map(i => (
-                  <div key={i} className="space-y-2">
-                    <div className="flex justify-between">
-                      <div className="skeleton h-3 w-16" />
-                      <div className="skeleton h-3 w-20" />
-                    </div>
-                    <div className="skeleton h-1.5 w-full rounded-full" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>
+        </div>
       ) : (
-        <>
-          {/* KPI Cards — double-bezel architecture */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {kpis.map((kpi, i) => (
-              <div
-                key={kpi.label}
-                className="animate-slide-up-fade p-[3px] rounded-2xl bg-gradient-to-b from-border/60 to-border/20"
-                style={{ animationDelay: `${80 + i * 60}ms` }}
-              >
-                <div className="bg-card rounded-[calc(1rem-1px)] p-5 flex flex-col gap-3 h-full shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
-                      {kpi.label}
-                    </span>
-                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", kpi.iconBg)}>
-                      <kpi.icon className={cn("w-4 h-4", kpi.iconColor)} />
-                    </div>
-                  </div>
-                  <div>
-                    <p className={cn("font-bold text-foreground tracking-tight leading-none", kpi.isAmount ? "text-[1.6rem]" : "text-[2rem]")}>
-                      {kpi.value}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground/70 mt-1.5 font-medium">{kpi.sub}</p>
-                  </div>
-                </div>
+        <div className="space-y-6">
+          {/* ── Monthly revenue hero ──────────────────────── */}
+          <div className="bg-card border border-border rounded-2xl p-6 animate-slide-up-fade" style={{ animationDelay: "80ms" }}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+                  {t("monthlyRevenue")}
+                </span>
+                <p className="text-[2.4rem] leading-none font-bold tracking-tight text-foreground mt-2">
+                  {fmtEur(thisMonthRevenue)}
+                </p>
               </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Recent Documents */}
-            <div
-              className="lg:col-span-2 bg-card border border-border rounded-2xl overflow-hidden animate-slide-up-fade"
-              style={{ animationDelay: "320ms" }}
-            >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                <div className="flex items-center gap-2.5">
-                  <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.15em] font-semibold bg-muted text-muted-foreground/60">
-                    reciente
-                  </span>
-                  <h2 className="font-semibold text-foreground text-sm">{t("recentDocuments")}</h2>
-                </div>
-                <Link href="/biblioteca" className="text-xs text-accent hover:underline flex items-center gap-1 font-medium">
-                  {tCommon("viewAll")} <ChevronRight className="w-3 h-3" />
-                </Link>
-              </div>
-              {recentDocs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-14 gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
-                    <FolderOpen className="w-6 h-6 text-muted-foreground/50" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-foreground">{t("noDocumentsYet")}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{t("noDocumentsHint")}</p>
-                  </div>
-                  <Link href="/subir"
-                    className="mt-1 flex items-center gap-1.5 text-xs font-medium text-accent hover:underline">
-                    <Plus className="w-3.5 h-3.5" /> {tCommon("uploadDocument")}
-                  </Link>
-                </div>
-              ) : (
-                <div className="divide-y divide-border/60" ref={menuRef}>
-                  {recentDocs.map((doc, idx) => (
-                    <div
-                      key={doc.id}
-                      className={cn(
-                        "flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-all duration-150 group relative animate-slide-up-fade",
-                        deletingId === doc.id && "opacity-40 pointer-events-none",
-                        // Lift the active row above siblings so the dropdown isn't covered by row stacking contexts
-                        openMenuId === doc.id ? "z-30" : "z-0"
-                      )}
-                      style={{ animationDelay: `${400 + idx * 50}ms` }}
-                    >
-                      {/* Icon */}
-                      <div className="w-9 h-9 rounded-xl bg-primary/8 border border-border/60 flex items-center justify-center shrink-0">
-                        <FileText className="w-4 h-4 text-primary/60" />
-                      </div>
-
-                      {/* Name + date — clickable to view */}
-                      <Link href={`/factura/${doc.id}`} className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{doc.document_number ?? "—"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {doc.issue_date ? new Date(doc.issue_date).toLocaleDateString(locale) : "—"}
-                        </p>
-                      </Link>
-
-                      {/* Type badge */}
-                      <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", TYPE_STYLES[doc.document_type] ?? "bg-muted text-muted-foreground")}>
-                        {tDoc(`types.${doc.document_type}`)}
-                      </span>
-
-                      {/* Amount */}
-                      <span className="text-sm font-semibold text-foreground w-28 text-right">
-                        {doc.total != null ? `${doc.total.toLocaleString("en", { minimumFractionDigits: 2 })} ${doc.currency ?? "€"}` : "—"}
-                      </span>
-
-                      {/* Status badge */}
-                      <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium w-20 text-center", STATUS_STYLES[doc.status])}>
-                        {tDoc(`statuses.${doc.status}`)}
-                      </span>
-
-                      {/* ··· menu button */}
-                      <div className="relative shrink-0">
-                        <button
-                          onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === doc.id ? null : doc.id) }}
-                          className={cn(
-                            "p-1.5 rounded-md transition-all",
-                            openMenuId === doc.id
-                              ? "bg-muted text-foreground"
-                              : "text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-foreground"
-                          )}
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
-
-                        {/* Dropdown */}
-                        {openMenuId === doc.id && (
-                          <div className="absolute right-0 top-full mt-1 z-50 w-40 bg-popover border border-border rounded-xl shadow-xl overflow-hidden">
-                            <Link
-                              href={`/factura/${doc.id}`}
-                              onClick={() => setOpenMenuId(null)}
-                              className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
-                            >
-                              <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-                              {tCommon("viewDocument")}
-                            </Link>
-                            <Link
-                              href={`/factura/${doc.id}/editar`}
-                              onClick={() => setOpenMenuId(null)}
-                              className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
-                            >
-                              <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                              {tCommon("edit")}
-                            </Link>
-                            <div className="border-t border-border" />
-                            <button
-                              onClick={() => handleDelete(doc.id)}
-                              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-destructive hover:bg-destructive/8 transition-colors"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              {tCommon("delete")}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+              {hasRevenue && (
+                <div className={cn(
+                  "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shrink-0",
+                  trendUp ? "bg-[var(--status-paid)]/10 text-[var(--status-paid)]" : "bg-[var(--status-overdue)]/10 text-[var(--status-overdue)]"
+                )}>
+                  {trendUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                  {trendUp ? "+" : ""}{pctChange}%
                 </div>
               )}
             </div>
 
-            {/* Right column */}
-            <div
-              className="flex flex-col gap-5 animate-slide-up-fade"
-              style={{ animationDelay: "360ms" }}
-            >
-              {/* Onboarding checklist — visible until dismissed or completed */}
-              <OnboardingChecklist orgId={currentOrg?.id ?? null} />
-
-              {/* Invoice Status */}
-              <div className="bg-card border border-border rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.15em] font-semibold bg-muted text-muted-foreground/60">
-                    resumen
-                  </span>
-                  <h2 className="font-semibold text-foreground text-sm">{t("invoiceStatus")}</h2>
-                </div>
-                <div className="space-y-4">
-                  {[
-                    { key: "paid" as DocumentStatus,    icon: CheckCircle2, color: "text-[var(--status-paid)]",    bar: "bg-[var(--status-paid)]",    count: paidCount,       pct: Math.round((paidCount / total) * 100),       amount: amountByStatus.paid },
-                    { key: "pending" as DocumentStatus, icon: Clock,        color: "text-[var(--status-pending)]", bar: "bg-[var(--status-pending)]", count: pendingCount,    pct: Math.round((pendingCount / total) * 100),    amount: amountByStatus.pending },
-                    { key: "overdue" as DocumentStatus, icon: AlertCircle,  color: "text-[var(--status-overdue)]", bar: "bg-[var(--status-overdue)]", count: overdueBarCount, pct: Math.round((overdueBarCount / total) * 100), amount: amountByStatus.overdue },
-                  ].map(item => (
-                    <div key={item.key}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <item.icon className={cn("w-3.5 h-3.5", item.color)} />
-                          <span className="text-sm font-medium text-foreground">{tDoc(`statuses.${item.key}`)}</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-sm font-bold text-foreground block leading-none tracking-tight">
-                            {item.amount.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
-                          </span>
-                          <span className="text-[10px] text-muted-foreground/70">{item.count} docs</span>
-                        </div>
-                      </div>
-                      <div className="w-full h-1.5 bg-muted/60 rounded-full overflow-hidden">
-                        <div
-                          className={cn("h-full rounded-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]", item.bar)}
-                          style={{ width: `${item.pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Quick links */}
-              <div className="bg-card border border-border rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.15em] font-semibold bg-muted text-muted-foreground/60">
-                    accesos
-                  </span>
-                  <h2 className="font-semibold text-foreground text-sm">{t("quickLinks")}</h2>
-                </div>
-                <div className="space-y-0.5">
-                  {[
-                    { label: t("links.todaysInvoices"),   href: "/biblioteca?type=invoice_issued&date=today" },
-                    { label: t("links.pendingPayments"),  href: "/biblioteca?status=pending" },
-                    { label: t("links.activeCompanies"),  href: "/empresas" },
-                    { label: t("links.advancedSearch"),   href: "/buscador" },
-                  ].map(link => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-muted/50 text-sm text-foreground transition-all duration-150 group"
-                    >
-                      <span className="font-medium">{link.label}</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 transition-transform duration-150 group-hover:translate-x-0.5" />
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Monthly Activity Chart */}
-          <div
-            className="mt-6 bg-card border border-border rounded-2xl p-5 animate-slide-up-fade"
-            style={{ animationDelay: "480ms" }}
-          >
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2.5">
-                <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.15em] font-semibold bg-muted text-muted-foreground/60">
-                  actividad
-                </span>
-                <h2 className="font-semibold text-foreground text-sm">{t("monthlyActivity")}</h2>
-              </div>
-              <span className="text-[11px] font-medium text-muted-foreground/60">{t("last6Months")}</span>
-            </div>
-            {monthlyData.every(m => m.docs === 0) ? (
-              <div className="flex flex-col items-center justify-center py-8 gap-2">
-                <TrendingUp className="w-8 h-8 text-muted-foreground/30" />
-                <p className="text-xs text-muted-foreground">Sin actividad registrada todavía</p>
+            {hasRevenue ? (
+              <div className="mt-5 h-16">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={monthlyRevenue} barSize={26} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                      {monthlyRevenue.map((_, i) => (
+                        <Cell key={i} fill={barColor} fillOpacity={i === 5 ? 1 : 0.25} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={monthlyData} barSize={28} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip
-                    cursor={{ fill: "rgba(0,0,0,0.04)" }}
-                    contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 12 }}
-                    labelStyle={{ color: "#111", fontWeight: 600 }}
-                    itemStyle={{ color: "#6b7280" }}
-                    formatter={(v: number) => [v, t("stats.totalDocuments")]}
-                  />
-                  <Bar dataKey="docs" fill={barColor} radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <p className="text-xs text-muted-foreground mt-3">{t("vsLastMonth")}</p>
             )}
           </div>
-        </>
+
+          {/* ── Stat cards ─────────────────────────────────── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {stats.map((s, i) => (
+              <div
+                key={s.label}
+                className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3 animate-slide-up-fade"
+                style={{ animationDelay: `${140 + i * 60}ms` }}
+              >
+                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", s.iconBg)}>
+                  <s.icon className={cn("w-4 h-4", s.iconColor)} />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground tracking-tight leading-none">{s.value}</p>
+                  <p className="text-[11px] text-muted-foreground/70 mt-1.5 font-medium">{s.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Recent invoices ────────────────────────────── */}
+          <div className="bg-card border border-border rounded-2xl overflow-hidden animate-slide-up-fade" style={{ animationDelay: "380ms" }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <h2 className="font-semibold text-foreground text-sm">{t("recentInvoices")}</h2>
+              <Link href="/biblioteca" className="text-xs text-accent hover:underline flex items-center gap-1 font-medium">
+                {tCommon("viewAll")} <ChevronRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            {recentDocs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-14 gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
+                  <FolderOpen className="w-6 h-6 text-muted-foreground/50" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-foreground">{t("noDocumentsYet")}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t("noDocumentsHint")}</p>
+                </div>
+                <Link href="/subir" className="mt-1 flex items-center gap-1.5 text-xs font-medium text-accent hover:underline">
+                  <Plus className="w-3.5 h-3.5" /> {tCommon("uploadDocument")}
+                </Link>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/60">
+                {recentDocs.map((doc, idx) => (
+                  <Link
+                    key={doc.id}
+                    href={`/factura/${doc.id}`}
+                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-colors group animate-slide-up-fade"
+                    style={{ animationDelay: `${440 + idx * 50}ms` }}
+                  >
+                    {/* Traffic-light status dot */}
+                    <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", DOT_COLORS[doc.status])} />
+
+                    {/* Number */}
+                    <span className="text-sm font-semibold text-foreground w-24 shrink-0 truncate">
+                      {doc.document_number ?? "—"}
+                    </span>
+
+                    {/* Company */}
+                    <span className="flex-1 min-w-0 text-sm text-muted-foreground truncate">
+                      {doc.company?.name ?? t("noCompany")}
+                    </span>
+
+                    {/* Amount */}
+                    <span className="text-sm font-semibold text-foreground text-right shrink-0">
+                      {doc.total != null ? fmtEur(doc.total) : "—"}
+                    </span>
+
+                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0 transition-transform duration-150 group-hover:translate-x-0.5" />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )
