@@ -29,11 +29,14 @@ export type Database = {
           address: string | null
           city: string | null
           postal_code: string | null
+          province: string | null
           country: string
           phone: string | null
           email: string | null
           logo_url: string | null
           is_active: boolean
+          subscription_plan: string
+          subscription_status: string
           storage_limit_bytes: number
           storage_used_bytes: number
           created_at: string
@@ -47,6 +50,7 @@ export type Database = {
           address?: string | null
           city?: string | null
           postal_code?: string | null
+          province?: string | null
           country?: string
           phone?: string | null
           email?: string | null
@@ -60,11 +64,14 @@ export type Database = {
           address?: string | null
           city?: string | null
           postal_code?: string | null
+          province?: string | null
           country?: string
           phone?: string | null
           email?: string | null
           logo_url?: string | null
           is_active?: boolean
+          subscription_plan?: string
+          subscription_status?: string
           storage_limit_bytes?: number
           storage_used_bytes?: number
           updated_at?: string
@@ -132,6 +139,7 @@ export type Database = {
           address: string | null
           city: string | null
           postal_code: string | null
+          province: string | null
           country: string
           phone: string | null
           email: string | null
@@ -151,6 +159,7 @@ export type Database = {
           address?: string | null
           city?: string | null
           postal_code?: string | null
+          province?: string | null
           country?: string
           phone?: string | null
           email?: string | null
@@ -166,6 +175,7 @@ export type Database = {
           address?: string | null
           city?: string | null
           postal_code?: string | null
+          province?: string | null
           country?: string
           phone?: string | null
           email?: string | null
@@ -413,12 +423,218 @@ export type Database = {
         }
         Update: never
       }
+      products: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          sku: string | null
+          description: string | null
+          unit: string
+          unit_price: number
+          tax_rate: number
+          track_stock: boolean
+          stock_qty: number
+          is_active: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+          sku?: string | null
+          description?: string | null
+          unit?: string
+          unit_price?: number
+          tax_rate?: number
+          track_stock?: boolean
+          stock_qty?: number
+          is_active?: boolean
+          created_by?: string | null
+        }
+        Update: {
+          name?: string
+          sku?: string | null
+          description?: string | null
+          unit?: string
+          unit_price?: number
+          tax_rate?: number
+          track_stock?: boolean
+          stock_qty?: number
+          is_active?: boolean
+          updated_at?: string
+        }
+      }
+      invoices: {
+        Row: {
+          id: string
+          organization_id: string
+          client_company_id: string | null
+          series: string
+          number: number | null
+          full_number: string | null
+          kind: 'ordinary' | 'simplified' | 'rectifying'
+          state: 'draft' | 'issued' | 'cancelled'
+          issue_date: string | null
+          operation_date: string | null
+          due_date: string | null
+          currency: string
+          subtotal: number
+          tax_amount: number
+          total: number
+          issuer_name: string | null
+          issuer_cif: string | null
+          issuer_address: string | null
+          issuer_city: string | null
+          issuer_postal_code: string | null
+          issuer_province: string | null
+          client_name: string | null
+          client_cif: string | null
+          client_address: string | null
+          client_city: string | null
+          client_postal_code: string | null
+          client_province: string | null
+          notes: string | null
+          huella: string | null
+          huella_anterior: string | null
+          qr_url: string | null
+          registro_alta: Record<string, unknown> | null
+          verifactu_status: 'pending' | 'generated' | 'sent' | 'error' | 'exempt'
+          issued_at: string | null
+          payment_status: DocumentStatus | null
+          document_id: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          client_company_id?: string | null
+          series?: string
+          number?: number | null
+          full_number?: string | null
+          kind?: 'ordinary' | 'simplified' | 'rectifying'
+          state?: 'draft' | 'issued' | 'cancelled'
+          issue_date?: string | null
+          operation_date?: string | null
+          due_date?: string | null
+          currency?: string
+          subtotal?: number
+          tax_amount?: number
+          total?: number
+          issuer_name?: string | null
+          issuer_cif?: string | null
+          issuer_address?: string | null
+          issuer_city?: string | null
+          issuer_postal_code?: string | null
+          issuer_province?: string | null
+          client_name?: string | null
+          client_cif?: string | null
+          client_address?: string | null
+          client_city?: string | null
+          client_postal_code?: string | null
+          client_province?: string | null
+          notes?: string | null
+          huella?: string | null
+          huella_anterior?: string | null
+          qr_url?: string | null
+          registro_alta?: Record<string, unknown> | null
+          verifactu_status?: 'pending' | 'generated' | 'sent' | 'error' | 'exempt'
+          issued_at?: string | null
+          payment_status?: DocumentStatus | null
+          document_id?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          client_company_id?: string | null
+          series?: string
+          number?: number | null
+          full_number?: string | null
+          kind?: 'ordinary' | 'simplified' | 'rectifying'
+          state?: 'draft' | 'issued' | 'cancelled'
+          issue_date?: string | null
+          operation_date?: string | null
+          due_date?: string | null
+          subtotal?: number
+          tax_amount?: number
+          total?: number
+          issuer_name?: string | null
+          issuer_cif?: string | null
+          issuer_address?: string | null
+          issuer_city?: string | null
+          issuer_postal_code?: string | null
+          issuer_province?: string | null
+          client_name?: string | null
+          client_cif?: string | null
+          client_address?: string | null
+          client_city?: string | null
+          client_postal_code?: string | null
+          client_province?: string | null
+          notes?: string | null
+          huella?: string | null
+          huella_anterior?: string | null
+          qr_url?: string | null
+          registro_alta?: Record<string, unknown> | null
+          verifactu_status?: 'pending' | 'generated' | 'sent' | 'error' | 'exempt'
+          issued_at?: string | null
+          payment_status?: DocumentStatus | null
+          document_id?: string | null
+          updated_at?: string
+        }
+      }
+      invoice_lines: {
+        Row: {
+          id: string
+          invoice_id: string
+          product_id: string | null
+          description: string
+          quantity: number
+          unit_price: number
+          tax_rate: number
+          discount_pct: number
+          line_subtotal: number
+          line_tax: number
+          line_total: number
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          invoice_id: string
+          product_id?: string | null
+          description: string
+          quantity?: number
+          unit_price?: number
+          tax_rate?: number
+          discount_pct?: number
+          line_subtotal?: number
+          line_tax?: number
+          line_total?: number
+          position?: number
+        }
+        Update: {
+          description?: string
+          quantity?: number
+          unit_price?: number
+          tax_rate?: number
+          discount_pct?: number
+          line_subtotal?: number
+          line_tax?: number
+          line_total?: number
+          position?: number
+        }
+      }
     }
     Functions: {
       is_platform_admin: { Args: Record<never, never>; Returns: boolean }
       is_org_member: { Args: { org_id: string }; Returns: boolean }
       is_org_admin: { Args: { org_id: string }; Returns: boolean }
       can_access_company: { Args: { co_id: string }; Returns: boolean }
+      org_has_paid_plan: { Args: { p_org_id: string }; Returns: boolean }
+      next_invoice_number: { Args: { p_org: string; p_series: string; p_year: number }; Returns: number }
       create_organization_with_owner: {
         Args: { org_name: string; org_slug: string; owner_id: string }
         Returns: string
