@@ -124,6 +124,12 @@
       "thisMonth": "este mes"
     },
     "recentDocuments": "Documentos Recientes",
+    "monthlyRevenue": "Ingresos del mes",
+    "vsLastMonth": "vs mes anterior",
+    "clients": "Clientes",
+    "pendingShort": "Pendiente",
+    "recentInvoices": "Facturas recientes",
+    "noCompany": "Sin empresa",
     "monthlyActivity": "Actividad Mensual",
     "last6Months": "últimos 6 meses",
     "invoiceStatus": "Estado de Facturas",

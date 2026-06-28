@@ -124,6 +124,12 @@
       "thisMonth": "this month"
     },
     "recentDocuments": "Recent Documents",
+    "monthlyRevenue": "Monthly revenue",
+    "vsLastMonth": "vs last month",
+    "clients": "Clients",
+    "pendingShort": "Pending",
+    "recentInvoices": "Recent invoices",
+    "noCompany": "No company",
     "monthlyActivity": "Monthly Activity",
     "last6Months": "last 6 months",
     "invoiceStatus": "Invoice Status",
