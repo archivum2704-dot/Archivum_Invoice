@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react"
 import useSWR from "swr"
 import QRCode from "qrcode"
-import { ArrowLeft, Printer, ShieldCheck, Loader2 } from "lucide-react"
+import { ArrowLeft, Printer, ShieldCheck, Loader2, Ban } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import { createClient } from "@/lib/supabase/client"
+import { useOrganization } from "@/lib/context/organization-context"
+import { isPaidPlan } from "@/lib/plan"
 import type { Database } from "@/lib/supabase/types"
 
 type Invoice = Database["public"]["Tables"]["invoices"]["Row"]
@@ -23,11 +26,34 @@ async function fetchInvoice(id: string): Promise<{ invoice: Invoice; lines: Line
 export function FacturaEmitidaView({ id }: { id: string }) {
   const t = useTranslations("invoicing")
   const locale = useLocale()
-  const { data, isLoading } = useSWR(["invoice", id], () => fetchInvoice(id), { revalidateOnFocus: false })
+  const router = useRouter()
+  const { currentOrg, isOrgAdmin } = useOrganization()
+  const { data, isLoading, mutate } = useSWR(["invoice", id], () => fetchInvoice(id), { revalidateOnFocus: false })
   const [qrSrc, setQrSrc] = useState<string | null>(null)
+  const [rectifying, setRectifying] = useState(false)
 
   const invoice = data?.invoice
   const lines = data?.lines ?? []
+
+  const canRectify = invoice?.state === "issued" && invoice?.kind !== "rectifying" && isOrgAdmin && isPaidPlan(currentOrg)
+
+  const handleRectify = async () => {
+    if (!invoice || !currentOrg || !confirm(t("rectifyConfirm"))) return
+    setRectifying(true)
+    try {
+      const res = await fetch("/api/invoices/rectify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId: currentOrg.id, invoiceId: invoice.id }),
+      })
+      const json = await res.json()
+      if (!res.ok) { alert(json.error === "already_rectified" ? t("alreadyRectified") : t("rectifyError")); setRectifying(false); return }
+      await mutate()
+      router.push(`/facturacion/${json.id}`)
+    } catch {
+      setRectifying(false); alert(t("rectifyError"))
+    }
+  }
 
   useEffect(() => {
     if (invoice?.qr_url) {
@@ -47,10 +73,25 @@ export function FacturaEmitidaView({ id }: { id: string }) {
         <Link href="/facturacion" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="w-4 h-4" /> {t("backToList")}
         </Link>
-        <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors">
-          <Printer className="w-4 h-4" /> {t("print")}
-        </button>
+        <div className="flex items-center gap-2">
+          {canRectify && (
+            <button onClick={handleRectify} disabled={rectifying} className="flex items-center gap-2 px-4 py-2 border border-border text-foreground text-sm font-medium rounded-xl hover:bg-muted disabled:opacity-50 transition-colors">
+              {rectifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />} {t("rectify")}
+            </button>
+          )}
+          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors">
+            <Printer className="w-4 h-4" /> {t("print")}
+          </button>
+        </div>
       </div>
+
+      {/* Rectificative banner */}
+      {invoice.kind === "rectifying" && (
+        <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-[var(--status-overdue)]/8 border border-[var(--status-overdue)]/20 rounded-xl print:hidden">
+          <Ban className="w-4 h-4 text-[var(--status-overdue)] shrink-0" />
+          <p className="text-sm text-foreground">{t("rectificativeBanner")}</p>
+        </div>
+      )}
 
       {/* Invoice document */}
       <div className="bg-card border border-border rounded-2xl p-8 print:border-0 print:shadow-none">
