@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   TrendingUp,
   TrendingDown,
+  Package,
 } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { useTranslations, useLocale } from "next-intl"
@@ -32,6 +33,7 @@ import { LanguageSwitcher } from "@/components/language-switcher"
 import { useOverdueDocs } from "@/lib/hooks/use-overdue-docs"
 import { useDocuments } from "@/lib/hooks/use-documents"
 import { useCompanies } from "@/lib/hooks/use-companies"
+import { isPaidPlan } from "@/lib/plan"
 import type { DocumentStatus } from "@/lib/supabase/types"
 
 // Traffic-light dot colour by document status
@@ -121,6 +123,10 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
       : []),
     { label: t("library"), icon: Library, href: "/biblioteca" },
     { label: t("search"), icon: Search, href: "/buscador" },
+    // Inventory: paid plans only
+    ...(isPaidPlan(currentOrg)
+      ? [{ label: t("inventory"), icon: Package, href: "/inventario" }]
+      : []),
     // Upload: members and admins can upload; viewers cannot
     ...(!isViewer
       ? [{ label: t("upload"), icon: Upload, href: "/subir" }]
