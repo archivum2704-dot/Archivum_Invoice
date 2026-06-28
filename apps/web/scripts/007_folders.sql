@@ -33,44 +33,25 @@ CREATE TRIGGER set_updated_at_folders
 -- 5. RLS
 ALTER TABLE folders ENABLE ROW LEVEL SECURITY;
 
--- Members can view all folders in their org
+-- Members (and platform admins) can view all folders in their org
 CREATE POLICY "org_members_can_view_folders"
   ON folders FOR SELECT
-  USING (
-    organization_id IN (
-      SELECT organization_id FROM organization_members WHERE user_id = auth.uid()
-    )
-  );
+  USING (public.is_org_member(organization_id));
 
--- Admins/owners can create folders
+-- Admins/owners (and platform admins) can create folders
 CREATE POLICY "org_admins_can_insert_folders"
   ON folders FOR INSERT
-  WITH CHECK (
-    organization_id IN (
-      SELECT organization_id FROM organization_members
-      WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
-    )
-  );
+  WITH CHECK (public.is_org_admin(organization_id));
 
--- Admins/owners can update folders
+-- Admins/owners (and platform admins) can update folders
 CREATE POLICY "org_admins_can_update_folders"
   ON folders FOR UPDATE
-  USING (
-    organization_id IN (
-      SELECT organization_id FROM organization_members
-      WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
-    )
-  );
+  USING (public.is_org_admin(organization_id));
 
--- Admins/owners can delete folders
+-- Admins/owners (and platform admins) can delete folders
 CREATE POLICY "org_admins_can_delete_folders"
   ON folders FOR DELETE
-  USING (
-    organization_id IN (
-      SELECT organization_id FROM organization_members
-      WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
-    )
-  );
+  USING (public.is_org_admin(organization_id));
 
 -- 6. Per-folder access control table
 --    When a member (not admin/owner) is restricted to specific folders,
@@ -96,24 +77,24 @@ CREATE POLICY "users_can_view_own_folder_access"
   ON folder_user_access FOR SELECT
   USING (user_id = auth.uid());
 
--- Admins can view all access grants in their org
+-- Admins (and platform admins) can view all access grants in their org
 CREATE POLICY "org_admins_can_view_all_folder_access"
   ON folder_user_access FOR SELECT
   USING (
-    folder_id IN (
-      SELECT f.id FROM folders f
-      JOIN organization_members om ON om.organization_id = f.organization_id
-      WHERE om.user_id = auth.uid() AND om.role IN ('owner', 'admin')
+    EXISTS (
+      SELECT 1 FROM folders f
+      WHERE f.id = folder_user_access.folder_id
+        AND public.is_org_admin(f.organization_id)
     )
   );
 
--- Admins can manage access grants
+-- Admins (and platform admins) can manage access grants
 CREATE POLICY "org_admins_can_manage_folder_access"
   ON folder_user_access FOR ALL
   USING (
-    folder_id IN (
-      SELECT f.id FROM folders f
-      JOIN organization_members om ON om.organization_id = f.organization_id
-      WHERE om.user_id = auth.uid() AND om.role IN ('owner', 'admin')
+    EXISTS (
+      SELECT 1 FROM folders f
+      WHERE f.id = folder_user_access.folder_id
+        AND public.is_org_admin(f.organization_id)
     )
   );

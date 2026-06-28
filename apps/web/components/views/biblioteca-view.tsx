@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { useOrganization } from "@/lib/context/organization-context"
+import { useOrganization, ALL_ORGS_ID } from "@/lib/context/organization-context"
 import { useDocuments } from "@/lib/hooks/use-documents"
 import { useFolders } from "@/lib/hooks/use-folders"
 import { downloadCSV, downloadExcel } from "@/lib/utils/export"
@@ -60,6 +60,7 @@ export function BibliotecaView() {
   const [creatingUnder, setCreatingUnder] = useState<string | "root" | null>(null) // folder id or "root"
   const [newFolderName, setNewFolderName] = useState("")
   const [creatingFolder, setCreatingFolder] = useState(false)
+  const [folderError, setFolderError] = useState<string | null>(null)
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [movingDoc, setMovingDoc] = useState<string | null>(null) // doc id being moved
   const [renamingFolder, setRenamingFolder] = useState<string | null>(null) // folder id being renamed
@@ -92,7 +93,14 @@ export function BibliotecaView() {
 
   const handleCreateFolder = async (parentId: string | null = null) => {
     if (!newFolderName.trim() || !currentOrg) return
+    // Folders belong to a single organization — can't create one while
+    // viewing the aggregated "all organizations" scope.
+    if (currentOrg.id === ALL_ORGS_ID) {
+      setFolderError(tFolders("selectOrgFirst"))
+      return
+    }
     setCreatingFolder(true)
+    setFolderError(null)
     const supabase = createClient()
     const { error } = await supabase.from("folders").insert({
       organization_id: currentOrg.id,
@@ -105,6 +113,8 @@ export function BibliotecaView() {
       setCreatingUnder(null)
       // Auto-expand parent so new subfolder is visible
       if (parentId) setExpandedFolders(prev => new Set([...prev, parentId]))
+    } else {
+      setFolderError(error.message || tFolders("createError"))
     }
     setCreatingFolder(false)
   }
@@ -360,7 +370,7 @@ export function BibliotecaView() {
           {isOrgAdmin && renamingFolder !== folder.id && (
             <div className="flex items-center opacity-0 group-hover/fi:opacity-100 transition-opacity shrink-0">
               <button
-                onClick={() => { setCreatingUnder(creatingUnder === folder.id ? null : folder.id); setNewFolderName("") }}
+                onClick={() => { setCreatingUnder(creatingUnder === folder.id ? null : folder.id); setNewFolderName(""); setFolderError(null) }}
                 className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                 title={tFolders("newFolder")}
               >
@@ -394,7 +404,7 @@ export function BibliotecaView() {
               onChange={e => setNewFolderName(e.target.value)}
               onKeyDown={e => {
                 if (e.key === "Enter") handleCreateFolder(folder.id)
-                if (e.key === "Escape") { setCreatingUnder(null); setNewFolderName("") }
+                if (e.key === "Escape") { setCreatingUnder(null); setNewFolderName(""); setFolderError(null) }
               }}
               placeholder={tFolders("folderName")}
               className="flex-1 min-w-0 px-2 py-1 text-xs bg-muted border border-border rounded focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
@@ -406,7 +416,7 @@ export function BibliotecaView() {
             >
               {creatingFolder ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
             </button>
-            <button onClick={() => { setCreatingUnder(null); setNewFolderName("") }} className="p-1 rounded hover:bg-muted shrink-0">
+            <button onClick={() => { setCreatingUnder(null); setNewFolderName(""); setFolderError(null) }} className="p-1 rounded hover:bg-muted shrink-0">
               <X className="w-3 h-3 text-muted-foreground" />
             </button>
           </div>
@@ -427,7 +437,7 @@ export function BibliotecaView() {
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{tFolders("title")}</span>
           {isOrgAdmin && (
             <button
-              onClick={() => { setCreatingUnder(creatingUnder === "root" ? null : "root"); setNewFolderName("") }}
+              onClick={() => { setCreatingUnder(creatingUnder === "root" ? null : "root"); setNewFolderName(""); setFolderError(null) }}
               className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
               title={tFolders("newFolder")}
             >
@@ -435,6 +445,13 @@ export function BibliotecaView() {
             </button>
           )}
         </div>
+
+        {/* Folder creation error */}
+        {folderError && (
+          <div className="mx-1 mb-1 px-2 py-1.5 rounded bg-destructive/10 border border-destructive/20">
+            <p className="text-[11px] text-destructive leading-snug">{folderError}</p>
+          </div>
+        )}
 
         {/* New root-level folder input */}
         {creatingUnder === "root" && (
@@ -446,7 +463,7 @@ export function BibliotecaView() {
               onChange={e => setNewFolderName(e.target.value)}
               onKeyDown={e => {
                 if (e.key === "Enter") handleCreateFolder(null)
-                if (e.key === "Escape") { setCreatingUnder(null); setNewFolderName("") }
+                if (e.key === "Escape") { setCreatingUnder(null); setNewFolderName(""); setFolderError(null) }
               }}
               placeholder={tFolders("folderName")}
               className="flex-1 min-w-0 px-2 py-1 text-xs bg-muted border border-border rounded focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
@@ -458,7 +475,7 @@ export function BibliotecaView() {
             >
               {creatingFolder ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
             </button>
-            <button onClick={() => { setCreatingUnder(null); setNewFolderName("") }} className="p-1 rounded hover:bg-muted">
+            <button onClick={() => { setCreatingUnder(null); setNewFolderName(""); setFolderError(null) }} className="p-1 rounded hover:bg-muted">
               <X className="w-3 h-3 text-muted-foreground" />
             </button>
           </div>
