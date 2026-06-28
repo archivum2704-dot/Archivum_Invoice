@@ -4,6 +4,7 @@ import {
   computeHuella, buildRegistroAlta, buildQrUrl, nowWithOffset,
   type InvoiceKind,
 } from '@/lib/verifactu'
+import { buildInvoicePdf } from '@/lib/invoice-pdf'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
@@ -166,6 +167,37 @@ export async function POST(req: NextRequest) {
           .update({ stock_qty: round2(Number(prod.stock_qty) - l.quantity) })
           .eq('id', l.product_id)
       }
+    }
+
+    // ── Best-effort: generate PDF, store it, archive in the library ──
+    try {
+      const pdfBytes = await buildInvoicePdf({
+        fullNumber, issueDate, dueDate: dueDate || null,
+        issuer: { name: org.name, cif: org.cif, address: org.address, postalCode: org.postal_code, city: org.city, province: org.province },
+        client: { name: client.name, cif: client.cif, address: client.address, postalCode: client.postal_code, city: client.city, province: client.province },
+        lines: computedLines.map(l => ({ description: l.description, quantity: l.quantity, unit_price: l.unit_price, tax_rate: l.tax_rate, line_total: l.line_total })),
+        subtotal, taxAmount, total, notes: notes?.trim() || null, huella, qrUrl,
+      })
+      const storagePath = `${orgId}/invoices/${invoice.id}.pdf`
+      const { error: upErr } = await supabase.storage
+        .from('documents')
+        .upload(storagePath, pdfBytes, { contentType: 'application/pdf', upsert: true })
+      if (!upErr) {
+        const { data: doc } = await supabase.from('documents').insert({
+          organization_id: orgId,
+          company_id: clientCompanyId,
+          uploaded_by: user.id,
+          document_number: fullNumber,
+          document_type: 'invoice_issued',
+          status: 'pending',
+          total, currency: 'EUR', issue_date: issueDate,
+          file_url: storagePath, file_name: `${fullNumber}.pdf`,
+          file_size: pdfBytes.length, file_type: 'application/pdf',
+        }).select('id').single()
+        if (doc) await supabase.from('invoices').update({ document_id: doc.id }).eq('id', invoice.id)
+      }
+    } catch (pdfErr) {
+      console.warn('[invoices/issue] PDF archival failed (non-fatal):', pdfErr)
     }
 
     return NextResponse.json({ success: true, id: invoice.id, fullNumber: invoice.full_number })
