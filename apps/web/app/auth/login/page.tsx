@@ -81,30 +81,29 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
 
       {/* ── Left panel — branding (desktop only) ─────────────── */}
-      <div className="hidden lg:flex lg:w-[58%] bg-sidebar flex-col justify-between p-14 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[58%] bg-white border-r border-border flex-col justify-between p-14 relative overflow-hidden">
 
         {/* Decorative circles */}
-        <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-white/5 pointer-events-none" />
-        <div className="absolute top-1/2 -right-40 w-96 h-96 rounded-full bg-white/5 pointer-events-none" />
-        <div className="absolute -bottom-24 left-1/3 w-72 h-72 rounded-full bg-white/5 pointer-events-none" />
+        <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-primary/5 pointer-events-none" />
+        <div className="absolute top-1/2 -right-40 w-96 h-96 rounded-full bg-primary/5 pointer-events-none" />
+        <div className="absolute -bottom-24 left-1/3 w-72 h-72 rounded-full bg-primary/5 pointer-events-none" />
 
         {/* Logo */}
         <Logo
           size={44}
           showText
-          invert
-          textClassName="text-sidebar-foreground text-xl font-bold"
+          textClassName="text-primary text-xl font-bold"
         />
 
         {/* Hero copy + features */}
         <div className="space-y-10 relative z-10">
           <div>
-            <h2 className="text-[2.6rem] font-bold text-sidebar-foreground leading-tight mb-4">
+            <h2 className="text-[2.6rem] font-bold text-primary leading-tight mb-4">
               {isEn
                 ? 'Centralise all your invoices\nin one place'
                 : 'Centraliza todas tus facturas\nen un solo lugar'}
             </h2>
-            <p className="text-sidebar-foreground/55 text-lg leading-relaxed max-w-md">
+            <p className="text-primary/65 text-lg leading-relaxed max-w-md">
               {isEn
                 ? 'Stop losing fiscal documents. Archive, search and export everything from a single panel.'
                 : 'Olvídate de perder documentos fiscales. Archiva, busca y exporta todo desde un único panel.'}
@@ -114,10 +113,10 @@ export default function LoginPage() {
           <div className="space-y-4">
             {FEATURES.map(({ icon: Icon, key }) => (
               <div key={key} className="flex items-center gap-3.5">
-                <div className="w-9 h-9 rounded-xl bg-sidebar-foreground/10 flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4 text-sidebar-foreground/75" />
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-primary/75" />
                 </div>
-                <span className="text-sidebar-foreground/65 text-sm leading-snug">
+                <span className="text-primary/70 text-sm leading-snug">
                   {isEn ? FEATURE_TEXTS[key].en : FEATURE_TEXTS[key].es}
                 </span>
               </div>
@@ -125,7 +124,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-xs text-sidebar-foreground/25 relative z-10">
+        <p className="text-xs text-primary/35 relative z-10">
           © {new Date().getFullYear()} Archivum · Todos los derechos reservados
         </p>
       </div>
