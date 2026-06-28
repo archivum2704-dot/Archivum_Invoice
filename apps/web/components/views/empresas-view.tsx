@@ -17,7 +17,7 @@ import { Coachmark } from "@/components/coachmark"
 
 const AVATAR_COLORS = ["bg-blue-500", "bg-emerald-600", "bg-violet-600", "bg-orange-500", "bg-rose-600"]
 
-type CompanyForm = { name: string; cif: string; sector: string; city: string; phone: string; email: string }
+type CompanyForm = { name: string; cif: string; sector: string; address: string; postal_code: string; city: string; province: string; phone: string; email: string }
 
 // ── Shared company form modal ─────────────────────────────────────────────────
 function CompanyModal({
@@ -33,7 +33,7 @@ function CompanyModal({
   const isEdit  = !!initial
 
   const [form, setForm] = useState<CompanyForm>(
-    initial ?? { name: "", cif: "", sector: "", city: "", phone: "", email: "" }
+    initial ?? { name: "", cif: "", sector: "", address: "", postal_code: "", city: "", province: "", phone: "", email: "" }
   )
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState<string | null>(null)
@@ -48,12 +48,15 @@ function CompanyModal({
     const supabase = createClient()
 
     const payload = {
-      name:   form.name.trim(),
-      cif:    form.cif.trim()    || null,
-      sector: form.sector.trim() || null,
-      city:   form.city.trim()   || null,
-      phone:  form.phone.trim()  || null,
-      email:  form.email.trim()  || null,
+      name:        form.name.trim(),
+      cif:         form.cif.trim()         || null,
+      sector:      form.sector.trim()      || null,
+      address:     form.address.trim()     || null,
+      postal_code: form.postal_code.trim() || null,
+      city:        form.city.trim()        || null,
+      province:    form.province.trim()    || null,
+      phone:       form.phone.trim()       || null,
+      email:       form.email.trim()       || null,
     }
 
     const { error: err } = isEdit
@@ -99,8 +102,22 @@ function CompanyModal({
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">{t("fields.city")}</label>
-            <input placeholder="Madrid" value={form.city} onChange={set("city")} disabled={saving} className={inputCls} />
+            <label className="text-xs font-medium text-muted-foreground">{t("fields.address")}</label>
+            <input placeholder="Calle Mayor 1" value={form.address} onChange={set("address")} disabled={saving} className={inputCls} />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">{t("fields.postalCode")}</label>
+              <input placeholder="28001" value={form.postal_code} onChange={set("postal_code")} disabled={saving} className={inputCls} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">{t("fields.city")}</label>
+              <input placeholder="Madrid" value={form.city} onChange={set("city")} disabled={saving} className={inputCls} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">{t("fields.province")}</label>
+              <input placeholder="Madrid" value={form.province} onChange={set("province")} disabled={saving} className={inputCls} />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -233,14 +250,17 @@ export function EmpresasView() {
   }
 
   const empresas = companies.map((company, index) => ({
-    id:        company.id,
-    name:      company.name,
-    cif:       company.cif    ?? "",
-    sector:    company.sector ?? "",
-    city:      company.city   ?? "",
-    phone:     company.phone  ?? "",
-    email:     company.email  ?? "",
-    isActive:  company.is_active ?? true,
+    id:          company.id,
+    name:        company.name,
+    cif:         company.cif    ?? "",
+    sector:      company.sector ?? "",
+    address:     company.address     ?? "",
+    postal_code: company.postal_code ?? "",
+    city:        company.city   ?? "",
+    province:    company.province ?? "",
+    phone:       company.phone  ?? "",
+    email:       company.email  ?? "",
+    isActive:    company.is_active ?? true,
     docs:      company.doc_count,
     color:     AVATAR_COLORS[index % AVATAR_COLORS.length],
     initials:  company.name.split(" ").slice(0, 2).map((w: string) => w[0] ?? "").join(""),
@@ -394,13 +414,16 @@ export function EmpresasView() {
                           onClick={() => {
                             setOpenMenuId(null)
                             setEditTarget({
-                              id:     empresa.id,
-                              name:   empresa.name,
-                              cif:    empresa.cif,
-                              sector: empresa.sector,
-                              city:   empresa.city,
-                              phone:  empresa.phone,
-                              email:  empresa.email,
+                              id:          empresa.id,
+                              name:        empresa.name,
+                              cif:         empresa.cif,
+                              sector:      empresa.sector,
+                              address:     empresa.address,
+                              postal_code: empresa.postal_code,
+                              city:        empresa.city,
+                              province:    empresa.province,
+                              phone:       empresa.phone,
+                              email:       empresa.email,
                             })
                           }}
                           className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"

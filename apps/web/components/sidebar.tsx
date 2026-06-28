@@ -23,6 +23,7 @@ import {
   TrendingUp,
   TrendingDown,
   Package,
+  Receipt,
 } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { useTranslations, useLocale } from "next-intl"
@@ -123,9 +124,12 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
       : []),
     { label: t("library"), icon: Library, href: "/biblioteca" },
     { label: t("search"), icon: Search, href: "/buscador" },
-    // Inventory: paid plans only
+    // Inventory + Invoicing: paid plans only
     ...(isPaidPlan(currentOrg)
-      ? [{ label: t("inventory"), icon: Package, href: "/inventario" }]
+      ? [
+          { label: t("inventory"), icon: Package, href: "/inventario" },
+          { label: t("invoicing"), icon: Receipt, href: "/facturacion" },
+        ]
       : []),
     // Upload: members and admins can upload; viewers cannot
     ...(!isViewer
