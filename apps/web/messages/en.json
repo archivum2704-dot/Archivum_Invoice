@@ -163,6 +163,11 @@
     "notFound": "Invoice not found",
     "verifactuFooter": "Invoice verifiable on the AEAT website",
     "fingerprint": "Fingerprint",
+    "rectify": "Issue credit note",
+    "rectifyConfirm": "Issue a rectificative invoice that annuls this one? A credit note with negative amounts will be generated.",
+    "rectifyError": "Couldn't issue the credit note.",
+    "alreadyRectified": "This invoice already has a credit note.",
+    "rectificativeBanner": "Rectificative invoice (credit note): annuls a previously issued invoice.",
     "states": { "issued": "Issued", "draft": "Draft", "cancelled": "Cancelled" },
     "errors": {
       "issuerCif": "Your company needs a tax ID to issue invoices. Add it in Settings.",

@@ -505,6 +505,7 @@ export type Database = {
           issued_at: string | null
           payment_status: DocumentStatus | null
           document_id: string | null
+          rectifies_invoice_id: string | null
           created_by: string | null
           created_at: string
           updated_at: string
@@ -546,6 +547,7 @@ export type Database = {
           issued_at?: string | null
           payment_status?: DocumentStatus | null
           document_id?: string | null
+          rectifies_invoice_id?: string | null
           created_by?: string | null
         }
         Update: {
@@ -582,6 +584,7 @@ export type Database = {
           issued_at?: string | null
           payment_status?: DocumentStatus | null
           document_id?: string | null
+          rectifies_invoice_id?: string | null
           updated_at?: string
         }
       }

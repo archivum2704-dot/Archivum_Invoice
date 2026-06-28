@@ -83,6 +83,7 @@ export function buildRegistroAlta(args: RegistroAltaInput & {
   issuerName: string
   clientNif: string | null
   clientName: string | null
+  rectified?: { issuerNif: string; fullNumber: string; issueDate: string } | null
 }) {
   return {
     IDVersion: '1.0',
@@ -93,6 +94,14 @@ export function buildRegistroAlta(args: RegistroAltaInput & {
     },
     NombreRazonEmisor: args.issuerName,
     TipoFactura: tipoFactura(args.kind),
+    ...(args.rectified ? {
+      TipoRectificativa: 'I', // por sustitución
+      FacturasRectificadas: [{
+        IDEmisorFactura: args.rectified.issuerNif,
+        NumSerieFactura: args.rectified.fullNumber,
+        FechaExpedicionFactura: fechaExpedicion(args.rectified.issueDate),
+      }],
+    } : {}),
     ...(args.clientNif ? {
       Destinatario: { NIF: args.clientNif, NombreRazon: args.clientName ?? '' },
     } : {}),

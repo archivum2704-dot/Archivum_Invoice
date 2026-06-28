@@ -163,6 +163,11 @@
     "notFound": "Factura no encontrada",
     "verifactuFooter": "Factura verificable en la Sede de la AEAT",
     "fingerprint": "Huella",
+    "rectify": "Emitir rectificativa",
+    "rectifyConfirm": "¿Emitir una factura rectificativa que anula esta factura? Se generará una nota de abono con importes en negativo.",
+    "rectifyError": "No se pudo emitir la rectificativa.",
+    "alreadyRectified": "Esta factura ya tiene una rectificativa emitida.",
+    "rectificativeBanner": "Factura rectificativa (nota de abono): anula una factura emitida previamente.",
     "states": { "issued": "Emitida", "draft": "Borrador", "cancelled": "Anulada" },
     "errors": {
       "issuerCif": "Tu empresa necesita un CIF para emitir facturas. Añádelo en Ajustes.",
