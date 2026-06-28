@@ -81,7 +81,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
       {/* Logo */}
       <div className="flex items-start justify-between px-5 py-5 border-b border-sidebar-border">
         <div className="flex flex-col gap-1">
-          <Logo size={40} invert textClassName="text-sidebar-foreground text-base" />
+          <Logo size={40} textClassName="text-sidebar-foreground text-base" />
           <p className="text-xs text-sidebar-foreground/50 pl-[52px]">
             {isPlatformAdmin ? "Platform Admin" : currentOrg?.name ?? ""}
           </p>
