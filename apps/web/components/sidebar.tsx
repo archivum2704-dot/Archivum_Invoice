@@ -82,7 +82,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
       <div className="flex items-start justify-between px-5 py-5 border-b border-sidebar-border">
         <div className="flex flex-col gap-1">
           <Logo size={40} textClassName="text-sidebar-foreground text-base" />
-          <p className="text-xs text-sidebar-foreground/50 pl-[52px]">
+          <p className="text-xs text-sidebar-foreground/65 pl-[52px]">
             {isPlatformAdmin ? "Platform Admin" : currentOrg?.name ?? ""}
           </p>
         </div>
@@ -110,7 +110,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
                 "transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]",
                 active
                   ? "bg-sidebar-primary/90 text-sidebar-primary-foreground font-semibold"
-                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
               )}
             >
               {/* Active left-bar indicator */}
@@ -153,7 +153,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
               </div>
               <ChevronDown
                 className={cn(
-                  "w-3.5 h-3.5 text-sidebar-foreground/50 transition-transform",
+                  "w-3.5 h-3.5 text-sidebar-foreground/65 transition-transform",
                   showOrgMenu && "rotate-180"
                 )}
               />
@@ -185,7 +185,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
       <div className="px-3 py-4 border-t border-sidebar-border space-y-0.5">
         <Link
           href="/configuracion"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
         >
           <Settings className="w-4 h-4" />
           <span>{t("settings")}</span>
@@ -197,7 +197,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
               "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]",
               pathname === "/configuracion/billing"
                 ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground/60 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
+                : "text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
             )}
           >
             <CreditCard className="w-4 h-4" />
@@ -214,14 +214,14 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
             <p className="text-sidebar-foreground text-xs font-semibold truncate">
               {userProfile?.first_name} {userProfile?.last_name}
             </p>
-            <p className="text-sidebar-foreground/35 text-[10px] truncate">{userProfile?.email}</p>
+            <p className="text-sidebar-foreground/55 text-[10px] truncate">{userProfile?.email}</p>
           </div>
           <LanguageSwitcher />
         </div>
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
         >
           <LogOut className="w-4 h-4" />
           <span>{t("signOut")}</span>
