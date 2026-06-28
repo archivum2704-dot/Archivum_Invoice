@@ -486,7 +486,9 @@
     "deleteFolderSubs": "{count} subfolder(s) will also be permanently deleted.",
     "deleteFolder": "Delete folder",
     "renameFolder": "Rename folder",
-    "deleteFolderEmpty": "This folder is empty. It will be permanently deleted."
+    "deleteFolderEmpty": "This folder is empty. It will be permanently deleted.",
+    "createError": "Couldn't create the folder. Please try again.",
+    "selectOrgFirst": "Select an organization before creating a folder."
   },
   "language": {
     "label": "Language",

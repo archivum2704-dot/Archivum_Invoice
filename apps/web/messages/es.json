@@ -486,7 +486,9 @@
     "deleteFolderSubs": "{count} subcarpeta(s) también se eliminarán permanentemente.",
     "deleteFolder": "Eliminar carpeta",
     "renameFolder": "Renombrar carpeta",
-    "deleteFolderEmpty": "Esta carpeta está vacía. Se eliminará permanentemente."
+    "deleteFolderEmpty": "Esta carpeta está vacía. Se eliminará permanentemente.",
+    "createError": "No se pudo crear la carpeta. Inténtalo de nuevo.",
+    "selectOrgFirst": "Selecciona una organización antes de crear una carpeta."
   },
   "language": {
     "label": "Idioma",
