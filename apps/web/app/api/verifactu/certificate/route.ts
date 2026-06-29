@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getApiClient } from '@/lib/supabase/api-auth'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import forge from 'node-forge'
 import { seal } from '@/lib/crypto-vault'
@@ -14,8 +14,8 @@ function admin() {
 }
 
 /** Resolve the caller and confirm they may manage the org's certificate. */
-async function authorize(orgId: string) {
-  const supabase = await createClient()
+async function authorize(orgId: string, req: NextRequest) {
+  const supabase = await getApiClient(req)
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'unauthorized' as const, status: 401 }
   const db = admin()
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     if (!orgId || !certBase64 || password == null)
       return NextResponse.json({ error: 'missing_fields' }, { status: 400 })
 
-    const auth = await authorize(orgId)
+    const auth = await authorize(orgId, req)
     if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
     // Parse + validate the .p12 with the given password
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const orgId = req.nextUrl.searchParams.get('orgId') ?? ''
   if (!orgId) return NextResponse.json({ error: 'missing_org' }, { status: 400 })
-  const auth = await authorize(orgId)
+  const auth = await authorize(orgId, req)
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
   const { data } = await auth.db.from('org_certificates')
     .select('subject, nif, valid_until, uploaded_at').eq('organization_id', orgId).maybeSingle()
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const orgId = req.nextUrl.searchParams.get('orgId') ?? ''
   if (!orgId) return NextResponse.json({ error: 'missing_org' }, { status: 400 })
-  const auth = await authorize(orgId)
+  const auth = await authorize(orgId, req)
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
   await auth.db.from('org_certificates').delete().eq('organization_id', orgId)
   return NextResponse.json({ success: true })
