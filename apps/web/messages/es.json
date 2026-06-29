@@ -181,6 +181,12 @@
     "rectifyError": "No se pudo emitir la rectificativa.",
     "alreadyRectified": "Esta factura ya tiene una rectificativa emitida.",
     "rectificativeBanner": "Factura rectificativa (nota de abono): anula una factura emitida previamente.",
+    "aeatSent": "Enviada a la AEAT (Verifactu)",
+    "aeatStatusError": "Error al enviar a la AEAT. Revisa el certificado e inténtalo de nuevo.",
+    "aeatPending": "Pendiente de envío a la AEAT",
+    "aeatSend": "Enviar a la AEAT",
+    "aeatRetry": "Reintentar",
+    "aeatError": "No se pudo enviar a la AEAT. {detail}",
     "states": { "issued": "Emitida", "draft": "Borrador", "cancelled": "Anulada" },
     "errors": {
       "issuerCif": "Tu empresa necesita un CIF para emitir facturas. Añádelo en Ajustes.",

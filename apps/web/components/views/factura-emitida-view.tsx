@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import useSWR from "swr"
 import QRCode from "qrcode"
-import { ArrowLeft, Printer, ShieldCheck, Loader2, Ban } from "lucide-react"
+import { ArrowLeft, Printer, ShieldCheck, Loader2, Ban, Send, CheckCircle2, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
@@ -27,7 +27,8 @@ export function FacturaEmitidaView({ id }: { id: string }) {
   const t = useTranslations("invoicing")
   const locale = useLocale()
   const router = useRouter()
-  const { currentOrg, isOrgAdmin } = useOrganization()
+  const { currentOrg, isOrgAdmin, isPlatformAdmin } = useOrganization()
+  const [submitting, setSubmitting] = useState(false)
   const { data, isLoading, mutate } = useSWR(["invoice", id], () => fetchInvoice(id), { revalidateOnFocus: false })
   const [qrSrc, setQrSrc] = useState<string | null>(null)
   const [rectifying, setRectifying] = useState(false)
@@ -35,7 +36,29 @@ export function FacturaEmitidaView({ id }: { id: string }) {
   const invoice = data?.invoice
   const lines = data?.lines ?? []
 
-  const canRectify = invoice?.state === "issued" && invoice?.kind !== "rectifying" && isOrgAdmin && isPaidPlan(currentOrg)
+  const paid = isPaidPlan(currentOrg) || isPlatformAdmin
+  const canRectify = invoice?.state === "issued" && invoice?.kind !== "rectifying" && isOrgAdmin && paid
+  const canSubmit = invoice?.state === "issued" && invoice?.verifactu_status !== "sent" && isOrgAdmin && paid
+
+  const handleSubmitAeat = async () => {
+    if (!invoice || !currentOrg) return
+    setSubmitting(true)
+    try {
+      const res = await fetch("/api/verifactu/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId: currentOrg.id, invoiceId: invoice.id }),
+      })
+      const json = await res.json()
+      await mutate()
+      if (!res.ok || !json.success) {
+        alert(t("aeatError", { detail: json.errorDesc || json.detail || json.error || "" }))
+      }
+    } catch (e) {
+      alert(t("aeatError", { detail: String(e) }))
+    }
+    setSubmitting(false)
+  }
 
   const handleRectify = async () => {
     if (!invoice || !currentOrg || !confirm(t("rectifyConfirm"))) return
@@ -92,6 +115,35 @@ export function FacturaEmitidaView({ id }: { id: string }) {
           <p className="text-sm text-foreground">{t("rectificativeBanner")}</p>
         </div>
       )}
+
+      {/* AEAT submission status */}
+      <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-xl print:hidden">
+        {invoice.verifactu_status === "sent" ? (
+          <>
+            <CheckCircle2 className="w-4 h-4 text-[var(--status-paid)] shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground">{t("aeatSent")}</p>
+              {invoice.aeat_csv && <p className="text-[11px] text-muted-foreground font-mono truncate">CSV: {invoice.aeat_csv}</p>}
+            </div>
+          </>
+        ) : invoice.verifactu_status === "error" ? (
+          <>
+            <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+            <p className="flex-1 text-sm text-foreground">{t("aeatStatusError")}</p>
+          </>
+        ) : (
+          <>
+            <Send className="w-4 h-4 text-muted-foreground shrink-0" />
+            <p className="flex-1 text-sm text-muted-foreground">{t("aeatPending")}</p>
+          </>
+        )}
+        {canSubmit && (
+          <button onClick={handleSubmitAeat} disabled={submitting} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors shrink-0">
+            {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+            {invoice.verifactu_status === "error" ? t("aeatRetry") : t("aeatSend")}
+          </button>
+        )}
+      </div>
 
       {/* Invoice document */}
       <div className="bg-card border border-border rounded-2xl p-8 print:border-0 print:shadow-none">
