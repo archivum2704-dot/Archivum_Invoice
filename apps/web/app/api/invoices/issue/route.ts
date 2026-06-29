@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getApiClient } from '@/lib/supabase/api-auth'
 import {
   computeHuella, buildRegistroAlta, buildQrUrl, nowWithOffset,
   type InvoiceKind,
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       issueDate, operationDate, dueDate, notes, retentionPct = 0, lines = [] as LineInput[],
     } = body
 
-    const supabase = await createClient()
+    const supabase = await getApiClient(req)
     const { data: { user }, error: authErr } = await supabase.auth.getUser()
     if (authErr || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 

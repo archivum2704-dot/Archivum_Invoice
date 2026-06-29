@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getApiClient } from '@/lib/supabase/api-auth'
 import { computeHuella, buildRegistroAlta, buildQrUrl, nowWithOffset } from '@/lib/verifactu'
 import { buildInvoicePdf } from '@/lib/invoice-pdf'
 
@@ -13,7 +13,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 export async function POST(req: NextRequest) {
   try {
     const { orgId, invoiceId } = await req.json()
-    const supabase = await createClient()
+    const supabase = await getApiClient(req)
     const { data: { user }, error: authErr } = await supabase.auth.getUser()
     if (authErr || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
     if (!orgId || !invoiceId) return NextResponse.json({ error: 'missing_fields' }, { status: 400 })
