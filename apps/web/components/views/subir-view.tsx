@@ -113,7 +113,7 @@ export function SubirView() {
   const tPayment  = useTranslations("documents.paymentMethods")
   const tStorage  = useTranslations("settings.storage")
   const tHints    = useTranslations("coachmarks")
-  const { currentOrg, userProfile } = useOrganization()
+  const { currentOrg, userProfile, isPlatformAdmin } = useOrganization()
   const { companies } = useCompanies(currentOrg?.id ?? null)
   const { folders } = useFolders(currentOrg?.id ?? null)
   const searchParams = useSearchParams()
@@ -227,7 +227,8 @@ export function SubirView() {
         .eq("id", currentOrg.id)
         .single()
 
-      if (orgBilling) {
+      // Platform admins (super_admin) have no document/storage/subscription limits.
+      if (orgBilling && !isPlatformAdmin) {
         // Subscription expired?
         const now = new Date()
         const periodEnd = orgBilling.current_period_end ? new Date(orgBilling.current_period_end) : null

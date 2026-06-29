@@ -489,7 +489,7 @@ function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan
 export function UsersView() {
   const t = useTranslations("settings.members")
   const tHints = useTranslations("coachmarks")
-  const { currentOrg, userProfile, isOrgAdmin, loading: orgLoading } = useOrganization()
+  const { currentOrg, userProfile, isOrgAdmin, isPlatformAdmin, loading: orgLoading } = useOrganization()
   const { members, loading: membersLoading, error: membersError, mutate } = useMembers(currentOrg?.id ?? null)
   const { billing } = useBilling(currentOrg?.id ?? null)
   const [showForm, setShowForm] = useState(false)
@@ -502,7 +502,8 @@ export function UsersView() {
   // Limit from billing: free=1, pro=5+extras (billing hook returns correct value)
   const maxUsers = billing?.maxUsers ?? 1
   const totalCount = members.length
-  const atLimit = totalCount >= maxUsers
+  // Platform admins (super_admin) have no user limit.
+  const atLimit = !isPlatformAdmin && totalCount >= maxUsers
   const isFreePlan = !billing?.hasSubscription
 
   function handleAddClick() {
@@ -533,7 +534,7 @@ export function UsersView() {
                 ? "bg-destructive/10 text-destructive border-destructive/20"
                 : "bg-muted text-muted-foreground border-border"
             )}>
-              {t("userCount", { current: totalCount, max: maxUsers })}
+              {t("userCount", { current: totalCount, max: isPlatformAdmin ? "∞" : maxUsers })}
             </span>
             <button
               ref={inviteBtnRef}
