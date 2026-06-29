@@ -303,7 +303,7 @@ export function FacturacionView() {
               </div>
               <div className="space-y-2">
                 {lines.map((l, i) => (
-                  <div key={i} className="grid grid-cols-[1fr_56px_72px_56px_auto] gap-2 items-center">
+                  <div key={i} className="grid grid-cols-[1fr_56px_72px_56px_auto] gap-2 items-end">
                     <div className="flex flex-col gap-1">
                       {products.length > 0 && (
                         <select value={l.productId ?? ""} onChange={e => pickProduct(i, e.target.value)} className={cn(inputCls, "py-1.5 text-xs")}>
