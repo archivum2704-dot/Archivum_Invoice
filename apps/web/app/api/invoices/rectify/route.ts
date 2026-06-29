@@ -70,7 +70,9 @@ export async function POST(req: NextRequest) {
       organization_id: orgId,
       client_company_id: orig.client_company_id,
       series, number, full_number: fullNumber,
-      kind: 'rectifying', state: 'issued',
+      // Created as draft so the negated lines can be inserted; promoted to
+      // 'issued' below (line inserts are rejected once the parent is 'issued').
+      kind: 'rectifying', state: 'draft',
       issue_date: issueDate, operation_date: issueDate,
       subtotal, tax_amount: taxAmount, total,
       retention_pct: orig.retention_pct, retention_amount: retentionAmount,
@@ -95,7 +97,21 @@ export async function POST(req: NextRequest) {
       line_subtotal: round2(-Number(l.line_subtotal)), line_tax: round2(-Number(l.line_tax)), line_total: round2(-Number(l.line_total)),
       position: idx,
     }))
-    if (negLines.length) await supabase.from('invoice_lines').insert(negLines)
+    if (negLines.length) {
+      const { error: negErr } = await supabase.from('invoice_lines').insert(negLines)
+      if (negErr) {
+        await supabase.from('invoices').delete().eq('id', rec.id)
+        return NextResponse.json({ error: 'lines_failed', detail: negErr.message }, { status: 400 })
+      }
+    }
+
+    // ── Promote to issued now that the lines exist ──────────────
+    const { error: issueErr } = await supabase
+      .from('invoices').update({ state: 'issued' }).eq('id', rec.id)
+    if (issueErr) {
+      await supabase.from('invoices').delete().eq('id', rec.id)
+      return NextResponse.json({ error: 'issue_failed', detail: issueErr.message }, { status: 400 })
+    }
 
     // ── Restore stock for tracked products ──────────────────
     for (const l of origLines ?? []) {

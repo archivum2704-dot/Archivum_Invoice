@@ -127,7 +127,10 @@ export async function POST(req: NextRequest) {
         organization_id: orgId,
         client_company_id: clientCompanyId,
         series, number, full_number: fullNumber,
-        kind, state: 'issued',
+        // Created as draft so the lines can be inserted; flipped to
+        // 'issued' below once they exist. (Line inserts are rejected by the
+        // immutability trigger while the parent is already 'issued'.)
+        kind, state: 'draft',
         issue_date: issueDate,
         operation_date: operationDate || issueDate,
         due_date: dueDate || null,
@@ -154,10 +157,17 @@ export async function POST(req: NextRequest) {
       .from('invoice_lines')
       .insert(computedLines.map(l => ({ ...l, invoice_id: invoice.id })))
     if (linesErr) {
-      // Roll back the invoice so we don't leave an empty issued record
-      await supabase.from('invoices').update({ state: 'draft' }).eq('id', invoice.id)
+      // Roll back the draft so we don't leave an empty record (lines cascade)
       await supabase.from('invoices').delete().eq('id', invoice.id)
       return NextResponse.json({ error: 'lines_failed', detail: linesErr.message }, { status: 400 })
+    }
+
+    // ── Promote to issued now that the lines exist ──────────────
+    const { error: issueErr } = await supabase
+      .from('invoices').update({ state: 'issued' }).eq('id', invoice.id)
+    if (issueErr) {
+      await supabase.from('invoices').delete().eq('id', invoice.id)
+      return NextResponse.json({ error: 'issue_failed', detail: issueErr.message }, { status: 400 })
     }
 
     // ── Decrement stock for tracked products ────────────────
