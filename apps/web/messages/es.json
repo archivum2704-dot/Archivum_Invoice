@@ -137,6 +137,7 @@
     "title": "Facturación",
     "newInvoice": "Nueva factura",
     "verifactuNote": "Facturas conformes con Verifactu (huella encadenada + QR de cotejo de la AEAT).",
+    "configureVerifactu": "Configurar certificado",
     "empty": "Aún no has emitido facturas",
     "client": "Cliente",
     "selectClient": "Selecciona un cliente",
@@ -197,6 +198,33 @@
     "paywallTitle": "La facturación es una función de pago",
     "paywallBody": "Emite facturas digitales conformes con Verifactu actualizando a un plan de pago. La versión gratuita no incluye facturación.",
     "upgrade": "Ver planes"
+  },
+  "verifactu": {
+    "title": "Certificado Verifactu (AEAT)",
+    "subtitle": "Sube el certificado digital de tu empresa. Es necesario para enviar las facturas a Hacienda en tiempo real.",
+    "back": "Volver a facturación",
+    "currentCert": "Certificado actual",
+    "installed": "Certificado instalado",
+    "subject": "Titular",
+    "validUntil": "Válido hasta",
+    "remove": "Eliminar certificado",
+    "noCert": "Aún no has subido ningún certificado.",
+    "replaceCert": "Reemplazar certificado",
+    "uploadCert": "Subir certificado",
+    "uploadHint": "Archivo .p12 o .pfx del certificado de representante/empresa, junto con su contraseña.",
+    "certFile": "Archivo del certificado (.p12 / .pfx)",
+    "certPassword": "Contraseña del certificado",
+    "save": "Guardar certificado",
+    "uploaded": "Certificado guardado correctamente.",
+    "deleteConfirm": "¿Eliminar el certificado guardado?",
+    "notAllowed": "Necesitas ser administrador de una organización de pago para gestionar el certificado.",
+    "securityNote": "El certificado y su contraseña se guardan cifrados (AES-256-GCM) y solo se usan en el servidor para firmar la conexión con la AEAT. Nunca se exponen al navegador.",
+    "errors": {
+      "invalid": "No se pudo abrir el certificado. Revisa el archivo y la contraseña.",
+      "vault": "Falta configurar la clave de cifrado del servidor (VERIFACTU_CERT_KEY).",
+      "forbidden": "No tienes permiso para gestionar este certificado.",
+      "generic": "No se pudo guardar el certificado."
+    }
   },
   "dashboard": {
     "title": "Panel Principal",
