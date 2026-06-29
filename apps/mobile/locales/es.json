@@ -1,4 +1,20 @@
 {
+  "inventory": {
+    "title": "Inventario",
+    "new": "Nuevo producto",
+    "edit": "Editar producto",
+    "name": "Nombre",
+    "price": "Precio",
+    "iva": "IVA",
+    "stock": "Stock",
+    "trackStock": "Controlar stock",
+    "empty": "Aún no hay productos",
+    "deleteTitle": "Eliminar producto",
+    "deleteConfirm": "¿Eliminar \"{{name}}\" del inventario?",
+    "paywallTitle": "El inventario es una función de pago",
+    "paywallBody": "Gestiona tus productos actualizando a un plan de pago.",
+    "upgrade": "Ver planes"
+  },
   "common": {
     "save": "Guardar",
     "cancel": "Cancelar",

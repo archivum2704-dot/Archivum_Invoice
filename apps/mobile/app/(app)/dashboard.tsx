@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
-  Bell, AlertTriangle, FileText, ChevronRight, Plus,
+  Bell, AlertTriangle, FileText, ChevronRight, Plus, Package,
 } from "lucide-react-native";
 import Svg, { Rect, Text as SvgText } from "react-native-svg";
 import { useAuth } from "@/context/auth-context";
@@ -98,7 +98,8 @@ function DocRow({ doc, C, t }: { doc: any; C: any; t: any }) {
 
 /* ── Main screen ─────────────────────────────────────────────────────────── */
 export default function DashboardScreen() {
-  const { profile, orgId } = useAuth();
+  const { profile, orgId, isPaid, isPlatformAdmin } = useAuth();
+  const paidFeatures = isPaid || isPlatformAdmin;
   const C = useColors();
   const { t } = useTranslation();
   const [docs,       setDocs]       = useState<any[]>([]);
@@ -238,6 +239,22 @@ export default function DashboardScreen() {
             </View>
           ))}
         </View>
+
+        {/* Quick access — paid features */}
+        {paidFeatures && (
+          <View style={{ paddingHorizontal: 16, marginTop: 14 }}>
+            <TouchableOpacity
+              onPress={() => router.push("/(app)/inventario")}
+              style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14 }}
+            >
+              <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
+                <Package size={18} color={C.blue} />
+              </View>
+              <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: C.text }}>{t("inventory.title")}</Text>
+              <ChevronRight size={18} color={C.muted} />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Chart */}
         <View style={{

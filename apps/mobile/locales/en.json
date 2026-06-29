@@ -1,4 +1,20 @@
 {
+  "inventory": {
+    "title": "Inventory",
+    "new": "New product",
+    "edit": "Edit product",
+    "name": "Name",
+    "price": "Price",
+    "iva": "VAT",
+    "stock": "Stock",
+    "trackStock": "Track stock",
+    "empty": "No products yet",
+    "deleteTitle": "Delete product",
+    "deleteConfirm": "Delete \"{{name}}\" from inventory?",
+    "paywallTitle": "Inventory is a paid feature",
+    "paywallBody": "Manage your products by upgrading to a paid plan.",
+    "upgrade": "View plans"
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
