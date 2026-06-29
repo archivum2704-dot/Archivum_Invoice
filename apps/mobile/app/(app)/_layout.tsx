@@ -111,6 +111,7 @@ export default function AppLayout() {
       <Tabs.Screen name="editar/[id]"    options={{ href: null }} />
       <Tabs.Screen name="subir"          options={{ href: null }} />
       <Tabs.Screen name="onboarding"     options={{ href: null }} />
+      <Tabs.Screen name="inventario"     options={{ href: null }} />
     </Tabs>
   );
 }

@@ -11,6 +11,7 @@ interface Profile {
   first_name: string | null;
   last_name: string | null;
   current_org_id: string | null;
+  platform_role: string | null;
 }
 
 interface Organization {
@@ -18,6 +19,8 @@ interface Organization {
   name: string;
   access_code: string | null;
   cif: string | null;
+  subscription_plan: string | null;
+  subscription_status: string | null;
 }
 
 interface AuthContextType {
@@ -25,6 +28,10 @@ interface AuthContextType {
   profile: Profile | null;
   org: Organization | null;
   orgId: string | null;
+  role: string | null;
+  isPlatformAdmin: boolean;
+  isAdmin: boolean;
+  isPaid: boolean;
   loading: boolean;
   signInEmpresa: (email: string, password: string) => Promise<string | null>;
   signInUsuario: (email: string, password: string, code: string) => Promise<string | null>;
@@ -39,15 +46,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session,  setSession]  = useState<Session | null>(null);
   const [profile,  setProfile]  = useState<Profile | null>(null);
   const [org,      setOrg]      = useState<Organization | null>(null);
+  const [role,     setRole]     = useState<string | null>(null);
   const [loading,  setLoading]  = useState(true);
 
   const orgId = profile?.current_org_id ?? null;
+  const isPlatformAdmin = profile?.platform_role === "super_admin";
+  const isAdmin = isPlatformAdmin || role === "owner" || role === "admin";
+  const INACTIVE = ["canceled", "unpaid", "incomplete"];
+  const isPaid =
+    !!org && org.subscription_plan !== "free" && !!org.subscription_plan &&
+    !INACTIVE.includes(org.subscription_status ?? "");
 
   /* ── Load profile + org + single-device check ──────────────────────────── */
   const loadProfile = async (userId: string) => {
     const { data: p } = await supabase
       .from("profiles")
-      .select("id, first_name, last_name, current_org_id, active_session_id")
+      .select("id, first_name, last_name, current_org_id, platform_role, active_session_id")
       .eq("id", userId)
       .single();
 
@@ -73,10 +87,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (p.current_org_id) {
       const { data: o } = await supabase
         .from("organizations")
-        .select("id, name, access_code, cif")
+        .select("id, name, access_code, cif, subscription_plan, subscription_status")
         .eq("id", p.current_org_id)
         .single();
       setOrg(o ?? null);
+
+      const { data: m } = await supabase
+        .from("organization_members")
+        .select("role")
+        .eq("organization_id", p.current_org_id)
+        .eq("user_id", userId)
+        .maybeSingle();
+      setRole(m?.role ?? null);
     }
   };
 
@@ -131,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const upperCode = code.trim().toUpperCase();
     const { data: orgData } = await supabase
       .from("organizations")
-      .select("id, name, access_code, cif")
+      .select("id, name, access_code, cif, subscription_plan, subscription_status")
       .eq("access_code", upperCode)
       .single();
 
@@ -167,11 +189,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setProfile(null);
     setOrg(null);
+    setRole(null);
   };
 
   return (
     <AuthContext.Provider value={{
-      session, profile, org, orgId, loading,
+      session, profile, org, orgId, role, isPlatformAdmin, isAdmin, isPaid, loading,
       signInEmpresa, signInUsuario, signUp, signOut, refreshProfile,
     }}>
       {children}
