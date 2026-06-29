@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const {
       orgId, clientCompanyId, series = 'FAC', kind = 'ordinary' as InvoiceKind,
-      issueDate, operationDate, dueDate, notes, lines = [] as LineInput[],
+      issueDate, operationDate, dueDate, notes, retentionPct = 0, lines = [] as LineInput[],
     } = body
 
     const supabase = await createClient()
@@ -79,7 +79,9 @@ export async function POST(req: NextRequest) {
     })
     subtotal = round2(subtotal)
     taxAmount = round2(taxAmount)
-    const total = round2(subtotal + taxAmount)
+    const retPct = Number(retentionPct) || 0
+    const retentionAmount = round2(subtotal * retPct / 100)
+    const total = round2(subtotal + taxAmount - retentionAmount)
 
     // ── Atomic invoice number ───────────────────────────────
     const year = parseInt(issueDate.split('-')[0], 10)
@@ -130,6 +132,7 @@ export async function POST(req: NextRequest) {
         operation_date: operationDate || issueDate,
         due_date: dueDate || null,
         subtotal, tax_amount: taxAmount, total,
+        retention_pct: retPct || null, retention_amount: retentionAmount,
         issuer_name: org.name, issuer_cif: org.cif, issuer_address: org.address,
         issuer_city: org.city, issuer_postal_code: org.postal_code, issuer_province: org.province,
         client_name: client.name, client_cif: client.cif, client_address: client.address,
@@ -176,7 +179,7 @@ export async function POST(req: NextRequest) {
         issuer: { name: org.name, cif: org.cif, address: org.address, postalCode: org.postal_code, city: org.city, province: org.province },
         client: { name: client.name, cif: client.cif, address: client.address, postalCode: client.postal_code, city: client.city, province: client.province },
         lines: computedLines.map(l => ({ description: l.description, quantity: l.quantity, unit_price: l.unit_price, tax_rate: l.tax_rate, line_total: l.line_total })),
-        subtotal, taxAmount, total, notes: notes?.trim() || null, huella, qrUrl,
+        subtotal, taxAmount, retentionPct: retPct, retentionAmount, total, notes: notes?.trim() || null, huella, qrUrl,
       })
       const storagePath = `${orgId}/invoices/${invoice.id}.pdf`
       const { error: upErr } = await supabase.storage

@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
     // ── Negated amounts ─────────────────────────────────────
     const subtotal = round2(-Number(orig.subtotal))
     const taxAmount = round2(-Number(orig.tax_amount))
+    const retentionAmount = round2(-Number(orig.retention_amount ?? 0))
     const total = round2(-Number(orig.total))
 
     const issueDate = new Date().toISOString().slice(0, 10)
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
       kind: 'rectifying', state: 'issued',
       issue_date: issueDate, operation_date: issueDate,
       subtotal, tax_amount: taxAmount, total,
+      retention_pct: orig.retention_pct, retention_amount: retentionAmount,
       issuer_name: orig.issuer_name, issuer_cif: orig.issuer_cif, issuer_address: orig.issuer_address,
       issuer_city: orig.issuer_city, issuer_postal_code: orig.issuer_postal_code, issuer_province: orig.issuer_province,
       client_name: orig.client_name, client_cif: orig.client_cif, client_address: orig.client_address,
@@ -114,7 +116,7 @@ export async function POST(req: NextRequest) {
         issuer: { name: orig.issuer_name ?? '', cif: orig.issuer_cif, address: orig.issuer_address, postalCode: orig.issuer_postal_code, city: orig.issuer_city, province: orig.issuer_province },
         client: { name: orig.client_name ?? '', cif: orig.client_cif, address: orig.client_address, postalCode: orig.client_postal_code, city: orig.client_city, province: orig.client_province },
         lines: negLines.map(l => ({ description: l.description, quantity: l.quantity, unit_price: l.unit_price, tax_rate: l.tax_rate, line_total: l.line_total })),
-        subtotal, taxAmount, total, notes: `Rectificativa por anulación de ${orig.full_number}`, huella, qrUrl,
+        subtotal, taxAmount, retentionPct: orig.retention_pct, retentionAmount, total, notes: `Rectificativa por anulación de ${orig.full_number}`, huella, qrUrl,
       })
       const storagePath = `${orgId}/invoices/${rec.id}.pdf`
       const { error: upErr } = await supabase.storage.from('documents').upload(storagePath, pdfBytes, { contentType: 'application/pdf', upsert: true })

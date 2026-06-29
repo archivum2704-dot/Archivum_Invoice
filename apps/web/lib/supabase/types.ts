@@ -483,6 +483,8 @@ export type Database = {
           currency: string
           subtotal: number
           tax_amount: number
+          retention_pct: number | null
+          retention_amount: number
           total: number
           issuer_name: string | null
           issuer_cif: string | null
@@ -525,6 +527,8 @@ export type Database = {
           currency?: string
           subtotal?: number
           tax_amount?: number
+          retention_pct?: number | null
+          retention_amount?: number
           total?: number
           issuer_name?: string | null
           issuer_cif?: string | null
@@ -562,6 +566,8 @@ export type Database = {
           due_date?: string | null
           subtotal?: number
           tax_amount?: number
+          retention_pct?: number | null
+          retention_amount?: number
           total?: number
           issuer_name?: string | null
           issuer_cif?: string | null
