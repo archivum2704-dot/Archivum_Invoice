@@ -112,6 +112,8 @@ export default function AppLayout() {
       <Tabs.Screen name="subir"          options={{ href: null }} />
       <Tabs.Screen name="onboarding"     options={{ href: null }} />
       <Tabs.Screen name="inventario"     options={{ href: null }} />
+      <Tabs.Screen name="facturacion"    options={{ href: null }} />
+      <Tabs.Screen name="factura/[id]"   options={{ href: null }} />
     </Tabs>
   );
 }
