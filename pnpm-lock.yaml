@@ -33,12 +33,6 @@ importers:
       '@hookform/resolvers':
         specifier: ^3.9.1
         version: 3.10.0(react-hook-form@7.74.0(react@19.2.0))
-      '@invoice-saas/lib':
-        specifier: workspace:*
-        version: link:../../packages/lib
-      '@invoice-saas/types':
-        specifier: workspace:*
-        version: link:../../packages/types
       '@react-native-async-storage/async-storage':
         specifier: 2.2.0
         version: 2.2.0(react-native@0.83.6(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))
@@ -384,35 +378,7 @@ importers:
         specifier: 5.7.3
         version: 5.7.3
 
-  packages/lib:
-    dependencies:
-      '@supabase/supabase-js':
-        specifier: ^2.45.0
-        version: 2.105.0
-      date-fns:
-        specifier: 4.1.0
-        version: 4.1.0
-      swr:
-        specifier: ^2.4.1
-        version: 2.4.1(react@19.2.4)
-      zod:
-        specifier: ^3.24.1
-        version: 3.25.76
-    devDependencies:
-      '@types/node':
-        specifier: ^22
-        version: 22.19.17
-      typescript:
-        specifier: 5.7.3
-        version: 5.7.3
-
   packages/react-native-worklets: {}
-
-  packages/types:
-    devDependencies:
-      typescript:
-        specifier: 5.7.3
-        version: 5.7.3
 
 packages:
 
