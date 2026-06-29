@@ -30,8 +30,8 @@ export function InventarioView() {
   const t = useTranslations("inventory")
   const tCommon = useTranslations("common")
   const locale = useLocale()
-  const { currentOrg, isOrgAdmin } = useOrganization()
-  const paid = isPaidPlan(currentOrg)
+  const { currentOrg, isOrgAdmin, isPlatformAdmin } = useOrganization()
+  const paid = isPaidPlan(currentOrg) || isPlatformAdmin
   const { products, loading, mutate } = useProducts(currentOrg?.id ?? null)
 
   const [search, setSearch] = useState("")

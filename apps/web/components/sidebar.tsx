@@ -28,7 +28,7 @@ import {
 import { Logo } from "@/components/logo"
 import { useTranslations, useLocale } from "next-intl"
 import { cn } from "@/lib/utils"
-import { useOrganization } from "@/lib/context/organization-context"
+import { useOrganization, ALL_ORGS_ID } from "@/lib/context/organization-context"
 import { createClient } from "@/lib/supabase/client"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useOverdueDocs } from "@/lib/hooks/use-overdue-docs"
@@ -124,8 +124,8 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
       : []),
     { label: t("library"), icon: Library, href: "/biblioteca" },
     { label: t("search"), icon: Search, href: "/buscador" },
-    // Inventory + Invoicing: paid plans only
-    ...(isPaidPlan(currentOrg)
+    // Inventory + Invoicing: paid plans (platform admins always, on a real org)
+    ...(currentOrg && currentOrg.id !== ALL_ORGS_ID && (isPaidPlan(currentOrg) || isPlatformAdmin)
       ? [
           { label: t("inventory"), icon: Package, href: "/inventario" },
           { label: t("invoicing"), icon: Receipt, href: "/facturacion" },

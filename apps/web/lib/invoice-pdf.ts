@@ -18,6 +18,8 @@ export interface InvoicePdfData {
   lines: InvoicePdfLine[]
   subtotal: number
   taxAmount: number
+  retentionPct?: number | null
+  retentionAmount?: number
   total: number
   notes?: string | null
   huella: string
@@ -105,7 +107,12 @@ export async function buildInvoicePdf(data: InvoicePdfData): Promise<Uint8Array>
   page.drawLine({ start: { x: width - M - 200, y }, end: { x: width - M, y }, thickness: 0.5, color: LINE })
   y -= 16
   text('Base imponible', width - M - 200, y, 9, font, GREY); right(eur(data.subtotal), colTotal, y, 9); y -= 14
-  text('IVA', width - M - 200, y, 9, font, GREY); right(eur(data.taxAmount), colTotal, y, 9); y -= 16
+  text('IVA', width - M - 200, y, 9, font, GREY); right(eur(data.taxAmount), colTotal, y, 9); y -= 14
+  if (data.retentionAmount && data.retentionAmount !== 0) {
+    text(`Retención IRPF (${data.retentionPct ?? 0}%)`, width - M - 200, y, 9, font, GREY)
+    right(`-${eur(data.retentionAmount)}`, colTotal, y, 9); y -= 14
+  }
+  y -= 2
   text('TOTAL', width - M - 200, y, 11, bold, NAVY); right(eur(data.total), colTotal, y, 11, bold, NAVY)
 
   y -= 30

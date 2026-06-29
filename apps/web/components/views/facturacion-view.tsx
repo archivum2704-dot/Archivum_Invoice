@@ -23,6 +23,11 @@ type Line = {
 
 const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1", unitPrice: "0", taxRate: "21", discountPct: "0" })
 
+// Spanish VAT (IVA) rates — "" = exento (0%)
+const IVA_RATES = ["", "4", "10", "21"]
+// Spanish IRPF withholding (retención) rates — "" = sin retención
+const RETENTION_RATES = ["", "7", "15", "19"]
+
 const STATE_STYLES: Record<string, string> = {
   issued:    "bg-[var(--status-paid)]/10 text-[var(--status-paid)]",
   draft:     "bg-muted text-muted-foreground",
@@ -34,8 +39,8 @@ export function FacturacionView() {
   const tCommon = useTranslations("common")
   const locale = useLocale()
   const router = useRouter()
-  const { currentOrg, isOrgAdmin } = useOrganization()
-  const paid = isPaidPlan(currentOrg)
+  const { currentOrg, isOrgAdmin, isPlatformAdmin } = useOrganization()
+  const paid = isPaidPlan(currentOrg) || isPlatformAdmin
   const { invoices, loading, mutate } = useInvoices(currentOrg?.id ?? null)
   const { companies } = useCompanies(currentOrg?.id ?? null)
   const { products } = useProducts(currentOrg?.id ?? null)
@@ -46,6 +51,7 @@ export function FacturacionView() {
   const [issueDate, setIssueDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [kind, setKind] = useState<"ordinary" | "simplified">("ordinary")
   const [notes, setNotes] = useState("")
+  const [retentionPct, setRetentionPct] = useState("")
   const [lines, setLines] = useState<Line[]>([emptyLine()])
   const [issuing, setIssuing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -62,8 +68,10 @@ export function FacturacionView() {
       subtotal += base
       tax += base * (Number(l.taxRate) || 0) / 100
     }
-    return { subtotal: Math.round(subtotal * 100) / 100, tax: Math.round(tax * 100) / 100, total: Math.round((subtotal + tax) * 100) / 100 }
-  }, [lines])
+    const r2 = (n: number) => Math.round(n * 100) / 100
+    const retention = r2(subtotal * (Number(retentionPct) || 0) / 100)
+    return { subtotal: r2(subtotal), tax: r2(tax), retention, total: r2(subtotal + tax - retention) }
+  }, [lines, retentionPct])
 
   // Validation: client + client CIF + issue date + issuer CIF + at least one described line
   const issuerHasCif = !!currentOrg?.cif?.trim()
@@ -78,7 +86,7 @@ export function FacturacionView() {
 
   const resetForm = () => {
     setClientId(""); setSeries("FAC"); setIssueDate(new Date().toISOString().slice(0, 10))
-    setKind("ordinary"); setNotes(""); setLines([emptyLine()]); setError(null)
+    setKind("ordinary"); setNotes(""); setRetentionPct(""); setLines([emptyLine()]); setError(null)
   }
 
   const setLine = (i: number, patch: Partial<Line>) =>
@@ -106,6 +114,7 @@ export function FacturacionView() {
           orgId: currentOrg.id,
           clientCompanyId: clientId,
           series, kind, issueDate, notes,
+          retentionPct: Number(retentionPct) || 0,
           lines: lines.filter(l => l.description.trim()).map(l => ({
             productId: l.productId,
             description: l.description,
@@ -230,11 +239,17 @@ export function FacturacionView() {
                 <label className="block text-sm font-medium text-foreground mb-1.5">{t("issueDate")} <span className="text-destructive">*</span></label>
                 <input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} className={inputCls} />
               </div>
-              <div className="sm:col-span-2">
+              <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">{t("kind")}</label>
                 <select value={kind} onChange={e => setKind(e.target.value as any)} className={inputCls}>
                   <option value="ordinary">{t("kinds.ordinary")}</option>
                   <option value="simplified">{t("kinds.simplified")}</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">{t("retention")}</label>
+                <select value={retentionPct} onChange={e => setRetentionPct(e.target.value)} className={inputCls}>
+                  {RETENTION_RATES.map(r => <option key={r} value={r}>{r === "" ? t("noRetention") : `${r}%`}</option>)}
                 </select>
               </div>
             </div>
@@ -261,7 +276,9 @@ export function FacturacionView() {
                     </div>
                     <input type="number" step="0.01" title={t("qty")} value={l.quantity} onChange={e => setLine(i, { quantity: e.target.value })} className={cn(inputCls, "py-1.5 text-right")} />
                     <input type="number" step="0.01" title={t("unitPrice")} value={l.unitPrice} onChange={e => setLine(i, { unitPrice: e.target.value })} className={cn(inputCls, "py-1.5 text-right")} />
-                    <input type="number" step="0.01" title={t("tax")} value={l.taxRate} onChange={e => setLine(i, { taxRate: e.target.value })} className={cn(inputCls, "py-1.5 text-right")} />
+                    <select title={t("tax")} value={l.taxRate} onChange={e => setLine(i, { taxRate: e.target.value })} className={cn(inputCls, "py-1.5 px-1 text-right")}>
+                      {IVA_RATES.map(r => <option key={r} value={r}>{r === "" ? t("exempt") : `${r}%`}</option>)}
+                    </select>
                     <button onClick={() => setLines(lines.filter((_, idx) => idx !== i))} disabled={lines.length === 1} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive disabled:opacity-30">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -277,6 +294,9 @@ export function FacturacionView() {
             <div className="border-t border-border pt-3 space-y-1 text-sm">
               <div className="flex justify-between text-muted-foreground"><span>{t("subtotal")}</span><span>{fmtEur(totals.subtotal)}</span></div>
               <div className="flex justify-between text-muted-foreground"><span>{t("tax")}</span><span>{fmtEur(totals.tax)}</span></div>
+              {totals.retention > 0 && (
+                <div className="flex justify-between text-muted-foreground"><span>{t("retention")} ({retentionPct}%)</span><span>−{fmtEur(totals.retention)}</span></div>
+              )}
               <div className="flex justify-between font-bold text-foreground text-base"><span>{t("total")}</span><span>{fmtEur(totals.total)}</span></div>
             </div>
 
