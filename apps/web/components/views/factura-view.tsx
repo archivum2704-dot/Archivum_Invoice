@@ -81,18 +81,18 @@ function MetaRow({
 
 // ── Workflow Chain ─────────────────────────────────────────────────────────────
 function WorkflowChain({
-  current, parent, children, tTypes,
+  current, parent, childDocs, tTypes,
 }: {
   current: DocumentWithCompany
   parent: DocRef | null
-  children: DocRef[]
+  childDocs: DocRef[]
   tTypes: (k: any) => string
 }) {
   const nextType = WORKFLOW_NEXT[current.document_type as DocumentType]
-  const hasChild = children.some(c => c.document_type === nextType)
+  const hasChild = childDocs.some(c => c.document_type === nextType)
   const isInWorkflow = WORKFLOW_STEPS.includes(current.document_type as DocumentType)
 
-  if (!isInWorkflow && !parent && children.length === 0) return null
+  if (!isInWorkflow && !parent && childDocs.length === 0) return null
 
   return (
     <div className="border-t border-border pt-4 space-y-3">
@@ -137,7 +137,7 @@ function WorkflowChain({
         </div>
 
         {/* Children */}
-        {children.map(child => (
+        {childDocs.map(child => (
           <div key={child.id}>
             <div className="ml-[18px] w-px h-3 bg-border" />
             <Link
@@ -539,7 +539,7 @@ export function FacturaView({ id }: FacturaViewProps) {
             <WorkflowChain
               current={doc}
               parent={parent}
-              children={children}
+              childDocs={children}
               tTypes={tTypes}
             />
 
