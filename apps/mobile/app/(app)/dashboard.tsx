@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
-  Bell, AlertTriangle, FileText, ChevronRight, Plus, Package,
+  Bell, AlertTriangle, FileText, ChevronRight, Plus, Package, Receipt,
 } from "lucide-react-native";
 import Svg, { Rect, Text as SvgText } from "react-native-svg";
 import { useAuth } from "@/context/auth-context";
@@ -242,7 +242,7 @@ export default function DashboardScreen() {
 
         {/* Quick access — paid features */}
         {paidFeatures && (
-          <View style={{ paddingHorizontal: 16, marginTop: 14 }}>
+          <View style={{ paddingHorizontal: 16, marginTop: 14, gap: 10 }}>
             <TouchableOpacity
               onPress={() => router.push("/(app)/inventario")}
               style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14 }}
@@ -251,6 +251,16 @@ export default function DashboardScreen() {
                 <Package size={18} color={C.blue} />
               </View>
               <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: C.text }}>{t("inventory.title")}</Text>
+              <ChevronRight size={18} color={C.muted} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/(app)/facturacion")}
+              style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14 }}
+            >
+              <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
+                <Receipt size={18} color={C.blue} />
+              </View>
+              <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: C.text }}>{t("invoicing.title")}</Text>
               <ChevronRight size={18} color={C.muted} />
             </TouchableOpacity>
           </View>
