@@ -137,6 +137,7 @@
     "title": "Invoicing",
     "newInvoice": "New invoice",
     "verifactuNote": "Verifactu-compliant invoices (chained fingerprint + AEAT verification QR).",
+    "configureVerifactu": "Configure certificate",
     "empty": "You haven't issued any invoices yet",
     "client": "Client",
     "selectClient": "Select a client",
@@ -197,6 +198,33 @@
     "paywallTitle": "Invoicing is a paid feature",
     "paywallBody": "Issue Verifactu-compliant digital invoices by upgrading to a paid plan. The free version does not include invoicing.",
     "upgrade": "View plans"
+  },
+  "verifactu": {
+    "title": "Verifactu certificate (AEAT)",
+    "subtitle": "Upload your company's digital certificate. It is required to submit invoices to the Spanish tax agency in real time.",
+    "back": "Back to invoicing",
+    "currentCert": "Current certificate",
+    "installed": "Certificate installed",
+    "subject": "Holder",
+    "validUntil": "Valid until",
+    "remove": "Remove certificate",
+    "noCert": "You haven't uploaded a certificate yet.",
+    "replaceCert": "Replace certificate",
+    "uploadCert": "Upload certificate",
+    "uploadHint": "The company/representative certificate as a .p12 or .pfx file, with its password.",
+    "certFile": "Certificate file (.p12 / .pfx)",
+    "certPassword": "Certificate password",
+    "save": "Save certificate",
+    "uploaded": "Certificate saved successfully.",
+    "deleteConfirm": "Remove the saved certificate?",
+    "notAllowed": "You must be an admin of a paid organization to manage the certificate.",
+    "securityNote": "The certificate and its password are stored encrypted (AES-256-GCM) and only used on the server to authenticate the connection to AEAT. They are never exposed to the browser.",
+    "errors": {
+      "invalid": "Couldn't open the certificate. Check the file and password.",
+      "vault": "The server encryption key (VERIFACTU_CERT_KEY) is not configured.",
+      "forbidden": "You don't have permission to manage this certificate.",
+      "generic": "Couldn't save the certificate."
+    }
   },
   "dashboard": {
     "title": "Dashboard",

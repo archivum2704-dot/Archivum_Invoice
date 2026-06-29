@@ -207,7 +207,10 @@ export function FacturacionView() {
       {/* Verifactu note */}
       <div className="flex items-center gap-2 mb-5 text-xs text-muted-foreground">
         <ShieldCheck className="w-3.5 h-3.5 text-[var(--status-paid)]" />
-        {t("verifactuNote")}
+        <span>{t("verifactuNote")}</span>
+        {canManage && (
+          <Link href="/configuracion/verifactu" className="text-accent hover:underline font-medium">{t("configureVerifactu")}</Link>
+        )}
       </div>
 
       {/* List */}

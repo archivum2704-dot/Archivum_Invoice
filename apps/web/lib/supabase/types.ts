@@ -505,6 +505,9 @@ export type Database = {
           registro_alta: Record<string, unknown> | null
           verifactu_status: 'pending' | 'generated' | 'sent' | 'error' | 'exempt'
           issued_at: string | null
+          aeat_csv: string | null
+          aeat_response: Record<string, unknown> | null
+          submitted_at: string | null
           payment_status: DocumentStatus | null
           document_id: string | null
           rectifies_invoice_id: string | null
