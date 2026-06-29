@@ -179,7 +179,9 @@ export async function POST(req: NextRequest) {
   // Mailgun (multipart/form-data) branch
   const ct = req.headers.get("content-type") ?? ""
   if (ct.includes("multipart/form-data")) {
-    const form = await req.formData()
+    // Cast through unknown: @types/node's undici typings clash with the DOM
+    // FormData here, stripping its methods from req.formData()'s return type.
+    const form = (await req.formData()) as unknown as FormData
     const from = (form.get("from") ?? form.get("sender") ?? "").toString()
     const to   = (form.get("recipient") ?? form.get("to") ?? "").toString()
     const subject = (form.get("subject") ?? "").toString()

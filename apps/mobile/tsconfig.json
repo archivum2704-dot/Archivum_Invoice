@@ -12,12 +12,6 @@
     "paths": {
       "@/*": [
         "./*"
-      ],
-      "@invoice-saas/lib": [
-        "../../packages/lib/src/index.ts"
-      ],
-      "@invoice-saas/types": [
-        "../../packages/types/src/index.ts"
       ]
     }
   },
