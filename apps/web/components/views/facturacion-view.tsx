@@ -11,6 +11,7 @@ import { useInvoices } from "@/lib/hooks/use-invoices"
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { useProducts } from "@/lib/hooks/use-products"
 import { isPaidPlan } from "@/lib/plan"
+import { createClient } from "@/lib/supabase/client"
 
 type Line = {
   productId: string | null
@@ -42,7 +43,7 @@ export function FacturacionView() {
   const { currentOrg, isOrgAdmin, isPlatformAdmin } = useOrganization()
   const paid = isPaidPlan(currentOrg) || isPlatformAdmin
   const { invoices, loading, mutate } = useInvoices(currentOrg?.id ?? null)
-  const { companies } = useCompanies(currentOrg?.id ?? null)
+  const { companies, mutate: mutateCompanies } = useCompanies(currentOrg?.id ?? null)
   const { products } = useProducts(currentOrg?.id ?? null)
 
   const [open, setOpen] = useState(false)
@@ -55,6 +56,33 @@ export function FacturacionView() {
   const [lines, setLines] = useState<Line[]>([emptyLine()])
   const [issuing, setIssuing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Inline "new client" creation
+  const NEW_CLIENT_EMPTY = { name: "", cif: "", address: "", postal_code: "", city: "", province: "" }
+  const [newClientOpen, setNewClientOpen] = useState(false)
+  const [nc, setNc] = useState(NEW_CLIENT_EMPTY)
+  const [savingClient, setSavingClient] = useState(false)
+  const [clientError, setClientError] = useState<string | null>(null)
+
+  const handleCreateClient = async () => {
+    if (!nc.name.trim() || !currentOrg) return
+    setSavingClient(true); setClientError(null)
+    const supabase = createClient()
+    const { data, error: err } = await supabase.from("companies").insert({
+      organization_id: currentOrg.id,
+      name: nc.name.trim(),
+      cif: nc.cif.trim() || null,
+      address: nc.address.trim() || null,
+      postal_code: nc.postal_code.trim() || null,
+      city: nc.city.trim() || null,
+      province: nc.province.trim() || null,
+      is_active: true,
+    }).select("id").single()
+    if (err || !data) { setClientError(err?.message ?? "Error"); setSavingClient(false); return }
+    await mutateCompanies()
+    setClientId(data.id)
+    setSavingClient(false); setNewClientOpen(false); setNc(NEW_CLIENT_EMPTY)
+  }
 
   const fmtEur = (n: number) => `${n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
   const canManage = isOrgAdmin && paid
@@ -220,13 +248,21 @@ export function FacturacionView() {
             {/* Client + meta */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-foreground mb-1.5">{t("client")} <span className="text-destructive">*</span></label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-sm font-medium text-foreground">{t("client")} <span className="text-destructive">*</span></label>
+                  <button type="button" onClick={() => { setNc(NEW_CLIENT_EMPTY); setClientError(null); setNewClientOpen(true) }} className="flex items-center gap-1 text-xs text-accent hover:underline font-medium">
+                    <Plus className="w-3.5 h-3.5" /> {t("newClient")}
+                  </button>
+                </div>
                 <select value={clientId} onChange={e => setClientId(e.target.value)} className={inputCls}>
                   <option value="">{t("selectClient")}</option>
                   {companies.map(c => (
                     <option key={c.id} value={c.id}>{c.name}{c.cif ? ` · ${c.cif}` : ` · ${t("noCif")}`}</option>
                   ))}
                 </select>
+                {companies.length === 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">{t("noClientsHint")}</p>
+                )}
                 {selectedClient && !selectedClient.cif?.trim() && (
                   <p className="text-xs text-destructive mt-1">{t("errors.clientCif")}</p>
                 )}
@@ -312,6 +348,61 @@ export function FacturacionView() {
               <button onClick={handleIssue} disabled={issuing || !!validationError} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
                 {issuing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                 {t("issue")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick "new client" modal (over the invoice modal) */}
+      {newClientOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !savingClient && setNewClientOpen(false)} />
+          <div className="relative bg-card border border-border rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-semibold text-foreground">{t("newClient")}</h2>
+              <button onClick={() => !savingClient && setNewClientOpen(false)} className="p-1 rounded-lg hover:bg-muted"><X className="w-4 h-4 text-muted-foreground" /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">{t("clientName")} <span className="text-destructive">*</span></label>
+                <input autoFocus value={nc.name} onChange={e => setNc({ ...nc, name: e.target.value })} className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">CIF</label>
+                <input value={nc.cif} onChange={e => setNc({ ...nc, cif: e.target.value })} placeholder="B12345678" className={inputCls} />
+                <p className="text-[11px] text-muted-foreground mt-1">{t("clientCifHint")}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">{t("clientAddress")}</label>
+                <input value={nc.address} onChange={e => setNc({ ...nc, address: e.target.value })} className={inputCls} />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1.5">{t("clientPostalCode")}</label>
+                  <input value={nc.postal_code} onChange={e => setNc({ ...nc, postal_code: e.target.value })} className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1.5">{t("clientCity")}</label>
+                  <input value={nc.city} onChange={e => setNc({ ...nc, city: e.target.value })} className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1.5">{t("clientProvince")}</label>
+                  <input value={nc.province} onChange={e => setNc({ ...nc, province: e.target.value })} className={inputCls} />
+                </div>
+              </div>
+              {clientError && (
+                <div className="flex items-start gap-2 bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                  <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                  <p className="text-destructive text-sm">{clientError}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-2 mt-5">
+              <button onClick={() => !savingClient && setNewClientOpen(false)} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">{tCommon("cancel")}</button>
+              <button onClick={handleCreateClient} disabled={savingClient || !nc.name.trim()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
+                {savingClient ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                {t("createClient")}
               </button>
             </div>
           </div>
