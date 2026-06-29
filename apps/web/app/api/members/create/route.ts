@@ -52,7 +52,15 @@ export async function POST(req: NextRequest) {
       userId = user.id
     }
 
-    // Verify the requesting user is an admin of the org
+    // Platform admins (super_admin) bypass org-membership and limit checks
+    const { data: callerProfile } = await admin
+      .from('profiles')
+      .select('platform_role')
+      .eq('id', userId)
+      .single()
+    const isSuper = callerProfile?.platform_role === 'super_admin'
+
+    // Verify the requesting user is an admin of the org (unless platform admin)
     const { data: callerMember } = await admin
       .from('organization_members')
       .select('role')
@@ -60,7 +68,7 @@ export async function POST(req: NextRequest) {
       .eq('user_id', userId)
       .single()
 
-    if (!callerMember || !['owner', 'admin'].includes(callerMember.role)) {
+    if (!isSuper && (!callerMember || !['owner', 'admin'].includes(callerMember.role))) {
       return NextResponse.json({ error: 'not_authorized' }, { status: 403 })
     }
 
@@ -86,7 +94,7 @@ export async function POST(req: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('organization_id', orgId)
 
-    if (memberCount !== null && memberCount >= maxUsers) {
+    if (!isSuper && memberCount !== null && memberCount >= maxUsers) {
       return NextResponse.json({
         error: 'member_limit_reached',
         isFreePlan: !isPaidActive,
