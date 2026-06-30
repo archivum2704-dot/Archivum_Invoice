@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { Plus, Package, X, Pencil, Trash2, Lock, ArrowLeft } from "lucide-react-native";
+import { Plus, Package, X, Pencil, Trash2, Lock, ArrowLeft, Search } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
@@ -17,6 +17,7 @@ interface Product {
   id: string;
   name: string;
   sku: string | null;
+  category: string | null;
   unit: string;
   unit_price: number;
   tax_rate: number;
@@ -26,11 +27,14 @@ interface Product {
 
 type Draft = {
   id?: string;
-  name: string; sku: string; unit: string;
+  name: string; sku: string; category: string; unit: string;
   unit_price: string; tax_rate: string; track_stock: boolean; stock_qty: string;
 };
 
-const EMPTY: Draft = { name: "", sku: "", unit: "ud", unit_price: "0", tax_rate: "21", track_stock: true, stock_qty: "0" };
+const EMPTY: Draft = { name: "", sku: "", category: "", unit: "ud", unit_price: "0", tax_rate: "21", track_stock: true, stock_qty: "0" };
+
+// Sentinel for the "uncategorized" filter chip
+const UNCAT = "__uncategorized__";
 
 export default function InventarioScreen() {
   const { t } = useTranslation();
@@ -45,6 +49,25 @@ export default function InventarioScreen() {
   const [modal, setModal] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const categories = Array.from(
+    new Set(products.map((p) => p.category?.trim()).filter((c): c is string => !!c))
+  ).sort((a, b) => a.localeCompare(b));
+  const hasUncategorized = products.some((p) => !p.category?.trim());
+  const q = search.trim().toLowerCase();
+  const filtered = products.filter((p) => {
+    const matchesSearch =
+      !q ||
+      p.name.toLowerCase().includes(q) ||
+      (p.sku ?? "").toLowerCase().includes(q) ||
+      (p.category ?? "").toLowerCase().includes(q);
+    const matchesCategory =
+      !selectedCategory ||
+      (selectedCategory === UNCAT ? !p.category?.trim() : p.category?.trim() === selectedCategory);
+    return matchesSearch && matchesCategory;
+  });
 
   const fmtEur = (n: number) => `${Number(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 
@@ -64,6 +87,7 @@ export default function InventarioScreen() {
       organization_id: orgId,
       name: draft.name.trim(),
       sku: draft.sku.trim() || null,
+      category: draft.category.trim() || null,
       unit: draft.unit.trim() || "ud",
       unit_price: Number(draft.unit_price) || 0,
       tax_rate: Number(draft.tax_rate) || 0,
@@ -124,18 +148,51 @@ export default function InventarioScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
       {Header}
+
+      {/* Search */}
+      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 12 }}>
+          <Search size={16} color={C.muted} />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder={t("common.search")}
+            placeholderTextColor={C.muted}
+            style={{ flex: 1, paddingVertical: 10, color: C.text, fontSize: 15 }}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch("")} hitSlop={8}><X size={16} color={C.muted} /></TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Category filter chips */}
+      {categories.length > 0 && (
+        <View style={{ paddingBottom: 8 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 6 }}>
+            <Chip label={t("inventory.allCategories")} active={selectedCategory === null} onPress={() => setSelectedCategory(null)} C={C} />
+            {categories.map((c) => (
+              <Chip key={c} label={c} active={selectedCategory === c} onPress={() => setSelectedCategory(c)} C={C} />
+            ))}
+            {hasUncategorized && (
+              <Chip label={t("inventory.uncategorized")} active={selectedCategory === UNCAT} onPress={() => setSelectedCategory(UNCAT)} C={C} />
+            )}
+          </ScrollView>
+        </View>
+      )}
+
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><ActivityIndicator color={C.blue} /></View>
       ) : (
         <FlatList
-          data={products}
+          data={filtered}
           keyExtractor={(p) => p.id}
           contentContainerStyle={{ padding: 16, gap: 10 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={C.blue} />}
           ListEmptyComponent={
             <View style={{ alignItems: "center", paddingVertical: 60 }}>
               <Package size={40} color={C.muted} />
-              <Text style={{ color: C.muted, marginTop: 12 }}>{t("inventory.empty")}</Text>
+              <Text style={{ color: C.muted, marginTop: 12 }}>{products.length === 0 ? t("inventory.empty") : t("inventory.noResults")}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -146,10 +203,15 @@ export default function InventarioScreen() {
                   {fmtEur(item.unit_price)} · {Number(item.tax_rate)}% {t("inventory.iva")}
                   {item.track_stock ? ` · ${t("inventory.stock")}: ${Number(item.stock_qty)}` : ""}
                 </Text>
+                {item.category ? (
+                  <View style={{ alignSelf: "flex-start", marginTop: 4, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 10, fontWeight: "500", color: C.muted }}>{item.category}</Text>
+                  </View>
+                ) : null}
               </View>
               {canManage && (
                 <View style={{ flexDirection: "row", gap: 4 }}>
-                  <TouchableOpacity onPress={() => { setDraft({ id: item.id, name: item.name, sku: item.sku ?? "", unit: item.unit, unit_price: String(item.unit_price), tax_rate: String(item.tax_rate), track_stock: item.track_stock, stock_qty: String(item.stock_qty) }); setModal(true); }} style={{ padding: 6 }}>
+                  <TouchableOpacity onPress={() => { setDraft({ id: item.id, name: item.name, sku: item.sku ?? "", category: item.category ?? "", unit: item.unit, unit_price: String(item.unit_price), tax_rate: String(item.tax_rate), track_stock: item.track_stock, stock_qty: String(item.stock_qty) }); setModal(true); }} style={{ padding: 6 }}>
                     <Pencil size={16} color={C.muted} />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => remove(item)} style={{ padding: 6 }}><Trash2 size={16} color={C.red} /></TouchableOpacity>
@@ -171,6 +233,7 @@ export default function InventarioScreen() {
             <ScrollView keyboardShouldPersistTaps="handled">
               <Field label={t("inventory.name")} C={C}><Input value={draft.name} onChangeText={(v: string) => setDraft({ ...draft, name: v })} C={C} /></Field>
               <Field label="SKU" C={C}><Input value={draft.sku} onChangeText={(v: string) => setDraft({ ...draft, sku: v })} C={C} /></Field>
+              <Field label={t("inventory.category")} C={C}><Input value={draft.category} onChangeText={(v: string) => setDraft({ ...draft, category: v })} placeholder={t("inventory.categoryPlaceholder")} C={C} /></Field>
               <View style={{ flexDirection: "row", gap: 12 }}>
                 <View style={{ flex: 1 }}><Field label={`${t("inventory.price")} (€)`} C={C}><Input value={draft.unit_price} onChangeText={(v: string) => setDraft({ ...draft, unit_price: v })} keyboardType="decimal-pad" C={C} /></Field></View>
                 <View style={{ flex: 1 }}><Field label={`${t("inventory.iva")} (%)`} C={C}><Input value={draft.tax_rate} onChangeText={(v: string) => setDraft({ ...draft, tax_rate: v })} keyboardType="decimal-pad" C={C} /></Field></View>
@@ -189,6 +252,20 @@ export default function InventarioScreen() {
         </View>
       </Modal>
     </SafeAreaView>
+  );
+}
+
+function Chip({ label, active, onPress, C }: any) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, borderWidth: 1,
+        backgroundColor: active ? C.blue : C.surface, borderColor: active ? C.blue : C.border,
+      }}
+    >
+      <Text style={{ fontSize: 12, fontWeight: "600", color: active ? "#fff" : C.muted }}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
