@@ -429,6 +429,7 @@ export type Database = {
           organization_id: string
           name: string
           sku: string | null
+          category: string | null
           description: string | null
           unit: string
           unit_price: number
@@ -445,6 +446,7 @@ export type Database = {
           organization_id: string
           name: string
           sku?: string | null
+          category?: string | null
           description?: string | null
           unit?: string
           unit_price?: number
@@ -457,6 +459,7 @@ export type Database = {
         Update: {
           name?: string
           sku?: string | null
+          category?: string | null
           description?: string | null
           unit?: string
           unit_price?: number
