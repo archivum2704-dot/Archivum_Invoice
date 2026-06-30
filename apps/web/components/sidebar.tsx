@@ -179,7 +179,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
               href={item.href}
               className={cn(
                 "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm group",
-                "transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]",
+                "transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98]",
                 active
                   ? "bg-sidebar-primary/90 text-sidebar-primary-foreground font-semibold"
                   : "text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
@@ -192,7 +192,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
                   active ? "h-5 bg-sidebar-primary-foreground/70 opacity-100" : "h-0 opacity-0"
                 )}
               />
-              <item.icon className={cn("w-4 h-4 shrink-0 transition-transform duration-200", active && "scale-110")} />
+              <item.icon className={cn("w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110", active && "scale-110")} />
               <span className="flex-1">{item.label}</span>
               {showBadge && (
                 <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--status-overdue)] text-white text-[10px] font-bold flex items-center justify-center">
@@ -314,7 +314,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
           <div className="relative">
             <button
               onClick={() => setShowOrgMenu(!showOrgMenu)}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-sidebar-accent/50 transition-colors text-left"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-sidebar-accent/50 transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] text-left"
             >
               <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
                 <Building2 className="w-4 h-4 text-sidebar-primary-foreground" />
@@ -358,22 +358,22 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
       <div className="px-3 py-4 border-t border-sidebar-border space-y-0.5">
         <Link
           href="/configuracion"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
+          className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98]"
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
           <span>{t("settings")}</span>
         </Link>
         {isOrgAdmin && (
           <Link
             href="/configuracion/billing"
             className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]",
+              "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98]",
               pathname === "/configuracion/billing"
                 ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                 : "text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
             )}
           >
-            <CreditCard className="w-4 h-4" />
+            <CreditCard className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
             <span>Facturación</span>
           </Link>
         )}
@@ -394,9 +394,9 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
+          className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98]"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
           <span>{t("signOut")}</span>
         </button>
       </div>
