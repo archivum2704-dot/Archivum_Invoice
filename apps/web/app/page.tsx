@@ -6,8 +6,8 @@ import Link from "next/link"
 import {
   FileText, Package, Receipt, FolderOpen,
   ArrowRight, CheckCircle2, Bell, BarChart3,
-  Link2, Shield, Globe, Zap, Search, Download,
-  TrendingUp, Clock, AlertCircle, ChevronRight, Star,
+  Shield, Globe, Zap, Search, Download,
+  ChevronRight, Star, ShieldCheck, Building2, Users, QrCode,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Logo } from "@/components/logo"
@@ -15,61 +15,70 @@ import { PLANS, ADDONS, PRICING_FAQ } from "@/lib/pricing"
 
 const SOCIAL_PROOF = [
   "Plan gratuito incluido",
+  "Conforme con VeriFactu",
   "Datos en Europa (EU)",
-  "Exportación CSV y Excel",
   "Multi-empresa",
 ]
 
 const STATS = [
+  { value: "VeriFactu", label: "Conforme con la AEAT" },
+  { value: "0 €", label: "Para empezar" },
+  { value: "IVA + IRPF", label: "Calculados al instante" },
   { value: "100%", label: "En la nube" },
-  { value: "0€", label: "Para empezar" },
-  { value: "<1min", label: "Setup inicial" },
-  { value: "7 días", label: "Prueba Pro gratis" },
 ]
 
+// Primary feature cards
 const FEATURES = [
   {
-    icon: FolderOpen,
-    title: "Archivo centralizado",
-    desc: "Facturas, albaranes, pedidos y recibos en un único lugar. Con búsqueda avanzada, filtros y exportación.",
+    icon: Receipt,
+    title: "Emisión de facturas",
+    desc: "Crea facturas con líneas de producto, IVA e IRPF calculados automáticamente, numeración correlativa y PDF profesional.",
     color: "bg-primary/10 text-primary",
     border: "border-primary/20",
   },
   {
-    icon: Link2,
-    title: "Workflow completo",
-    desc: "Crea albaranes desde pedidos y facturas desde albaranes en un clic. La cadena documental siempre visible.",
-    color: "bg-violet-500/10 text-violet-600",
-    border: "border-violet-500/20",
-  },
-  {
-    icon: Bell,
-    title: "Alertas de vencimiento",
-    desc: "Badge rojo en tiempo real cuando hay facturas vencidas. Sin sorpresas al cierre de mes.",
-    color: "bg-red-500/10 text-red-500",
-    border: "border-red-500/20",
-  },
-  {
-    icon: BarChart3,
-    title: "Métricas financieras",
-    desc: "KPIs de importes cobrados, pendientes y vencidos. Gráfico de actividad mensual en el dashboard.",
+    icon: ShieldCheck,
+    title: "Conforme con VeriFactu",
+    desc: "Facturas con huella encadenada y QR de cotejo de la AEAT. Cumple con el nuevo sistema de facturación verificable.",
     color: "bg-emerald-500/10 text-emerald-600",
     border: "border-emerald-500/20",
   },
   {
-    icon: Search,
-    title: "Búsqueda potente",
-    desc: "Filtra por tipo, estado, fecha e importe. Busca por número, empresa o notas. Exporta los resultados.",
+    icon: Package,
+    title: "Inventario y catálogo",
+    desc: "Gestiona productos y servicios por categorías. Añádelos a tus facturas en un clic, sin reescribir precios ni impuestos.",
+    color: "bg-violet-500/10 text-violet-600",
+    border: "border-violet-500/20",
+  },
+  {
+    icon: FolderOpen,
+    title: "Archivo centralizado",
+    desc: "Facturas, albaranes, pedidos y recibos en un único lugar. Con búsqueda avanzada, filtros y exportación a CSV/Excel.",
+    color: "bg-blue-500/10 text-blue-600",
+    border: "border-blue-500/20",
+  },
+  {
+    icon: Building2,
+    title: "Clientes y empresas",
+    desc: "Tu cartera de clientes con sus datos fiscales siempre a mano. Reutilízalos al facturar y trabaja con varias empresas.",
     color: "bg-amber-500/10 text-amber-600",
     border: "border-amber-500/20",
   },
   {
-    icon: Download,
-    title: "Exportación total",
-    desc: "Descarga cualquier lista en CSV o Excel con un clic. Compatible con contabilidad y hojas de cálculo.",
-    color: "bg-blue-500/10 text-blue-600",
-    border: "border-blue-500/20",
+    icon: Users,
+    title: "Equipo con roles",
+    desc: "Invita a tu equipo y controla los permisos. El administrador decide qué carpetas ve y descarga cada gestor.",
+    color: "bg-rose-500/10 text-rose-600",
+    border: "border-rose-500/20",
   },
+]
+
+// Secondary "y además" strip
+const EXTRAS = [
+  { icon: Bell,      label: "Alertas de vencimiento" },
+  { icon: BarChart3, label: "Métricas financieras" },
+  { icon: Search,    label: "Búsqueda avanzada" },
+  { icon: Download,  label: "Exportación CSV/Excel" },
 ]
 
 // Mock dashboard preview
@@ -95,7 +104,7 @@ function DashboardPreview() {
             <div className="w-6 h-6 rounded-md bg-primary/20" />
             <div className="h-3 bg-sidebar-foreground/20 rounded w-16" />
           </div>
-          {["Dashboard","Biblioteca","Buscador","Subir","Empresas"].map((item, i) => (
+          {["Panel","Empresas","Biblioteca","Inventario","Facturación","Subir"].map((item, i) => (
             <div key={item} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg ${i === 0 ? "bg-sidebar-primary/20" : ""}`}>
               <div className="w-3.5 h-3.5 rounded bg-sidebar-foreground/20 shrink-0" />
               <span className="text-[11px] text-sidebar-foreground/60">{item}</span>
@@ -122,8 +131,11 @@ function DashboardPreview() {
 
           {/* Recent docs list */}
           <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <div className="px-3 py-2 border-b border-border bg-muted/30">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
               <p className="text-[10px] font-semibold text-foreground">Documentos recientes</p>
+              <span className="flex items-center gap-1 text-[8px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                <QrCode className="w-2.5 h-2.5" /> VeriFactu
+              </span>
             </div>
             {[
               { num: "FAC-2024-089", co: "Construcciones García", amt: "3.420 €", status: "Pagada", sc: "bg-emerald-100 text-emerald-700" },
@@ -202,19 +214,20 @@ export default function LandingPage() {
         <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-10 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-6 border border-primary/20">
             <Zap className="w-3 h-3" />
-            Gestión documental para pymes y autónomos
+            Facturación y gestión documental para pymes y autónomos
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-5 max-w-4xl mx-auto leading-tight">
-            Tu archivo de facturas.{" "}
+            Emite y archiva tus facturas.{" "}
             <span className="text-primary relative">
-              Ordenado y a mano.
+              Conforme con VeriFactu.
             </span>
           </h1>
 
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-8 leading-relaxed">
-            Archiva facturas, albaranes y pedidos. Gestiona el flujo completo
-            Pedido → Albarán → Factura y recibe alertas de vencimientos.
+            Crea facturas con IVA e IRPF, gestiona clientes y productos, y
+            archiva todo tu flujo Pedido → Albarán → Factura. Con alertas de
+            vencimiento y métricas en tiempo real.
           </p>
 
           <div className="flex items-center justify-center gap-3 flex-wrap mb-6">
@@ -256,7 +269,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {STATS.map(s => (
               <div key={s.label}>
-                <p className="text-3xl font-bold text-primary mb-1">{s.value}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-primary mb-1">{s.value}</p>
                 <p className="text-sm text-muted-foreground">{s.label}</p>
               </div>
             ))}
@@ -269,10 +282,11 @@ export default function LandingPage() {
         <div className="text-center mb-12">
           <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Funcionalidades</p>
           <h2 className="text-3xl font-bold text-foreground mb-4">
-            Todo lo que necesitas, nada que no uses
+            Factura, controla y archiva. Todo en un sitio.
           </h2>
           <p className="text-muted-foreground max-w-md mx-auto">
-            Diseñado para autónomos y pymes que quieren orden sin complejidad.
+            Diseñado para autónomos y pymes que quieren facturar bien y mantener
+            el orden sin complejidad.
           </p>
         </div>
 
@@ -288,6 +302,89 @@ export default function LandingPage() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Extras strip */}
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Y además</span>
+          {EXTRAS.map(e => (
+            <span key={e.label} className="inline-flex items-center gap-1.5 text-xs text-foreground bg-card border border-border rounded-full px-3 py-1.5">
+              <e.icon className="w-3.5 h-3.5 text-primary" />
+              {e.label}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      {/* ── VeriFactu highlight ──────────────────────────────────────────── */}
+      <section className="border-t border-border bg-primary text-primary-foreground">
+        <div className="max-w-6xl mx-auto px-6 py-16">
+          <div className="grid md:grid-cols-2 gap-10 items-center">
+            <div>
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-foreground/10 text-primary-foreground text-xs font-medium mb-5 border border-primary-foreground/20">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Cumplimiento normativo
+              </span>
+              <h2 className="text-3xl font-bold mb-4 leading-tight">
+                Facturas listas para la era VeriFactu
+              </h2>
+              <p className="text-primary-foreground/80 leading-relaxed mb-6">
+                Cada factura emitida incorpora la huella encadenada y el código QR
+                de cotejo de la AEAT. Sube tu certificado digital una vez y factura
+                conforme al sistema de facturación verificable, sin software extra.
+              </p>
+              <ul className="space-y-2.5">
+                {[
+                  "Huella criptográfica encadenada entre facturas",
+                  "QR de cotejo verificable en la Sede de la AEAT",
+                  "Certificado digital cifrado por organización",
+                ].map(item => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-primary-foreground/90">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-300" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Mock verifactu invoice corner */}
+            <div className="bg-card text-foreground rounded-2xl border border-border p-6 shadow-2xl">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Factura</p>
+                  <p className="text-lg font-bold">FAC-2026-014</p>
+                </div>
+                <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                  <ShieldCheck className="w-3 h-3" /> VeriFactu
+                </span>
+              </div>
+              <div className="space-y-2 mb-4">
+                {[
+                  { d: "Base imponible", v: "1.000,00 €" },
+                  { d: "IVA (21%)", v: "210,00 €" },
+                  { d: "IRPF (-15%)", v: "-150,00 €" },
+                ].map(row => (
+                  <div key={row.d} className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{row.d}</span>
+                    <span className="font-medium text-foreground">{row.v}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-2 border-t border-border text-sm font-bold">
+                  <span>Total</span>
+                  <span>1.060,00 €</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-xl bg-muted/50 border border-border p-3">
+                <div className="w-12 h-12 rounded-lg bg-card border border-border flex items-center justify-center shrink-0">
+                  <QrCode className="w-7 h-7 text-foreground" />
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-snug">
+                  Factura verificable en la Sede electrónica de la AEAT mediante
+                  el código QR.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -316,7 +413,7 @@ export default function LandingPage() {
               {[
                 { icon: FolderOpen, label: "Pedido",         sub: "Origen del proceso",      color: "bg-blue-100 text-blue-600",     done: true },
                 { icon: Package,   label: "Albarán",         sub: "Confirmación de entrega", color: "bg-primary/10 text-primary",    done: true },
-                { icon: FileText,  label: "Factura emitida", sub: "Cobro del servicio",      color: "bg-violet-100 text-violet-600", done: false },
+                { icon: FileText,  label: "Factura emitida", sub: "Conforme con VeriFactu",  color: "bg-violet-100 text-violet-600", done: false },
                 { icon: Receipt,   label: "Recibo",          sub: "Pago confirmado",         color: "bg-emerald-100 text-emerald-600", done: false },
               ].map((step, i) => (
                 <div key={step.label}>
@@ -376,8 +473,8 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Plan cards — 3 columnas */}
-          <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
+          {/* Plan cards — 4 columnas */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {Object.values(PLANS).map(plan => (
               <div
                 key={plan.id}
@@ -394,29 +491,29 @@ export default function LandingPage() {
                     </span>
                   </div>
                 )}
-                <div className={`p-6 border-b border-border ${plan.highlight ? "bg-primary/5" : ""}`}>
+                <div className={`p-5 border-b border-border ${plan.highlight ? "bg-primary/5" : ""}`}>
                   <p className={`text-xs font-bold uppercase tracking-wider mb-3 ${plan.highlight ? "text-primary" : "text-muted-foreground"}`}>
                     {plan.name}
                   </p>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="text-4xl font-bold text-foreground">{plan.priceLabel}</span>
+                    <span className="text-3xl font-bold text-foreground">{plan.priceLabel}</span>
                     {plan.price > 0 && (
-                      <span className="text-sm text-muted-foreground pb-1">{plan.priceSuffix}</span>
+                      <span className="text-xs text-muted-foreground pb-1">{plan.priceSuffix}</span>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>
                 </div>
 
-                <ul className="px-6 py-5 space-y-3 flex-1">
+                <ul className="px-5 py-5 space-y-2.5 flex-1">
                   {plan.features.map(f => (
-                    <li key={f} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                      <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${plan.highlight ? "text-primary" : "text-emerald-500"}`} />
+                    <li key={f} className="flex items-start gap-2 text-xs text-muted-foreground">
+                      <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${plan.highlight ? "text-primary" : "text-emerald-500"}`} />
                       {f}
                     </li>
                   ))}
                 </ul>
 
-                <div className="px-6 pb-6">
+                <div className="px-5 pb-5">
                   <Link
                     href="/auth/signup"
                     className={`block w-full text-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors ${
@@ -440,7 +537,7 @@ export default function LandingPage() {
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 text-center">
               Complementos disponibles en planes de pago
             </p>
-            <div className="grid sm:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
               {Object.values(ADDONS).map(addon => (
                 <div key={addon.label} className="flex items-center gap-3 bg-muted/40 border border-border rounded-xl px-4 py-3">
                   <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
@@ -470,10 +567,10 @@ export default function LandingPage() {
       <section className="border-t border-border bg-primary/5">
         <div className="max-w-6xl mx-auto px-6 py-20 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Empieza a ordenar tu documentación hoy
+            Empieza a facturar y ordenar hoy
           </h2>
           <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            Gratis para siempre · Starter desde 14,99 €/mes · Pro desde 24,99 €/mes. Sin permanencia.
+            Gratis para siempre · Starter 14,99 € · Business 19,99 € · Pro 24,99 €/mes. Sin permanencia.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
