@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Package, Plus, Pencil, Trash2, X, Check, Loader2, Lock, AlertTriangle, Search } from "lucide-react"
 import Link from "next/link"
 import { useTranslations, useLocale } from "next-intl"
@@ -13,6 +13,7 @@ import { isPaidPlan } from "@/lib/plan"
 type Draft = {
   name: string
   sku: string
+  category: string
   description: string
   unit: string
   unit_price: string
@@ -22,9 +23,12 @@ type Draft = {
 }
 
 const EMPTY: Draft = {
-  name: "", sku: "", description: "", unit: "ud",
+  name: "", sku: "", category: "", description: "", unit: "ud",
   unit_price: "0", tax_rate: "21", track_stock: true, stock_qty: "0",
 }
+
+// Sentinel for the "uncategorized" filter chip
+const UNCATEGORIZED = "__uncategorized__"
 
 export function InventarioView() {
   const t = useTranslations("inventory")
@@ -35,6 +39,7 @@ export function InventarioView() {
   const { products, loading, mutate } = useProducts(currentOrg?.id ?? null)
 
   const [search, setSearch] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [editing, setEditing] = useState<Product | "new" | null>(null)
   const [draft, setDraft] = useState<Draft>(EMPTY)
   const [saving, setSaving] = useState(false)
@@ -48,7 +53,7 @@ export function InventarioView() {
   const openNew = () => { setDraft(EMPTY); setError(null); setEditing("new") }
   const openEdit = (p: Product) => {
     setDraft({
-      name: p.name, sku: p.sku ?? "", description: p.description ?? "", unit: p.unit,
+      name: p.name, sku: p.sku ?? "", category: p.category ?? "", description: p.description ?? "", unit: p.unit,
       unit_price: String(p.unit_price), tax_rate: String(p.tax_rate),
       track_stock: p.track_stock, stock_qty: String(p.stock_qty),
     })
@@ -63,6 +68,7 @@ export function InventarioView() {
       organization_id: currentOrg.id,
       name: draft.name.trim(),
       sku: draft.sku.trim() || null,
+      category: draft.category.trim() || null,
       description: draft.description.trim() || null,
       unit: draft.unit.trim() || "ud",
       unit_price: Number(draft.unit_price) || 0,
@@ -88,11 +94,33 @@ export function InventarioView() {
     setDeletingId(null)
   }
 
-  const filtered = products.filter(p =>
-    !search ||
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.sku ?? "").toLowerCase().includes(search.toLowerCase())
+  // Distinct categories present in the inventory (for filter chips + datalist)
+  const categories = useMemo(
+    () =>
+      Array.from(
+        new Set(products.map(p => p.category?.trim()).filter((c): c is string => !!c))
+      ).sort((a, b) => a.localeCompare(b)),
+    [products],
   )
+  const hasUncategorized = useMemo(() => products.some(p => !p.category?.trim()), [products])
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return products.filter(p => {
+      const matchesSearch =
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        (p.sku ?? "").toLowerCase().includes(q) ||
+        (p.category ?? "").toLowerCase().includes(q) ||
+        (p.description ?? "").toLowerCase().includes(q)
+      const matchesCategory =
+        !selectedCategory ||
+        (selectedCategory === UNCATEGORIZED
+          ? !p.category?.trim()
+          : p.category?.trim() === selectedCategory)
+      return matchesSearch && matchesCategory
+    })
+  }, [products, search, selectedCategory])
 
   // ── Paywall for free plans ──────────────────────────────────
   if (!paid) {
@@ -148,6 +176,19 @@ export function InventarioView() {
         </div>
       </div>
 
+      {/* Category filter chips */}
+      {categories.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 mb-5">
+          <CategoryChip label={t("allCategories")} active={selectedCategory === null} onClick={() => setSelectedCategory(null)} />
+          {categories.map(c => (
+            <CategoryChip key={c} label={c} active={selectedCategory === c} onClick={() => setSelectedCategory(c)} />
+          ))}
+          {hasUncategorized && (
+            <CategoryChip label={t("uncategorized")} active={selectedCategory === UNCATEGORIZED} onClick={() => setSelectedCategory(UNCATEGORIZED)} />
+          )}
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
         <div className="hidden sm:grid grid-cols-[1fr_120px_110px_70px_90px_80px] gap-3 px-5 py-3 border-b border-border text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
@@ -166,8 +207,8 @@ export function InventarioView() {
             <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
               <Package className="w-6 h-6 text-muted-foreground/50" />
             </div>
-            <p className="text-sm font-medium text-foreground">{t("empty")}</p>
-            {canManage && (
+            <p className="text-sm font-medium text-foreground">{products.length === 0 ? t("empty") : t("noResults")}</p>
+            {canManage && products.length === 0 && (
               <button onClick={openNew} className="flex items-center gap-1.5 text-xs font-medium text-accent hover:underline">
                 <Plus className="w-3.5 h-3.5" /> {t("newProduct")}
               </button>
@@ -185,7 +226,14 @@ export function InventarioView() {
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
-                  {p.description && <p className="text-xs text-muted-foreground truncate">{p.description}</p>}
+                  <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                    {p.category && (
+                      <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-muted text-[10px] font-medium text-muted-foreground">
+                        {p.category}
+                      </span>
+                    )}
+                    {p.description && <p className="text-xs text-muted-foreground truncate">{p.description}</p>}
+                  </div>
                 </div>
                 <span className="text-sm text-muted-foreground truncate hidden sm:block">{p.sku ?? "—"}</span>
                 <span className="text-sm font-semibold text-foreground text-right">{fmtEur(p.unit_price)}</span>
@@ -235,6 +283,18 @@ export function InventarioView() {
                   <input value={draft.unit} onChange={e => setDraft({ ...draft, unit: e.target.value })} className={inputCls} />
                 </Field>
               </div>
+              <Field label={t("category")}>
+                <input
+                  list="product-categories"
+                  value={draft.category}
+                  onChange={e => setDraft({ ...draft, category: e.target.value })}
+                  placeholder={t("categoryPlaceholder")}
+                  className={inputCls}
+                />
+                <datalist id="product-categories">
+                  {categories.map(c => <option key={c} value={c} />)}
+                </datalist>
+              </Field>
               <Field label={t("description")}>
                 <input value={draft.description} onChange={e => setDraft({ ...draft, description: e.target.value })} className={inputCls} />
               </Field>
@@ -282,6 +342,22 @@ export function InventarioView() {
 }
 
 const inputCls = "w-full px-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+
+function CategoryChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.97]",
+        active
+          ? "bg-primary text-primary-foreground border-primary"
+          : "bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+      )}
+    >
+      {label}
+    </button>
+  )
+}
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
