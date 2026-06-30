@@ -442,6 +442,8 @@
     "subtitle": "{count} empresas registradas",
     "addCompany": "Nueva Empresa",
     "searchPlaceholder": "Buscar empresa, CIF...",
+    "allSectors": "Todos",
+    "noSector": "Sin sector",
     "docs": "docs",
     "totalBilled": "Total facturado",
     "viewDocuments": "Ver documentos",
