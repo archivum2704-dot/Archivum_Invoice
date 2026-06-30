@@ -10,8 +10,6 @@ import {
   Search,
   Upload,
   Settings,
-  CreditCard,
-  ChevronRight,
   LogOut,
   ChevronDown,
   ShieldCheck,
@@ -168,47 +166,37 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className="shrink-0 px-3 py-4 space-y-0.5">
-        {navItems.map((item) => {
-          const active = pathname === item.href
-          const showBadge = item.href === "/biblioteca" && overdueCount > 0
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm group",
-                "transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98]",
-                active
-                  ? "bg-sidebar-primary/90 text-sidebar-primary-foreground font-semibold"
-                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
-              )}
-            >
-              {/* Active left-bar indicator */}
-              <span
+      {/* Navigation (square button grid) + summary — scroll together */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-4">
+        <nav className="grid grid-cols-2 gap-2">
+          {navItems.map((item) => {
+            const active = pathname === item.href
+            const showBadge = item.href === "/biblioteca" && overdueCount > 0
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
                 className={cn(
-                  "absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-full transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]",
-                  active ? "h-5 bg-sidebar-primary-foreground/70 opacity-100" : "h-0 opacity-0"
+                  "group relative flex flex-col items-center justify-center gap-2 aspect-square rounded-xl border p-2 text-center",
+                  "transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.97]",
+                  active
+                    ? "bg-sidebar-primary/90 border-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-sm"
+                    : "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:border-sidebar-foreground/20"
                 )}
-              />
-              <item.icon className={cn("w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110", active && "scale-110")} />
-              <span className="flex-1">{item.label}</span>
-              {showBadge && (
-                <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--status-overdue)] text-white text-[10px] font-bold flex items-center justify-center">
-                  {overdueCount > 99 ? "99+" : overdueCount}
-                </span>
-              )}
-              {active && !showBadge && (
-                <ChevronRight className="w-3 h-3 opacity-50 transition-transform duration-200 group-hover:translate-x-0.5" />
-              )}
-            </Link>
-          )
-        })}
-      </nav>
+              >
+                <item.icon className={cn("w-5 h-5 shrink-0 transition-transform duration-200 group-hover:scale-110", active && "scale-110")} />
+                <span className="text-[11px] font-medium leading-tight">{item.label}</span>
+                {showBadge && (
+                  <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--status-overdue)] text-white text-[10px] font-bold flex items-center justify-center">
+                    {overdueCount > 99 ? "99+" : overdueCount}
+                  </span>
+                )}
+              </Link>
+            )
+          })}
+        </nav>
 
-      {/* ── Summary widgets ─────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 space-y-3">
+        {/* ── Summary widgets ─────────────────────────────────── */}
 
         {/* Ingresos del mes */}
         <Link
@@ -363,21 +351,6 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
           <Settings className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
           <span>{t("settings")}</span>
         </Link>
-        {isOrgAdmin && (
-          <Link
-            href="/configuracion/billing"
-            className={cn(
-              "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98]",
-              pathname === "/configuracion/billing"
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
-            )}
-          >
-            <CreditCard className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
-            <span>Facturación</span>
-          </Link>
-        )}
-
         {/* User row */}
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl">
           <div className="w-8 h-8 rounded-full bg-sidebar-primary/80 ring-2 ring-sidebar-primary/30 flex items-center justify-center text-sidebar-primary-foreground text-xs font-bold shrink-0">
