@@ -37,6 +37,9 @@ interface Company {
   doc_count?: number;
 }
 
+// Sentinel for the "no sector" filter chip
+const NO_SECTOR = "__no_sector__";
+
 /* ── Upgrade modal ───────────────────────────────────────────────────────── */
 function UpgradeModal({ visible, maxCompanies, onClose, C, t }: { visible: boolean; maxCompanies: number; onClose: () => void; C: any; t: any }) {
   return (
@@ -197,6 +200,21 @@ function ActionMenu({
   );
 }
 
+/* ── Filter chip ─────────────────────────────────────────────────────────── */
+function Chip({ label, active, onPress, C }: { label: string; active: boolean; onPress: () => void; C: any }) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, borderWidth: 1,
+        backgroundColor: active ? C.blue : C.surface, borderColor: active ? C.blue : C.border,
+      }}
+    >
+      <Text style={{ fontSize: 12, fontWeight: "600", color: active ? "#fff" : C.muted }}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
 /* ── Company card ────────────────────────────────────────────────────────── */
 function CompanyCard({ company, onMenu, C, t }: { company: Company; onMenu: () => void; C: any; t: any }) {
   return (
@@ -255,6 +273,7 @@ export default function EmpresasScreen() {
   const [companies,    setCompanies]    = useState<Company[]>([]);
   const [filtered,     setFiltered]     = useState<Company[]>([]);
   const [query,        setQuery]        = useState("");
+  const [selectedSector, setSelectedSector] = useState<string | null>(null);
   const [loading,      setLoading]      = useState(true);
   const [refreshing,   setRefreshing]   = useState(false);
   const [menuTarget,   setMenuTarget]   = useState<Company | null>(null);
@@ -298,11 +317,27 @@ export default function EmpresasScreen() {
 
   useEffect(() => { load(); }, [load]);
 
+  const sectors = Array.from(
+    new Set(companies.map((c) => c.sector?.trim()).filter((s): s is string => !!s))
+  ).sort((a, b) => a.localeCompare(b));
+  const hasNoSector = companies.some((c) => !c.sector?.trim());
+
   useEffect(() => {
-    if (!query.trim()) { setFiltered(companies); return; }
-    const q = query.toLowerCase();
-    setFiltered(companies.filter((c) => c.name.toLowerCase().includes(q) || c.cif?.toLowerCase().includes(q)));
-  }, [query, companies]);
+    const q = query.trim().toLowerCase();
+    setFiltered(
+      companies.filter((c) => {
+        const matchesSearch =
+          !q ||
+          c.name.toLowerCase().includes(q) ||
+          (c.cif ?? "").toLowerCase().includes(q) ||
+          (c.sector ?? "").toLowerCase().includes(q);
+        const matchesSector =
+          !selectedSector ||
+          (selectedSector === NO_SECTOR ? !c.sector?.trim() : c.sector?.trim() === selectedSector);
+        return matchesSearch && matchesSector;
+      })
+    );
+  }, [query, companies, selectedSector]);
 
   const onRefresh = () => { setRefreshing(true); load(); };
 
@@ -366,7 +401,28 @@ export default function EmpresasScreen() {
             value={query}
             onChangeText={setQuery}
           />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery("")} hitSlop={8}><X size={16} color={C.muted} /></TouchableOpacity>
+          )}
         </View>
+
+        {/* Sector filter chips */}
+        {sectors.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginHorizontal: -16, marginTop: 10 }}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 6 }}
+          >
+            <Chip label={t("empresas.allSectors")} active={selectedSector === null} onPress={() => setSelectedSector(null)} C={C} />
+            {sectors.map((s) => (
+              <Chip key={s} label={s} active={selectedSector === s} onPress={() => setSelectedSector(s)} C={C} />
+            ))}
+            {hasNoSector && (
+              <Chip label={t("empresas.noSector")} active={selectedSector === NO_SECTOR} onPress={() => setSelectedSector(NO_SECTOR)} C={C} />
+            )}
+          </ScrollView>
+        )}
       </View>
 
       {/* List */}
@@ -374,12 +430,12 @@ export default function EmpresasScreen() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 12 }}>
           <Building2 size={56} color={C.muted} />
           <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>
-            {query ? t("empresas.noResults") : t("empresas.noCompanies")}
+            {(query || selectedSector) ? t("empresas.noResults") : t("empresas.noCompanies")}
           </Text>
           <Text style={{ fontSize: 13, color: C.muted, textAlign: "center" }}>
-            {query ? t("empresas.tryOther") : t("empresas.addFirst")}
+            {(query || selectedSector) ? t("empresas.tryOther") : t("empresas.addFirst")}
           </Text>
-          {!query && (
+          {!query && !selectedSector && (
             <TouchableOpacity
               onPress={handleAddPress}
               style={{ backgroundColor: C.blue, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 8, marginTop: 4 }}
