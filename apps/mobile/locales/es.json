@@ -221,7 +221,7 @@
     "markCancelledConfirm": "¿Estás seguro? El estado cambiará a cancelado."
   },
   "empresas": {
-    "title": "Empresas",
+    "title": "Empresas / Clientes",
     "companiesCount": "{{current}} / {{max}} empresas",
     "searchPlaceholder": "Buscar empresa, CIF...",
     "noResults": "Sin resultados",

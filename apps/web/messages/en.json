@@ -108,7 +108,7 @@
     "library": "Library",
     "search": "Search",
     "upload": "Upload",
-    "companies": "Companies",
+    "companies": "Companies / Clients",
     "inventory": "Inventory",
     "invoicing": "Invoicing",
     "adminPanel": "Admin Panel",
@@ -438,7 +438,7 @@
     }
   },
   "companies": {
-    "title": "Companies & Clients",
+    "title": "Companies / Clients",
     "subtitle": "{count} registered companies",
     "addCompany": "New Company",
     "searchPlaceholder": "Search company, tax ID...",

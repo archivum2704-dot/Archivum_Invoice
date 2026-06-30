@@ -221,7 +221,7 @@
     "markCancelledConfirm": "Are you sure? The status will change to cancelled."
   },
   "empresas": {
-    "title": "Companies",
+    "title": "Companies / Clients",
     "companiesCount": "{{current}} / {{max}} companies",
     "searchPlaceholder": "Search company, Tax ID...",
     "noResults": "No results",
