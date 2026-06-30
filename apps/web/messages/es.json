@@ -108,7 +108,7 @@
     "library": "Biblioteca",
     "search": "Buscador",
     "upload": "Subir",
-    "companies": "Empresas",
+    "companies": "Empresas / Clientes",
     "inventory": "Inventario",
     "invoicing": "Facturación",
     "adminPanel": "Panel Admin",
@@ -438,7 +438,7 @@
     }
   },
   "companies": {
-    "title": "Empresas y Clientes",
+    "title": "Empresas / Clientes",
     "subtitle": "{count} empresas registradas",
     "addCompany": "Nueva Empresa",
     "searchPlaceholder": "Buscar empresa, CIF...",
