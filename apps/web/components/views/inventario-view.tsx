@@ -122,6 +122,73 @@ export function InventarioView() {
     })
   }, [products, search, selectedCategory])
 
+  // Product count per category (for the filter chips)
+  const countByCategory = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const p of products) {
+      const k = p.category?.trim() || UNCATEGORIZED
+      m.set(k, (m.get(k) ?? 0) + 1)
+    }
+    return m
+  }, [products])
+
+  // When no single category is selected, divide the (filtered) list into
+  // sections per category; otherwise render a flat list.
+  const groups = useMemo(() => {
+    if (selectedCategory !== null || categories.length === 0) return null
+    const m = new Map<string, Product[]>()
+    for (const p of filtered) {
+      const k = p.category?.trim() || UNCATEGORIZED
+      if (!m.has(k)) m.set(k, [])
+      m.get(k)!.push(p)
+    }
+    return Array.from(m.keys())
+      .sort((a, b) => (a === UNCATEGORIZED ? 1 : b === UNCATEGORIZED ? -1 : a.localeCompare(b)))
+      .map(k => ({ key: k, label: k === UNCATEGORIZED ? t("uncategorized") : k, items: m.get(k)! }))
+  }, [filtered, selectedCategory, categories, t])
+
+  const renderRow = (p: Product) => (
+    <div
+      key={p.id}
+      className={cn(
+        "grid grid-cols-2 sm:grid-cols-[1fr_120px_110px_70px_90px_80px] gap-3 px-5 py-3.5 items-center group hover:bg-muted/30 transition-colors",
+        deletingId === p.id && "opacity-40 pointer-events-none"
+      )}
+    >
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+        <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+          {p.category && (
+            <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-muted text-[10px] font-medium text-muted-foreground">
+              {p.category}
+            </span>
+          )}
+          {p.description && <p className="text-xs text-muted-foreground truncate">{p.description}</p>}
+        </div>
+      </div>
+      <span className="text-sm text-muted-foreground truncate hidden sm:block">{p.sku ?? "—"}</span>
+      <span className="text-sm font-semibold text-foreground text-right">{fmtEur(p.unit_price)}</span>
+      <span className="text-sm text-muted-foreground text-right hidden sm:block">{Number(p.tax_rate)}%</span>
+      <span className="text-sm text-right">
+        {p.track_stock
+          ? <span className={cn("font-semibold", Number(p.stock_qty) <= 0 ? "text-[var(--status-overdue)]" : "text-foreground")}>{Number(p.stock_qty)}</span>
+          : <span className="text-muted-foreground/60">—</span>}
+      </span>
+      <div className="flex items-center justify-end gap-1">
+        {canManage && (
+          <>
+            <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title={tCommon("edit")}>
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => handleDelete(p)} className="p-1.5 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors" title={tCommon("delete")}>
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+
   // ── Paywall for free plans ──────────────────────────────────
   if (!paid) {
     return (
@@ -162,8 +229,17 @@ export function InventarioView() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={tCommon("search")}
-              className="pl-9 pr-4 py-2 text-sm bg-card border border-border rounded-xl w-44 sm:w-56 focus:outline-none focus:ring-2 focus:ring-ring/40"
+              className="pl-9 pr-8 py-2 text-sm bg-card border border-border rounded-xl w-44 sm:w-56 focus:outline-none focus:ring-2 focus:ring-ring/40"
             />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                aria-label={tCommon("clear")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground/60 hover:text-foreground transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
           {canManage && (
             <button
@@ -179,12 +255,12 @@ export function InventarioView() {
       {/* Category filter chips */}
       {categories.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 mb-5">
-          <CategoryChip label={t("allCategories")} active={selectedCategory === null} onClick={() => setSelectedCategory(null)} />
+          <CategoryChip label={t("allCategories")} count={products.length} active={selectedCategory === null} onClick={() => setSelectedCategory(null)} />
           {categories.map(c => (
-            <CategoryChip key={c} label={c} active={selectedCategory === c} onClick={() => setSelectedCategory(c)} />
+            <CategoryChip key={c} label={c} count={countByCategory.get(c) ?? 0} active={selectedCategory === c} onClick={() => setSelectedCategory(c)} />
           ))}
           {hasUncategorized && (
-            <CategoryChip label={t("uncategorized")} active={selectedCategory === UNCATEGORIZED} onClick={() => setSelectedCategory(UNCATEGORIZED)} />
+            <CategoryChip label={t("uncategorized")} count={countByCategory.get(UNCATEGORIZED) ?? 0} active={selectedCategory === UNCATEGORIZED} onClick={() => setSelectedCategory(UNCATEGORIZED)} />
           )}
         </div>
       )}
@@ -214,49 +290,23 @@ export function InventarioView() {
               </button>
             )}
           </div>
-        ) : (
-          <div className="divide-y divide-border/60">
-            {filtered.map(p => (
-              <div
-                key={p.id}
-                className={cn(
-                  "grid grid-cols-2 sm:grid-cols-[1fr_120px_110px_70px_90px_80px] gap-3 px-5 py-3.5 items-center group hover:bg-muted/30 transition-colors",
-                  deletingId === p.id && "opacity-40 pointer-events-none"
-                )}
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
-                    {p.category && (
-                      <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-muted text-[10px] font-medium text-muted-foreground">
-                        {p.category}
-                      </span>
-                    )}
-                    {p.description && <p className="text-xs text-muted-foreground truncate">{p.description}</p>}
-                  </div>
+        ) : groups ? (
+          <div>
+            {groups.map(g => (
+              <div key={g.key}>
+                <div className="flex items-center justify-between px-5 py-2 bg-muted/40 border-b border-border">
+                  <span className="text-xs font-semibold text-foreground">{g.label}</span>
+                  <span className="text-[10px] font-medium text-muted-foreground">{g.items.length}</span>
                 </div>
-                <span className="text-sm text-muted-foreground truncate hidden sm:block">{p.sku ?? "—"}</span>
-                <span className="text-sm font-semibold text-foreground text-right">{fmtEur(p.unit_price)}</span>
-                <span className="text-sm text-muted-foreground text-right hidden sm:block">{Number(p.tax_rate)}%</span>
-                <span className="text-sm text-right">
-                  {p.track_stock
-                    ? <span className={cn("font-semibold", Number(p.stock_qty) <= 0 ? "text-[var(--status-overdue)]" : "text-foreground")}>{Number(p.stock_qty)}</span>
-                    : <span className="text-muted-foreground/60">—</span>}
-                </span>
-                <div className="flex items-center justify-end gap-1">
-                  {canManage && (
-                    <>
-                      <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title={tCommon("edit")}>
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => handleDelete(p)} className="p-1.5 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors" title={tCommon("delete")}>
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </>
-                  )}
+                <div className="divide-y divide-border/60">
+                  {g.items.map(renderRow)}
                 </div>
               </div>
             ))}
+          </div>
+        ) : (
+          <div className="divide-y divide-border/60">
+            {filtered.map(renderRow)}
           </div>
         )}
       </div>
@@ -343,18 +393,23 @@ export function InventarioView() {
 
 const inputCls = "w-full px-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
 
-function CategoryChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function CategoryChip({ label, count, active, onClick }: { label: string; count?: number; active: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.97]",
+        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.97]",
         active
           ? "bg-primary text-primary-foreground border-primary"
           : "bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground"
       )}
     >
       {label}
+      {count !== undefined && (
+        <span className={cn("text-[10px] tabular-nums", active ? "text-primary-foreground/75" : "text-muted-foreground/60")}>
+          {count}
+        </span>
+      )}
     </button>
   )
 }
