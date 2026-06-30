@@ -211,7 +211,10 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
       <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 space-y-3">
 
         {/* Ingresos del mes */}
-        <div className="rounded-xl border border-sidebar-border p-3.5">
+        <Link
+          href="/facturacion"
+          className="group block rounded-xl border border-sidebar-border p-3.5 transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-sidebar-accent/50 hover:border-sidebar-foreground/20 active:scale-[0.98]"
+        >
           <div className="flex items-start justify-between gap-2">
             <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/60">
               {tDash("monthlyRevenue")}
@@ -244,23 +247,27 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
               />
             ))}
           </div>
-        </div>
+        </Link>
 
         {/* Stat cards 2×2 */}
         <div className="grid grid-cols-2 gap-2">
           {[
-            { label: tDash("stats.invoices"), value: String(documents.length), icon: FileText,     color: "text-primary" },
-            { label: tDash("clients"),        value: String(companies.length), icon: Building2,     color: "text-accent" },
-            { label: tDash("kpi.collected"),  value: fmtEur(summary.paid),     icon: CheckCircle2,  color: "text-[var(--status-paid)]" },
-            { label: tDash("pendingShort"),   value: fmtEur(summary.pending),  icon: Clock,         color: "text-[var(--status-pending)]" },
+            { label: tDash("stats.invoices"), value: String(documents.length), icon: FileText,     color: "text-primary",                 href: "/biblioteca" },
+            { label: tDash("clients"),        value: String(companies.length), icon: Building2,     color: "text-accent",                  href: "/empresas" },
+            { label: tDash("kpi.collected"),  value: fmtEur(summary.paid),     icon: CheckCircle2,  color: "text-[var(--status-paid)]",    href: "/biblioteca" },
+            { label: tDash("pendingShort"),   value: fmtEur(summary.pending),  icon: Clock,         color: "text-[var(--status-pending)]", href: "/biblioteca" },
           ].map(card => (
-            <div key={card.label} className="rounded-xl border border-sidebar-border p-2.5">
-              <card.icon className={cn("w-3.5 h-3.5", card.color)} />
+            <Link
+              key={card.label}
+              href={card.href}
+              className="group rounded-xl border border-sidebar-border p-2.5 transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-sidebar-accent/50 hover:border-sidebar-foreground/20 active:scale-[0.98]"
+            >
+              <card.icon className={cn("w-3.5 h-3.5 transition-transform duration-200 group-hover:scale-110", card.color)} />
               <p className="text-base font-bold text-sidebar-foreground tracking-tight leading-none mt-1.5 truncate">
                 {card.value}
               </p>
               <p className="text-[10px] text-sidebar-foreground/60 mt-1 truncate">{card.label}</p>
-            </div>
+            </Link>
           ))}
         </div>
 
