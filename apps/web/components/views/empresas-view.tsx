@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import {
   Building2, Search, Plus, FileText, MoreHorizontal, ChevronRight,
   MapPin, Phone, Mail, X, Pencil, Trash2, PauseCircle, PlayCircle, Eye,
@@ -17,14 +17,39 @@ import { Coachmark } from "@/components/coachmark"
 
 const AVATAR_COLORS = ["bg-blue-500", "bg-emerald-600", "bg-violet-600", "bg-orange-500", "bg-rose-600"]
 
+// Sentinel for the "no sector" filter chip / group
+const NO_SECTOR = "__no_sector__"
+
+function SectorChip({ label, count, active, onClick }: { label: string; count?: number; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.97]",
+        active
+          ? "bg-primary text-primary-foreground border-primary"
+          : "bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+      )}
+    >
+      {label}
+      {count !== undefined && (
+        <span className={cn("text-[10px] tabular-nums", active ? "text-primary-foreground/75" : "text-muted-foreground/60")}>
+          {count}
+        </span>
+      )}
+    </button>
+  )
+}
+
 type CompanyForm = { name: string; cif: string; sector: string; address: string; postal_code: string; city: string; province: string; phone: string; email: string }
 
 // ── Shared company form modal ─────────────────────────────────────────────────
 function CompanyModal({
-  orgId, initial, onClose, onSaved,
+  orgId, initial, knownSectors = [], onClose, onSaved,
 }: {
   orgId: string
   initial?: { id: string } & CompanyForm
+  knownSectors?: string[]
   onClose: () => void
   onSaved: () => void
 }) {
@@ -98,7 +123,10 @@ function CompanyModal({
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{t("fields.sector")}</label>
-              <input placeholder="Construcción" value={form.sector} onChange={set("sector")} disabled={saving} className={inputCls} />
+              <input list="company-sectors" placeholder="Construcción" value={form.sector} onChange={set("sector")} disabled={saving} className={inputCls} />
+              <datalist id="company-sectors">
+                {knownSectors.map(s => <option key={s} value={s} />)}
+              </datalist>
             </div>
           </div>
           <div className="space-y-1">
@@ -204,6 +232,7 @@ export function EmpresasView() {
   const tHints  = useTranslations("coachmarks")
 
   const [search,       setSearch]       = useState("")
+  const [selectedSector, setSelectedSector] = useState<string | null>(null)
   const [showCreate,   setShowCreate]   = useState(false)
   const [showUpgrade,  setShowUpgrade]  = useState(false)
   const [editTarget,   setEditTarget]   = useState<null | { id: string } & CompanyForm>(null)
@@ -266,91 +295,55 @@ export function EmpresasView() {
     initials:  company.name.split(" ").slice(0, 2).map((w: string) => w[0] ?? "").join(""),
   }))
 
-  const filtered = empresas.filter(
-    (e) =>
-      e.name.toLowerCase().includes(search.toLowerCase()) ||
-      e.cif.toLowerCase().includes(search.toLowerCase()) ||
-      e.sector.toLowerCase().includes(search.toLowerCase())
+  // Distinct sectors present (for filter chips + datalist)
+  const sectors = useMemo(
+    () =>
+      Array.from(new Set(empresas.map(e => e.sector.trim()).filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b)),
+    [empresas],
   )
+  const hasNoSector = useMemo(() => empresas.some(e => !e.sector.trim()), [empresas])
+  const countBySector = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const e of empresas) {
+      const k = e.sector.trim() || NO_SECTOR
+      m.set(k, (m.get(k) ?? 0) + 1)
+    }
+    return m
+  }, [empresas])
 
-  return (
-    <div className="p-8">
-      {/* Upgrade modal */}
-      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} isFreePlan={isFreePlan} />}
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return empresas.filter(e => {
+      const matchesSearch =
+        !q ||
+        e.name.toLowerCase().includes(q) ||
+        e.cif.toLowerCase().includes(q) ||
+        e.sector.toLowerCase().includes(q) ||
+        e.city.toLowerCase().includes(q)
+      const matchesSector =
+        !selectedSector ||
+        (selectedSector === NO_SECTOR ? !e.sector.trim() : e.sector.trim() === selectedSector)
+      return matchesSearch && matchesSector
+    })
+  }, [empresas, search, selectedSector])
 
-      {/* Create modal */}
-      {showCreate && currentOrg && (
-        <CompanyModal
-          orgId={currentOrg.id}
-          onClose={() => setShowCreate(false)}
-          onSaved={() => mutate()}
-        />
-      )}
+  // Divide into sections per sector when no single sector is selected
+  const groups = useMemo(() => {
+    if (selectedSector !== null || sectors.length === 0) return null
+    const m = new Map<string, typeof filtered>()
+    for (const e of filtered) {
+      const k = e.sector.trim() || NO_SECTOR
+      if (!m.has(k)) m.set(k, [])
+      m.get(k)!.push(e)
+    }
+    return Array.from(m.keys())
+      .sort((a, b) => (a === NO_SECTOR ? 1 : b === NO_SECTOR ? -1 : a.localeCompare(b)))
+      .map(k => ({ key: k, label: k === NO_SECTOR ? t("noSector") : k, items: m.get(k)! }))
+  }, [filtered, selectedSector, sectors, t])
 
-      {/* Edit modal */}
-      {editTarget && currentOrg && (
-        <CompanyModal
-          orgId={currentOrg.id}
-          initial={editTarget}
-          onClose={() => setEditTarget(null)}
-          onSaved={() => mutate()}
-        />
-      )}
-
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground text-balance">{t("title")}</h1>
-          <p className="text-muted-foreground text-sm mt-1">{t("subtitle", { count: empresas.length })}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className={cn(
-            "text-xs font-medium px-3 py-1.5 rounded-full border",
-            atLimit ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-muted text-muted-foreground border-border"
-          )}>
-            {companies.length} / {maxCompanies} empresas
-          </span>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder={t("searchPlaceholder")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 text-sm bg-card border border-border rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
-            />
-          </div>
-          <button ref={addBtnRef} onClick={handleAddClick} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
-            <Plus className="w-4 h-4" />{t("addCompany")}
-          </button>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
-          <p className="text-muted-foreground text-sm">{t("loading")}</p>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-            <Building2 className="w-8 h-8 text-muted-foreground/40" />
-          </div>
-          <p className="text-base font-semibold text-foreground mb-1">
-            {search ? t("noResults") : t("noCompanies")}
-          </p>
-          <p className="text-sm text-muted-foreground mb-6">
-            {search ? t("noResultsHint") : ""}
-          </p>
-          {!search && currentOrg && (
-            <button onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
-              <Plus className="w-4 h-4" /> {t("addFirstCompany")}
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5" ref={menuRef}>
-          {filtered.map((empresa) => (
+  type EmpresaCard = (typeof empresas)[number]
+  const renderCard = (empresa: EmpresaCard) => (
             <div
               key={empresa.id}
               className={cn(
@@ -495,6 +488,121 @@ export function EmpresasView() {
                   {t("viewDocuments")}
                   <ChevronRight className="w-3 h-3" />
                 </Link>
+              </div>
+            </div>
+  )
+
+  return (
+    <div className="p-8">
+      {/* Upgrade modal */}
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} isFreePlan={isFreePlan} />}
+
+      {/* Create modal */}
+      {showCreate && currentOrg && (
+        <CompanyModal
+          orgId={currentOrg.id}
+          knownSectors={sectors}
+          onClose={() => setShowCreate(false)}
+          onSaved={() => mutate()}
+        />
+      )}
+
+      {/* Edit modal */}
+      {editTarget && currentOrg && (
+        <CompanyModal
+          orgId={currentOrg.id}
+          initial={editTarget}
+          knownSectors={sectors}
+          onClose={() => setEditTarget(null)}
+          onSaved={() => mutate()}
+        />
+      )}
+
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground text-balance">{t("title")}</h1>
+          <p className="text-muted-foreground text-sm mt-1">{t("subtitle", { count: empresas.length })}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className={cn(
+            "text-xs font-medium px-3 py-1.5 rounded-full border",
+            atLimit ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-muted text-muted-foreground border-border"
+          )}>
+            {companies.length} / {maxCompanies} empresas
+          </span>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder={t("searchPlaceholder")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-9 py-2 text-sm bg-card border border-border rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                aria-label={tCommon("clear")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground/60 hover:text-foreground transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <button ref={addBtnRef} onClick={handleAddClick} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+            <Plus className="w-4 h-4" />{t("addCompany")}
+          </button>
+        </div>
+      </div>
+
+      {/* Sector filter chips */}
+      {sectors.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 mb-6">
+          <SectorChip label={t("allSectors")} count={empresas.length} active={selectedSector === null} onClick={() => setSelectedSector(null)} />
+          {sectors.map(s => (
+            <SectorChip key={s} label={s} count={countBySector.get(s) ?? 0} active={selectedSector === s} onClick={() => setSelectedSector(s)} />
+          ))}
+          {hasNoSector && (
+            <SectorChip label={t("noSector")} count={countBySector.get(NO_SECTOR) ?? 0} active={selectedSector === NO_SECTOR} onClick={() => setSelectedSector(NO_SECTOR)} />
+          )}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
+          <p className="text-muted-foreground text-sm">{t("loading")}</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
+            <Building2 className="w-8 h-8 text-muted-foreground/40" />
+          </div>
+          <p className="text-base font-semibold text-foreground mb-1">
+            {(search || selectedSector) ? t("noResults") : t("noCompanies")}
+          </p>
+          <p className="text-sm text-muted-foreground mb-6">
+            {(search || selectedSector) ? t("noResultsHint") : ""}
+          </p>
+          {!search && !selectedSector && currentOrg && (
+            <button onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+              <Plus className="w-4 h-4" /> {t("addFirstCompany")}
+            </button>
+          )}
+        </div>
+      ) : (
+        <div ref={menuRef} className="space-y-8">
+          {(groups ?? [{ key: "__all__", label: "", items: filtered }]).map(g => (
+            <div key={g.key}>
+              {g.label && (
+                <div className="flex items-center gap-2 mb-3">
+                  <h2 className="text-sm font-semibold text-foreground">{g.label}</h2>
+                  <span className="text-xs text-muted-foreground tabular-nums">{g.items.length}</span>
+                </div>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                {g.items.map(renderCard)}
               </div>
             </div>
           ))}
