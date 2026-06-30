@@ -186,6 +186,12 @@
     "rectifyError": "Couldn't issue the credit note.",
     "alreadyRectified": "This invoice already has a credit note.",
     "rectificativeBanner": "Rectificative invoice (credit note): annuls a previously issued invoice.",
+    "aeatSent": "Submitted to AEAT (Verifactu)",
+    "aeatStatusError": "Failed to submit to AEAT. Check the certificate and try again.",
+    "aeatPending": "Pending submission to AEAT",
+    "aeatSend": "Submit to AEAT",
+    "aeatRetry": "Retry",
+    "aeatError": "Couldn't submit to AEAT. {detail}",
     "states": { "issued": "Issued", "draft": "Draft", "cancelled": "Cancelled" },
     "errors": {
       "issuerCif": "Your company needs a tax ID to issue invoices. Add it in Settings.",
