@@ -7,7 +7,7 @@ import { PLANS, type PlanId } from '@/lib/pricing'
 import {
   Building2, Users, FileText, CreditCard, Search, RefreshCw,
   Pencil, Trash2, X, Shield, AlertTriangle,
-  TrendingUp, Database, Crown, Receipt,
+  TrendingUp, Database, Crown, Receipt, ShieldCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -38,7 +38,18 @@ interface AdminOrg {
   invoiced_total: number
   company_count: number
   product_count: number
+  cert_exists: boolean
+  cert_nif: string | null
+  cert_valid_until: string | null
+  cert_uploaded_at: string | null
   owner_email: string | null
+}
+
+type CertState = 'none' | 'valid' | 'expired'
+function certStatus(org: AdminOrg): CertState {
+  if (!org.cert_exists) return 'none'
+  if (org.cert_valid_until && new Date(org.cert_valid_until) < new Date()) return 'expired'
+  return 'valid'
 }
 
 interface AdminUser {
@@ -87,6 +98,29 @@ function Badge({ label, color }: { label: string; color: string }) {
   return (
     <span className={cn('inline-flex px-2 py-0.5 rounded-full text-xs font-medium border', color)}>
       {label}
+    </span>
+  )
+}
+
+function CertBadge({ org }: { org: AdminOrg }) {
+  const state = certStatus(org)
+  if (state === 'none') return <span className="text-xs text-muted-foreground">—</span>
+  const title = [
+    org.cert_nif ? `NIF ${org.cert_nif}` : null,
+    org.cert_valid_until ? `Válido hasta ${fmt(org.cert_valid_until)}` : null,
+  ].filter(Boolean).join(' · ')
+  return (
+    <span
+      title={title}
+      className={cn(
+        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border',
+        state === 'valid'
+          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+          : 'bg-red-50 text-red-700 border-red-200',
+      )}
+    >
+      <ShieldCheck className="w-3 h-3" />
+      {state === 'valid' ? 'Vigente' : 'Caducado'}
     </span>
   )
 }
@@ -451,6 +485,7 @@ function OrgsTab({ orgs, onRefresh }: { orgs: AdminOrg[]; onRefresh: () => void 
                 <th className="text-center py-3 px-4 font-medium text-muted-foreground">Docs</th>
                 <th className="text-center py-3 px-4 font-medium text-muted-foreground">Clientes</th>
                 <th className="text-center py-3 px-4 font-medium text-muted-foreground">Facturas</th>
+                <th className="text-center py-3 px-4 font-medium text-muted-foreground">VeriFactu</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Propietario</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Periodo fin</th>
                 <th className="text-right py-3 px-4 font-medium text-muted-foreground">Acciones</th>
@@ -458,7 +493,7 @@ function OrgsTab({ orgs, onRefresh }: { orgs: AdminOrg[]; onRefresh: () => void 
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={10} className="py-12 text-center text-sm text-muted-foreground">No hay organizaciones</td></tr>
+                <tr><td colSpan={11} className="py-12 text-center text-sm text-muted-foreground">No hay organizaciones</td></tr>
               ) : filtered.map(org => (
                 <tr key={org.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="py-3 px-4">
@@ -499,6 +534,9 @@ function OrgsTab({ orgs, onRefresh }: { orgs: AdminOrg[]; onRefresh: () => void 
                     {org.invoiced_total > 0 && (
                       <span className="block text-[10px] text-muted-foreground">{fmtEur(org.invoiced_total)}</span>
                     )}
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <CertBadge org={org} />
                   </td>
                   <td className="py-3 px-4 text-xs text-muted-foreground">{org.owner_email ?? '—'}</td>
                   <td className="py-3 px-4 text-xs text-muted-foreground">{fmt(org.current_period_end)}</td>
@@ -805,6 +843,8 @@ export default function AdminDashboardPage() {
   const totalInvoices = orgs.reduce((s, o) => s + (o.invoice_count ?? 0), 0)
   const totalInvoiced = orgs.reduce((s, o) => s + (o.invoiced_total ?? 0), 0)
   const totalClients  = orgs.reduce((s, o) => s + (o.company_count ?? 0), 0)
+  const certsValid    = orgs.filter(o => certStatus(o) === 'valid').length
+  const certsExpired  = orgs.filter(o => certStatus(o) === 'expired').length
 
   const stats = [
     { label: 'Organizaciones', value: orgs.length,            icon: Building2,  color: 'text-blue-500',   bg: 'bg-blue-50' },
@@ -814,6 +854,7 @@ export default function AdminDashboardPage() {
     { label: 'Facturas emitidas', value: totalInvoices,         icon: Receipt,    color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Facturado (VeriFactu)', value: fmtEur(totalInvoiced), icon: CreditCard, color: 'text-teal-600', bg: 'bg-teal-50' },
     { label: 'Clientes registrados', value: totalClients,       icon: Building2,  color: 'text-sky-600',    bg: 'bg-sky-50' },
+    { label: 'VeriFactu vigentes', value: certsExpired > 0 ? `${certsValid} · ${certsExpired} cad.` : certsValid, icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Almacenamiento usado', value: fmtBytes(totalStorage), icon: Database, color: 'text-rose-500',  bg: 'bg-rose-50' },
     { label: 'Super Admins', value: superAdmins,               icon: Crown,      color: 'text-amber-600',  bg: 'bg-amber-50' },
   ]

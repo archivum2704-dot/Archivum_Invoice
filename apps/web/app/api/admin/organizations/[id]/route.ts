@@ -75,6 +75,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     admin.from('documents').delete().eq('organization_id', id),
     admin.from('products').delete().eq('organization_id', id),
     admin.from('companies').delete().eq('organization_id', id),
+    admin.from('org_certificates').delete().eq('organization_id', id),
     admin.from('organization_members').delete().eq('organization_id', id),
   ])
 
