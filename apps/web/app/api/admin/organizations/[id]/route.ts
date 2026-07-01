@@ -57,11 +57,25 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     .select('user_id')
     .eq('organization_id', id)
 
+  // Delete invoice lines first (they reference invoices, not the org directly),
+  // then the invoices themselves.
+  const { data: orgInvoices } = await admin
+    .from('invoices')
+    .select('id')
+    .eq('organization_id', id)
+  const invoiceIds = (orgInvoices ?? []).map(i => i.id)
+  if (invoiceIds.length > 0) {
+    await admin.from('invoice_lines').delete().in('invoice_id', invoiceIds)
+    await admin.from('invoices').delete().eq('organization_id', id)
+  }
+
   // Delete org (cascades to members, companies, documents if FK CASCADE is set)
   // We delete child tables explicitly for safety
   await Promise.all([
     admin.from('documents').delete().eq('organization_id', id),
+    admin.from('products').delete().eq('organization_id', id),
     admin.from('companies').delete().eq('organization_id', id),
+    admin.from('org_certificates').delete().eq('organization_id', id),
     admin.from('organization_members').delete().eq('organization_id', id),
   ])
 

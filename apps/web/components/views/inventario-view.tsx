@@ -1,7 +1,10 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Package, Plus, Pencil, Trash2, X, Check, Loader2, Lock, AlertTriangle, Search } from "lucide-react"
+import {
+  Package, Plus, Pencil, Trash2, X, Check, Loader2, Lock, AlertTriangle,
+  Search, SlidersHorizontal, Tag, Boxes, ArrowUpDown,
+} from "lucide-react"
 import Link from "next/link"
 import { useTranslations, useLocale } from "next-intl"
 import { cn } from "@/lib/utils"
@@ -27,8 +30,11 @@ const EMPTY: Draft = {
   unit_price: "0", tax_rate: "21", track_stock: true, stock_qty: "0",
 }
 
-// Sentinel for the "uncategorized" filter chip
+// Sentinel for the "uncategorized" filter option
 const UNCATEGORIZED = "__uncategorized__"
+
+type StockFilter = "in" | "out" | "untracked"
+type SortKey = "name_asc" | "name_desc" | "price_desc" | "price_asc" | "stock_desc" | "stock_asc"
 
 export function InventarioView() {
   const t = useTranslations("inventory")
@@ -39,7 +45,13 @@ export function InventarioView() {
   const { products, loading, mutate } = useProducts(currentOrg?.id ?? null)
 
   const [search, setSearch] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [selectedTaxes, setSelectedTaxes] = useState<string[]>([])
+  const [stockFilters, setStockFilters] = useState<StockFilter[]>([])
+  const [priceMin, setPriceMin] = useState("")
+  const [priceMax, setPriceMax] = useState("")
+  const [sortKey, setSortKey] = useState<SortKey>("name_asc")
+
   const [editing, setEditing] = useState<Product | "new" | null>(null)
   const [draft, setDraft] = useState<Draft>(EMPTY)
   const [saving, setSaving] = useState(false)
@@ -94,7 +106,7 @@ export function InventarioView() {
     setDeletingId(null)
   }
 
-  // Distinct categories present in the inventory (for filter chips + datalist)
+  // Distinct categories present in the inventory (for filters + datalist)
   const categories = useMemo(
     () =>
       Array.from(
@@ -104,25 +116,68 @@ export function InventarioView() {
   )
   const hasUncategorized = useMemo(() => products.some(p => !p.category?.trim()), [products])
 
+  // Distinct tax rates present (for the VAT filter)
+  const taxRates = useMemo(
+    () =>
+      Array.from(new Set(products.map(p => Number(p.tax_rate))))
+        .sort((a, b) => a - b)
+        .map(String),
+    [products],
+  )
+
+  const toggle = <T extends string>(arr: T[], setArr: (a: T[]) => void, val: T) =>
+    setArr(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
+
+  const clearAll = () => {
+    setSelectedCategories([]); setSelectedTaxes([]); setStockFilters([])
+    setPriceMin(""); setPriceMax("")
+  }
+
+  const activeCount =
+    selectedCategories.length + selectedTaxes.length + stockFilters.length +
+    (priceMin ? 1 : 0) + (priceMax ? 1 : 0)
+
+  const stockOf = (p: Product): StockFilter =>
+    !p.track_stock ? "untracked" : Number(p.stock_qty) > 0 ? "in" : "out"
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return products.filter(p => {
+    const min = priceMin ? parseFloat(priceMin.replace(",", ".")) : null
+    const max = priceMax ? parseFloat(priceMax.replace(",", ".")) : null
+
+    const list = products.filter(p => {
       const matchesSearch =
         !q ||
         p.name.toLowerCase().includes(q) ||
         (p.sku ?? "").toLowerCase().includes(q) ||
         (p.category ?? "").toLowerCase().includes(q) ||
         (p.description ?? "").toLowerCase().includes(q)
-      const matchesCategory =
-        !selectedCategory ||
-        (selectedCategory === UNCATEGORIZED
-          ? !p.category?.trim()
-          : p.category?.trim() === selectedCategory)
-      return matchesSearch && matchesCategory
-    })
-  }, [products, search, selectedCategory])
+      if (!matchesSearch) return false
 
-  // Product count per category (for the filter chips)
+      if (selectedCategories.length) {
+        const key = p.category?.trim() || UNCATEGORIZED
+        if (!selectedCategories.includes(key)) return false
+      }
+      if (selectedTaxes.length && !selectedTaxes.includes(String(Number(p.tax_rate)))) return false
+      if (stockFilters.length && !stockFilters.includes(stockOf(p))) return false
+      if (min != null && Number(p.unit_price) < min) return false
+      if (max != null && Number(p.unit_price) > max) return false
+      return true
+    })
+
+    return [...list].sort((a, b) => {
+      switch (sortKey) {
+        case "name_asc":   return a.name.localeCompare(b.name)
+        case "name_desc":  return b.name.localeCompare(a.name)
+        case "price_asc":  return Number(a.unit_price) - Number(b.unit_price)
+        case "price_desc": return Number(b.unit_price) - Number(a.unit_price)
+        case "stock_asc":  return Number(a.stock_qty) - Number(b.stock_qty)
+        case "stock_desc": return Number(b.stock_qty) - Number(a.stock_qty)
+      }
+    })
+  }, [products, search, selectedCategories, selectedTaxes, stockFilters, priceMin, priceMax, sortKey])
+
+  // Product count per category (for the filter checkboxes)
   const countByCategory = useMemo(() => {
     const m = new Map<string, number>()
     for (const p of products) {
@@ -132,10 +187,9 @@ export function InventarioView() {
     return m
   }, [products])
 
-  // When no single category is selected, divide the (filtered) list into
-  // sections per category; otherwise render a flat list.
+  // Group by category only when no category is explicitly selected; otherwise flat.
   const groups = useMemo(() => {
-    if (selectedCategory !== null || categories.length === 0) return null
+    if (selectedCategories.length > 0 || categories.length === 0) return null
     const m = new Map<string, Product[]>()
     for (const p of filtered) {
       const k = p.category?.trim() || UNCATEGORIZED
@@ -145,7 +199,7 @@ export function InventarioView() {
     return Array.from(m.keys())
       .sort((a, b) => (a === UNCATEGORIZED ? 1 : b === UNCATEGORIZED ? -1 : a.localeCompare(b)))
       .map(k => ({ key: k, label: k === UNCATEGORIZED ? t("uncategorized") : k, items: m.get(k)! }))
-  }, [filtered, selectedCategory, categories, t])
+  }, [filtered, selectedCategories, categories, t])
 
   const renderRow = (p: Product) => (
     <div
@@ -189,6 +243,17 @@ export function InventarioView() {
     </div>
   )
 
+  const tableHeader = (
+    <div className="hidden sm:grid grid-cols-[1fr_120px_110px_70px_90px_80px] gap-3 px-5 py-3 border-b border-border text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
+      <span>{t("name")}</span>
+      <span>{t("sku")}</span>
+      <span className="text-right">{t("unitPrice")}</span>
+      <span className="text-right">{t("tax")}</span>
+      <span className="text-right">{t("stock")}</span>
+      <span></span>
+    </div>
+  )
+
   // ── Paywall for free plans ──────────────────────────────────
   if (!paid) {
     return (
@@ -215,100 +280,206 @@ export function InventarioView() {
   }
 
   return (
-    <div className="p-6 sm:p-8 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2.5">
           <Package className="w-5 h-5 text-primary" />
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("title")}</h1>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder={tCommon("search")}
-              className="pl-9 pr-8 py-2 text-sm bg-card border border-border rounded-xl w-44 sm:w-56 focus:outline-none focus:ring-2 focus:ring-ring/40"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                aria-label={tCommon("clear")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground/60 hover:text-foreground transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-          {canManage && (
-            <button
-              onClick={openNew}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
-            >
-              <Plus className="w-4 h-4" /> {t("newProduct")}
-            </button>
-          )}
-        </div>
+        {canManage && (
+          <button
+            onClick={openNew}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors self-start sm:self-auto"
+          >
+            <Plus className="w-4 h-4" /> {t("newProduct")}
+          </button>
+        )}
       </div>
 
-      {/* Category filter chips */}
-      {categories.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 mb-5">
-          <CategoryChip label={t("allCategories")} count={products.length} active={selectedCategory === null} onClick={() => setSelectedCategory(null)} />
-          {categories.map(c => (
-            <CategoryChip key={c} label={c} count={countByCategory.get(c) ?? 0} active={selectedCategory === c} onClick={() => setSelectedCategory(c)} />
-          ))}
-          {hasUncategorized && (
-            <CategoryChip label={t("uncategorized")} count={countByCategory.get(UNCATEGORIZED) ?? 0} active={selectedCategory === UNCATEGORIZED} onClick={() => setSelectedCategory(UNCATEGORIZED)} />
-          )}
-        </div>
-      )}
+      {/* Search bar */}
+      <div className="relative mb-6">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder={t("searchPlaceholder")}
+          className="w-full pl-12 pr-10 py-3.5 text-base bg-card border-2 border-border rounded-xl focus:outline-none focus:border-primary placeholder:text-muted-foreground transition-colors"
+        />
+        {search && (
+          <button onClick={() => setSearch("")} aria-label={tCommon("clear")} className="absolute right-4 top-1/2 -translate-y-1/2">
+            <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+          </button>
+        )}
+      </div>
 
-      {/* Table */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        <div className="hidden sm:grid grid-cols-[1fr_120px_110px_70px_90px_80px] gap-3 px-5 py-3 border-b border-border text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
-          <span>{t("name")}</span>
-          <span>{t("sku")}</span>
-          <span className="text-right">{t("unitPrice")}</span>
-          <span className="text-right">{t("tax")}</span>
-          <span className="text-right">{t("stock")}</span>
-          <span></span>
-        </div>
-
-        {loading ? (
-          <div className="p-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-14 gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
-              <Package className="w-6 h-6 text-muted-foreground/50" />
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Filters sidebar */}
+        <aside className="lg:w-60 shrink-0">
+          <div className="bg-card border border-border rounded-xl p-4 lg:sticky lg:top-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-semibold text-foreground">{t("filters")}</span>
+                {activeCount > 0 && (
+                  <span className="text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-medium">{activeCount}</span>
+                )}
+              </div>
+              {activeCount > 0 && (
+                <button onClick={clearAll} className="text-xs text-primary hover:underline">{t("clearFilters")}</button>
+              )}
             </div>
-            <p className="text-sm font-medium text-foreground">{products.length === 0 ? t("empty") : t("noResults")}</p>
-            {canManage && products.length === 0 && (
-              <button onClick={openNew} className="flex items-center gap-1.5 text-xs font-medium text-accent hover:underline">
-                <Plus className="w-3.5 h-3.5" /> {t("newProduct")}
-              </button>
-            )}
-          </div>
-        ) : groups ? (
-          <div>
-            {groups.map(g => (
-              <div key={g.key}>
-                <div className="flex items-center justify-between px-5 py-2 bg-muted/40 border-b border-border">
-                  <span className="text-xs font-semibold text-foreground">{g.label}</span>
-                  <span className="text-[10px] font-medium text-muted-foreground">{g.items.length}</span>
-                </div>
-                <div className="divide-y divide-border/60">
-                  {g.items.map(renderRow)}
+
+            {/* Category */}
+            {(categories.length > 0 || hasUncategorized) && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{t("categoryFilter")}</p>
+                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                  {categories.map(c => (
+                    <FilterRow
+                      key={c} label={c} count={countByCategory.get(c) ?? 0}
+                      checked={selectedCategories.includes(c)}
+                      onChange={() => toggle(selectedCategories, setSelectedCategories, c)}
+                    />
+                  ))}
+                  {hasUncategorized && (
+                    <FilterRow
+                      label={t("uncategorized")} count={countByCategory.get(UNCATEGORIZED) ?? 0}
+                      checked={selectedCategories.includes(UNCATEGORIZED)}
+                      onChange={() => toggle(selectedCategories, setSelectedCategories, UNCATEGORIZED)}
+                    />
+                  )}
                 </div>
               </div>
-            ))}
+            )}
+
+            {/* Stock */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Boxes className="w-3.5 h-3.5 text-muted-foreground" />
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("stockFilter")}</p>
+              </div>
+              <div className="space-y-1.5">
+                {(["in", "out", "untracked"] as const).map(s => (
+                  <FilterRow
+                    key={s}
+                    label={s === "in" ? t("inStock") : s === "out" ? t("outOfStock") : t("untracked")}
+                    checked={stockFilters.includes(s)}
+                    onChange={() => toggle(stockFilters, setStockFilters, s)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* VAT */}
+            {taxRates.length > 1 && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Tag className="w-3.5 h-3.5 text-muted-foreground" />
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("taxFilter")}</p>
+                </div>
+                <div className="space-y-1.5">
+                  {taxRates.map(r => (
+                    <FilterRow
+                      key={r} label={`${r}%`}
+                      checked={selectedTaxes.includes(r)}
+                      onChange={() => toggle(selectedTaxes, setSelectedTaxes, r)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Price range */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Tag className="w-3.5 h-3.5 text-muted-foreground" />
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("priceFilter")}</p>
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">{t("priceMin")}</p>
+                  <input type="number" min="0" placeholder="0" value={priceMin} onChange={e => setPriceMin(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground placeholder:text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">{t("priceMax")}</p>
+                  <input type="number" min="0" placeholder="∞" value={priceMax} onChange={e => setPriceMax(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground placeholder:text-muted-foreground" />
+                </div>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="divide-y divide-border/60">
-            {filtered.map(renderRow)}
+        </aside>
+
+        {/* Results */}
+        <div className="flex-1 min-w-0">
+          {/* Results header */}
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">{filtered.length}</span>{" "}
+              {t("results", { count: filtered.length })}
+            </p>
+            <div className="relative">
+              <select
+                value={sortKey}
+                onChange={e => setSortKey(e.target.value as SortKey)}
+                className="appearance-none pl-7 pr-6 py-1.5 text-xs bg-card border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground"
+              >
+                <option value="name_asc">{t("sortNameAsc")}</option>
+                <option value="name_desc">{t("sortNameDesc")}</option>
+                <option value="price_desc">{t("sortPriceDesc")}</option>
+                <option value="price_asc">{t("sortPriceAsc")}</option>
+                <option value="stock_desc">{t("sortStockDesc")}</option>
+                <option value="stock_asc">{t("sortStockAsc")}</option>
+              </select>
+              <ArrowUpDown className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+            </div>
           </div>
-        )}
+
+          {/* Table */}
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            {tableHeader}
+
+            {loading ? (
+              <div className="p-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+            ) : filtered.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-14 gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
+                  <Package className="w-6 h-6 text-muted-foreground/50" />
+                </div>
+                <p className="text-sm font-medium text-foreground">{products.length === 0 ? t("empty") : t("noResults")}</p>
+                {canManage && products.length === 0 && (
+                  <button onClick={openNew} className="flex items-center gap-1.5 text-xs font-medium text-accent hover:underline">
+                    <Plus className="w-3.5 h-3.5" /> {t("newProduct")}
+                  </button>
+                )}
+                {activeCount > 0 && products.length > 0 && (
+                  <button onClick={clearAll} className="text-xs text-primary hover:underline">{t("clearFilters")}</button>
+                )}
+              </div>
+            ) : groups ? (
+              <div>
+                {groups.map(g => (
+                  <div key={g.key}>
+                    <div className="flex items-center justify-between px-5 py-2 bg-muted/40 border-b border-border">
+                      <span className="text-xs font-semibold text-foreground">{g.label}</span>
+                      <span className="text-[10px] font-medium text-muted-foreground">{g.items.length}</span>
+                    </div>
+                    <div className="divide-y divide-border/60">
+                      {g.items.map(renderRow)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="divide-y divide-border/60">
+                {filtered.map(renderRow)}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Create / edit modal */}
@@ -393,24 +564,15 @@ export function InventarioView() {
 
 const inputCls = "w-full px-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
 
-function CategoryChip({ label, count, active, onClick }: { label: string; count?: number; active: boolean; onClick: () => void }) {
+function FilterRow({ label, count, checked, onChange }: { label: string; count?: number; checked: boolean; onChange: () => void }) {
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.97]",
-        active
-          ? "bg-primary text-primary-foreground border-primary"
-          : "bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground"
-      )}
-    >
-      {label}
+    <label className="flex items-center gap-2.5 cursor-pointer group">
+      <input type="checkbox" checked={checked} onChange={onChange} className="w-3.5 h-3.5 rounded accent-primary shrink-0" />
+      <span className="text-sm text-foreground group-hover:text-primary transition-colors flex-1 min-w-0 truncate">{label}</span>
       {count !== undefined && (
-        <span className={cn("text-[10px] tabular-nums", active ? "text-primary-foreground/75" : "text-muted-foreground/60")}>
-          {count}
-        </span>
+        <span className="text-[10px] tabular-nums text-muted-foreground/60 shrink-0">{count}</span>
       )}
-    </button>
+    </label>
   )
 }
 

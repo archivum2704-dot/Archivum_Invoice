@@ -137,7 +137,28 @@
     "deleteConfirm": "¿Eliminar \"{name}\" del inventario?",
     "paywallTitle": "El inventario es una función de pago",
     "paywallBody": "Gestiona tus productos y existencias actualizando a un plan de pago. La versión gratuita no incluye inventario.",
-    "upgrade": "Ver planes"
+    "upgrade": "Ver planes",
+    "searchPlaceholder": "Buscar por nombre, SKU, categoría...",
+    "filters": "Filtros",
+    "clearFilters": "Limpiar filtros",
+    "categoryFilter": "Categoría",
+    "priceFilter": "Precio (€)",
+    "priceMin": "Mínimo",
+    "priceMax": "Máximo",
+    "taxFilter": "IVA",
+    "stockFilter": "Stock",
+    "inStock": "En stock",
+    "outOfStock": "Sin stock",
+    "untracked": "Sin control",
+    "sortLabel": "Ordenar",
+    "sortNameAsc": "Nombre A→Z",
+    "sortNameDesc": "Nombre Z→A",
+    "sortPriceDesc": "Precio ↓",
+    "sortPriceAsc": "Precio ↑",
+    "sortStockDesc": "Stock ↓",
+    "sortStockAsc": "Stock ↑",
+    "results": "{count} productos",
+    "productsIn": "en {category}"
   },
   "invoicing": {
     "title": "Facturación",
@@ -161,7 +182,11 @@
     "issueDate": "Fecha de emisión",
     "dueDate": "Vencimiento",
     "kind": "Tipo de factura",
-    "kinds": { "ordinary": "Ordinaria (F1)", "simplified": "Simplificada (F2)" },
+    "kinds": {
+      "ordinary": "Ordinaria (F1)",
+      "simplified": "Simplificada (F2)",
+      "rectifying": "Rectificativa (R)"
+    },
     "lines": "Líneas",
     "addLine": "Añadir línea",
     "manualLine": "Línea manual",
@@ -187,7 +212,11 @@
     "rectifyError": "No se pudo emitir la rectificativa.",
     "alreadyRectified": "Esta factura ya tiene una rectificativa emitida.",
     "rectificativeBanner": "Factura rectificativa (nota de abono): anula una factura emitida previamente.",
-    "states": { "issued": "Emitida", "draft": "Borrador", "cancelled": "Anulada" },
+    "states": {
+      "issued": "Emitida",
+      "draft": "Borrador",
+      "cancelled": "Anulada"
+    },
     "errors": {
       "issuerCif": "Tu empresa necesita un CIF para emitir facturas. Añádelo en Ajustes.",
       "clientRequired": "Selecciona un cliente.",
@@ -203,7 +232,27 @@
     },
     "paywallTitle": "La facturación es una función de pago",
     "paywallBody": "Emite facturas digitales conformes con Verifactu actualizando a un plan de pago. La versión gratuita no incluye facturación.",
-    "upgrade": "Ver planes"
+    "upgrade": "Ver planes",
+    "searchPlaceholder": "Buscar por número o cliente...",
+    "filters": "Filtros",
+    "clearFilters": "Limpiar filtros",
+    "stateFilter": "Estado",
+    "kindFilter": "Tipo",
+    "dateFilter": "Fecha",
+    "dateFrom": "Desde",
+    "dateTo": "Hasta",
+    "amountFilter": "Importe (€)",
+    "amountMin": "Mínimo",
+    "amountMax": "Máximo",
+    "sortLabel": "Ordenar",
+    "sortDateDesc": "Fecha ↓",
+    "sortDateAsc": "Fecha ↑",
+    "sortAmountDesc": "Importe ↓",
+    "sortAmountAsc": "Importe ↑",
+    "sortNumber": "Número",
+    "results": "{count} facturas",
+    "noResults": "Sin facturas",
+    "noResultsHint": "Prueba con otros filtros o términos de búsqueda"
   },
   "verifactu": {
     "title": "Certificado Verifactu (AEAT)",
@@ -644,40 +693,91 @@
     "slides": {
       "welcome": {
         "title": "Bienvenido a Archivum",
-        "description": "Tu sistema inteligente para organizar todos los documentos de tu empresa.",
-        "b1": "Procesamiento automático con IA",
-        "b2": "Acceso desde cualquier dispositivo",
-        "b3": "Datos seguros y privados"
-      },
-      "upload": {
-        "title": "Sube y procesa documentos",
-        "description": "Captura facturas, contratos y recibos. La IA extrae los datos automáticamente.",
-        "b1": "Soporta PDF, fotos y escaneos",
-        "b2": "Extracción de importes, fechas, NIF/CIF",
-        "b3": "Sin necesidad de transcribir nada"
+        "description": "Tu plataforma para emitir facturas y archivar toda la documentación de tu negocio. Este tutorial te guía paso a paso por cada sección.",
+        "steps": [
+          "En el menú lateral tienes todas las secciones: Panel, Empresas, Biblioteca, Buscador, Inventario, Facturación, Subir y Usuarios.",
+          "El Panel Principal resume tus ingresos del mes, cobros pendientes y documentos recientes.",
+          "Puedes cambiar el idioma (ES/EN) y volver a ver este tutorial cuando quieras desde Ajustes."
+        ],
+        "tip": "Usa las flechas ← → del teclado para moverte por el tutorial."
       },
       "companies": {
-        "title": "Organiza por empresa",
-        "description": "Crea una empresa por cada cliente o departamento y agrupa sus documentos.",
-        "b1": "Plan Gratis: 1 empresa",
-        "b2": "Plan Pro: hasta 20 empresas",
-        "b3": "Añade más por 2 €/empresa/mes"
+        "title": "1. Crea tus empresas y clientes",
+        "description": "Antes de facturar o archivar, registra las empresas y clientes con los que trabajas.",
+        "steps": [
+          "Entra en «Empresas / Clientes» y pulsa «Nueva empresa».",
+          "Rellena el nombre y, muy importante, el CIF/NIF: es obligatorio para poder emitir facturas.",
+          "Añade dirección, código postal, ciudad y provincia para que aparezcan en la factura.",
+          "Usa el buscador y los filtros por sector para encontrarlos rápido cuando tengas muchos."
+        ],
+        "tip": "También puedes crear un cliente al vuelo mientras emites una factura."
       },
-      "team": {
-        "title": "Trabaja en equipo",
-        "description": "Invita a tu equipo con roles y permisos personalizados por empresa.",
-        "b1": "Roles: Administrador, Miembro, Visor",
-        "b2": "Acceso granular por empresa o carpeta",
-        "b3": "Plan Gratis: 1 usuario · Pro: 5 + extras"
+      "upload": {
+        "title": "2. Sube y archiva documentos",
+        "description": "Guarda facturas recibidas, albaranes, pedidos y recibos en tu archivo central.",
+        "steps": [
+          "Ve a «Subir» y arrastra el archivo (PDF o imagen) a la zona de carga, o haz clic para seleccionarlo.",
+          "Elige la empresa/cliente asociado y el tipo de documento (factura, albarán, pedido, recibo).",
+          "Introduce el número, la fecha y el importe del documento.",
+          "Marca el estado (pagada, pendiente, vencida…) y guarda. Ya queda archivado y es buscable."
+        ],
+        "tip": "El estado «pendiente» con fecha de vencimiento activa las alertas automáticas."
+      },
+      "library": {
+        "title": "3. Consulta tu biblioteca",
+        "description": "La Biblioteca es el listado completo de todos los documentos que has archivado.",
+        "steps": [
+          "Abre «Biblioteca» para ver todos los documentos ordenados por fecha.",
+          "Un punto de color indica el estado de cada uno (verde pagada, ámbar pendiente, rojo vencida).",
+          "Si tienes facturas vencidas, verás un aviso rojo en el menú lateral.",
+          "Haz clic en cualquier documento para ver el detalle, editarlo o descargarlo."
+        ]
+      },
+      "inventory": {
+        "title": "4. Gestiona tu inventario",
+        "description": "Guarda tus productos y servicios para reutilizarlos al facturar, sin reescribir precios.",
+        "steps": [
+          "En «Inventario» pulsa «Nuevo producto» y define nombre, precio, IVA y, si quieres, SKU y stock.",
+          "Asigna una categoría para mantener el catálogo organizado.",
+          "Usa el panel de filtros de la izquierda para acotar por categoría, precio, IVA o stock.",
+          "Al crear una factura podrás elegir estos productos y sus datos se rellenarán solos."
+        ],
+        "tip": "Activa el control de stock para ver las unidades disponibles de cada producto."
+      },
+      "invoicing": {
+        "title": "5. Emite facturas con VeriFactu",
+        "description": "Crea facturas legales conformes con el sistema VeriFactu de la AEAT.",
+        "steps": [
+          "Primero sube tu certificado digital en Ajustes → VeriFactu (solo una vez).",
+          "En «Facturación» pulsa «Nueva factura» y elige el cliente (debe tener CIF).",
+          "Añade líneas manualmente o desde tu inventario; el IVA y el IRPF se calculan solos.",
+          "Pulsa «Emitir»: la factura recibe su huella encadenada y su QR de cotejo de la AEAT."
+        ],
+        "tip": "Usa el buscador y los filtros para localizar cualquier factura emitida al instante."
       },
       "search": {
-        "title": "Encuentra todo al instante",
-        "description": "Búsqueda inteligente y filtros por empresa, fecha, tipo o importe.",
-        "b1": "Búsqueda por contenido del documento",
-        "b2": "Filtros combinables",
-        "b3": "Ordenado por relevancia"
+        "title": "6. Encuentra cualquier cosa",
+        "description": "El Buscador Avanzado localiza cualquier documento con filtros precisos.",
+        "steps": [
+          "Escribe en la barra por número, empresa, CIF, importe o notas.",
+          "Combina filtros por tipo, estado, rango de fechas y rango de importes.",
+          "Ordena los resultados por fecha o importe.",
+          "Exporta el resultado a CSV o Excel para tu contabilidad."
+        ]
+      },
+      "team": {
+        "title": "7. Trabaja en equipo",
+        "description": "Invita a tu equipo y controla quién ve y hace qué.",
+        "steps": [
+          "En «Usuarios» (solo administradores) invita a un miembro por correo.",
+          "Asigna un rol: Administrador (acceso total), Gestor o Visor (solo lectura y descarga).",
+          "El administrador decide a qué carpetas accede cada gestor.",
+          "Gestiona los usuarios extra de tu plan desde Ajustes → Facturación."
+        ],
+        "tip": "¡Listo! Ya conoces Archivum. Empieza creando tu primer cliente."
       }
-    }
+    },
+    "stepsLabel": "Paso a paso"
   },
   "coachmarks": {
     "tipLabel": "CONSEJO",

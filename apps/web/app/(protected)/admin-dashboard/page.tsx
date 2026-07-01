@@ -6,8 +6,8 @@ import { useOrganization } from '@/lib/context/organization-context'
 import { PLANS, type PlanId } from '@/lib/pricing'
 import {
   Building2, Users, FileText, CreditCard, Search, RefreshCw,
-  Pencil, Trash2, X, Check, ChevronDown, Shield, AlertTriangle,
-  TrendingUp, Database, Crown,
+  Pencil, Trash2, X, Shield, AlertTriangle,
+  TrendingUp, Database, Crown, Receipt, ShieldCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -34,7 +34,22 @@ interface AdminOrg {
   storage_used_bytes: number
   member_count: number
   document_count: number
+  invoice_count: number
+  invoiced_total: number
+  company_count: number
+  product_count: number
+  cert_exists: boolean
+  cert_nif: string | null
+  cert_valid_until: string | null
+  cert_uploaded_at: string | null
   owner_email: string | null
+}
+
+type CertState = 'none' | 'valid' | 'expired'
+function certStatus(org: AdminOrg): CertState {
+  if (!org.cert_exists) return 'none'
+  if (org.cert_valid_until && new Date(org.cert_valid_until) < new Date()) return 'expired'
+  return 'valid'
 }
 
 interface AdminUser {
@@ -75,10 +90,37 @@ function fmtBytes(bytes: number) {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
+function fmtEur(n: number) {
+  return `${n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €`
+}
+
 function Badge({ label, color }: { label: string; color: string }) {
   return (
     <span className={cn('inline-flex px-2 py-0.5 rounded-full text-xs font-medium border', color)}>
       {label}
+    </span>
+  )
+}
+
+function CertBadge({ org }: { org: AdminOrg }) {
+  const state = certStatus(org)
+  if (state === 'none') return <span className="text-xs text-muted-foreground">—</span>
+  const title = [
+    org.cert_nif ? `NIF ${org.cert_nif}` : null,
+    org.cert_valid_until ? `Válido hasta ${fmt(org.cert_valid_until)}` : null,
+  ].filter(Boolean).join(' · ')
+  return (
+    <span
+      title={title}
+      className={cn(
+        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border',
+        state === 'valid'
+          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+          : 'bg-red-50 text-red-700 border-red-200',
+      )}
+    >
+      <ShieldCheck className="w-3 h-3" />
+      {state === 'valid' ? 'Vigente' : 'Caducado'}
     </span>
   )
 }
@@ -94,6 +136,7 @@ function EditOrgModal({ org, onClose, onSaved }: { org: AdminOrg; onClose: () =>
     extra_users_quantity:  org.extra_users_quantity,
     extra_docs_quantity:   org.extra_docs_quantity,
     doc_quota_pool:        org.doc_quota_pool,
+    current_period_end:    org.current_period_end ? org.current_period_end.slice(0, 10) : '',
     stripe_subscription_id: org.stripe_subscription_id ?? '',
     stripe_customer_id:    org.stripe_customer_id ?? '',
   })
@@ -120,6 +163,7 @@ function EditOrgModal({ org, onClose, onSaved }: { org: AdminOrg; onClose: () =>
       body: JSON.stringify({
         ...form,
         subscription_status:   form.subscription_status   || null,
+        current_period_end:    form.current_period_end    || null,
         stripe_subscription_id: form.stripe_subscription_id || null,
         stripe_customer_id:    form.stripe_customer_id    || null,
       }),
@@ -184,6 +228,11 @@ function EditOrgModal({ org, onClose, onSaved }: { org: AdminOrg; onClose: () =>
               <label className={labelCls}>Pool docs disponibles</label>
               <input type="number" min="0" className={inputCls} {...numField('doc_quota_pool')} />
             </div>
+          </div>
+
+          <div>
+            <label className={labelCls}>Fin del periodo actual</label>
+            <input type="date" className={inputCls} {...field('current_period_end')} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -434,6 +483,9 @@ function OrgsTab({ orgs, onRefresh }: { orgs: AdminOrg[]; onRefresh: () => void 
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Estado</th>
                 <th className="text-center py-3 px-4 font-medium text-muted-foreground">Miembros</th>
                 <th className="text-center py-3 px-4 font-medium text-muted-foreground">Docs</th>
+                <th className="text-center py-3 px-4 font-medium text-muted-foreground">Clientes</th>
+                <th className="text-center py-3 px-4 font-medium text-muted-foreground">Facturas</th>
+                <th className="text-center py-3 px-4 font-medium text-muted-foreground">VeriFactu</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Propietario</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Periodo fin</th>
                 <th className="text-right py-3 px-4 font-medium text-muted-foreground">Acciones</th>
@@ -441,7 +493,7 @@ function OrgsTab({ orgs, onRefresh }: { orgs: AdminOrg[]; onRefresh: () => void 
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={8} className="py-12 text-center text-sm text-muted-foreground">No hay organizaciones</td></tr>
+                <tr><td colSpan={11} className="py-12 text-center text-sm text-muted-foreground">No hay organizaciones</td></tr>
               ) : filtered.map(org => (
                 <tr key={org.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="py-3 px-4">
@@ -470,6 +522,21 @@ function OrgsTab({ orgs, onRefresh }: { orgs: AdminOrg[]; onRefresh: () => void 
                   </td>
                   <td className="py-3 px-4 text-center">
                     <span className="text-sm font-semibold text-foreground">{org.document_count}</span>
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <span className="text-sm font-semibold text-foreground">{org.company_count}</span>
+                    {org.product_count > 0 && (
+                      <span className="block text-[10px] text-muted-foreground">{org.product_count} prod.</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <span className="text-sm font-semibold text-foreground">{org.invoice_count}</span>
+                    {org.invoiced_total > 0 && (
+                      <span className="block text-[10px] text-muted-foreground">{fmtEur(org.invoiced_total)}</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <CertBadge org={org} />
                   </td>
                   <td className="py-3 px-4 text-xs text-muted-foreground">{org.owner_email ?? '—'}</td>
                   <td className="py-3 px-4 text-xs text-muted-foreground">{fmt(org.current_period_end)}</td>
@@ -773,12 +840,21 @@ export default function AdminDashboardPage() {
   const totalDocs     = orgs.reduce((s, o) => s + o.document_count, 0)
   const superAdmins   = users.filter(u => u.platform_role === 'super_admin').length
   const totalStorage  = orgs.reduce((s, o) => s + o.storage_used_bytes, 0)
+  const totalInvoices = orgs.reduce((s, o) => s + (o.invoice_count ?? 0), 0)
+  const totalInvoiced = orgs.reduce((s, o) => s + (o.invoiced_total ?? 0), 0)
+  const totalClients  = orgs.reduce((s, o) => s + (o.company_count ?? 0), 0)
+  const certsValid    = orgs.filter(o => certStatus(o) === 'valid').length
+  const certsExpired  = orgs.filter(o => certStatus(o) === 'expired').length
 
   const stats = [
     { label: 'Organizaciones', value: orgs.length,            icon: Building2,  color: 'text-blue-500',   bg: 'bg-blue-50' },
     { label: 'Usuarios totales', value: users.length,          icon: Users,      color: 'text-purple-500', bg: 'bg-purple-50' },
     { label: 'Activas / en prueba', value: `${activeOrgs} / ${trialingOrgs}`, icon: TrendingUp, color: 'text-green-500', bg: 'bg-green-50' },
     { label: 'Documentos totales', value: totalDocs,            icon: FileText,   color: 'text-amber-500',  bg: 'bg-amber-50' },
+    { label: 'Facturas emitidas', value: totalInvoices,         icon: Receipt,    color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Facturado (VeriFactu)', value: fmtEur(totalInvoiced), icon: CreditCard, color: 'text-teal-600', bg: 'bg-teal-50' },
+    { label: 'Clientes registrados', value: totalClients,       icon: Building2,  color: 'text-sky-600',    bg: 'bg-sky-50' },
+    { label: 'VeriFactu vigentes', value: certsExpired > 0 ? `${certsValid} · ${certsExpired} cad.` : certsValid, icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Almacenamiento usado', value: fmtBytes(totalStorage), icon: Database, color: 'text-rose-500',  bg: 'bg-rose-50' },
     { label: 'Super Admins', value: superAdmins,               icon: Crown,      color: 'text-amber-600',  bg: 'bg-amber-50' },
   ]
@@ -876,6 +952,7 @@ export default function AdminDashboardPage() {
                   <th className="text-left py-3 px-5 font-medium text-muted-foreground">Plan</th>
                   <th className="text-center py-3 px-5 font-medium text-muted-foreground">Miembros</th>
                   <th className="text-center py-3 px-5 font-medium text-muted-foreground">Docs</th>
+                  <th className="text-center py-3 px-5 font-medium text-muted-foreground">Facturas</th>
                   <th className="text-left py-3 px-5 font-medium text-muted-foreground">Registrada</th>
                 </tr>
               </thead>
@@ -888,6 +965,7 @@ export default function AdminDashboardPage() {
                     </td>
                     <td className="py-3 px-5 text-center text-foreground font-semibold">{org.member_count}</td>
                     <td className="py-3 px-5 text-center text-foreground font-semibold">{org.document_count}</td>
+                    <td className="py-3 px-5 text-center text-foreground font-semibold">{org.invoice_count}</td>
                     <td className="py-3 px-5 text-muted-foreground text-xs">{fmt(org.created_at)}</td>
                   </tr>
                 ))}
