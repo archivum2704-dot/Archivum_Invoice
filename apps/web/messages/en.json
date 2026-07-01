@@ -137,7 +137,28 @@
     "deleteConfirm": "Delete \"{name}\" from inventory?",
     "paywallTitle": "Inventory is a paid feature",
     "paywallBody": "Manage your products and stock by upgrading to a paid plan. The free version does not include inventory.",
-    "upgrade": "View plans"
+    "upgrade": "View plans",
+    "searchPlaceholder": "Search by name, SKU, category...",
+    "filters": "Filters",
+    "clearFilters": "Clear filters",
+    "categoryFilter": "Category",
+    "priceFilter": "Price (€)",
+    "priceMin": "Min",
+    "priceMax": "Max",
+    "taxFilter": "VAT",
+    "stockFilter": "Stock",
+    "inStock": "In stock",
+    "outOfStock": "Out of stock",
+    "untracked": "Not tracked",
+    "sortLabel": "Sort",
+    "sortNameAsc": "Name A→Z",
+    "sortNameDesc": "Name Z→A",
+    "sortPriceDesc": "Price ↓",
+    "sortPriceAsc": "Price ↑",
+    "sortStockDesc": "Stock ↓",
+    "sortStockAsc": "Stock ↑",
+    "results": "{count} products",
+    "productsIn": "in {category}"
   },
   "invoicing": {
     "title": "Invoicing",
@@ -161,7 +182,11 @@
     "issueDate": "Issue date",
     "dueDate": "Due date",
     "kind": "Invoice type",
-    "kinds": { "ordinary": "Ordinary (F1)", "simplified": "Simplified (F2)" },
+    "kinds": {
+      "ordinary": "Ordinary (F1)",
+      "simplified": "Simplified (F2)",
+      "rectifying": "Rectifying (R)"
+    },
     "lines": "Lines",
     "addLine": "Add line",
     "manualLine": "Manual line",
@@ -187,7 +212,11 @@
     "rectifyError": "Couldn't issue the credit note.",
     "alreadyRectified": "This invoice already has a credit note.",
     "rectificativeBanner": "Rectificative invoice (credit note): annuls a previously issued invoice.",
-    "states": { "issued": "Issued", "draft": "Draft", "cancelled": "Cancelled" },
+    "states": {
+      "issued": "Issued",
+      "draft": "Draft",
+      "cancelled": "Cancelled"
+    },
     "errors": {
       "issuerCif": "Your company needs a tax ID to issue invoices. Add it in Settings.",
       "clientRequired": "Select a client.",
@@ -203,7 +232,27 @@
     },
     "paywallTitle": "Invoicing is a paid feature",
     "paywallBody": "Issue Verifactu-compliant digital invoices by upgrading to a paid plan. The free version does not include invoicing.",
-    "upgrade": "View plans"
+    "upgrade": "View plans",
+    "searchPlaceholder": "Search by number or client...",
+    "filters": "Filters",
+    "clearFilters": "Clear filters",
+    "stateFilter": "Status",
+    "kindFilter": "Type",
+    "dateFilter": "Date",
+    "dateFrom": "From",
+    "dateTo": "To",
+    "amountFilter": "Amount (€)",
+    "amountMin": "Min",
+    "amountMax": "Max",
+    "sortLabel": "Sort",
+    "sortDateDesc": "Date ↓",
+    "sortDateAsc": "Date ↑",
+    "sortAmountDesc": "Amount ↓",
+    "sortAmountAsc": "Amount ↑",
+    "sortNumber": "Number",
+    "results": "{count} invoices",
+    "noResults": "No invoices",
+    "noResultsHint": "Try other filters or search terms"
   },
   "verifactu": {
     "title": "Verifactu certificate (AEAT)",
@@ -644,40 +693,91 @@
     "slides": {
       "welcome": {
         "title": "Welcome to Archivum",
-        "description": "Your intelligent system to organize all your business documents.",
-        "b1": "Automatic AI processing",
-        "b2": "Access from any device",
-        "b3": "Secure and private data"
-      },
-      "upload": {
-        "title": "Upload and process documents",
-        "description": "Capture invoices, contracts and receipts. AI extracts the data automatically.",
-        "b1": "Supports PDFs, photos and scans",
-        "b2": "Extracts amounts, dates, tax IDs",
-        "b3": "No need to transcribe anything"
+        "description": "Your platform to issue invoices and archive all of your business paperwork. This tutorial walks you through every section step by step.",
+        "steps": [
+          "The sidebar holds every section: Dashboard, Companies, Library, Search, Inventory, Invoicing, Upload and Users.",
+          "The Dashboard summarizes this month's revenue, pending payments and recent documents.",
+          "You can switch language (ES/EN) and replay this tutorial anytime from Settings."
+        ],
+        "tip": "Use the ← → arrow keys to move through the tutorial."
       },
       "companies": {
-        "title": "Organize by company",
-        "description": "Create one company per client or department and group their documents.",
-        "b1": "Free plan: 1 company",
-        "b2": "Pro plan: up to 20 companies",
-        "b3": "Add more for €2/company/month"
+        "title": "1. Create your companies and clients",
+        "description": "Before invoicing or archiving, register the companies and clients you work with.",
+        "steps": [
+          "Open “Companies / Clients” and click “New company”.",
+          "Fill in the name and, crucially, the CIF/NIF (tax ID): it is required to issue invoices.",
+          "Add address, postal code, city and province so they appear on the invoice.",
+          "Use search and the sector filters to find them quickly once you have many."
+        ],
+        "tip": "You can also create a client on the fly while issuing an invoice."
       },
-      "team": {
-        "title": "Work as a team",
-        "description": "Invite teammates with custom roles and per-company permissions.",
-        "b1": "Roles: Admin, Member, Viewer",
-        "b2": "Granular access per company or folder",
-        "b3": "Free plan: 1 user · Pro: 5 + extras"
+      "upload": {
+        "title": "2. Upload and archive documents",
+        "description": "Store received invoices, delivery notes, orders and receipts in your central archive.",
+        "steps": [
+          "Go to “Upload” and drag the file (PDF or image) onto the drop zone, or click to pick it.",
+          "Choose the related company/client and the document type (invoice, delivery note, order, receipt).",
+          "Enter the document number, date and amount.",
+          "Set the status (paid, pending, overdue…) and save. It is now archived and searchable."
+        ],
+        "tip": "The “pending” status with a due date triggers automatic alerts."
+      },
+      "library": {
+        "title": "3. Browse your library",
+        "description": "The Library is the full list of every document you have archived.",
+        "steps": [
+          "Open “Library” to see all documents ordered by date.",
+          "A colored dot shows each one's status (green paid, amber pending, red overdue).",
+          "If you have overdue invoices, a red badge appears in the sidebar.",
+          "Click any document to view the detail, edit it or download it."
+        ]
+      },
+      "inventory": {
+        "title": "4. Manage your inventory",
+        "description": "Save your products and services to reuse them when invoicing, without retyping prices.",
+        "steps": [
+          "In “Inventory” click “New product” and set name, price, VAT and optionally SKU and stock.",
+          "Assign a category to keep the catalog organized.",
+          "Use the filter panel on the left to narrow by category, price, VAT or stock.",
+          "When creating an invoice you can pick these products and their data fills in automatically."
+        ],
+        "tip": "Enable stock tracking to see the available units of each product."
+      },
+      "invoicing": {
+        "title": "5. Issue invoices with VeriFactu",
+        "description": "Create legal invoices compliant with the AEAT VeriFactu system.",
+        "steps": [
+          "First upload your digital certificate in Settings → VeriFactu (just once).",
+          "In “Invoicing” click “New invoice” and choose the client (must have a tax ID).",
+          "Add lines manually or from your inventory; VAT and withholding (IRPF) are computed for you.",
+          "Click “Issue”: the invoice gets its chained fingerprint and AEAT verification QR."
+        ],
+        "tip": "Use search and filters to find any issued invoice instantly."
       },
       "search": {
-        "title": "Find anything instantly",
-        "description": "Smart search and filters by company, date, type or amount.",
-        "b1": "Search inside document content",
-        "b2": "Combinable filters",
-        "b3": "Sorted by relevance"
+        "title": "6. Find anything",
+        "description": "The Advanced Search locates any document with precise filters.",
+        "steps": [
+          "Type in the bar by number, company, tax ID, amount or notes.",
+          "Combine filters by type, status, date range and amount range.",
+          "Sort the results by date or amount.",
+          "Export the result to CSV or Excel for your accounting."
+        ]
+      },
+      "team": {
+        "title": "7. Work as a team",
+        "description": "Invite your team and control who sees and does what.",
+        "steps": [
+          "In “Users” (admins only) invite a member by email.",
+          "Assign a role: Admin (full access), Manager or Viewer (read and download only).",
+          "The admin decides which folders each manager can access.",
+          "Manage your plan's extra users from Settings → Billing."
+        ],
+        "tip": "That's it! You now know Archivum. Start by creating your first client."
       }
-    }
+    },
+    "stepsLabel": "Step by step"
   },
   "coachmarks": {
     "tipLabel": "TIP",

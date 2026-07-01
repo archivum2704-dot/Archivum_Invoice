@@ -1,7 +1,10 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Receipt, Plus, X, Trash2, Loader2, Lock, AlertTriangle, ChevronRight, ShieldCheck } from "lucide-react"
+import {
+  Receipt, Plus, X, Trash2, Loader2, Lock, AlertTriangle, ChevronRight, ShieldCheck,
+  Search, SlidersHorizontal, CalendarDays, Tag, ArrowUpDown,
+} from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations, useLocale } from "next-intl"
@@ -35,6 +38,11 @@ const STATE_STYLES: Record<string, string> = {
   cancelled: "bg-[var(--status-overdue)]/10 text-[var(--status-overdue)]",
 }
 
+const INVOICE_STATES = ["issued", "draft", "cancelled"] as const
+const INVOICE_KINDS = ["ordinary", "simplified", "rectifying"] as const
+
+type InvoiceSortKey = "date_desc" | "date_asc" | "amount_desc" | "amount_asc" | "number"
+
 export function FacturacionView() {
   const t = useTranslations("invoicing")
   const tCommon = useTranslations("common")
@@ -45,6 +53,16 @@ export function FacturacionView() {
   const { invoices, loading, mutate } = useInvoices(currentOrg?.id ?? null)
   const { companies, mutate: mutateCompanies } = useCompanies(currentOrg?.id ?? null)
   const { products } = useProducts(currentOrg?.id ?? null)
+
+  // ── List filters (search-menu style) ───────────────────────
+  const [search, setSearch] = useState("")
+  const [selectedStates, setSelectedStates] = useState<string[]>([])
+  const [selectedKinds, setSelectedKinds] = useState<string[]>([])
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
+  const [amountMin, setAmountMin] = useState("")
+  const [amountMax, setAmountMax] = useState("")
+  const [sortKey, setSortKey] = useState<InvoiceSortKey>("date_desc")
 
   const [open, setOpen] = useState(false)
   const [clientId, setClientId] = useState("")
@@ -88,6 +106,52 @@ export function FacturacionView() {
   const canManage = isOrgAdmin && paid
 
   const selectedClient = companies.find(c => c.id === clientId)
+
+  const toggle = (arr: string[], setArr: (a: string[]) => void, val: string) =>
+    setArr(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
+
+  const clearFilters = () => {
+    setSelectedStates([]); setSelectedKinds([])
+    setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax("")
+  }
+
+  const activeCount =
+    selectedStates.length + selectedKinds.length +
+    (dateFrom ? 1 : 0) + (dateTo ? 1 : 0) + (amountMin ? 1 : 0) + (amountMax ? 1 : 0)
+
+  const filteredInvoices = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    const min = amountMin ? parseFloat(amountMin.replace(",", ".")) : null
+    const max = amountMax ? parseFloat(amountMax.replace(",", ".")) : null
+
+    const list = invoices.filter(inv => {
+      if (q) {
+        const haystack = [
+          inv.full_number ?? "",
+          inv.client?.name ?? inv.client_name ?? "",
+          inv.client_cif ?? inv.client?.cif ?? "",
+        ].join(" ").toLowerCase()
+        if (!haystack.includes(q)) return false
+      }
+      if (selectedStates.length && !selectedStates.includes(inv.state)) return false
+      if (selectedKinds.length && !selectedKinds.includes(inv.kind)) return false
+      if (dateFrom && inv.issue_date && inv.issue_date < dateFrom) return false
+      if (dateTo && inv.issue_date && inv.issue_date > dateTo) return false
+      if (min != null && Number(inv.total) < min) return false
+      if (max != null && Number(inv.total) > max) return false
+      return true
+    })
+
+    return [...list].sort((a, b) => {
+      switch (sortKey) {
+        case "date_asc":    return (a.issue_date ?? "").localeCompare(b.issue_date ?? "")
+        case "date_desc":   return (b.issue_date ?? "").localeCompare(a.issue_date ?? "")
+        case "amount_asc":  return Number(a.total) - Number(b.total)
+        case "amount_desc": return Number(b.total) - Number(a.total)
+        case "number":      return (b.full_number ?? "").localeCompare(a.full_number ?? "", undefined, { numeric: true })
+      }
+    })
+  }, [invoices, search, selectedStates, selectedKinds, dateFrom, dateTo, amountMin, amountMax, sortKey])
 
   const totals = useMemo(() => {
     let subtotal = 0, tax = 0
@@ -190,7 +254,7 @@ export function FacturacionView() {
   }
 
   return (
-    <div className="p-6 sm:p-8 max-w-5xl mx-auto">
+    <div className="p-6 sm:p-8 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-2.5">
@@ -214,29 +278,173 @@ export function FacturacionView() {
       </div>
 
       {/* List */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        {loading ? (
-          <div className="p-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
-        ) : invoices.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-14 gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center"><Receipt className="w-6 h-6 text-muted-foreground/50" /></div>
-            <p className="text-sm font-medium text-foreground">{t("empty")}</p>
+      {loading ? (
+        <div className="bg-card border border-border rounded-2xl p-10 flex justify-center">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : invoices.length === 0 ? (
+        <div className="bg-card border border-border rounded-2xl flex flex-col items-center justify-center py-14 gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center"><Receipt className="w-6 h-6 text-muted-foreground/50" /></div>
+          <p className="text-sm font-medium text-foreground">{t("empty")}</p>
+        </div>
+      ) : (
+        <>
+          {/* Search bar */}
+          <div className="relative mb-6">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={t("searchPlaceholder")}
+              className="w-full pl-12 pr-10 py-3.5 text-base bg-card border-2 border-border rounded-xl focus:outline-none focus:border-primary placeholder:text-muted-foreground transition-colors"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} aria-label={tCommon("clear")} className="absolute right-4 top-1/2 -translate-y-1/2">
+                <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+              </button>
+            )}
           </div>
-        ) : (
-          <div className="divide-y divide-border/60">
-            {invoices.map(inv => (
-              <Link key={inv.id} href={`/facturacion/${inv.id}`} className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-colors group">
-                <span className="text-sm font-semibold text-foreground w-32 shrink-0 truncate">{inv.full_number ?? "—"}</span>
-                <span className="flex-1 min-w-0 text-sm text-muted-foreground truncate">{inv.client?.name ?? inv.client_name ?? "—"}</span>
-                <span className="text-xs text-muted-foreground hidden sm:block w-24">{inv.issue_date ?? "—"}</span>
-                <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium hidden sm:block", STATE_STYLES[inv.state])}>{t(`states.${inv.state}`)}</span>
-                <span className="text-sm font-semibold text-foreground text-right w-28">{fmtEur(Number(inv.total))}</span>
-                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-            ))}
+
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Filters sidebar */}
+            <aside className="lg:w-60 shrink-0">
+              <div className="bg-card border border-border rounded-xl p-4 lg:sticky lg:top-6 space-y-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-semibold text-foreground">{t("filters")}</span>
+                    {activeCount > 0 && (
+                      <span className="text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-medium">{activeCount}</span>
+                    )}
+                  </div>
+                  {activeCount > 0 && (
+                    <button onClick={clearFilters} className="text-xs text-primary hover:underline">{t("clearFilters")}</button>
+                  )}
+                </div>
+
+                {/* State */}
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{t("stateFilter")}</p>
+                  <div className="space-y-1.5">
+                    {INVOICE_STATES.map(s => (
+                      <label key={s} className="flex items-center gap-2.5 cursor-pointer group">
+                        <input type="checkbox" checked={selectedStates.includes(s)} onChange={() => toggle(selectedStates, setSelectedStates, s)} className="w-3.5 h-3.5 rounded accent-primary" />
+                        <span className="text-sm text-foreground group-hover:text-primary transition-colors">{t(`states.${s}`)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Kind */}
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{t("kindFilter")}</p>
+                  <div className="space-y-1.5">
+                    {INVOICE_KINDS.map(k => (
+                      <label key={k} className="flex items-center gap-2.5 cursor-pointer group">
+                        <input type="checkbox" checked={selectedKinds.includes(k)} onChange={() => toggle(selectedKinds, setSelectedKinds, k)} className="w-3.5 h-3.5 rounded accent-primary" />
+                        <span className="text-sm text-foreground group-hover:text-primary transition-colors">{t(`kinds.${k}`)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Date range */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <CalendarDays className="w-3.5 h-3.5 text-muted-foreground" />
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("dateFilter")}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">{t("dateFrom")}</p>
+                      <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">{t("dateTo")}</p>
+                      <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Amount range */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Tag className="w-3.5 h-3.5 text-muted-foreground" />
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("amountFilter")}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">{t("amountMin")}</p>
+                      <input type="number" min="0" placeholder="0" value={amountMin} onChange={e => setAmountMin(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground placeholder:text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">{t("amountMax")}</p>
+                      <input type="number" min="0" placeholder="∞" value={amountMax} onChange={e => setAmountMax(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground placeholder:text-muted-foreground" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            {/* Results */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-semibold text-foreground">{filteredInvoices.length}</span>{" "}
+                  {t("results", { count: filteredInvoices.length })}
+                </p>
+                <div className="relative">
+                  <select
+                    value={sortKey}
+                    onChange={e => setSortKey(e.target.value as InvoiceSortKey)}
+                    className="appearance-none pl-7 pr-6 py-1.5 text-xs bg-card border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground"
+                  >
+                    <option value="date_desc">{t("sortDateDesc")}</option>
+                    <option value="date_asc">{t("sortDateAsc")}</option>
+                    <option value="amount_desc">{t("sortAmountDesc")}</option>
+                    <option value="amount_asc">{t("sortAmountAsc")}</option>
+                    <option value="number">{t("sortNumber")}</option>
+                  </select>
+                  <ArrowUpDown className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                {filteredInvoices.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
+                    <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center"><Search className="w-6 h-6 text-muted-foreground/40" /></div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{t("noResults")}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t("noResultsHint")}</p>
+                    </div>
+                    {activeCount > 0 && (
+                      <button onClick={clearFilters} className="text-xs text-primary hover:underline">{t("clearFilters")}</button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border/60">
+                    {filteredInvoices.map(inv => (
+                      <Link key={inv.id} href={`/facturacion/${inv.id}`} className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-colors group">
+                        <span className="text-sm font-semibold text-foreground w-32 shrink-0 truncate">{inv.full_number ?? "—"}</span>
+                        <span className="flex-1 min-w-0 text-sm text-muted-foreground truncate">{inv.client?.name ?? inv.client_name ?? "—"}</span>
+                        <span className="text-xs text-muted-foreground hidden sm:block w-24">{inv.issue_date ?? "—"}</span>
+                        <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium hidden sm:block", STATE_STYLES[inv.state])}>{t(`states.${inv.state}`)}</span>
+                        <span className="text-sm font-semibold text-foreground text-right w-28">{fmtEur(Number(inv.total))}</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+        </>
+      )}
 
       {/* New invoice modal */}
       {open && (
