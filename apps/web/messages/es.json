@@ -256,7 +256,9 @@
     "noResults": "Sin facturas",
     "noResultsHint": "Prueba con otros filtros o términos de búsqueda",
     "searchClient": "Buscar cliente por nombre o CIF...",
-    "noClientMatches": "Ningún cliente coincide"
+    "noClientMatches": "Ningún cliente coincide",
+    "searchProduct": "Buscar producto...",
+    "noProductMatches": "Ningún producto coincide"
   },
   "verifactu": {
     "title": "Certificado Verifactu (AEAT)",

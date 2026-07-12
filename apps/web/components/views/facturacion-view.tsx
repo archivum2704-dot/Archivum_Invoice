@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useInvoices } from "@/lib/hooks/use-invoices"
 import { useCompanies } from "@/lib/hooks/use-companies"
-import { useProducts } from "@/lib/hooks/use-products"
+import { useProducts, type Product } from "@/lib/hooks/use-products"
 import { isPaidPlan } from "@/lib/plan"
 import { createClient } from "@/lib/supabase/client"
 
@@ -563,10 +563,11 @@ export function FacturacionView() {
                   <div key={i} className="grid grid-cols-[1fr_56px_72px_56px_auto] gap-2 items-end">
                     <div className="flex flex-col gap-1">
                       {products.length > 0 && (
-                        <select value={l.productId ?? ""} onChange={e => pickProduct(i, e.target.value)} className={cn(inputCls, "py-1.5 text-xs")}>
-                          <option value="">{t("manualLine")}</option>
-                          {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
+                        <ProductPicker
+                          products={products}
+                          value={l.productId}
+                          onPick={id => pickProduct(i, id ?? "")}
+                        />
                       )}
                       {/* Editing the text must NOT unlink the product (the link is what
                           drives the automatic stock deduction); unlink via the select. */}
@@ -668,6 +669,72 @@ export function FacturacionView() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Type-to-search product picker for invoice lines (matches by name or SKU).
+// Picking a product fills the line via pickProduct; picking "manual" unlinks it.
+function ProductPicker({ products, value, onPick }: {
+  products: Product[]
+  value: string | null
+  onPick: (id: string | null) => void
+}) {
+  const t = useTranslations("invoicing")
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const selected = products.find(p => p.id === value)
+
+  const q = query.trim().toLowerCase()
+  const matches = q
+    ? products.filter(p => p.name.toLowerCase().includes(q) || (p.sku ?? "").toLowerCase().includes(q))
+    : products
+
+  const pick = (id: string | null) => { onPick(id); setOpen(false); setQuery("") }
+
+  return (
+    <div className="relative">
+      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+      <input
+        type="text"
+        value={open ? query : (selected?.name ?? "")}
+        onChange={e => { setQuery(e.target.value); setOpen(true) }}
+        onFocus={() => { setQuery(""); setOpen(true) }}
+        onBlur={() => setOpen(false)}
+        placeholder={selected ? selected.name : t("searchProduct")}
+        className={cn(inputCls, "py-1.5 text-xs pl-8")}
+      />
+      {open && (
+        <div className="absolute z-20 mt-1 w-full max-h-44 overflow-y-auto bg-card border border-border rounded-lg shadow-lg">
+          {/* onMouseDown so picks fire before the input's onBlur closes the list */}
+          <button
+            type="button"
+            onMouseDown={e => { e.preventDefault(); pick(null) }}
+            className={cn(
+              "w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted transition-colors",
+              !value && "bg-primary/5 font-medium"
+            )}
+          >
+            {t("manualLine")}
+          </button>
+          {matches.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-muted-foreground">{t("noProductMatches")}</p>
+          ) : matches.map(p => (
+            <button
+              key={p.id}
+              type="button"
+              onMouseDown={e => { e.preventDefault(); pick(p.id) }}
+              className={cn(
+                "flex items-center justify-between gap-2 w-full px-3 py-1.5 text-left text-xs hover:bg-muted transition-colors",
+                p.id === value && "bg-primary/5 font-medium"
+              )}
+            >
+              <span className="truncate text-foreground">{p.name}</span>
+              {p.sku && <span className="shrink-0 text-[10px] text-muted-foreground">{p.sku}</span>}
+            </button>
+          ))}
         </div>
       )}
     </div>

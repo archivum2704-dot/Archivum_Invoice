@@ -256,7 +256,9 @@
     "noResults": "No invoices",
     "noResultsHint": "Try other filters or search terms",
     "searchClient": "Search client by name or tax ID...",
-    "noClientMatches": "No matching clients"
+    "noClientMatches": "No matching clients",
+    "searchProduct": "Search product...",
+    "noProductMatches": "No matching products"
   },
   "verifactu": {
     "title": "Verifactu certificate (AEAT)",
