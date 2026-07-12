@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import useSWR from "swr"
 import QRCode from "qrcode"
-import { ArrowLeft, Printer, ShieldCheck, Loader2, Ban } from "lucide-react"
+import { ArrowLeft, Printer, ShieldCheck, Loader2, Ban, Copy, Check } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
@@ -31,6 +31,14 @@ export function FacturaEmitidaView({ id }: { id: string }) {
   const { data, isLoading, mutate } = useSWR(["invoice", id], () => fetchInvoice(id), { revalidateOnFocus: false })
   const [qrSrc, setQrSrc] = useState<string | null>(null)
   const [rectifying, setRectifying] = useState(false)
+  const [huellaCopied, setHuellaCopied] = useState(false)
+
+  const copyHuella = () => {
+    if (!invoice?.huella) return
+    navigator.clipboard.writeText(invoice.huella)
+    setHuellaCopied(true)
+    setTimeout(() => setHuellaCopied(false), 2000)
+  }
 
   const invoice = data?.invoice
   const lines = data?.lines ?? []
@@ -170,15 +178,28 @@ export function FacturaEmitidaView({ id }: { id: string }) {
 
         {/* Verifactu block */}
         <div className="flex items-end justify-between gap-4 border-t border-border pt-5">
-          <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-[var(--status-paid)]" />
-            <div>
+          <div className="flex items-start gap-1.5 min-w-0">
+            <ShieldCheck className="w-4 h-4 text-[var(--status-paid)] shrink-0 mt-0.5" />
+            <div className="min-w-0">
               <p className="text-xs font-bold text-foreground tracking-wide">VERI*FACTU</p>
               <p className="text-[9px] text-muted-foreground">{t("verifactuFooter")}</p>
-              {invoice.huella && <p className="text-[8px] text-muted-foreground/60 font-mono mt-0.5 max-w-[260px] break-all">{t("fingerprint")}: {invoice.huella.slice(0, 32)}…</p>}
+              {invoice.huella && (
+                <div className="flex items-center gap-1.5 mt-0.5 print:gap-0">
+                  <p className="text-[8px] text-muted-foreground/60 font-mono break-all max-w-[320px]">{t("fingerprint")}: {invoice.huella}</p>
+                  <button
+                    type="button"
+                    onClick={copyHuella}
+                    className="shrink-0 p-1 rounded hover:bg-muted transition-colors print:hidden"
+                    aria-label={t("copyFingerprint")}
+                    title={t("copyFingerprint")}
+                  >
+                    {huellaCopied ? <Check className="w-3 h-3 text-accent" /> : <Copy className="w-3 h-3 text-muted-foreground" />}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-          {qrSrc && <img src={qrSrc} alt="QR Verifactu" className="w-24 h-24" />}
+          {qrSrc && <img src={qrSrc} alt="QR Verifactu" className="w-24 h-24 shrink-0" />}
         </div>
       </div>
     </div>

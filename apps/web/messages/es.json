@@ -207,6 +207,7 @@
     "notFound": "Factura no encontrada",
     "verifactuFooter": "Factura verificable en la Sede de la AEAT",
     "fingerprint": "Huella",
+    "copyFingerprint": "Copiar huella",
     "rectify": "Emitir rectificativa",
     "rectifyConfirm": "¿Emitir una factura rectificativa que anula esta factura? Se generará una nota de abono con importes en negativo.",
     "rectifyError": "No se pudo emitir la rectificativa.",

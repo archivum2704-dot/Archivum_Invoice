@@ -207,6 +207,7 @@
     "notFound": "Invoice not found",
     "verifactuFooter": "Invoice verifiable on the AEAT website",
     "fingerprint": "Fingerprint",
+    "copyFingerprint": "Copy fingerprint",
     "rectify": "Issue credit note",
     "rectifyConfirm": "Issue a rectificative invoice that annuls this one? A credit note with negative amounts will be generated.",
     "rectifyError": "Couldn't issue the credit note.",
