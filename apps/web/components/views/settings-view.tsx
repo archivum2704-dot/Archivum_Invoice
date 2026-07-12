@@ -96,21 +96,12 @@ function LogoCard({ orgId, logoUrl, onUploaded }: { orgId: string; logoUrl: stri
 
     setUploading(true)
     try {
-      const supabase = createClient()
-      const path = `${orgId}/logo.${ext}`
-      const { error: upErr } = await supabase.storage
-        .from("logos")
-        .upload(path, file, { contentType: file.type, upsert: true })
-      if (upErr) { setError(upErr.message); setUploading(false); return }
-
-      const { data: pub } = supabase.storage.from("logos").getPublicUrl(path)
-      // Cache-bust so the new logo shows immediately even at the same path
-      const bustedUrl = `${pub.publicUrl}?v=${Date.now()}`
-
-      const { error: dbErr } = await supabase.from("organizations")
-        .update({ logo_url: bustedUrl }).eq("id", orgId)
-      if (dbErr) { setError(dbErr.message); setUploading(false); return }
-
+      const body = new FormData()
+      body.append("orgId", orgId)
+      body.append("file", file)
+      const res = await fetch("/api/organizations/logo", { method: "POST", body })
+      const json = await res.json()
+      if (!res.ok) { setError(json.detail ?? json.error ?? "Error al subir el logo"); setUploading(false); return }
       onUploaded()
     } catch (e) {
       setError(String(e))
@@ -121,11 +112,20 @@ function LogoCard({ orgId, logoUrl, onUploaded }: { orgId: string; logoUrl: stri
 
   const handleRemove = async () => {
     setError(null); setUploading(true)
-    const supabase = createClient()
-    const { error: dbErr } = await supabase.from("organizations").update({ logo_url: null }).eq("id", orgId)
-    setUploading(false)
-    if (dbErr) { setError(dbErr.message); return }
-    onUploaded()
+    try {
+      const res = await fetch("/api/organizations/logo", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId }),
+      })
+      const json = await res.json()
+      if (!res.ok) { setError(json.detail ?? json.error ?? "Error al eliminar el logo"); setUploading(false); return }
+      onUploaded()
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
