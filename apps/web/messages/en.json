@@ -561,7 +561,7 @@
       "access": "Access",
       "accessDesc": "Code your users need to log in.",
       "identity": "Identity",
-      "identityDesc": "Name and tax identification of your organization.",
+      "identityDesc": "Logo, name and tax identification of your organization. These appear on your invoices.",
       "contact": "Contact",
       "contactDesc": "Contact details of the organization.",
       "address": "Address",

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, Inbox, AlertTriangle, Zap, FileText, Users, Building2, TrendingUp } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, Inbox, AlertTriangle, Zap, FileText, Users, Building2, TrendingUp, Upload, Trash2, Loader2, ImageOff } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
@@ -75,6 +75,98 @@ function InboxEmailCard({ token }: { token: string }) {
         </ol>
         <p className="pt-1">Cualquier PDF o imagen adjunto se subirá automáticamente como un documento pendiente de procesar.</p>
       </div>
+    </div>
+  )
+}
+
+// ── Company logo card ──────────────────────────────────────────────────────────
+const MAX_LOGO_BYTES = 2 * 1024 * 1024 // 2MB
+const ALLOWED_LOGO_TYPES: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" }
+
+function LogoCard({ orgId, logoUrl, onUploaded }: { orgId: string; logoUrl: string | null; onUploaded: () => void }) {
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleFile = async (file: File) => {
+    setError(null)
+    const ext = ALLOWED_LOGO_TYPES[file.type]
+    if (!ext) { setError("Formato no soportado. Usa PNG, JPG o WEBP."); return }
+    if (file.size > MAX_LOGO_BYTES) { setError("El archivo pesa más de 2MB."); return }
+
+    setUploading(true)
+    try {
+      const supabase = createClient()
+      const path = `${orgId}/logo.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from("logos")
+        .upload(path, file, { contentType: file.type, upsert: true })
+      if (upErr) { setError(upErr.message); setUploading(false); return }
+
+      const { data: pub } = supabase.storage.from("logos").getPublicUrl(path)
+      // Cache-bust so the new logo shows immediately even at the same path
+      const bustedUrl = `${pub.publicUrl}?v=${Date.now()}`
+
+      const { error: dbErr } = await supabase.from("organizations")
+        .update({ logo_url: bustedUrl }).eq("id", orgId)
+      if (dbErr) { setError(dbErr.message); setUploading(false); return }
+
+      onUploaded()
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRemove = async () => {
+    setError(null); setUploading(true)
+    const supabase = createClient()
+    const { error: dbErr } = await supabase.from("organizations").update({ logo_url: null }).eq("id", orgId)
+    setUploading(false)
+    if (dbErr) { setError(dbErr.message); return }
+    onUploaded()
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-4">
+        <div className="w-16 h-16 rounded-xl border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0">
+          {logoUrl
+            ? <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+            : <ImageOff className="w-5 h-5 text-muted-foreground/50" />}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = "" }}
+          />
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-card border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+            {logoUrl ? "Cambiar logo" : "Subir logo"}
+          </button>
+          {logoUrl && (
+            <button
+              type="button"
+              onClick={handleRemove}
+              disabled={uploading}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-destructive border border-destructive/30 rounded-lg hover:bg-destructive/10 transition-colors disabled:opacity-50"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Eliminar
+            </button>
+          )}
+        </div>
+      </div>
+      <p className="text-[11px] text-muted-foreground">PNG, JPG o WEBP · máx. 2MB. Aparecerá en tus facturas.</p>
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   )
 }
@@ -235,7 +327,14 @@ export function SettingsView() {
         )}
 
         <Section title={tRoot("sections.identity")} description={tRoot("sections.identityDesc")}>
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {currentOrg && (
+              <LogoCard
+                orgId={currentOrg.id}
+                logoUrl={currentOrg.logo_url ?? null}
+                onUploaded={refreshOrganization}
+              />
+            )}
             <Field label={t("name")} value={form.name} onChange={set("name")} disabled={saving} />
             <Field label={t("cif")}  value={form.cif}  onChange={set("cif")}  disabled={saving} />
           </div>

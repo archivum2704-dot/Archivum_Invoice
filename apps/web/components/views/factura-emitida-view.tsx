@@ -97,12 +97,18 @@ export function FacturaEmitidaView({ id }: { id: string }) {
       <div className="bg-card border border-border rounded-2xl p-8 print:border-0 print:shadow-none">
         {/* Header: issuer + invoice meta */}
         <div className="flex justify-between items-start gap-6 mb-8">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">{invoice.issuer_name ?? "—"}</h1>
-            <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-              {invoice.issuer_cif && <p>CIF: {invoice.issuer_cif}</p>}
-              {invoice.issuer_address && <p>{invoice.issuer_address}</p>}
-              <p>{[invoice.issuer_postal_code, invoice.issuer_city, invoice.issuer_province].filter(Boolean).join(" · ")}</p>
+          <div className="flex items-start gap-3">
+            {invoice.issuer_logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={invoice.issuer_logo_url} alt="" className="w-12 h-12 object-contain rounded-lg border border-border shrink-0" />
+            )}
+            <div>
+              <h1 className="text-xl font-bold text-foreground">{invoice.issuer_name ?? "—"}</h1>
+              <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                {invoice.issuer_cif && <p>CIF: {invoice.issuer_cif}</p>}
+                {invoice.issuer_address && <p>{invoice.issuer_address}</p>}
+                <p>{[invoice.issuer_postal_code, invoice.issuer_city, invoice.issuer_province].filter(Boolean).join(" · ")}</p>
+              </div>
             </div>
           </div>
           <div className="text-right">

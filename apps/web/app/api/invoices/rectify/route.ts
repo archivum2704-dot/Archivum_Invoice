@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
       retention_pct: orig.retention_pct, retention_amount: retentionAmount,
       issuer_name: orig.issuer_name, issuer_cif: orig.issuer_cif, issuer_address: orig.issuer_address,
       issuer_city: orig.issuer_city, issuer_postal_code: orig.issuer_postal_code, issuer_province: orig.issuer_province,
+      issuer_logo_url: orig.issuer_logo_url,
       client_name: orig.client_name, client_cif: orig.client_cif, client_address: orig.client_address,
       client_city: orig.client_city, client_postal_code: orig.client_postal_code, client_province: orig.client_province,
       notes: `Rectificativa por anulación de ${orig.full_number}`,
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
     try {
       const pdfBytes = await buildInvoicePdf({
         fullNumber, issueDate,
-        issuer: { name: orig.issuer_name ?? '', cif: orig.issuer_cif, address: orig.issuer_address, postalCode: orig.issuer_postal_code, city: orig.issuer_city, province: orig.issuer_province },
+        issuer: { name: orig.issuer_name ?? '', cif: orig.issuer_cif, address: orig.issuer_address, postalCode: orig.issuer_postal_code, city: orig.issuer_city, province: orig.issuer_province, logoUrl: orig.issuer_logo_url },
         client: { name: orig.client_name ?? '', cif: orig.client_cif, address: orig.client_address, postalCode: orig.client_postal_code, city: orig.client_city, province: orig.client_province },
         lines: negLines.map(l => ({ description: l.description, quantity: l.quantity, unit_price: l.unit_price, tax_rate: l.tax_rate, line_total: l.line_total })),
         subtotal, taxAmount, retentionPct: orig.retention_pct, retentionAmount, total, notes: `Rectificativa por anulación de ${orig.full_number}`, huella, qrUrl,

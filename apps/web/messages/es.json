@@ -561,7 +561,7 @@
       "access": "Acceso",
       "accessDesc": "Código que tus usuarios necesitan para iniciar sesión.",
       "identity": "Identidad",
-      "identityDesc": "Nombre e identificación fiscal de tu organización.",
+      "identityDesc": "Logo, nombre e identificación fiscal de tu organización. Aparecerán en tus facturas.",
       "contact": "Contacto",
       "contactDesc": "Datos de contacto de la organización.",
       "address": "Dirección",

@@ -13,7 +13,7 @@ export interface InvoicePdfData {
   fullNumber: string
   issueDate: string
   dueDate?: string | null
-  issuer: { name: string; cif?: string | null; address?: string | null; postalCode?: string | null; city?: string | null; province?: string | null }
+  issuer: { name: string; cif?: string | null; address?: string | null; postalCode?: string | null; city?: string | null; province?: string | null; logoUrl?: string | null }
   client: { name: string; cif?: string | null; address?: string | null; postalCode?: string | null; city?: string | null; province?: string | null }
   lines: InvoicePdfLine[]
   subtotal: number
@@ -50,8 +50,28 @@ export async function buildInvoicePdf(data: InvoicePdfData): Promise<Uint8Array>
     page.drawText(c, { x: xRight - f.widthOfTextAtSize(c, size), y: yy, size, font: f, color })
   }
 
+  // ── Logo (best-effort; skipped silently if it can't be fetched/embedded) ──
+  let textX = M
+  const logoSize = 48
+  if (data.issuer.logoUrl) {
+    try {
+      const res = await fetch(data.issuer.logoUrl)
+      if (res.ok) {
+        const bytes = new Uint8Array(await res.arrayBuffer())
+        const contentType = res.headers.get('content-type') ?? ''
+        const img = contentType.includes('png') ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes)
+        const scale = logoSize / Math.max(img.width, img.height)
+        const w = img.width * scale, h = img.height * scale
+        page.drawImage(img, { x: M, y: y - logoSize + (logoSize - h), width: w, height: h })
+        textX = M + logoSize + 12
+      }
+    } catch (e) {
+      console.warn('[invoice-pdf] logo embed failed (non-fatal):', e)
+    }
+  }
+
   // ── Header: issuer + invoice meta ──
-  text(data.issuer.name, M, y, 16, bold, NAVY)
+  text(data.issuer.name, textX, y, 16, bold, NAVY)
   right('FACTURA', width - M, y, 12, bold, GREY)
   y -= 16
   right(data.fullNumber, width - M, y, 14, bold, NAVY)
@@ -61,7 +81,7 @@ export async function buildInvoicePdf(data: InvoicePdfData): Promise<Uint8Array>
     data.issuer.address ?? '',
     [data.issuer.postalCode, data.issuer.city, data.issuer.province].filter(Boolean).join(' · '),
   ].filter(Boolean)
-  for (const l of issuerLines) { text(l, M, y, 9, font, GREY); y -= 12 }
+  for (const l of issuerLines) { text(l, textX, y, 9, font, GREY); y -= 12 }
   right(`Fecha: ${data.issueDate}`, width - M, y + (issuerLines.length * 12) - 12, 9, font, GREY)
   if (data.dueDate) right(`Vencimiento: ${data.dueDate}`, width - M, y + (issuerLines.length * 12) - 24, 9, font, GREY)
 
