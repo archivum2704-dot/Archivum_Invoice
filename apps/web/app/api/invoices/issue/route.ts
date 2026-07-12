@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     // ── Issuer (organization) snapshot ──────────────────────
     const { data: org } = await supabase
       .from('organizations')
-      .select('name, cif, address, city, postal_code, province')
+      .select('name, cif, address, city, postal_code, province, logo_url')
       .eq('id', orgId).single()
     if (!org) return NextResponse.json({ error: 'org_not_found' }, { status: 404 })
 
@@ -138,6 +138,7 @@ export async function POST(req: NextRequest) {
         retention_pct: retPct || null, retention_amount: retentionAmount,
         issuer_name: org.name, issuer_cif: org.cif, issuer_address: org.address,
         issuer_city: org.city, issuer_postal_code: org.postal_code, issuer_province: org.province,
+        issuer_logo_url: org.logo_url,
         client_name: client.name, client_cif: client.cif, client_address: client.address,
         client_city: client.city, client_postal_code: client.postal_code, client_province: client.province,
         notes: notes?.trim() || null,
@@ -186,7 +187,7 @@ export async function POST(req: NextRequest) {
     try {
       const pdfBytes = await buildInvoicePdf({
         fullNumber, issueDate, dueDate: dueDate || null,
-        issuer: { name: org.name, cif: org.cif, address: org.address, postalCode: org.postal_code, city: org.city, province: org.province },
+        issuer: { name: org.name, cif: org.cif, address: org.address, postalCode: org.postal_code, city: org.city, province: org.province, logoUrl: org.logo_url },
         client: { name: client.name, cif: client.cif, address: client.address, postalCode: client.postal_code, city: client.city, province: client.province },
         lines: computedLines.map(l => ({ description: l.description, quantity: l.quantity, unit_price: l.unit_price, tax_rate: l.tax_rate, line_total: l.line_total })),
         subtotal, taxAmount, retentionPct: retPct, retentionAmount, total, notes: notes?.trim() || null, huella, qrUrl,

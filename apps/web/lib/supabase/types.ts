@@ -495,6 +495,7 @@ export type Database = {
           issuer_city: string | null
           issuer_postal_code: string | null
           issuer_province: string | null
+          issuer_logo_url: string | null
           client_name: string | null
           client_cif: string | null
           client_address: string | null
@@ -542,6 +543,7 @@ export type Database = {
           issuer_city?: string | null
           issuer_postal_code?: string | null
           issuer_province?: string | null
+          issuer_logo_url?: string | null
           client_name?: string | null
           client_cif?: string | null
           client_address?: string | null
@@ -581,6 +583,7 @@ export type Database = {
           issuer_city?: string | null
           issuer_postal_code?: string | null
           issuer_province?: string | null
+          issuer_logo_url?: string | null
           client_name?: string | null
           client_cif?: string | null
           client_address?: string | null
