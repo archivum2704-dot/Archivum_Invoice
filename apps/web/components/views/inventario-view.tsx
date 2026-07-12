@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import {
   Package, Plus, Pencil, Trash2, X, Check, Loader2, Lock, AlertTriangle,
-  Search, SlidersHorizontal, Tag, Boxes, ArrowUpDown,
+  Search, SlidersHorizontal, Tag, Boxes, ArrowUpDown, FileSpreadsheet,
 } from "lucide-react"
 import Link from "next/link"
 import { useTranslations, useLocale } from "next-intl"
@@ -57,6 +57,7 @@ export function InventarioView() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
 
   const canManage = isOrgAdmin && paid
 
@@ -139,6 +140,31 @@ export function InventarioView() {
 
   const stockOf = (p: Product): StockFilter =>
     !p.track_stock ? "untracked" : Number(p.stock_qty) > 0 ? "in" : "out"
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      // Dynamic import so the ~400KB xlsx bundle only loads on demand
+      const XLSX = await import("xlsx")
+      const rows = filtered.map(p => ({
+        [t("name")]: p.name,
+        [t("sku")]: p.sku ?? "",
+        [t("category")]: p.category ?? "",
+        [t("description")]: p.description ?? "",
+        [t("unit")]: p.unit,
+        [`${t("unitPrice")} (€)`]: Number(p.unit_price),
+        [`${t("tax")} (%)`]: Number(p.tax_rate),
+        [t("stock")]: p.track_stock ? Number(p.stock_qty) : null,
+      }))
+      const ws = XLSX.utils.json_to_sheet(rows)
+      ws["!cols"] = [{ wch: 30 }, { wch: 14 }, { wch: 16 }, { wch: 34 }, { wch: 8 }, { wch: 14 }, { wch: 9 }, { wch: 9 }]
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, t("title"))
+      XLSX.writeFile(wb, `inventario_${new Date().toISOString().slice(0, 10)}.xlsx`)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -287,14 +313,24 @@ export function InventarioView() {
           <Package className="w-5 h-5 text-primary" />
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("title")}</h1>
         </div>
-        {canManage && (
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
-            onClick={openNew}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors self-start sm:self-auto"
+            onClick={handleExport}
+            disabled={exporting || products.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground text-sm font-semibold rounded-xl hover:bg-muted disabled:opacity-50 transition-colors"
           >
-            <Plus className="w-4 h-4" /> {t("newProduct")}
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+            {t("exportExcel")}
           </button>
-        )}
+          {canManage && (
+            <button
+              onClick={openNew}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="w-4 h-4" /> {t("newProduct")}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search bar */}
