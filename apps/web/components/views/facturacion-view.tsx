@@ -66,6 +66,8 @@ export function FacturacionView() {
 
   const [open, setOpen] = useState(false)
   const [clientId, setClientId] = useState("")
+  const [clientQuery, setClientQuery] = useState("")
+  const [clientListOpen, setClientListOpen] = useState(false)
   const [series, setSeries] = useState("FAC")
   const [issueDate, setIssueDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [kind, setKind] = useState<"ordinary" | "simplified">("ordinary")
@@ -106,6 +108,15 @@ export function FacturacionView() {
   const canManage = isOrgAdmin && paid
 
   const selectedClient = companies.find(c => c.id === clientId)
+
+  // Type-to-search matches for the client combobox
+  const clientMatches = useMemo(() => {
+    const q = clientQuery.trim().toLowerCase()
+    if (!q) return companies
+    return companies.filter(c =>
+      c.name.toLowerCase().includes(q) || (c.cif ?? "").toLowerCase().includes(q)
+    )
+  }, [companies, clientQuery])
 
   const toggle = (arr: string[], setArr: (a: string[]) => void, val: string) =>
     setArr(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
@@ -177,7 +188,8 @@ export function FacturacionView() {
   }, [issuerHasCif, clientId, selectedClient, issueDate, lines, t])
 
   const resetForm = () => {
-    setClientId(""); setSeries("FAC"); setIssueDate(new Date().toISOString().slice(0, 10))
+    setClientId(""); setClientQuery(""); setClientListOpen(false)
+    setSeries("FAC"); setIssueDate(new Date().toISOString().slice(0, 10))
     setKind("ordinary"); setNotes(""); setRetentionPct(""); setLines([emptyLine()]); setError(null)
   }
 
@@ -465,12 +477,49 @@ export function FacturacionView() {
                     <Plus className="w-3.5 h-3.5" /> {t("newClient")}
                   </button>
                 </div>
-                <select value={clientId} onChange={e => setClientId(e.target.value)} className={inputCls}>
-                  <option value="">{t("selectClient")}</option>
-                  {companies.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}{c.cif ? ` · ${c.cif}` : ` · ${t("noCif")}`}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    value={clientListOpen ? clientQuery : (selectedClient?.name ?? "")}
+                    onChange={e => { setClientQuery(e.target.value); setClientListOpen(true) }}
+                    onFocus={() => { setClientQuery(""); setClientListOpen(true) }}
+                    onBlur={() => setClientListOpen(false)}
+                    placeholder={selectedClient ? selectedClient.name : t("searchClient")}
+                    className={cn(inputCls, "pl-9")}
+                  />
+                  {clientId && !clientListOpen && (
+                    <button
+                      type="button"
+                      onClick={() => { setClientId(""); setClientQuery("") }}
+                      aria-label={tCommon("clear")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted"
+                    >
+                      <X className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                  )}
+                  {clientListOpen && (
+                    <div className="absolute z-10 mt-1 w-full max-h-52 overflow-y-auto bg-card border border-border rounded-lg shadow-lg">
+                      {clientMatches.length === 0 ? (
+                        <p className="px-3 py-2.5 text-sm text-muted-foreground">{t("noClientMatches")}</p>
+                      ) : clientMatches.map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          // onMouseDown so it fires before the input's onBlur closes the list
+                          onMouseDown={e => { e.preventDefault(); setClientId(c.id); setClientListOpen(false); setClientQuery("") }}
+                          className={cn(
+                            "flex items-center justify-between gap-2 w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors",
+                            c.id === clientId && "bg-primary/5 font-medium"
+                          )}
+                        >
+                          <span className="truncate text-foreground">{c.name}</span>
+                          <span className="shrink-0 text-xs text-muted-foreground">{c.cif || t("noCif")}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {companies.length === 0 && (
                   <p className="text-xs text-muted-foreground mt-1">{t("noClientsHint")}</p>
                 )}
@@ -519,7 +568,9 @@ export function FacturacionView() {
                           {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                       )}
-                      <input placeholder={t("description")} value={l.description} onChange={e => setLine(i, { description: e.target.value, productId: null })} className={cn(inputCls, "py-1.5")} />
+                      {/* Editing the text must NOT unlink the product (the link is what
+                          drives the automatic stock deduction); unlink via the select. */}
+                      <input placeholder={t("description")} value={l.description} onChange={e => setLine(i, { description: e.target.value })} className={cn(inputCls, "py-1.5")} />
                     </div>
                     <input type="number" step="0.01" title={t("qty")} value={l.quantity} onChange={e => setLine(i, { quantity: e.target.value })} className={cn(inputCls, "py-1.5 text-right")} />
                     <input type="number" step="0.01" title={t("unitPrice")} value={l.unitPrice} onChange={e => setLine(i, { unitPrice: e.target.value })} className={cn(inputCls, "py-1.5 text-right")} />

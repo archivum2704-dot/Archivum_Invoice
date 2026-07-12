@@ -158,7 +158,8 @@
     "sortStockDesc": "Stock ↓",
     "sortStockAsc": "Stock ↑",
     "results": "{count} products",
-    "productsIn": "in {category}"
+    "productsIn": "in {category}",
+    "exportExcel": "Export to Excel"
   },
   "invoicing": {
     "title": "Invoicing",
@@ -253,7 +254,9 @@
     "sortNumber": "Number",
     "results": "{count} invoices",
     "noResults": "No invoices",
-    "noResultsHint": "Try other filters or search terms"
+    "noResultsHint": "Try other filters or search terms",
+    "searchClient": "Search client by name or tax ID...",
+    "noClientMatches": "No matching clients"
   },
   "verifactu": {
     "title": "Verifactu certificate (AEAT)",

@@ -158,7 +158,8 @@
     "sortStockDesc": "Stock ↓",
     "sortStockAsc": "Stock ↑",
     "results": "{count} productos",
-    "productsIn": "en {category}"
+    "productsIn": "en {category}",
+    "exportExcel": "Exportar Excel"
   },
   "invoicing": {
     "title": "Facturación",
@@ -253,7 +254,9 @@
     "sortNumber": "Número",
     "results": "{count} facturas",
     "noResults": "Sin facturas",
-    "noResultsHint": "Prueba con otros filtros o términos de búsqueda"
+    "noResultsHint": "Prueba con otros filtros o términos de búsqueda",
+    "searchClient": "Buscar cliente por nombre o CIF...",
+    "noClientMatches": "Ningún cliente coincide"
   },
   "verifactu": {
     "title": "Certificado Verifactu (AEAT)",
