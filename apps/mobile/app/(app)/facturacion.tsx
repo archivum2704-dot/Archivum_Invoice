@@ -5,13 +5,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { Plus, Receipt, X, Trash2, Lock, ArrowLeft, ShieldCheck, ChevronRight } from "lucide-react-native";
+import { Plus, Receipt, X, Trash2, Lock, ArrowLeft, ShieldCheck, ChevronRight, Search as SearchIcon } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+import { APP_URL } from "@/lib/config";
 
-const APP_URL = "https://archivum2704-dot.vercel.app";
 const IVA_RATES = ["", "4", "10", "21"];
 const RET_RATES = ["", "7", "15", "19"];
 
@@ -38,6 +38,7 @@ export default function FacturacionScreen() {
 
   const [modal, setModal] = useState(false);
   const [clientPicker, setClientPicker] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
   const [clientId, setClientId] = useState("");
   const [retentionPct, setRetentionPct] = useState("");
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
@@ -47,6 +48,12 @@ export default function FacturacionScreen() {
 
   const fmtEur = (n: number) => `${Number(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
   const selectedClient = companies.find(c => c.id === clientId);
+
+  const clientMatches = useMemo(() => {
+    const q = clientSearch.trim().toLowerCase();
+    if (!q) return companies;
+    return companies.filter(c => c.name.toLowerCase().includes(q) || (c.cif ?? "").toLowerCase().includes(q));
+  }, [companies, clientSearch]);
 
   const load = useCallback(async () => {
     if (!orgId) return;
@@ -184,7 +191,7 @@ export default function FacturacionScreen() {
             {/* Client */}
             <View>
               <Text style={{ fontSize: 12, fontWeight: "600", color: C.muted, marginBottom: 6 }}>{t("invoicing.client")} *</Text>
-              <TouchableOpacity onPress={() => setClientPicker(true)} style={{ backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12 }}>
+              <TouchableOpacity onPress={() => { setClientSearch(""); setClientPicker(true); }} style={{ backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12 }}>
                 <Text style={{ color: selectedClient ? C.text : C.muted }}>
                   {selectedClient ? `${selectedClient.name}${selectedClient.cif ? ` · ${selectedClient.cif}` : ` · ${t("invoicing.noCif")}`}` : t("invoicing.selectClient")}
                 </Text>
@@ -199,7 +206,9 @@ export default function FacturacionScreen() {
               </View>
               {lines.map((l, i) => (
                 <View key={i} style={{ backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 12, padding: 12, marginBottom: 10 }}>
-                  <TextInput placeholder={t("invoicing.description")} placeholderTextColor={C.muted} value={l.description} onChangeText={(v) => setLine(i, { description: v, productId: null })}
+                  {/* Editing the text must NOT unlink the product — the link drives
+                      the automatic stock deduction at issue time. */}
+                  <TextInput placeholder={t("invoicing.description")} placeholderTextColor={C.muted} value={l.description} onChangeText={(v) => setLine(i, { description: v })}
                     style={{ backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, color: C.text, marginBottom: 8 }} />
                   {products.length > 0 && (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }} contentContainerStyle={{ gap: 6 }}>
@@ -256,6 +265,15 @@ export default function FacturacionScreen() {
               <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{t("invoicing.client")}</Text>
               <TouchableOpacity onPress={() => setClientPicker(false)}><X size={22} color={C.muted} /></TouchableOpacity>
             </View>
+            {/* Type-to-search filter */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, marginBottom: 10 }}>
+              <SearchIcon size={15} color={C.muted} />
+              <TextInput placeholder={t("invoicing.searchClient")} placeholderTextColor={C.muted} value={clientSearch} onChangeText={setClientSearch} autoCorrect={false}
+                style={{ flex: 1, paddingVertical: 9, color: C.text }} />
+              {clientSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setClientSearch("")} hitSlop={8}><X size={15} color={C.muted} /></TouchableOpacity>
+              )}
+            </View>
             {/* Inline new client */}
             <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
               <TextInput placeholder={t("invoicing.clientName")} placeholderTextColor={C.muted} value={ncName} onChangeText={setNcName}
@@ -266,7 +284,9 @@ export default function FacturacionScreen() {
                 <Plus size={18} color="#fff" />
               </TouchableOpacity>
             </View>
-            <FlatList data={companies} keyExtractor={(c) => c.id}
+            <FlatList data={clientMatches} keyExtractor={(c) => c.id}
+              keyboardShouldPersistTaps="handled"
+              ListEmptyComponent={<Text style={{ color: C.muted, paddingVertical: 16, textAlign: "center" }}>{t("invoicing.noClientMatches")}</Text>}
               renderItem={({ item }) => (
                 <TouchableOpacity onPress={() => { setClientId(item.id); setClientPicker(false); }} style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border }}>
                   <Text style={{ color: C.text, fontSize: 15 }}>{item.name}</Text>

@@ -5,13 +5,16 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { Plus, Package, X, Pencil, Trash2, Lock, ArrowLeft, Search } from "lucide-react-native";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
+import * as XLSX from "xlsx";
+import { Plus, Package, X, Pencil, Trash2, Lock, ArrowLeft, Search, FileSpreadsheet } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+import { APP_URL } from "@/lib/config";
 
-const APP_URL = "https://archivum2704-dot.vercel.app";
 
 interface Product {
   id: string;
@@ -51,6 +54,7 @@ export default function InventarioScreen() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const categories = Array.from(
     new Set(products.map((p) => p.category?.trim()).filter((c): c is string => !!c))
@@ -102,6 +106,31 @@ export default function InventarioScreen() {
     setModal(false); setDraft(EMPTY); load();
   };
 
+  const exportExcel = async () => {
+    if (filtered.length === 0) return;
+    setExporting(true);
+    try {
+      const rows = filtered.map(p => ({
+        [t("inventory.name")]: p.name,
+        SKU: p.sku ?? "",
+        [t("inventory.category")]: p.category ?? "",
+        [t("inventory.price")]: Number(p.unit_price),
+        [`${t("inventory.iva")} (%)`]: Number(p.tax_rate),
+        [t("inventory.stock")]: p.track_stock ? Number(p.stock_qty) : null,
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, t("inventory.title"));
+      const b64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+      const uri = FileSystem.cacheDirectory + `inventario_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      await FileSystem.writeAsStringAsync(uri, b64, { encoding: "base64" });
+      await Sharing.shareAsync(uri, { mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    } catch (e) {
+      Alert.alert(t("common.error"), String(e));
+    }
+    setExporting(false);
+  };
+
   const remove = (p: Product) => {
     Alert.alert(t("inventory.deleteTitle"), t("inventory.deleteConfirm", { name: p.name }), [
       { text: t("common.cancel"), style: "cancel" },
@@ -117,12 +146,20 @@ export default function InventarioScreen() {
         <TouchableOpacity onPress={() => router.back()}><ArrowLeft size={22} color={C.text} /></TouchableOpacity>
         <Text style={{ fontSize: 22, fontWeight: "700", color: C.text }}>{t("inventory.title")}</Text>
       </View>
-      {canManage && (
-        <TouchableOpacity onPress={() => { setDraft(EMPTY); setModal(true); }}
-          style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.blue, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 }}>
-          <Plus size={16} color="#fff" /><Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>{t("inventory.new")}</Text>
-        </TouchableOpacity>
-      )}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        {paid && products.length > 0 && (
+          <TouchableOpacity onPress={exportExcel} disabled={exporting}
+            style={{ borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, padding: 9, borderRadius: 12, opacity: exporting ? 0.5 : 1 }}>
+            {exporting ? <ActivityIndicator size="small" color={C.blue} /> : <FileSpreadsheet size={16} color={C.text} />}
+          </TouchableOpacity>
+        )}
+        {canManage && (
+          <TouchableOpacity onPress={() => { setDraft(EMPTY); setModal(true); }}
+            style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.blue, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 }}>
+            <Plus size={16} color="#fff" /><Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>{t("inventory.new")}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 

@@ -1,19 +1,20 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, ShieldCheck, Ban } from "lucide-react-native";
+import { ArrowLeft, ShieldCheck, Ban, Copy, Check } from "lucide-react-native";
+import * as Clipboard from "expo-clipboard";
 import QRCode from "react-native-qrcode-svg";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+import { APP_URL } from "@/lib/config";
 
-const APP_URL = "https://archivum2704-dot.vercel.app";
 
 interface Invoice {
   id: string; full_number: string | null; issue_date: string | null; state: string; kind: string;
-  issuer_name: string | null; issuer_cif: string | null;
+  issuer_name: string | null; issuer_cif: string | null; issuer_logo_url: string | null;
   client_name: string | null; client_cif: string | null;
   subtotal: number; tax_amount: number; retention_pct: number | null; retention_amount: number; total: number;
   huella: string | null; qr_url: string | null;
@@ -30,6 +31,14 @@ export default function FacturaDetailScreen() {
   const [lines, setLines] = useState<Line[]>([]);
   const [loading, setLoading] = useState(true);
   const [rectifying, setRectifying] = useState(false);
+  const [huellaCopied, setHuellaCopied] = useState(false);
+
+  const copyHuella = async () => {
+    if (!invoice?.huella) return;
+    await Clipboard.setStringAsync(invoice.huella);
+    setHuellaCopied(true);
+    setTimeout(() => setHuellaCopied(false), 1800);
+  };
 
   const fmtEur = (n: number) => `${Number(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 
@@ -79,10 +88,15 @@ export default function FacturaDetailScreen() {
         )}
 
         <View style={{ backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 16, gap: 12 }}>
-          <View>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{invoice.issuer_name}</Text>
-            {!!invoice.issuer_cif && <Text style={{ fontSize: 12, color: C.muted }}>CIF: {invoice.issuer_cif}</Text>}
-            <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{t("invoicing.issueDate")}: {invoice.issue_date}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            {!!invoice.issuer_logo_url && (
+              <Image source={{ uri: invoice.issuer_logo_url }} style={{ width: 44, height: 44, borderRadius: 10, borderWidth: 1, borderColor: C.border }} resizeMode="contain" />
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{invoice.issuer_name}</Text>
+              {!!invoice.issuer_cif && <Text style={{ fontSize: 12, color: C.muted }}>CIF: {invoice.issuer_cif}</Text>}
+              <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{t("invoicing.issueDate")}: {invoice.issue_date}</Text>
+            </View>
           </View>
           <View style={{ height: 1, backgroundColor: C.border }} />
           <View>
@@ -113,7 +127,14 @@ export default function FacturaDetailScreen() {
               <ShieldCheck size={16} color={C.green} /><Text style={{ fontWeight: "800", color: C.text, letterSpacing: 0.5 }}>VERI*FACTU</Text>
             </View>
             <Text style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>{t("invoicing.verifactuFooter")}</Text>
-            {!!invoice.huella && <Text style={{ fontSize: 9, color: C.muted, marginTop: 4 }}>{t("invoicing.fingerprint")}: {invoice.huella.slice(0, 24)}…</Text>}
+            {!!invoice.huella && (
+              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 6, marginTop: 4 }}>
+                <Text style={{ flex: 1, fontSize: 9, color: C.muted, fontFamily: "monospace" }}>{t("invoicing.fingerprint")}: {invoice.huella}</Text>
+                <TouchableOpacity onPress={copyHuella} hitSlop={8}>
+                  {huellaCopied ? <Check size={14} color={C.green} /> : <Copy size={14} color={C.muted} />}
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
           {!!invoice.qr_url && (
             <View style={{ backgroundColor: "#fff", padding: 6, borderRadius: 8 }}>
