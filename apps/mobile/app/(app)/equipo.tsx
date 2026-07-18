@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  RefreshControl, ActivityIndicator, Modal, ScrollView,
+  RefreshControl, ActivityIndicator, ScrollView,
   Alert, Linking,
 } from "react-native";
+import Sheet from "@/components/Sheet";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Users, Plus, X, ArrowRight, Lock, Trash2,
@@ -49,10 +50,8 @@ function isPaidActive(status: string) {
 /* ── Upgrade modal ───────────────────────────────────────────────────────── */
 function UpgradeModal({ visible, maxUsers, onClose, C, t }: { visible: boolean; maxUsers: number; onClose: () => void; C: any; t: any }) {
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
-      <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 28 }}>
-        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 16 }} />
+    <Sheet visible={visible} onClose={onClose} C={C}>
+      <View style={{ paddingBottom: 28, paddingTop: 16 }}>
         <View style={{ alignItems: "center", marginBottom: 12 }}>
           <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
             <Lock size={26} color={C.blue} />
@@ -83,7 +82,7 @@ function UpgradeModal({ visible, maxUsers, onClose, C, t }: { visible: boolean; 
           <Text style={{ fontSize: 14, color: C.muted }}>{t("common.notNow")}</Text>
         </TouchableOpacity>
       </View>
-    </Modal>
+    </Sheet>
   );
 }
 
@@ -93,10 +92,8 @@ function RolePicker({ visible, current, onSelect, onClose, C, t }: {
 }) {
   const roles: OrgRole[] = ["admin", "member", "viewer"];
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
-      <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 28 }}>
-        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 8 }} />
+    <Sheet visible={visible} onClose={onClose} C={C}>
+      <View style={{ paddingBottom: 28, paddingTop: 8 }}>
         <Text style={{ fontSize: 16, fontWeight: "700", color: C.text, paddingHorizontal: 20, paddingBottom: 12 }}>{t("equipo.changeRole")}</Text>
         {roles.map((r) => {
           const rc = getRoleColors(C)[r];
@@ -121,7 +118,7 @@ function RolePicker({ visible, current, onSelect, onClose, C, t }: {
           );
         })}
       </View>
-    </Modal>
+    </Sheet>
   );
 }
 
@@ -177,10 +174,8 @@ function InviteModal({ visible, orgId, token, onClose, onInvited, C, t }: {
 
   return (
     <>
-      <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-        <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
-        <View style={{ backgroundColor: C.surface, borderRadius: 20, maxHeight: "85%", overflow: "hidden" }}>
-          <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12 }} />
+      <Sheet visible={visible} onClose={onClose} C={C} maxHeight="85%">
+        <View style={{ flexShrink: 1 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: C.border }}>
             <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>{t("equipo.invite.title")}</Text>
             <TouchableOpacity onPress={onClose} style={{ backgroundColor: C.segmentBg, borderRadius: 8, padding: 6 }}>
@@ -254,7 +249,7 @@ function InviteModal({ visible, orgId, token, onClose, onInvited, C, t }: {
             </Text>
           </ScrollView>
         </View>
-      </Modal>
+      </Sheet>
       <RolePicker visible={roleOpen} current={role} onSelect={setRole} onClose={() => setRoleOpen(false)} C={C} t={t} />
     </>
   );

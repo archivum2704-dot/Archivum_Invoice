@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, TextInput,
-  ActivityIndicator, KeyboardAvoidingView, Platform, Alert,
+  ActivityIndicator, KeyboardAvoidingView, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -538,7 +538,9 @@ export default function SubirScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+      {/* Android runs edge-to-edge (SDK 55+): the window no longer resizes for
+          the keyboard, so "padding" is needed on both platforms. */}
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         {/* Header */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 }}>
           <TouchableOpacity onPress={() => step > 1 ? setStep(step - 1) : router.back()}>

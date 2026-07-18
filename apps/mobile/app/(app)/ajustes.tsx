@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, Switch,
-  Alert, ActivityIndicator, Linking, Modal, TextInput, Image,
+  Alert, ActivityIndicator, KeyboardAvoidingView, Linking, Modal, TextInput, Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -176,8 +176,9 @@ function OrgEditModal({ visible, orgId, token, onClose, onSaved, C }: {
   );
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
+    <Modal visible={visible} animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top", "bottom"]}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 }}>
           <Text style={{ fontSize: 18, fontWeight: "700", color: C.text }}>{t("ajustes.organization.editTitle")}</Text>
           <TouchableOpacity onPress={onClose}><X size={24} color={C.muted} /></TouchableOpacity>
@@ -229,6 +230,7 @@ function OrgEditModal({ visible, orgId, token, onClose, onSaved, C }: {
             </View>
           </>
         )}
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );

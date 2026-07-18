@@ -62,7 +62,8 @@
     "paywallBody": "Issue Verifactu-compliant invoices by upgrading to a paid plan.",
     "upgrade": "View plans",
     "searchClient": "Search by name or tax ID...",
-    "noClientMatches": "No matching clients"
+    "noClientMatches": "No matching clients",
+    "createFromSearch": "Create client \"{{name}}\""
   },
   "common": {
     "save": "Save",

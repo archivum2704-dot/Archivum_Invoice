@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  RefreshControl, ActivityIndicator, Modal, ScrollView,
+  RefreshControl, ActivityIndicator, ScrollView,
 } from "react-native";
+import Sheet from "@/components/Sheet";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
@@ -247,11 +248,8 @@ export default function BibliotecaScreen() {
       </TouchableOpacity>
 
       {/* Filter modal */}
-      <Modal visible={filterModal} animationType="slide" transparent onRequestClose={() => setFilterModal(false)}>
-        <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={() => setFilterModal(false)} />
-        <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 24 }}>
-          {/* Handle */}
-          <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 4 }} />
+      <Sheet visible={filterModal} onClose={() => setFilterModal(false)} C={C}>
+        <View style={{ paddingBottom: 24, paddingTop: 4 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 }}>
             <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>{t("biblioteca.advancedFilters")}</Text>
             <TouchableOpacity onPress={() => { setActiveType("all"); setStatusFilter("all"); }}>
@@ -282,7 +280,7 @@ export default function BibliotecaScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </Sheet>
 
       {/* First-time hint */}
       <Coachmark

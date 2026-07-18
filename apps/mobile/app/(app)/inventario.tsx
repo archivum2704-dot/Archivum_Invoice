@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  RefreshControl, ActivityIndicator, Modal, ScrollView, Switch, Alert, Linking,
+  RefreshControl, ActivityIndicator, ScrollView, Switch, Alert, Linking,
 } from "react-native";
+import Sheet from "@/components/Sheet";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as FileSystem from "expo-file-system/legacy";
@@ -56,22 +57,24 @@ export default function InventarioScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  const categories = Array.from(
+  const categories = useMemo(() => Array.from(
     new Set(products.map((p) => p.category?.trim()).filter((c): c is string => !!c))
-  ).sort((a, b) => a.localeCompare(b));
-  const hasUncategorized = products.some((p) => !p.category?.trim());
-  const q = search.trim().toLowerCase();
-  const filtered = products.filter((p) => {
-    const matchesSearch =
-      !q ||
-      p.name.toLowerCase().includes(q) ||
-      (p.sku ?? "").toLowerCase().includes(q) ||
-      (p.category ?? "").toLowerCase().includes(q);
-    const matchesCategory =
-      !selectedCategory ||
-      (selectedCategory === UNCAT ? !p.category?.trim() : p.category?.trim() === selectedCategory);
-    return matchesSearch && matchesCategory;
-  });
+  ).sort((a, b) => a.localeCompare(b)), [products]);
+  const hasUncategorized = useMemo(() => products.some((p) => !p.category?.trim()), [products]);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return products.filter((p) => {
+      const matchesSearch =
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        (p.sku ?? "").toLowerCase().includes(q) ||
+        (p.category ?? "").toLowerCase().includes(q);
+      const matchesCategory =
+        !selectedCategory ||
+        (selectedCategory === UNCAT ? !p.category?.trim() : p.category?.trim() === selectedCategory);
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, search, selectedCategory]);
 
   const fmtEur = (n: number) => `${Number(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 
@@ -260,34 +263,32 @@ export default function InventarioScreen() {
       )}
 
       {/* Create / edit modal */}
-      <Modal visible={modal} animationType="slide" transparent onRequestClose={() => setModal(false)}>
-        <View style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
-          <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "88%" }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>{draft.id ? t("inventory.edit") : t("inventory.new")}</Text>
-              <TouchableOpacity onPress={() => setModal(false)}><X size={22} color={C.muted} /></TouchableOpacity>
-            </View>
-            <ScrollView keyboardShouldPersistTaps="handled">
-              <Field label={t("inventory.name")} C={C}><Input value={draft.name} onChangeText={(v: string) => setDraft({ ...draft, name: v })} C={C} /></Field>
-              <Field label="SKU" C={C}><Input value={draft.sku} onChangeText={(v: string) => setDraft({ ...draft, sku: v })} C={C} /></Field>
-              <Field label={t("inventory.category")} C={C}><Input value={draft.category} onChangeText={(v: string) => setDraft({ ...draft, category: v })} placeholder={t("inventory.categoryPlaceholder")} C={C} /></Field>
-              <View style={{ flexDirection: "row", gap: 12 }}>
-                <View style={{ flex: 1 }}><Field label={`${t("inventory.price")} (€)`} C={C}><Input value={draft.unit_price} onChangeText={(v: string) => setDraft({ ...draft, unit_price: v })} keyboardType="decimal-pad" C={C} /></Field></View>
-                <View style={{ flex: 1 }}><Field label={`${t("inventory.iva")} (%)`} C={C}><Input value={draft.tax_rate} onChangeText={(v: string) => setDraft({ ...draft, tax_rate: v })} keyboardType="decimal-pad" C={C} /></Field></View>
-              </View>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginVertical: 10 }}>
-                <Text style={{ color: C.text, fontSize: 14 }}>{t("inventory.trackStock")}</Text>
-                <Switch value={draft.track_stock} onValueChange={(v: boolean) => setDraft({ ...draft, track_stock: v })} />
-              </View>
-              {draft.track_stock && <Field label={t("inventory.stock")} C={C}><Input value={draft.stock_qty} onChangeText={(v: string) => setDraft({ ...draft, stock_qty: v })} keyboardType="number-pad" C={C} /></Field>}
-            </ScrollView>
-            <TouchableOpacity onPress={save} disabled={saving || !draft.name.trim()}
-              style={{ backgroundColor: C.blue, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 12, opacity: saving || !draft.name.trim() ? 0.5 : 1 }}>
-              {saving ? <ActivityIndicator color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "600" }}>{t("common.save")}</Text>}
-            </TouchableOpacity>
+      <Sheet visible={modal} onClose={() => setModal(false)} C={C}>
+        <View style={{ padding: 20, paddingTop: 8, flexShrink: 1 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>{draft.id ? t("inventory.edit") : t("inventory.new")}</Text>
+            <TouchableOpacity onPress={() => setModal(false)}><X size={22} color={C.muted} /></TouchableOpacity>
           </View>
+          <ScrollView keyboardShouldPersistTaps="handled">
+            <Field label={t("inventory.name")} C={C}><Input value={draft.name} onChangeText={(v: string) => setDraft({ ...draft, name: v })} C={C} /></Field>
+            <Field label="SKU" C={C}><Input value={draft.sku} onChangeText={(v: string) => setDraft({ ...draft, sku: v })} C={C} /></Field>
+            <Field label={t("inventory.category")} C={C}><Input value={draft.category} onChangeText={(v: string) => setDraft({ ...draft, category: v })} placeholder={t("inventory.categoryPlaceholder")} C={C} /></Field>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <View style={{ flex: 1 }}><Field label={`${t("inventory.price")} (€)`} C={C}><Input value={draft.unit_price} onChangeText={(v: string) => setDraft({ ...draft, unit_price: v })} keyboardType="decimal-pad" C={C} /></Field></View>
+              <View style={{ flex: 1 }}><Field label={`${t("inventory.iva")} (%)`} C={C}><Input value={draft.tax_rate} onChangeText={(v: string) => setDraft({ ...draft, tax_rate: v })} keyboardType="decimal-pad" C={C} /></Field></View>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginVertical: 10 }}>
+              <Text style={{ color: C.text, fontSize: 14 }}>{t("inventory.trackStock")}</Text>
+              <Switch value={draft.track_stock} onValueChange={(v: boolean) => setDraft({ ...draft, track_stock: v })} />
+            </View>
+            {draft.track_stock && <Field label={t("inventory.stock")} C={C}><Input value={draft.stock_qty} onChangeText={(v: string) => setDraft({ ...draft, stock_qty: v })} keyboardType="number-pad" C={C} /></Field>}
+          </ScrollView>
+          <TouchableOpacity onPress={save} disabled={saving || !draft.name.trim()}
+            style={{ backgroundColor: C.blue, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 12, opacity: saving || !draft.name.trim() ? 0.5 : 1 }}>
+            {saving ? <ActivityIndicator color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "600" }}>{t("common.save")}</Text>}
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </Sheet>
     </SafeAreaView>
   );
 }

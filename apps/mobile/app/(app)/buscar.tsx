@@ -1,8 +1,9 @@
 import { useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  ActivityIndicator, Modal,
+  ActivityIndicator,
 } from "react-native";
+import Sheet from "@/components/Sheet";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Search, X, ChevronDown, FileText, ChevronRight } from "lucide-react-native";
@@ -185,10 +186,8 @@ export default function BuscarScreen() {
       )}
 
       {/* Sort modal */}
-      <Modal visible={sortModal} animationType="slide" transparent onRequestClose={() => setSortModal(false)}>
-        <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={() => setSortModal(false)} />
-        <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 24 }}>
-          <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 4 }} />
+      <Sheet visible={sortModal} onClose={() => setSortModal(false)} C={C}>
+        <View style={{ paddingBottom: 24, paddingTop: 4 }}>
           <Text style={{ fontSize: 16, fontWeight: "700", color: C.text, padding: 16, paddingBottom: 8 }}>{t("buscar.sortBy")}</Text>
           {SORT_OPTIONS.map((o) => (
             <TouchableOpacity
@@ -207,7 +206,7 @@ export default function BuscarScreen() {
           ))}
           <View style={{ height: 8 }} />
         </View>
-      </Modal>
+      </Sheet>
     </SafeAreaView>
   );
 }

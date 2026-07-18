@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  RefreshControl, ActivityIndicator, Modal, ScrollView, Alert, Linking,
+  RefreshControl, ActivityIndicator, KeyboardAvoidingView, Modal, ScrollView, Alert, Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Sheet from "@/components/Sheet";
 import { router } from "expo-router";
 import { Plus, Receipt, X, Trash2, Lock, ArrowLeft, ShieldCheck, ChevronRight, Search as SearchIcon } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
@@ -22,6 +23,14 @@ type Line = { productId: string | null; description: string; quantity: string; u
 
 const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1", unitPrice: "0", taxRate: "21" });
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+function Chip({ active, label, onPress, C }: { active: boolean; label: string; onPress: () => void; C: any }) {
+  return (
+    <TouchableOpacity onPress={onPress} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: active ? C.blue : C.border, backgroundColor: active ? C.blueL : C.surface }}>
+      <Text style={{ fontSize: 13, fontWeight: "600", color: active ? C.blue : C.muted }}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
 
 export default function FacturacionScreen() {
   const { t } = useTranslation();
@@ -147,12 +156,6 @@ export default function FacturacionScreen() {
     );
   }
 
-  const Chip = ({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) => (
-    <TouchableOpacity onPress={onPress} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: active ? C.blue : C.border, backgroundColor: active ? C.blueL : C.surface }}>
-      <Text style={{ fontSize: 13, fontWeight: "600", color: active ? C.blue : C.muted }}>{label}</Text>
-    </TouchableOpacity>
-  );
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
       {Header}
@@ -181,8 +184,9 @@ export default function FacturacionScreen() {
       )}
 
       {/* New invoice modal */}
-      <Modal visible={modal} animationType="slide" onRequestClose={() => setModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
+      <Modal visible={modal} animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={() => setModal(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top", "bottom"]}>
+          <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 }}>
             <Text style={{ fontSize: 18, fontWeight: "700", color: C.text }}>{t("invoicing.new")}</Text>
             <TouchableOpacity onPress={() => setModal(false)}><X size={24} color={C.muted} /></TouchableOpacity>
@@ -212,7 +216,7 @@ export default function FacturacionScreen() {
                     style={{ backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, color: C.text, marginBottom: 8 }} />
                   {products.length > 0 && (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }} contentContainerStyle={{ gap: 6 }}>
-                      {products.map(p => <Chip key={p.id} active={l.productId === p.id} label={p.name} onPress={() => pickProduct(i, p)} />)}
+                      {products.map(p => <Chip key={p.id} C={C} active={l.productId === p.id} label={p.name} onPress={() => pickProduct(i, p)} />)}
                     </ScrollView>
                   )}
                   <View style={{ flexDirection: "row", gap: 8 }}>
@@ -224,7 +228,7 @@ export default function FacturacionScreen() {
                   </View>
                   <Text style={{ fontSize: 11, color: C.muted, marginTop: 8, marginBottom: 4 }}>{t("invoicing.iva")}</Text>
                   <View style={{ flexDirection: "row", gap: 6 }}>
-                    {IVA_RATES.map(r => <Chip key={r} active={l.taxRate === r} label={r === "" ? t("invoicing.exempt") : `${r}%`} onPress={() => setLine(i, { taxRate: r })} />)}
+                    {IVA_RATES.map(r => <Chip key={r} C={C} active={l.taxRate === r} label={r === "" ? t("invoicing.exempt") : `${r}%`} onPress={() => setLine(i, { taxRate: r })} />)}
                   </View>
                 </View>
               ))}
@@ -234,7 +238,7 @@ export default function FacturacionScreen() {
             <View>
               <Text style={{ fontSize: 12, fontWeight: "600", color: C.muted, marginBottom: 8 }}>{t("invoicing.retention")}</Text>
               <View style={{ flexDirection: "row", gap: 6 }}>
-                {RET_RATES.map(r => <Chip key={r} active={retentionPct === r} label={r === "" ? t("invoicing.noRetention") : `${r}%`} onPress={() => setRetentionPct(r)} />)}
+                {RET_RATES.map(r => <Chip key={r} C={C} active={retentionPct === r} label={r === "" ? t("invoicing.noRetention") : `${r}%`} onPress={() => setRetentionPct(r)} />)}
               </View>
             </View>
 
@@ -254,48 +258,59 @@ export default function FacturacionScreen() {
               <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("invoicing.issue")}</Text>
             </TouchableOpacity>
           </View>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
       {/* Client picker modal */}
-      <Modal visible={clientPicker} animationType="slide" transparent onRequestClose={() => setClientPicker(false)}>
-        <View style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
-          <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "80%" }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{t("invoicing.client")}</Text>
-              <TouchableOpacity onPress={() => setClientPicker(false)}><X size={22} color={C.muted} /></TouchableOpacity>
-            </View>
-            {/* Type-to-search filter */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, marginBottom: 10 }}>
-              <SearchIcon size={15} color={C.muted} />
-              <TextInput placeholder={t("invoicing.searchClient")} placeholderTextColor={C.muted} value={clientSearch} onChangeText={setClientSearch} autoCorrect={false}
-                style={{ flex: 1, paddingVertical: 9, color: C.text }} />
-              {clientSearch.length > 0 && (
-                <TouchableOpacity onPress={() => setClientSearch("")} hitSlop={8}><X size={15} color={C.muted} /></TouchableOpacity>
-              )}
-            </View>
-            {/* Inline new client */}
-            <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
-              <TextInput placeholder={t("invoicing.clientName")} placeholderTextColor={C.muted} value={ncName} onChangeText={setNcName}
-                style={{ flex: 2, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 9, color: C.text }} />
-              <TextInput placeholder="CIF" placeholderTextColor={C.muted} value={ncCif} onChangeText={setNcCif} autoCapitalize="characters"
-                style={{ flex: 1, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 9, color: C.text }} />
-              <TouchableOpacity onPress={createClient} disabled={!ncName.trim()} style={{ backgroundColor: C.blue, borderRadius: 8, paddingHorizontal: 14, justifyContent: "center", opacity: ncName.trim() ? 1 : 0.5 }}>
-                <Plus size={18} color="#fff" />
-              </TouchableOpacity>
-            </View>
-            <FlatList data={clientMatches} keyExtractor={(c) => c.id}
-              keyboardShouldPersistTaps="handled"
-              ListEmptyComponent={<Text style={{ color: C.muted, paddingVertical: 16, textAlign: "center" }}>{t("invoicing.noClientMatches")}</Text>}
-              renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => { setClientId(item.id); setClientPicker(false); }} style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border }}>
-                  <Text style={{ color: C.text, fontSize: 15 }}>{item.name}</Text>
-                  <Text style={{ color: C.muted, fontSize: 12 }}>{item.cif ?? t("invoicing.noCif")}</Text>
-                </TouchableOpacity>
-              )} />
+      <Sheet visible={clientPicker} onClose={() => setClientPicker(false)} C={C} maxHeight="80%">
+        <View style={{ padding: 20, paddingTop: 8, flexShrink: 1 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{t("invoicing.client")}</Text>
+            <TouchableOpacity onPress={() => setClientPicker(false)}><X size={22} color={C.muted} /></TouchableOpacity>
           </View>
+          {/* Type-to-search filter */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, marginBottom: 10 }}>
+            <SearchIcon size={15} color={C.muted} />
+            <TextInput placeholder={t("invoicing.searchClient")} placeholderTextColor={C.muted} value={clientSearch} onChangeText={setClientSearch} autoCorrect={false}
+              style={{ flex: 1, paddingVertical: 9, color: C.text }} />
+            {clientSearch.length > 0 && (
+              <TouchableOpacity onPress={() => setClientSearch("")} hitSlop={8}><X size={15} color={C.muted} /></TouchableOpacity>
+            )}
+          </View>
+          {/* Inline new client */}
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+            <TextInput placeholder={t("invoicing.clientName")} placeholderTextColor={C.muted} value={ncName} onChangeText={setNcName}
+              style={{ flex: 2, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 9, color: C.text }} />
+            <TextInput placeholder="CIF" placeholderTextColor={C.muted} value={ncCif} onChangeText={setNcCif} autoCapitalize="characters"
+              style={{ flex: 1, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 9, color: C.text }} />
+            <TouchableOpacity onPress={createClient} disabled={!ncName.trim()} style={{ backgroundColor: C.blue, borderRadius: 8, paddingHorizontal: 14, justifyContent: "center", opacity: ncName.trim() ? 1 : 0.5 }}>
+              <Plus size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          <FlatList data={clientMatches} keyExtractor={(c) => c.id}
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={
+              <View style={{ paddingVertical: 16, alignItems: "center", gap: 12 }}>
+                <Text style={{ color: C.muted, textAlign: "center" }}>{t("invoicing.noClientMatches")}</Text>
+                {clientSearch.trim().length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setNcName(clientSearch.trim())}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.blueL, borderWidth: 1, borderColor: C.blue, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }}>
+                    <Plus size={15} color={C.blue} />
+                    <Text style={{ color: C.blue, fontWeight: "600", fontSize: 13 }}>{t("invoicing.createFromSearch", { name: clientSearch.trim() })}</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            }
+            renderItem={({ item }) => (
+              <TouchableOpacity onPress={() => { setClientId(item.id); setClientPicker(false); }} style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border }}>
+                <Text style={{ color: C.text, fontSize: 15 }}>{item.name}</Text>
+                <Text style={{ color: C.muted, fontSize: 12 }}>{item.cif ?? t("invoicing.noCif")}</Text>
+              </TouchableOpacity>
+            )} />
         </View>
-      </Modal>
+      </Sheet>
     </SafeAreaView>
   );
 }

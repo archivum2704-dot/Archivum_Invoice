@@ -66,6 +66,26 @@ description     — descripcion
 
 ---
 
+### Fix — Teclado, edge-to-edge y alta de clientes (feedback de usuario)
+
+Contexto: con Expo SDK 55 Android corre siempre en modo *edge-to-edge*: la ventana ya
+no se redimensiona al abrir el teclado (`adjustResize` no aplica) y el contenido se
+dibuja bajo la barra de navegación del sistema si no se aplican los insets.
+
+| # | Archivo | Severidad | Problema | Fix |
+|---|---------|-----------|----------|-----|
+| 18 | `components/Sheet.tsx` (nuevo) | CRITICO | Todos los modales tipo hoja duplicaban el mismo patrón sin manejo de teclado ni safe-area inferior | Componente reutilizable: `KeyboardAvoidingView` (padding), `paddingBottom: insets.bottom`, overlay que cierra al tocar fuera, `navigationBarTranslucent` |
+| 19 | `inventario.tsx` | CRITICO | El teclado tapaba los campos del modal "Nuevo producto"; el botón Guardar quedaba bajo la barra de navegación | Modal migrado a `Sheet`; `filtered`/`categories` memoizados con `useMemo` |
+| 20 | `facturacion.tsx` | CRITICO | Teclado tapaba inputs del modal de factura y del picker de clientes; contenido bajo la barra de navegación | Modal de factura con `edges={["top","bottom"]}` + `KeyboardAvoidingView`; picker migrado a `Sheet` |
+| 21 | `facturacion.tsx` | MEDIO | Al buscar un cliente inexistente solo se mostraba "Ningún cliente coincide", sin vía clara para crearlo | CTA "Crear cliente «X»" en el estado vacío que precarga el nombre buscado en el alta inline (claves i18n `invoicing.createFromSearch`) |
+| 22 | `empresas.tsx`, `equipo.tsx`, `biblioteca.tsx`, `buscar.tsx` | MEDIO | 8 modales hoja sin manejo de teclado ni inset inferior | Migrados a `Sheet` |
+| 23 | `ajustes.tsx` | MEDIO | Modal de organización sin `KeyboardAvoidingView` ni safe-area inferior | `edges={["top","bottom"]}` + `KeyboardAvoidingView` |
+| 24 | `subir.tsx`, `editar/[id].tsx`, `login.tsx`, `register.tsx` | MEDIO | `KeyboardAvoidingView` con `behavior="height"` en Android — no funciona con edge-to-edge | Cambiado a `behavior="padding"` en ambas plataformas |
+| 25 | `facturacion.tsx` | BAJO | Componente `Chip` definido dentro del render — se remonta en cada re-render | Movido a nivel de módulo |
+| 26 | `app.json` | BAJO | Permiso `RECORD_AUDIO` duplicado | Deduplicado |
+
+---
+
 ## Pendiente de revisar
 
 - [ ] Pantalla `buscar.tsx`: la busqueda solo filtra por `document_number.ilike`, aunque el placeholder dice "numero, empresa, tipo..."
