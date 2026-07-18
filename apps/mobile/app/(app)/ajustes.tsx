@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, Switch,
-  Alert, ActivityIndicator, Linking,
+  Alert, ActivityIndicator, Linking, Modal, TextInput, Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -10,15 +10,17 @@ import {
   User, Building2, Copy, Check, Users, Globe, Moon,
   Bell, LogOut, ChevronRight, CreditCard, FileText,
   CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle,
-  Shield,
+  Shield, Pencil, X, ImageOff, Upload, Trash2,
 } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
+import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "@/context/auth-context";
 import { useTheme } from "@/context/theme-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
 import { setLanguage, type Lang } from "@/lib/i18n";
 import { useColors, type Colors } from "@/lib/colors";
+import { APP_URL } from "@/lib/config";
 import { PLANS, type PlanId } from "@/lib/pricing";
 
 function SectionLabel({ children, C }: { children: string; C: Colors }) {
@@ -64,6 +66,174 @@ function Row({
   return onPress ? <TouchableOpacity onPress={onPress}>{content}</TouchableOpacity> : content;
 }
 
+/* ── Organization fiscal data + logo editor (admins only) ─────────────────── */
+interface OrgDraft {
+  name: string; cif: string; phone: string; email: string;
+  address: string; postal_code: string; city: string; province: string;
+  logo_url: string | null;
+}
+
+function OrgEditModal({ visible, orgId, token, onClose, onSaved, C }: {
+  visible: boolean; orgId: string; token: string | undefined;
+  onClose: () => void; onSaved: () => void; C: Colors;
+}) {
+  const { t } = useTranslation();
+  const [draft, setDraft] = useState<OrgDraft | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [logoBusy, setLogoBusy] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    setDraft(null);
+    supabase.from("organizations")
+      .select("name, cif, phone, email, address, postal_code, city, province, logo_url")
+      .eq("id", orgId).single()
+      .then(({ data }) => {
+        if (data) setDraft({
+          name: data.name ?? "", cif: data.cif ?? "", phone: data.phone ?? "", email: data.email ?? "",
+          address: data.address ?? "", postal_code: data.postal_code ?? "", city: data.city ?? "",
+          province: data.province ?? "", logo_url: data.logo_url ?? null,
+        });
+      });
+  }, [visible, orgId]);
+
+  const save = async () => {
+    if (!draft || !draft.name.trim()) return;
+    setSaving(true);
+    const { error } = await supabase.from("organizations").update({
+      name: draft.name.trim(),
+      cif: draft.cif.trim() || null,
+      phone: draft.phone.trim() || null,
+      email: draft.email.trim() || null,
+      address: draft.address.trim() || null,
+      postal_code: draft.postal_code.trim() || null,
+      city: draft.city.trim() || null,
+      province: draft.province.trim() || null,
+    }).eq("id", orgId);
+    setSaving(false);
+    if (error) { Alert.alert(t("common.error"), error.message); return; }
+    onSaved(); onClose();
+  };
+
+  const pickLogo = async () => {
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8 });
+    if (res.canceled || !res.assets?.[0]) return;
+    const asset = res.assets[0];
+    setLogoBusy(true);
+    try {
+      const form = new FormData();
+      form.append("orgId", orgId);
+      // React Native FormData file descriptor
+      form.append("file", {
+        uri: asset.uri,
+        name: asset.fileName ?? "logo.jpg",
+        type: asset.mimeType ?? "image/jpeg",
+      } as unknown as Blob);
+      const r = await fetch(`${APP_URL}/api/organizations/logo`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: form,
+      });
+      const json = await r.json();
+      if (!r.ok) { Alert.alert(t("common.error"), json.detail ?? json.error ?? ""); return; }
+      setDraft(d => d ? { ...d, logo_url: json.url } : d);
+      onSaved();
+    } catch (e) {
+      Alert.alert(t("common.error"), String(e));
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const removeLogo = async () => {
+    setLogoBusy(true);
+    try {
+      const r = await fetch(`${APP_URL}/api/organizations/logo`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ orgId }),
+      });
+      if (r.ok) { setDraft(d => d ? { ...d, logo_url: null } : d); onSaved(); }
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const inputStyle = {
+    backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 10, color: C.text, fontSize: 15,
+  } as const;
+
+  const F = ({ label, value, onChange, keyboardType, autoCapitalize }: {
+    label: string; value: string; onChange: (v: string) => void;
+    keyboardType?: "email-address" | "phone-pad"; autoCapitalize?: "characters" | "none";
+  }) => (
+    <View style={{ marginBottom: 12 }}>
+      <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 6 }}>{label}</Text>
+      <TextInput value={value} onChangeText={onChange} placeholderTextColor={C.muted}
+        keyboardType={keyboardType} autoCapitalize={autoCapitalize ?? "sentences"} style={inputStyle} />
+    </View>
+  );
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 }}>
+          <Text style={{ fontSize: 18, fontWeight: "700", color: C.text }}>{t("ajustes.organization.editTitle")}</Text>
+          <TouchableOpacity onPress={onClose}><X size={24} color={C.muted} /></TouchableOpacity>
+        </View>
+        {!draft ? (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><ActivityIndicator color={C.blue} /></View>
+        ) : (
+          <>
+            <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+              {/* Logo */}
+              <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 6 }}>{t("ajustes.organization.logo")}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                <View style={{ width: 56, height: 56, borderRadius: 12, borderWidth: 1, borderColor: C.border, backgroundColor: C.inputBg, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                  {draft.logo_url
+                    ? <Image source={{ uri: draft.logo_url }} style={{ width: 56, height: 56 }} resizeMode="contain" />
+                    : <ImageOff size={20} color={C.muted} />}
+                </View>
+                <TouchableOpacity onPress={pickLogo} disabled={logoBusy}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, opacity: logoBusy ? 0.5 : 1 }}>
+                  {logoBusy ? <ActivityIndicator size="small" color={C.blue} /> : <Upload size={15} color={C.text} />}
+                  <Text style={{ color: C.text, fontWeight: "600", fontSize: 13 }}>
+                    {draft.logo_url ? t("ajustes.organization.changeLogo") : t("ajustes.organization.uploadLogo")}
+                  </Text>
+                </TouchableOpacity>
+                {!!draft.logo_url && (
+                  <TouchableOpacity onPress={removeLogo} disabled={logoBusy} hitSlop={8}>
+                    <Trash2 size={17} color={C.red} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              <Text style={{ fontSize: 11, color: C.muted, marginTop: -10, marginBottom: 14 }}>{t("ajustes.organization.logoHint")}</Text>
+
+              <F label={t("ajustes.organization.name")} value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
+              <F label="CIF/NIF" value={draft.cif} onChange={v => setDraft({ ...draft, cif: v })} autoCapitalize="characters" />
+              <F label={t("ajustes.organization.phone")} value={draft.phone} onChange={v => setDraft({ ...draft, phone: v })} keyboardType="phone-pad" />
+              <F label={t("ajustes.organization.email")} value={draft.email} onChange={v => setDraft({ ...draft, email: v })} keyboardType="email-address" autoCapitalize="none" />
+              <F label={t("ajustes.organization.address")} value={draft.address} onChange={v => setDraft({ ...draft, address: v })} />
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <View style={{ flex: 1 }}><F label={t("ajustes.organization.postalCode")} value={draft.postal_code} onChange={v => setDraft({ ...draft, postal_code: v })} /></View>
+                <View style={{ flex: 2 }}><F label={t("ajustes.organization.city")} value={draft.city} onChange={v => setDraft({ ...draft, city: v })} /></View>
+              </View>
+              <F label={t("ajustes.organization.province")} value={draft.province} onChange={v => setDraft({ ...draft, province: v })} />
+            </ScrollView>
+            <View style={{ padding: 16 }}>
+              <TouchableOpacity onPress={save} disabled={saving || !draft.name.trim()}
+                style={{ backgroundColor: C.blue, borderRadius: 12, paddingVertical: 14, alignItems: "center", opacity: saving || !draft.name.trim() ? 0.5 : 1 }}>
+                {saving ? <ActivityIndicator color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("common.save")}</Text>}
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
 interface PlanInfo {
   subscription_plan: PlanId;
   subscription_status: string;
@@ -76,7 +246,6 @@ interface PlanInfo {
   company_count: number;
 }
 
-const APP_URL = "https://archivum2704-dot.vercel.app";
 
 function StatusIcon({ status, C }: { status: string; C: Colors }) {
   if (status === "active")   return <CheckCircle  size={14} color={C.green} />;
@@ -108,13 +277,14 @@ function UsageBar({ value, max, C }: { value: number; max: number; C: Colors }) 
 
 export default function AjustesScreen() {
   const { t, i18n } = useTranslation();
-  const { profile, org, signOut, session } = useAuth();
+  const { profile, org, signOut, session, isAdmin, refreshProfile } = useAuth();
   const { theme, setTheme } = useTheme();
   const C = useColors();
   const [copied,        setCopied]        = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [signingOut,    setSigningOut]    = useState(false);
   const [plan,          setPlan]          = useState<PlanInfo | null>(null);
+  const [orgEditOpen,   setOrgEditOpen]   = useState(false);
 
   // Load notifications preference
   useEffect(() => {
@@ -230,6 +400,14 @@ export default function AjustesScreen() {
             <Text style={{ fontSize: 12, color: C.muted, marginBottom: 2 }}>{t("ajustes.organization.name")}</Text>
             <Text style={{ fontSize: 14, fontWeight: "600", color: C.text }}>{org?.name ?? "—"}</Text>
           </View>
+          {isAdmin && (
+            <TouchableOpacity onPress={() => setOrgEditOpen(true)}
+              style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: C.border }}>
+              <Pencil size={15} color={C.blue} />
+              <Text style={{ flex: 1, fontSize: 14, color: C.blue, fontWeight: "600" }}>{t("ajustes.organization.editTitle")}</Text>
+              <ChevronRight size={16} color={C.blue} />
+            </TouchableOpacity>
+          )}
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 14 }}>
             <View>
               <Text style={{ fontSize: 12, color: C.muted, marginBottom: 2 }}>{t("ajustes.organization.accessCode")}</Text>
@@ -444,7 +622,7 @@ export default function AjustesScreen() {
                     onPress: async () => {
                       if (!org?.id) return;
                       try {
-                        await fetch("https://archivum2704-dot.vercel.app/api/billing/cancel", {
+                        await fetch(`${APP_URL}/api/billing/cancel`, {
                           method: "POST",
                           headers: {
                             "Content-Type": "application/json",
@@ -494,6 +672,17 @@ export default function AjustesScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {org?.id && (
+        <OrgEditModal
+          visible={orgEditOpen}
+          orgId={org.id}
+          token={session?.access_token}
+          onClose={() => setOrgEditOpen(false)}
+          onSaved={refreshProfile}
+          C={C}
+        />
+      )}
     </SafeAreaView>
   );
 }

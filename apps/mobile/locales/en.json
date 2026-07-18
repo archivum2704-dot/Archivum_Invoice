@@ -53,10 +53,16 @@
     "errClientCif": "The client needs a tax ID to be invoiced.",
     "errLines": "Add at least one line with a description.",
     "errGeneric": "Couldn't issue the invoice.",
-    "states": { "issued": "Issued", "draft": "Draft", "cancelled": "Cancelled" },
+    "states": {
+      "issued": "Issued",
+      "draft": "Draft",
+      "cancelled": "Cancelled"
+    },
     "paywallTitle": "Invoicing is a paid feature",
     "paywallBody": "Issue Verifactu-compliant invoices by upgrading to a paid plan.",
-    "upgrade": "View plans"
+    "upgrade": "View plans",
+    "searchClient": "Search by name or tax ID...",
+    "noClientMatches": "No matching clients"
   },
   "common": {
     "save": "Save",
@@ -423,7 +429,18 @@
     },
     "organization": {
       "name": "Name",
-      "accessCode": "Access code"
+      "accessCode": "Access code",
+      "editTitle": "Tax details & logo",
+      "phone": "Phone",
+      "email": "Email",
+      "address": "Address",
+      "postalCode": "Postal code",
+      "city": "City",
+      "province": "Province",
+      "logo": "Company logo",
+      "uploadLogo": "Upload logo",
+      "changeLogo": "Change logo",
+      "logoHint": "It will appear on your invoices (screen and PDF)."
     },
     "plan": {
       "title": "Archivum Pro",

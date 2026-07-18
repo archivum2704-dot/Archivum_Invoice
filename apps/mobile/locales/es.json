@@ -53,10 +53,16 @@
     "errClientCif": "El cliente necesita un CIF para facturarle.",
     "errLines": "Añade al menos una línea con descripción.",
     "errGeneric": "No se pudo emitir la factura.",
-    "states": { "issued": "Emitida", "draft": "Borrador", "cancelled": "Anulada" },
+    "states": {
+      "issued": "Emitida",
+      "draft": "Borrador",
+      "cancelled": "Anulada"
+    },
     "paywallTitle": "La facturación es una función de pago",
     "paywallBody": "Emite facturas conformes con Verifactu actualizando a un plan de pago.",
-    "upgrade": "Ver planes"
+    "upgrade": "Ver planes",
+    "searchClient": "Buscar por nombre o CIF...",
+    "noClientMatches": "Ningún cliente coincide"
   },
   "common": {
     "save": "Guardar",
@@ -423,7 +429,18 @@
     },
     "organization": {
       "name": "Nombre",
-      "accessCode": "Código de acceso"
+      "accessCode": "Código de acceso",
+      "editTitle": "Datos fiscales y logo",
+      "phone": "Teléfono",
+      "email": "Correo",
+      "address": "Dirección",
+      "postalCode": "C. postal",
+      "city": "Ciudad",
+      "province": "Provincia",
+      "logo": "Logo de empresa",
+      "uploadLogo": "Subir logo",
+      "changeLogo": "Cambiar logo",
+      "logoHint": "Aparecerá en tus facturas (pantalla y PDF)."
     },
     "plan": {
       "title": "Archivum Pro",

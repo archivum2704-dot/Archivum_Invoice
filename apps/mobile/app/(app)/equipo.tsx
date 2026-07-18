@@ -14,9 +14,9 @@ import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+import { APP_URL } from "@/lib/config";
 import { PLANS, type PlanId } from "@/lib/pricing";
 
-const APP_URL = "https://archivum2704-dot.vercel.app";
 
 type OrgRole = "owner" | "admin" | "member" | "viewer";
 
