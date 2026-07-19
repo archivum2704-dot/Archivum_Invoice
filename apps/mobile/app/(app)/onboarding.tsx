@@ -79,12 +79,20 @@ export default function OnboardingScreen() {
     if (newPage !== page) setPage(newPage);
   };
 
+  // Finishing (or skipping) the tutorial only leads to org creation when the
+  // user has no organization yet; existing users go straight to the dashboard.
+  const finishTutorial = async () => {
+    try { await AsyncStorage.setItem(ONBOARDING_KEY, "true"); } catch {}
+    if (orgId) { router.replace("/(app)/dashboard"); return; }
+    setShowOrgSetup(true);
+  };
+
   const goNext = () => {
-    if (isLast) { setShowOrgSetup(true); return; }
+    if (isLast) { finishTutorial(); return; }
     scrollRef.current?.scrollTo({ x: (page + 1) * W, animated: true });
   };
 
-  const handleSkip = () => setShowOrgSetup(true);
+  const handleSkip = () => finishTutorial();
 
   const handleCreateOrg = async () => {
     if (!orgName.trim()) return;

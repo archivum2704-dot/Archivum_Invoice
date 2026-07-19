@@ -139,6 +139,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* ── Sign in Empresa (owner/admin) ─────────────────────────────────────── */
   const signInEmpresa = async (email: string, password: string) => {
+    // Drop any stale device-session id BEFORE signing in: the auth listener
+    // fires loadProfile immediately, and a leftover id from a previous session
+    // would trip the single-device check and kick this fresh login.
+    await AsyncStorage.removeItem(SESSION_KEY).catch(() => {});
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return error.message;
     if (data.user) await registerDeviceSession(data.user.id);
@@ -147,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* ── Sign in Usuario (member with company code) ─────────────────────────── */
   const signInUsuario = async (email: string, password: string, code: string) => {
+    await AsyncStorage.removeItem(SESSION_KEY).catch(() => {});
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return error.message;
 

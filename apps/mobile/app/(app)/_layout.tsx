@@ -1,8 +1,6 @@
 import { Tabs, Redirect, usePathname } from "expo-router";
 import { useAuth } from "@/context/auth-context";
 import { View, ActivityIndicator } from "react-native";
-import { useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/lib/colors";
@@ -13,26 +11,15 @@ import {
 export default function AppLayout() {
   const { t } = useTranslation();
   const C = useColors();
-  const { session, loading, orgId } = useAuth();
+  const { session, loading, profile, orgId } = useAuth();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const [onboardingChecked, setOnboardingChecked] = useState(false);
-  const [needsOnboarding,   setNeedsOnboarding]   = useState(false);
   const isOnboardingRoute = pathname?.includes("onboarding");
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const v = await AsyncStorage.getItem("@archivum/onboarding_completed");
-        setNeedsOnboarding(v !== "true");
-      } catch {
-        setNeedsOnboarding(false);
-      }
-      setOnboardingChecked(true);
-    })();
-  }, [pathname]);
-
-  if (loading || !onboardingChecked) {
+  // Wait for the profile too: right after a fresh sign-in the session exists
+  // but the profile (and with it orgId) is still loading. Deciding on orgId
+  // before that would wrongly send existing users to onboarding.
+  if (loading || (session && !profile)) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.bg }}>
         <ActivityIndicator size="large" color={C.blue} />
@@ -41,10 +28,10 @@ export default function AppLayout() {
   }
 
   if (!session) return <Redirect href="/(auth)/login" />;
-  // A user without an organization can never create companies/documents.
-  // Force them through onboarding (which has the org-setup screen), regardless
-  // of whether the tutorial was already marked as completed.
-  if ((needsOnboarding || !orgId) && !isOnboardingRoute) return <Redirect href="/(app)/onboarding" />;
+  // Only users without an organization go through onboarding (its last step
+  // creates one). Existing users with an org land on the dashboard directly;
+  // they can replay the tutorial from Ajustes.
+  if (!orgId && !isOnboardingRoute) return <Redirect href="/(app)/onboarding" />;
 
   return (
     <Tabs
