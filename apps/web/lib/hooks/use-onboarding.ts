@@ -28,10 +28,10 @@ export function useOnboarding(orgId: string | null) {
     },
     {
       id:          "company",
-      label:       "Añade tu primera empresa",
+      label:       "Añade tu primer cliente",
       description: "Vincula clientes o proveedores a tus documentos.",
       href:        "/empresas",
-      cta:         "Añadir empresa",
+      cta:         "Añadir cliente",
       done:        companies.length > 0,
     },
     {

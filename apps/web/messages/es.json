@@ -27,7 +27,7 @@
     "uploadDocument": "Subir documento",
     "noDocumentsYet": "Sin documentos todavía",
     "noDocumentsHint": "Sube tu primer documento para empezar",
-    "newCompany": "Nueva empresa",
+    "newCompany": "Nuevo cliente",
     "deleteConfirm": "¿Seguro que quieres eliminar este documento? Esta acción no se puede deshacer.",
     "cancelDocument": "Marcar como cancelado",
     "cancelDocumentConfirm": "¿Seguro que quieres marcar este documento como cancelado? No se eliminará, solo cambiará su estado.",
@@ -108,7 +108,7 @@
     "library": "Biblioteca",
     "search": "Buscador",
     "upload": "Subir",
-    "companies": "Empresas / Clientes",
+    "companies": "Clientes",
     "inventory": "Inventario",
     "invoicing": "Facturación",
     "adminPanel": "Panel Admin",
@@ -121,7 +121,7 @@
     "newProduct": "Nuevo producto",
     "editProduct": "Editar producto",
     "name": "Nombre",
-    "sku": "SKU",
+    "sku": "Referencia",
     "category": "Categoría",
     "categoryPlaceholder": "Ej. Bebidas, Servicios…",
     "allCategories": "Todas",
@@ -138,7 +138,7 @@
     "paywallTitle": "El inventario es una función de pago",
     "paywallBody": "Gestiona tus productos y existencias actualizando a un plan de pago. La versión gratuita no incluye inventario.",
     "upgrade": "Ver planes",
-    "searchPlaceholder": "Buscar por nombre, SKU, categoría...",
+    "searchPlaceholder": "Buscar por nombre, referencia, categoría...",
     "filters": "Filtros",
     "clearFilters": "Limpiar filtros",
     "categoryFilter": "Categoría",
@@ -159,7 +159,8 @@
     "sortStockAsc": "Stock ↑",
     "results": "{count} productos",
     "productsIn": "en {category}",
-    "exportExcel": "Exportar Excel"
+    "exportExcel": "Exportar Excel",
+    "skuPlaceholder": "Automática si se deja vacía"
   },
   "invoicing": {
     "title": "Facturación",
@@ -258,7 +259,10 @@
     "searchClient": "Buscar cliente por nombre o CIF...",
     "noClientMatches": "Ningún cliente coincide",
     "searchProduct": "Buscar producto...",
-    "noProductMatches": "Ningún producto coincide"
+    "noProductMatches": "Ningún producto coincide",
+    "numberFilter": "Nº de factura",
+    "numberFrom": "Desde",
+    "numberTo": "Hasta"
   },
   "verifactu": {
     "title": "Certificado Verifactu (AEAT)",
@@ -311,7 +315,7 @@
     "links": {
       "todaysInvoices": "Facturas de hoy",
       "pendingPayments": "Pendientes de pago",
-      "activeCompanies": "Empresas activas",
+      "activeCompanies": "Clientes activos",
       "advancedSearch": "Búsqueda avanzada"
     },
     "newDocument": "Nuevo Documento",
@@ -362,7 +366,7 @@
       "number": "Número de Documento",
       "type": "Tipo",
       "status": "Estado",
-      "company": "Empresa",
+      "company": "Cliente",
       "amount": "Importe",
       "issueDate": "Fecha de Emisión",
       "dueDate": "Fecha de Vencimiento",
@@ -406,7 +410,7 @@
       "viewOriginal": "Ver original",
       "archiving": "Archivando...",
       "errorArchiving": "Error al archivar el documento",
-      "addFirstCompany": "Añadir primera empresa",
+      "addFirstCompany": "Añadir primer cliente",
       "dragTitle": "Arrastra tu archivo aquí",
       "dragSubtitle": "o haz clic para seleccionar",
       "maxSize": "Máximo 25 MB por archivo",
@@ -414,8 +418,8 @@
       "docType": "Tipo de documento *",
       "selectType": "Selecciona tipo...",
       "docNumber": "Número de documento *",
-      "company": "Empresa / Cliente *",
-      "selectCompany": "Selecciona empresa...",
+      "company": "Cliente *",
+      "selectCompany": "Selecciona cliente...",
       "amount": "Importe total (EUR)",
       "issueDate": "Fecha de emisión",
       "selectStatus": "Selecciona estado...",
@@ -437,7 +441,7 @@
       "title": "Biblioteca de Documentos",
       "found": "{count} documentos encontrados",
       "uploadNew": "Subir Documento",
-      "searchPlaceholder": "Buscar por ID, empresa...",
+      "searchPlaceholder": "Buscar por ID, cliente...",
       "filters": "Filtros:",
       "all": "Todos",
       "loading": "Cargando biblioteca...",
@@ -448,7 +452,7 @@
       "showing": "Mostrando {from}–{to} de {total}",
       "columns": {
         "document": "Documento",
-        "company": "Empresa",
+        "company": "Cliente",
         "type": "Tipo",
         "amount": "Importe",
         "date": "Fecha",
@@ -467,7 +471,7 @@
     "search": {
       "title": "Buscador Avanzado",
       "subtitle": "Encuentra cualquier documento con filtros precisos",
-      "placeholder": "Busca por número de documento, empresa, importe, CIF...",
+      "placeholder": "Busca por número de documento, cliente, importe, CIF...",
       "filters": "Filtros",
       "clearFilters": "Limpiar filtros",
       "typeFilter": "Tipo",
@@ -478,7 +482,7 @@
       "amountFilter": "Importe",
       "amountMin": "Mínimo (€)",
       "amountMax": "Máximo (€)",
-      "companyFilter": "Empresa",
+      "companyFilter": "Cliente",
       "tagsFilter": "Etiquetas",
       "loading": "Cargando resultados...",
       "results": "{count} resultados encontrados",
@@ -493,18 +497,18 @@
     }
   },
   "companies": {
-    "title": "Empresas / Clientes",
-    "subtitle": "{count} empresas registradas",
-    "addCompany": "Nueva Empresa",
-    "searchPlaceholder": "Buscar empresa, CIF...",
+    "title": "Clientes",
+    "subtitle": "{count} clientes registrados",
+    "addCompany": "Nuevo cliente",
+    "searchPlaceholder": "Buscar cliente, CIF...",
     "allSectors": "Todos",
     "noSector": "Sin sector",
     "docs": "docs",
     "totalBilled": "Total facturado",
     "viewDocuments": "Ver documentos",
-    "loading": "Cargando empresas...",
+    "loading": "Cargando clientes...",
     "fields": {
-      "name": "Nombre de la Empresa",
+      "name": "Nombre del cliente",
       "cif": "CIF/NIF",
       "sector": "Sector",
       "address": "Dirección",
@@ -518,20 +522,23 @@
       "notes": "Notas",
       "isActive": "Activa"
     },
-    "addCompanyHint": "Añade los datos de la empresa o cliente",
-    "createCompany": "Crear empresa",
-    "editCompany": "Editar empresa",
+    "addCompanyHint": "Añade los datos del cliente",
+    "createCompany": "Crear cliente",
+    "editCompany": "Editar cliente",
     "suspend": "Suspender",
     "reactivate": "Reactivar",
-    "suspended": "Suspendida",
-    "deleteCompany": "Eliminar empresa",
-    "deleteCompanyConfirm": "¿Seguro que quieres eliminar esta empresa? Sus documentos quedarán sin empresa asociada. Esta acción no se puede deshacer.",
+    "suspended": "Suspendido",
+    "deleteCompany": "Eliminar cliente",
+    "deleteCompanyConfirm": "¿Seguro que quieres eliminar este cliente? Sus documentos quedarán sin cliente asociado. Esta acción no se puede deshacer.",
     "noResults": "Sin resultados",
     "noResultsHint": "Prueba con otro término de búsqueda",
-    "addFirstCompany": "Añadir primera empresa",
+    "addFirstCompany": "Añadir primer cliente",
     "subCompanies": "Sub-empresas",
     "parentCompany": "Empresa Principal",
-    "noCompanies": "Sin empresas todavía. Añade tu primera empresa."
+    "noCompanies": "Sin clientes todavía. Añade tu primer cliente.",
+    "limitCounter": "{current} / {max} clientes",
+    "viewGrid": "Vista en cuadrícula",
+    "viewList": "Vista en lista"
   },
   "admin": {
     "title": "Panel de Administración",
@@ -607,24 +614,24 @@
         "viewer": "Visor"
       },
       "roleDescriptions": {
-        "admin": "Puede gestionar miembros y empresas",
-        "member": "Acceso limitado a empresas asignadas",
-        "viewer": "Acceso de solo lectura a empresas asignadas"
+        "admin": "Puede gestionar miembros y clientes",
+        "member": "Acceso limitado a clientes asignados",
+        "viewer": "Acceso de solo lectura a clientes asignados"
       },
       "joinedAt": "Se unió el {date}",
       "removeConfirm": "¿Eliminar a {name} de esta organización?",
       "remove": "Eliminar",
       "changeRole": "Cambiar rol",
-      "companyAccess": "Acceso a empresas",
-      "companyAccessTitle": "Acceso a empresas de {name}",
-      "companyAccessSubtitle": "Selecciona a qué empresas puede acceder este miembro",
+      "companyAccess": "Acceso a clientes",
+      "companyAccessTitle": "Acceso a clientes de {name}",
+      "companyAccessSubtitle": "Selecciona a qué clientes puede acceder este miembro",
       "folderAccess": "Carpetas",
       "folderAccessTitle": "Acceso a carpetas de {name}",
       "folderAccessSubtitle": "Selecciona a qué carpetas puede acceder este miembro",
       "done": "Listo",
       "unknownUser": "Usuario desconocido",
       "allCompanies": "Acceso total (administrador)",
-      "noCompanies": "Sin empresas asignadas todavía",
+      "noCompanies": "Sin clientes asignados todavía",
       "permissions": {
         "canUpload": "Puede subir",
         "canEdit": "Puede editar",
@@ -701,17 +708,17 @@
         "title": "Bienvenido a Archivum",
         "description": "Tu plataforma para emitir facturas y archivar toda la documentación de tu negocio. Este tutorial te guía paso a paso por cada sección.",
         "steps": [
-          "En el menú lateral tienes todas las secciones: Panel, Empresas, Biblioteca, Buscador, Inventario, Facturación, Subir y Usuarios.",
+          "En el menú lateral tienes todas las secciones: Panel, Clientes, Biblioteca, Buscador, Inventario, Facturación, Subir y Usuarios.",
           "El Panel Principal resume tus ingresos del mes, cobros pendientes y documentos recientes.",
           "Puedes cambiar el idioma (ES/EN) y volver a ver este tutorial cuando quieras desde Ajustes."
         ],
         "tip": "Usa las flechas ← → del teclado para moverte por el tutorial."
       },
       "companies": {
-        "title": "1. Crea tus empresas y clientes",
-        "description": "Antes de facturar o archivar, registra las empresas y clientes con los que trabajas.",
+        "title": "1. Crea tus clientes",
+        "description": "Antes de facturar o archivar, registra los clientes con los que trabajas.",
         "steps": [
-          "Entra en «Empresas / Clientes» y pulsa «Nueva empresa».",
+          "Entra en «Clientes» y pulsa «Nuevo cliente».",
           "Rellena el nombre y, muy importante, el CIF/NIF: es obligatorio para poder emitir facturas.",
           "Añade dirección, código postal, ciudad y provincia para que aparezcan en la factura.",
           "Usa el buscador y los filtros por sector para encontrarlos rápido cuando tengas muchos."
@@ -723,7 +730,7 @@
         "description": "Guarda facturas recibidas, albaranes, pedidos y recibos en tu archivo central.",
         "steps": [
           "Ve a «Subir» y arrastra el archivo (PDF o imagen) a la zona de carga, o haz clic para seleccionarlo.",
-          "Elige la empresa/cliente asociado y el tipo de documento (factura, albarán, pedido, recibo).",
+          "Elige el cliente asociado y el tipo de documento (factura, albarán, pedido, recibo).",
           "Introduce el número, la fecha y el importe del documento.",
           "Marca el estado (pagada, pendiente, vencida…) y guarda. Ya queda archivado y es buscable."
         ],
@@ -743,7 +750,7 @@
         "title": "4. Gestiona tu inventario",
         "description": "Guarda tus productos y servicios para reutilizarlos al facturar, sin reescribir precios.",
         "steps": [
-          "En «Inventario» pulsa «Nuevo producto» y define nombre, precio, IVA y, si quieres, SKU y stock.",
+          "En «Inventario» pulsa «Nuevo producto» y define nombre, precio, IVA y, si quieres, referencia y stock. Si no indicas referencia, se genera automáticamente.",
           "Asigna una categoría para mantener el catálogo organizado.",
           "Usa el panel de filtros de la izquierda para acotar por categoría, precio, IVA o stock.",
           "Al crear una factura podrás elegir estos productos y sus datos se rellenarán solos."
@@ -789,12 +796,12 @@
     "tipLabel": "CONSEJO",
     "gotIt": "Entendido",
     "empresasCreateFirst": {
-      "title": "Crea tu primera empresa",
-      "description": "Agrupa tus documentos por cliente o departamento. El plan gratuito incluye 1 empresa."
+      "title": "Crea tu primer cliente",
+      "description": "Agrupa tus documentos por cliente o departamento. El plan gratuito incluye 1 cliente."
     },
     "usersInviteFirst": {
       "title": "Invita a tu equipo",
-      "description": "Añade administradores, miembros o visores. Cada rol tiene permisos distintos sobre las empresas y carpetas."
+      "description": "Añade administradores, miembros o visores. Cada rol tiene permisos distintos sobre los clientes y carpetas."
     },
     "bibliotecaUploadFirst": {
       "title": "Sube tu primer documento",
@@ -805,8 +812,8 @@
       "description": "Arrastra una factura, contrato o recibo, o haz click para elegir archivos. La IA extraerá los datos automáticamente."
     },
     "subirCompany": {
-      "title": "Asocia una empresa (obligatorio)",
-      "description": "Vincula este documento a una de tus empresas. Si aún no la has creado, puedes hacerlo desde la sección Empresas."
+      "title": "Asocia un cliente (obligatorio)",
+      "description": "Vincula este documento a uno de tus clientes. Si aún no lo has creado, puedes hacerlo desde la sección Clientes."
     },
     "subirType": {
       "title": "Tipo de documento (obligatorio)",

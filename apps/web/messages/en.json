@@ -27,7 +27,7 @@
     "uploadDocument": "Upload document",
     "noDocumentsYet": "No documents yet",
     "noDocumentsHint": "Upload your first document to get started",
-    "newCompany": "New company",
+    "newCompany": "New client",
     "deleteConfirm": "Are you sure you want to delete this document? This action cannot be undone.",
     "cancelDocument": "Mark as cancelled",
     "cancelDocumentConfirm": "Are you sure you want to mark this document as cancelled? It will not be deleted, only its status will change.",
@@ -108,7 +108,7 @@
     "library": "Library",
     "search": "Search",
     "upload": "Upload",
-    "companies": "Companies / Clients",
+    "companies": "Clients",
     "inventory": "Inventory",
     "invoicing": "Invoicing",
     "adminPanel": "Admin Panel",
@@ -121,7 +121,7 @@
     "newProduct": "New product",
     "editProduct": "Edit product",
     "name": "Name",
-    "sku": "SKU",
+    "sku": "Reference",
     "category": "Category",
     "categoryPlaceholder": "e.g. Drinks, Services…",
     "allCategories": "All",
@@ -138,7 +138,7 @@
     "paywallTitle": "Inventory is a paid feature",
     "paywallBody": "Manage your products and stock by upgrading to a paid plan. The free version does not include inventory.",
     "upgrade": "View plans",
-    "searchPlaceholder": "Search by name, SKU, category...",
+    "searchPlaceholder": "Search by name, reference, category...",
     "filters": "Filters",
     "clearFilters": "Clear filters",
     "categoryFilter": "Category",
@@ -159,7 +159,8 @@
     "sortStockAsc": "Stock ↑",
     "results": "{count} products",
     "productsIn": "in {category}",
-    "exportExcel": "Export to Excel"
+    "exportExcel": "Export to Excel",
+    "skuPlaceholder": "Auto-generated if left empty"
   },
   "invoicing": {
     "title": "Invoicing",
@@ -258,7 +259,10 @@
     "searchClient": "Search client by name or tax ID...",
     "noClientMatches": "No matching clients",
     "searchProduct": "Search product...",
-    "noProductMatches": "No matching products"
+    "noProductMatches": "No matching products",
+    "numberFilter": "Invoice no.",
+    "numberFrom": "From",
+    "numberTo": "To"
   },
   "verifactu": {
     "title": "Verifactu certificate (AEAT)",
@@ -311,7 +315,7 @@
     "links": {
       "todaysInvoices": "Today's invoices",
       "pendingPayments": "Pending payments",
-      "activeCompanies": "Active companies",
+      "activeCompanies": "Active clients",
       "advancedSearch": "Advanced search"
     },
     "newDocument": "New Document",
@@ -362,7 +366,7 @@
       "number": "Document Number",
       "type": "Type",
       "status": "Status",
-      "company": "Company",
+      "company": "Client",
       "amount": "Amount",
       "issueDate": "Issue Date",
       "dueDate": "Due Date",
@@ -406,7 +410,7 @@
       "viewOriginal": "View original",
       "archiving": "Archiving...",
       "errorArchiving": "Error archiving the document",
-      "addFirstCompany": "Add first company",
+      "addFirstCompany": "Add first client",
       "dragTitle": "Drag your file here",
       "dragSubtitle": "or click to browse",
       "maxSize": "Max 25 MB per file",
@@ -414,8 +418,8 @@
       "docType": "Document type *",
       "selectType": "Select type...",
       "docNumber": "Document number *",
-      "company": "Company / Client *",
-      "selectCompany": "Select company...",
+      "company": "Client *",
+      "selectCompany": "Select client...",
       "amount": "Total amount (EUR)",
       "issueDate": "Issue date",
       "selectStatus": "Select status...",
@@ -437,7 +441,7 @@
       "title": "Document Library",
       "found": "{count} documents found",
       "uploadNew": "Upload Document",
-      "searchPlaceholder": "Search by ID, company...",
+      "searchPlaceholder": "Search by ID, client...",
       "filters": "Filters:",
       "all": "All",
       "loading": "Loading documents...",
@@ -448,7 +452,7 @@
       "showing": "Showing {from}–{to} of {total}",
       "columns": {
         "document": "Document",
-        "company": "Company",
+        "company": "Client",
         "type": "Type",
         "amount": "Amount",
         "date": "Date",
@@ -467,7 +471,7 @@
     "search": {
       "title": "Advanced Search",
       "subtitle": "Find any document with precise filters",
-      "placeholder": "Search by document number, company, amount, tax ID...",
+      "placeholder": "Search by document number, client, amount, tax ID...",
       "filters": "Filters",
       "clearFilters": "Clear filters",
       "typeFilter": "Type",
@@ -478,7 +482,7 @@
       "amountFilter": "Amount",
       "amountMin": "Min (€)",
       "amountMax": "Max (€)",
-      "companyFilter": "Company",
+      "companyFilter": "Client",
       "tagsFilter": "Tags",
       "loading": "Loading results...",
       "results": "{count} results found",
@@ -493,18 +497,18 @@
     }
   },
   "companies": {
-    "title": "Companies / Clients",
-    "subtitle": "{count} registered companies",
-    "addCompany": "New Company",
-    "searchPlaceholder": "Search company, tax ID...",
+    "title": "Clients",
+    "subtitle": "{count} registered clients",
+    "addCompany": "New Client",
+    "searchPlaceholder": "Search client, tax ID...",
     "allSectors": "All",
     "noSector": "No sector",
     "docs": "docs",
     "totalBilled": "Total billed",
     "viewDocuments": "View documents",
-    "loading": "Loading companies...",
+    "loading": "Loading clients...",
     "fields": {
-      "name": "Company Name",
+      "name": "Client Name",
       "cif": "Tax ID (CIF/NIF)",
       "sector": "Sector",
       "address": "Address",
@@ -518,20 +522,23 @@
       "notes": "Notes",
       "isActive": "Active"
     },
-    "addCompanyHint": "Add the company or client details",
-    "createCompany": "Create company",
-    "editCompany": "Edit company",
+    "addCompanyHint": "Add the client details",
+    "createCompany": "Create client",
+    "editCompany": "Edit client",
     "suspend": "Suspend",
     "reactivate": "Reactivate",
     "suspended": "Suspended",
-    "deleteCompany": "Delete company",
-    "deleteCompanyConfirm": "Are you sure you want to delete this company? All its documents will be unlinked. This action cannot be undone.",
+    "deleteCompany": "Delete client",
+    "deleteCompanyConfirm": "Are you sure you want to delete this client? All its documents will be unlinked. This action cannot be undone.",
     "noResults": "No results",
     "noResultsHint": "Try a different search term",
-    "addFirstCompany": "Add first company",
+    "addFirstCompany": "Add first client",
     "subCompanies": "Sub-companies",
     "parentCompany": "Parent Company",
-    "noCompanies": "No companies yet. Add your first company."
+    "noCompanies": "No clients yet. Add your first client.",
+    "limitCounter": "{current} / {max} clients",
+    "viewGrid": "Grid view",
+    "viewList": "List view"
   },
   "admin": {
     "title": "Admin Panel",
@@ -607,24 +614,24 @@
         "viewer": "Viewer"
       },
       "roleDescriptions": {
-        "admin": "Can manage members and companies",
-        "member": "Access limited to assigned companies",
-        "viewer": "Read-only access to assigned companies"
+        "admin": "Can manage members and clients",
+        "member": "Access limited to assigned clients",
+        "viewer": "Read-only access to assigned clients"
       },
       "joinedAt": "Joined {date}",
       "removeConfirm": "Remove {name} from this organization?",
       "remove": "Remove",
       "changeRole": "Change role",
-      "companyAccess": "Company access",
-      "companyAccessTitle": "Company access for {name}",
-      "companyAccessSubtitle": "Select which companies this member can access",
+      "companyAccess": "Client access",
+      "companyAccessTitle": "Client access for {name}",
+      "companyAccessSubtitle": "Select which clients this member can access",
       "folderAccess": "Folders",
       "folderAccessTitle": "Folder access for {name}",
       "folderAccessSubtitle": "Select which folders this member can access",
       "done": "Done",
       "unknownUser": "Unknown user",
       "allCompanies": "Full access (admin)",
-      "noCompanies": "No companies assigned yet",
+      "noCompanies": "No clients assigned yet",
       "permissions": {
         "canUpload": "Can upload",
         "canEdit": "Can edit",
@@ -701,17 +708,17 @@
         "title": "Welcome to Archivum",
         "description": "Your platform to issue invoices and archive all of your business paperwork. This tutorial walks you through every section step by step.",
         "steps": [
-          "The sidebar holds every section: Dashboard, Companies, Library, Search, Inventory, Invoicing, Upload and Users.",
+          "The sidebar holds every section: Dashboard, Clients, Library, Search, Inventory, Invoicing, Upload and Users.",
           "The Dashboard summarizes this month's revenue, pending payments and recent documents.",
           "You can switch language (ES/EN) and replay this tutorial anytime from Settings."
         ],
         "tip": "Use the ← → arrow keys to move through the tutorial."
       },
       "companies": {
-        "title": "1. Create your companies and clients",
-        "description": "Before invoicing or archiving, register the companies and clients you work with.",
+        "title": "1. Create your clients",
+        "description": "Before invoicing or archiving, register the clients you work with.",
         "steps": [
-          "Open “Companies / Clients” and click “New company”.",
+          "Open “Clients” and click “New client”.",
           "Fill in the name and, crucially, the CIF/NIF (tax ID): it is required to issue invoices.",
           "Add address, postal code, city and province so they appear on the invoice.",
           "Use search and the sector filters to find them quickly once you have many."
@@ -723,7 +730,7 @@
         "description": "Store received invoices, delivery notes, orders and receipts in your central archive.",
         "steps": [
           "Go to “Upload” and drag the file (PDF or image) onto the drop zone, or click to pick it.",
-          "Choose the related company/client and the document type (invoice, delivery note, order, receipt).",
+          "Choose the related client and the document type (invoice, delivery note, order, receipt).",
           "Enter the document number, date and amount.",
           "Set the status (paid, pending, overdue…) and save. It is now archived and searchable."
         ],
@@ -743,7 +750,7 @@
         "title": "4. Manage your inventory",
         "description": "Save your products and services to reuse them when invoicing, without retyping prices.",
         "steps": [
-          "In “Inventory” click “New product” and set name, price, VAT and optionally SKU and stock.",
+          "In “Inventory” click “New product” and set name, price, VAT and optionally a reference and stock. If you leave the reference empty, it is generated automatically.",
           "Assign a category to keep the catalog organized.",
           "Use the filter panel on the left to narrow by category, price, VAT or stock.",
           "When creating an invoice you can pick these products and their data fills in automatically."
@@ -789,12 +796,12 @@
     "tipLabel": "TIP",
     "gotIt": "Got it",
     "empresasCreateFirst": {
-      "title": "Create your first company",
-      "description": "Group documents by client or department. The free plan includes 1 company."
+      "title": "Create your first client",
+      "description": "Group documents by client or department. The free plan includes 1 client."
     },
     "usersInviteFirst": {
       "title": "Invite your team",
-      "description": "Add admins, members or viewers. Each role has different permissions over companies and folders."
+      "description": "Add admins, members or viewers. Each role has different permissions over clients and folders."
     },
     "bibliotecaUploadFirst": {
       "title": "Upload your first document",
@@ -805,8 +812,8 @@
       "description": "Drag an invoice, contract or receipt here, or click to choose files. AI will extract the data automatically."
     },
     "subirCompany": {
-      "title": "Link to a company (required)",
-      "description": "Associate this document with one of your companies. If you haven't created any yet, do it from the Companies section."
+      "title": "Link to a client (required)",
+      "description": "Associate this document with one of your clients. If you haven't created any yet, do it from the Clients section."
     },
     "subirType": {
       "title": "Document type (required)",

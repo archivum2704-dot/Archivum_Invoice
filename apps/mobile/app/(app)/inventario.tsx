@@ -84,13 +84,23 @@ export default function InventarioScreen() {
 
   useEffect(() => { if (paid) load(); else setLoading(false); }, [load, paid]);
 
+  // Next free auto reference (REF-0001, REF-0002…) based on existing products
+  const nextAutoSku = () => {
+    let max = 0;
+    for (const p of products) {
+      const m = /^REF-(\d+)$/i.exec(p.sku?.trim() ?? "");
+      if (m) max = Math.max(max, parseInt(m[1], 10));
+    }
+    return `REF-${String(max + 1).padStart(4, "0")}`;
+  };
+
   const save = async () => {
     if (!draft.name.trim() || !orgId) return;
     setSaving(true);
     const payload = {
       organization_id: orgId,
       name: draft.name.trim(),
-      sku: draft.sku.trim() || null,
+      sku: draft.sku.trim() || nextAutoSku(),
       category: draft.category.trim() || null,
       unit: draft.unit.trim() || "ud",
       unit_price: Number(draft.unit_price) || 0,
@@ -112,7 +122,7 @@ export default function InventarioScreen() {
     try {
       const rows = filtered.map(p => ({
         [t("inventory.name")]: p.name,
-        SKU: p.sku ?? "",
+        Referencia: p.sku ?? "",
         [t("inventory.category")]: p.category ?? "",
         [t("inventory.price")]: Number(p.unit_price),
         [`${t("inventory.iva")} (%)`]: Number(p.tax_rate),
@@ -269,7 +279,7 @@ export default function InventarioScreen() {
             </View>
             <ScrollView keyboardShouldPersistTaps="handled">
               <Field label={t("inventory.name")} C={C}><Input value={draft.name} onChangeText={(v: string) => setDraft({ ...draft, name: v })} C={C} /></Field>
-              <Field label="SKU" C={C}><Input value={draft.sku} onChangeText={(v: string) => setDraft({ ...draft, sku: v })} C={C} /></Field>
+              <Field label="Referencia" C={C}><Input value={draft.sku} onChangeText={(v: string) => setDraft({ ...draft, sku: v })} C={C} /></Field>
               <Field label={t("inventory.category")} C={C}><Input value={draft.category} onChangeText={(v: string) => setDraft({ ...draft, category: v })} placeholder={t("inventory.categoryPlaceholder")} C={C} /></Field>
               <View style={{ flexDirection: "row", gap: 12 }}>
                 <View style={{ flex: 1 }}><Field label={`${t("inventory.price")} (€)`} C={C}><Input value={draft.unit_price} onChangeText={(v: string) => setDraft({ ...draft, unit_price: v })} keyboardType="decimal-pad" C={C} /></Field></View>

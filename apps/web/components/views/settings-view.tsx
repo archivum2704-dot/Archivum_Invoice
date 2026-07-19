@@ -429,9 +429,9 @@ export function SettingsView() {
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="flex items-center gap-1.5 font-medium text-foreground">
-                        <Building2 className="w-3.5 h-3.5" /> Empresas gestionadas
+                        <Building2 className="w-3.5 h-3.5" /> Clientes gestionados
                       </span>
-                      <span className="text-muted-foreground">{billing.companyCount} empresas</span>
+                      <span className="text-muted-foreground">{billing.companyCount} clientes</span>
                     </div>
                   </div>
                 </div>

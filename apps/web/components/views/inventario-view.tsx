@@ -73,6 +73,16 @@ export function InventarioView() {
     setError(null); setEditing(p)
   }
 
+  // Next free auto reference (REF-0001, REF-0002…) based on existing products
+  const nextAutoSku = () => {
+    let max = 0
+    for (const p of products) {
+      const m = /^REF-(\d+)$/i.exec(p.sku?.trim() ?? "")
+      if (m) max = Math.max(max, parseInt(m[1], 10))
+    }
+    return `REF-${String(max + 1).padStart(4, "0")}`
+  }
+
   const handleSave = async () => {
     if (!draft.name.trim() || !currentOrg) return
     setSaving(true); setError(null)
@@ -80,7 +90,7 @@ export function InventarioView() {
     const payload = {
       organization_id: currentOrg.id,
       name: draft.name.trim(),
-      sku: draft.sku.trim() || null,
+      sku: draft.sku.trim() || nextAutoSku(),
       category: draft.category.trim() || null,
       description: draft.description.trim() || null,
       unit: draft.unit.trim() || "ud",
@@ -534,7 +544,7 @@ export function InventarioView() {
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label={t("sku")}>
-                  <input value={draft.sku} onChange={e => setDraft({ ...draft, sku: e.target.value })} className={inputCls} />
+                  <input value={draft.sku} onChange={e => setDraft({ ...draft, sku: e.target.value })} placeholder={t("skuPlaceholder")} className={inputCls} />
                 </Field>
                 <Field label={t("unit")}>
                   <input value={draft.unit} onChange={e => setDraft({ ...draft, unit: e.target.value })} className={inputCls} />

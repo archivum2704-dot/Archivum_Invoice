@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import {
   Receipt, Plus, X, Trash2, Loader2, Lock, AlertTriangle, ChevronRight, ShieldCheck,
-  Search, SlidersHorizontal, CalendarDays, Tag, ArrowUpDown,
+  Search, SlidersHorizontal, CalendarDays, Tag, ArrowUpDown, Hash,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -60,6 +60,8 @@ export function FacturacionView() {
   const [selectedKinds, setSelectedKinds] = useState<string[]>([])
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
+  const [numberFrom, setNumberFrom] = useState("")
+  const [numberTo, setNumberTo] = useState("")
   const [amountMin, setAmountMin] = useState("")
   const [amountMax, setAmountMax] = useState("")
   const [sortKey, setSortKey] = useState<InvoiceSortKey>("date_desc")
@@ -123,17 +125,22 @@ export function FacturacionView() {
 
   const clearFilters = () => {
     setSelectedStates([]); setSelectedKinds([])
-    setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax("")
+    setDateFrom(""); setDateTo(""); setNumberFrom(""); setNumberTo("")
+    setAmountMin(""); setAmountMax("")
   }
 
   const activeCount =
     selectedStates.length + selectedKinds.length +
-    (dateFrom ? 1 : 0) + (dateTo ? 1 : 0) + (amountMin ? 1 : 0) + (amountMax ? 1 : 0)
+    (dateFrom ? 1 : 0) + (dateTo ? 1 : 0) +
+    (numberFrom ? 1 : 0) + (numberTo ? 1 : 0) +
+    (amountMin ? 1 : 0) + (amountMax ? 1 : 0)
 
   const filteredInvoices = useMemo(() => {
     const q = search.trim().toLowerCase()
     const min = amountMin ? parseFloat(amountMin.replace(",", ".")) : null
     const max = amountMax ? parseFloat(amountMax.replace(",", ".")) : null
+    const numFrom = numberFrom ? parseInt(numberFrom, 10) : null
+    const numTo = numberTo ? parseInt(numberTo, 10) : null
 
     const list = invoices.filter(inv => {
       if (q) {
@@ -148,6 +155,8 @@ export function FacturacionView() {
       if (selectedKinds.length && !selectedKinds.includes(inv.kind)) return false
       if (dateFrom && inv.issue_date && inv.issue_date < dateFrom) return false
       if (dateTo && inv.issue_date && inv.issue_date > dateTo) return false
+      if (numFrom != null && (inv.number == null || inv.number < numFrom)) return false
+      if (numTo != null && (inv.number == null || inv.number > numTo)) return false
       if (min != null && Number(inv.total) < min) return false
       if (max != null && Number(inv.total) > max) return false
       return true
@@ -162,7 +171,7 @@ export function FacturacionView() {
         case "number":      return (b.full_number ?? "").localeCompare(a.full_number ?? "", undefined, { numeric: true })
       }
     })
-  }, [invoices, search, selectedStates, selectedKinds, dateFrom, dateTo, amountMin, amountMax, sortKey])
+  }, [invoices, search, selectedStates, selectedKinds, dateFrom, dateTo, numberFrom, numberTo, amountMin, amountMax, sortKey])
 
   const totals = useMemo(() => {
     let subtotal = 0, tax = 0
@@ -358,6 +367,26 @@ export function FacturacionView() {
                         <span className="text-sm text-foreground group-hover:text-primary transition-colors">{t(`kinds.${k}`)}</span>
                       </label>
                     ))}
+                  </div>
+                </div>
+
+                {/* Invoice number range */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Hash className="w-3.5 h-3.5 text-muted-foreground" />
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("numberFilter")}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">{t("numberFrom")}</p>
+                      <input type="number" min="1" step="1" placeholder="20" value={numberFrom} onChange={e => setNumberFrom(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground placeholder:text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">{t("numberTo")}</p>
+                      <input type="number" min="1" step="1" placeholder="50" value={numberTo} onChange={e => setNumberTo(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground placeholder:text-muted-foreground" />
+                    </div>
                   </div>
                 </div>
 

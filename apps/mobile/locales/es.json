@@ -93,7 +93,7 @@
     "home": "Inicio",
     "library": "Biblioteca",
     "search": "Buscar",
-    "companies": "Empresas",
+    "companies": "Clientes",
     "team": "Equipo",
     "settings": "Ajustes"
   },
@@ -227,14 +227,14 @@
     "markCancelledConfirm": "¿Estás seguro? El estado cambiará a cancelado."
   },
   "empresas": {
-    "title": "Empresas / Clientes",
-    "companiesCount": "{{current}} / {{max}} empresas",
-    "searchPlaceholder": "Buscar empresa, CIF...",
+    "title": "Clientes",
+    "companiesCount": "{{current}} / {{max}} clientes",
+    "searchPlaceholder": "Buscar cliente, CIF...",
     "noResults": "Sin resultados",
-    "noCompanies": "Sin empresas",
+    "noCompanies": "Sin clientes",
     "tryOther": "Prueba otro término de búsqueda.",
-    "addFirst": "Añade tu primera empresa para comenzar.",
-    "addCompany": "Añadir empresa",
+    "addFirst": "Añade tu primer cliente para comenzar.",
+    "addCompany": "Añadir cliente",
     "suspended": "Suspendida",
     "sector": "Sector",
     "allSectors": "Todos",
@@ -243,20 +243,20 @@
     "viewDocs": "Ver documentos",
     "suspend": "Suspender",
     "reactivate": "Reactivar",
-    "editCompany": "Editar empresa",
-    "newCompany": "Nueva empresa",
+    "editCompany": "Editar cliente",
+    "newCompany": "Nuevo cliente",
     "nameLabel": "Nombre *",
     "cifLabel": "CIF/NIF",
     "sectorLabel": "Sector",
-    "createCompany": "Crear empresa",
+    "createCompany": "Crear cliente",
     "saveChanges": "Guardar cambios",
-    "deleteTitle": "Eliminar empresa",
-    "deleteConfirm": "¿Estás seguro de que quieres eliminar \"{{name}}\"? Sus documentos quedarán sin empresa asignada.",
-    "limitTitle": "Límite de empresas alcanzado",
-    "limitDesc": "Tu plan actual permite hasta {{max}} empresa(s). Actualiza a Pro o añade empresas adicionales por 2€/empresa/mes.",
-    "limitBullet1": "Plan Gratis: 1 empresa",
-    "limitBullet2": "Plan Pro: 20 empresas incluidas",
-    "limitBullet3": "+2€/mes por empresa adicional"
+    "deleteTitle": "Eliminar cliente",
+    "deleteConfirm": "¿Estás seguro de que quieres eliminar \"{{name}}\"? Sus documentos quedarán sin cliente asignado.",
+    "limitTitle": "Límite de clientes alcanzado",
+    "limitDesc": "Tu plan actual permite hasta {{max}} cliente(s). Actualiza a Pro o añade clientes adicionales por 2€/cliente/mes.",
+    "limitBullet1": "Plan Gratis: 1 cliente",
+    "limitBullet2": "Plan Pro: 20 clientes incluidos",
+    "limitBullet3": "+2€/mes por cliente adicional"
   },
   "equipo": {
     "title": "Equipo",
@@ -328,7 +328,7 @@
     "noFile": "Sin archivo",
     "docTypeLabel": "Tipo de documento *",
     "docNumberLabel": "Número de documento *",
-    "companyLabel": "Empresa / Cliente *",
+    "companyLabel": "Cliente *",
     "issueDateLabel": "Fecha de emisión",
     "dueDateLabel": "Fecha de vencimiento",
     "totalLabel": "Importe total (€)",
@@ -351,10 +351,10 @@
     "errorCamera": "No se pudo acceder a la cámara o galería.",
     "errorFile": "No se pudo abrir el archivo.",
     "errorArchive": "No se pudo archivar el documento.",
-    "noCompanies": "Aún no tienes empresas. Crea la primera para asociar el documento.",
-    "addFirstCompany": "Añadir primera empresa",
-    "newCompany": "Nueva empresa",
-    "newCompanyPlaceholder": "Nombre de la empresa"
+    "noCompanies": "Aún no tienes clientes. Crea el primero para asociar el documento.",
+    "addFirstCompany": "Añadir primer cliente",
+    "newCompany": "Nuevo cliente",
+    "newCompanyPlaceholder": "Nombre del cliente"
   },
   "tutorial": {
     "skip": "Saltar",
@@ -402,8 +402,8 @@
   "coachmarks": {
     "tipLabel": "CONSEJO",
     "empresasCreateFirst": {
-      "title": "Crea tu primera empresa",
-      "description": "Agrupa tus documentos por cliente o departamento. El plan gratuito incluye 1 empresa."
+      "title": "Crea tu primer cliente",
+      "description": "Agrupa tus documentos por cliente o departamento. El plan gratuito incluye 1 cliente."
     },
     "equipoInviteFirst": {
       "title": "Invita a tu equipo",

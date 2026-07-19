@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from "react"
 import {
   Building2, Search, Plus, FileText, MoreHorizontal, ChevronRight,
   MapPin, Phone, Mail, X, Pencil, Trash2, PauseCircle, PlayCircle, Eye,
+  LayoutGrid, List,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -191,12 +192,12 @@ function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan
           </button>
         </div>
         <h2 className="text-base font-semibold text-foreground mb-1">
-          {isFreePlan ? "Límite del plan gratuito" : "Límite de empresas alcanzado"}
+          {isFreePlan ? "Límite del plan gratuito" : "Límite de clientes alcanzado"}
         </h2>
         <p className="text-sm text-muted-foreground mb-5">
           {isFreePlan
-            ? "El plan gratuito incluye 1 empresa. Actualiza al plan Pro para gestionar hasta 20 empresas, o añade empresas extra a partir de 2 €/empresa/mes."
-            : "Has alcanzado el límite de empresas de tu plan. Añade empresas extra desde Facturación a partir de 2 €/empresa/mes."}
+            ? "El plan gratuito incluye 1 cliente. Actualiza al plan Pro para gestionar hasta 20 clientes, o añade clientes extra a partir de 2 €/cliente/mes."
+            : "Has alcanzado el límite de clientes de tu plan. Añade clientes extra desde Facturación a partir de 2 €/cliente/mes."}
         </p>
         <div className="space-y-2">
           {isFreePlan && (
@@ -214,7 +215,7 @@ function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan
               isFreePlan ? "border-border text-foreground hover:bg-muted" : "bg-primary text-primary-foreground border-transparent hover:bg-primary/90"
             )}
           >
-            {isFreePlan ? "Añadir empresas extra" : "Gestionar empresas extra"}
+            {isFreePlan ? "Añadir clientes extra" : "Gestionar clientes extra"}
           </button>
           <button onClick={onClose} className="w-full px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             Cancelar
@@ -233,6 +234,7 @@ export function EmpresasView() {
 
   const [search,       setSearch]       = useState("")
   const [selectedSector, setSelectedSector] = useState<string | null>(null)
+  const [viewMode,     setViewMode]     = useState<"grid" | "list">("grid")
   const [showCreate,   setShowCreate]   = useState(false)
   const [showUpgrade,  setShowUpgrade]  = useState(false)
   const [editTarget,   setEditTarget]   = useState<null | { id: string } & CompanyForm>(null)
@@ -251,6 +253,16 @@ export function EmpresasView() {
   function handleAddClick() {
     if (atLimit) { setShowUpgrade(true); return }
     setShowCreate(true)
+  }
+
+  // Remember the chosen layout across visits
+  useEffect(() => {
+    const saved = localStorage.getItem("clientes-view-mode")
+    if (saved === "grid" || saved === "list") setViewMode(saved)
+  }, [])
+  const changeViewMode = (mode: "grid" | "list") => {
+    setViewMode(mode)
+    localStorage.setItem("clientes-view-mode", mode)
   }
 
   // Close dropdown on outside click
@@ -343,6 +355,83 @@ export function EmpresasView() {
   }, [filtered, selectedSector, sectors, t])
 
   type EmpresaCard = (typeof empresas)[number]
+
+  const renderMenu = (empresa: EmpresaCard) => (
+    <div className="relative shrink-0">
+      <button
+        onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === empresa.id ? null : empresa.id) }}
+        className={cn(
+          "p-1.5 rounded-lg transition-all",
+          openMenuId === empresa.id
+            ? "bg-muted text-foreground"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+        )}
+      >
+        <MoreHorizontal className="w-4 h-4" />
+      </button>
+
+      {openMenuId === empresa.id && (
+        <div className="absolute right-0 top-full mt-1 z-50 w-44 bg-popover border border-border rounded-xl shadow-xl overflow-hidden">
+          {/* Ver documentos */}
+          <Link
+            href={`/biblioteca?empresa=${empresa.id}`}
+            onClick={() => setOpenMenuId(null)}
+            className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+          >
+            <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+            {t("viewDocuments")}
+          </Link>
+
+          {/* Editar */}
+          <button
+            onClick={() => {
+              setOpenMenuId(null)
+              setEditTarget({
+                id:          empresa.id,
+                name:        empresa.name,
+                cif:         empresa.cif,
+                sector:      empresa.sector,
+                address:     empresa.address,
+                postal_code: empresa.postal_code,
+                city:        empresa.city,
+                province:    empresa.province,
+                phone:       empresa.phone,
+                email:       empresa.email,
+              })
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+            {tCommon("edit")}
+          </button>
+
+          {/* Suspender / Reactivar */}
+          <button
+            onClick={() => handleToggleActive(empresa.id, empresa.isActive)}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+          >
+            {empresa.isActive
+              ? <PauseCircle className="w-3.5 h-3.5 text-amber-500" />
+              : <PlayCircle  className="w-3.5 h-3.5 text-emerald-500" />
+            }
+            {empresa.isActive ? t("suspend") : t("reactivate")}
+          </button>
+
+          <div className="border-t border-border" />
+
+          {/* Eliminar */}
+          <button
+            onClick={() => handleDelete(empresa.id, empresa.name)}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-destructive hover:bg-destructive/8 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            {t("deleteCompany")}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+
   const renderCard = (empresa: EmpresaCard) => (
             <div
               key={empresa.id}
@@ -377,79 +466,7 @@ export function EmpresasView() {
                   </div>
 
                   {/* ··· menu */}
-                  <div className="relative shrink-0">
-                    <button
-                      onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === empresa.id ? null : empresa.id) }}
-                      className={cn(
-                        "p-1.5 rounded-lg transition-all",
-                        openMenuId === empresa.id
-                          ? "bg-muted text-foreground"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                      )}
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
-
-                    {openMenuId === empresa.id && (
-                      <div className="absolute right-0 top-full mt-1 z-50 w-44 bg-popover border border-border rounded-xl shadow-xl overflow-hidden">
-                        {/* Ver documentos */}
-                        <Link
-                          href={`/biblioteca?empresa=${empresa.id}`}
-                          onClick={() => setOpenMenuId(null)}
-                          className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
-                        >
-                          <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-                          {t("viewDocuments")}
-                        </Link>
-
-                        {/* Editar */}
-                        <button
-                          onClick={() => {
-                            setOpenMenuId(null)
-                            setEditTarget({
-                              id:          empresa.id,
-                              name:        empresa.name,
-                              cif:         empresa.cif,
-                              sector:      empresa.sector,
-                              address:     empresa.address,
-                              postal_code: empresa.postal_code,
-                              city:        empresa.city,
-                              province:    empresa.province,
-                              phone:       empresa.phone,
-                              email:       empresa.email,
-                            })
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
-                        >
-                          <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                          {tCommon("edit")}
-                        </button>
-
-                        {/* Suspender / Reactivar */}
-                        <button
-                          onClick={() => handleToggleActive(empresa.id, empresa.isActive)}
-                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
-                        >
-                          {empresa.isActive
-                            ? <PauseCircle className="w-3.5 h-3.5 text-amber-500" />
-                            : <PlayCircle  className="w-3.5 h-3.5 text-emerald-500" />
-                          }
-                          {empresa.isActive ? t("suspend") : t("reactivate")}
-                        </button>
-
-                        <div className="border-t border-border" />
-
-                        {/* Eliminar */}
-                        <button
-                          onClick={() => handleDelete(empresa.id, empresa.name)}
-                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-destructive hover:bg-destructive/8 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          {t("deleteCompany")}
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  {renderMenu(empresa)}
                 </div>
 
                 <div className="space-y-2 mb-4">
@@ -492,6 +509,41 @@ export function EmpresasView() {
             </div>
   )
 
+  const renderRow = (empresa: EmpresaCard) => (
+    <div
+      key={empresa.id}
+      className={cn(
+        "flex items-center gap-4 px-5 py-3 hover:bg-muted/30 transition-colors first:rounded-t-xl last:rounded-b-xl",
+        !empresa.isActive && "opacity-60"
+      )}
+    >
+      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0", empresa.color)}>
+        {empresa.initials}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-foreground truncate">{empresa.name}</p>
+          {!empresa.isActive && (
+            <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
+              {t("suspended")}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground truncate">
+          {empresa.city || "—"} · {empresa.sector || "—"}
+        </p>
+      </div>
+      <span className="hidden sm:block w-28 shrink-0 text-xs text-muted-foreground font-mono truncate">{empresa.cif || "—"}</span>
+      <span className="hidden lg:block w-48 shrink-0 text-xs text-muted-foreground truncate">{empresa.email || "—"}</span>
+      <span className="hidden md:block w-32 shrink-0 text-xs text-muted-foreground truncate">{empresa.phone || "—"}</span>
+      <span className="hidden sm:flex items-center gap-1.5 w-16 shrink-0 justify-end text-sm">
+        <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+        <span className="font-semibold text-foreground tabular-nums">{empresa.docs}</span>
+      </span>
+      {renderMenu(empresa)}
+    </div>
+  )
+
   return (
     <div className="p-8">
       {/* Upgrade modal */}
@@ -528,8 +580,32 @@ export function EmpresasView() {
             "text-xs font-medium px-3 py-1.5 rounded-full border",
             atLimit ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-muted text-muted-foreground border-border"
           )}>
-            {companies.length} / {maxCompanies} empresas
+            {t("limitCounter", { current: companies.length, max: maxCompanies })}
           </span>
+          <div className="flex items-center bg-card border border-border rounded-lg p-0.5">
+            <button
+              onClick={() => changeViewMode("grid")}
+              title={t("viewGrid")}
+              aria-label={t("viewGrid")}
+              className={cn(
+                "p-1.5 rounded-md transition-colors",
+                viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => changeViewMode("list")}
+              title={t("viewList")}
+              aria-label={t("viewList")}
+              className={cn(
+                "p-1.5 rounded-md transition-colors",
+                viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -601,9 +677,15 @@ export function EmpresasView() {
                   <span className="text-xs text-muted-foreground tabular-nums">{g.items.length}</span>
                 </div>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                {g.items.map(renderCard)}
-              </div>
+              {viewMode === "grid" ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {g.items.map(renderCard)}
+                </div>
+              ) : (
+                <div className="bg-card border border-border rounded-xl divide-y divide-border/60">
+                  {g.items.map(renderRow)}
+                </div>
+              )}
             </div>
           ))}
         </div>

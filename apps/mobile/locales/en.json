@@ -93,7 +93,7 @@
     "home": "Home",
     "library": "Library",
     "search": "Search",
-    "companies": "Companies",
+    "companies": "Clients",
     "team": "Team",
     "settings": "Settings"
   },
@@ -227,14 +227,14 @@
     "markCancelledConfirm": "Are you sure? The status will change to cancelled."
   },
   "empresas": {
-    "title": "Companies / Clients",
-    "companiesCount": "{{current}} / {{max}} companies",
-    "searchPlaceholder": "Search company, Tax ID...",
+    "title": "Clients",
+    "companiesCount": "{{current}} / {{max}} clients",
+    "searchPlaceholder": "Search client, Tax ID...",
     "noResults": "No results",
-    "noCompanies": "No companies",
+    "noCompanies": "No clients",
     "tryOther": "Try a different search term.",
-    "addFirst": "Add your first company to get started.",
-    "addCompany": "Add company",
+    "addFirst": "Add your first client to get started.",
+    "addCompany": "Add client",
     "suspended": "Suspended",
     "sector": "Sector",
     "allSectors": "All",
@@ -243,20 +243,20 @@
     "viewDocs": "View documents",
     "suspend": "Suspend",
     "reactivate": "Reactivate",
-    "editCompany": "Edit company",
-    "newCompany": "New company",
+    "editCompany": "Edit client",
+    "newCompany": "New client",
     "nameLabel": "Name *",
     "cifLabel": "Tax ID",
     "sectorLabel": "Sector",
-    "createCompany": "Create company",
+    "createCompany": "Create client",
     "saveChanges": "Save changes",
-    "deleteTitle": "Delete company",
+    "deleteTitle": "Delete client",
     "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? Its documents will be unassigned.",
-    "limitTitle": "Company limit reached",
-    "limitDesc": "Your current plan allows up to {{max}} company(ies). Upgrade to Pro or add extra companies for €2/company/month.",
-    "limitBullet1": "Free plan: 1 company",
-    "limitBullet2": "Pro plan: 20 companies included",
-    "limitBullet3": "+€2/month per extra company"
+    "limitTitle": "Client limit reached",
+    "limitDesc": "Your current plan allows up to {{max}} client(s). Upgrade to Pro or add extra clients for €2/client/month.",
+    "limitBullet1": "Free plan: 1 client",
+    "limitBullet2": "Pro plan: 20 clients included",
+    "limitBullet3": "+€2/month per extra client"
   },
   "equipo": {
     "title": "Team",
@@ -328,7 +328,7 @@
     "noFile": "No file",
     "docTypeLabel": "Document type *",
     "docNumberLabel": "Document number *",
-    "companyLabel": "Company / Client *",
+    "companyLabel": "Client *",
     "issueDateLabel": "Issue date",
     "dueDateLabel": "Due date",
     "totalLabel": "Total amount (€)",
@@ -351,10 +351,10 @@
     "errorCamera": "Could not access camera or gallery.",
     "errorFile": "Could not open the file.",
     "errorArchive": "Could not archive the document.",
-    "noCompanies": "You don't have any companies yet. Create the first one to link the document.",
-    "addFirstCompany": "Add first company",
-    "newCompany": "New company",
-    "newCompanyPlaceholder": "Company name"
+    "noCompanies": "You don't have any clients yet. Create the first one to link the document.",
+    "addFirstCompany": "Add first client",
+    "newCompany": "New client",
+    "newCompanyPlaceholder": "Client name"
   },
   "tutorial": {
     "skip": "Skip",
@@ -402,8 +402,8 @@
   "coachmarks": {
     "tipLabel": "TIP",
     "empresasCreateFirst": {
-      "title": "Create your first company",
-      "description": "Group documents by client or department. The free plan includes 1 company."
+      "title": "Create your first client",
+      "description": "Group documents by client or department. The free plan includes 1 client."
     },
     "equipoInviteFirst": {
       "title": "Invite your team",

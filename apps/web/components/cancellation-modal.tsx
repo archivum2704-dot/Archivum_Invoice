@@ -20,7 +20,7 @@ const STEPS = [
   {
     icon: Trash2,
     title: "Eliminación automática a los 15 días",
-    body: "Si no renuevas tu suscripción en los próximos 15 días, tu cuenta y TODOS los datos almacenados (documentos, empresas, equipo) serán eliminados de forma permanente e irrecuperable.",
+    body: "Si no renuevas tu suscripción en los próximos 15 días, tu cuenta y TODOS los datos almacenados (documentos, clientes, equipo) serán eliminados de forma permanente e irrecuperable.",
   },
   {
     icon: AlertTriangle,
