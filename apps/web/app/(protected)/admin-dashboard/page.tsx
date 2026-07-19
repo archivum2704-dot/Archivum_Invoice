@@ -7,7 +7,7 @@ import { PLANS, type PlanId } from '@/lib/pricing'
 import {
   Building2, Users, FileText, CreditCard, Search, RefreshCw,
   Pencil, Trash2, X, Shield, AlertTriangle,
-  TrendingUp, Database, Crown, Receipt, ShieldCheck,
+  TrendingUp, Database, Crown, Receipt, ShieldCheck, Package, CalendarDays,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -62,6 +62,34 @@ interface AdminUser {
   orgs: Array<{ org_id: string; org_name: string; role: string; subscription_plan: string }>
 }
 
+/** Aggregate-only stats — counts per org/month, never the underlying records */
+interface AdminStats {
+  orgs: { id: string; name: string }[]
+  invoicesByOrgMonth: { organization_id: string; month: string; count: number; total: number }[]
+  inventoryByOrg: { organization_id: string; active: number; hidden: number }[]
+  newProductsByOrgMonth: { organization_id: string; month: string; count: number }[]
+}
+
+function useAdminStats(from: string, to: string) {
+  const [stats, setStats]     = useState<AdminStats | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    const params = new URLSearchParams()
+    if (from) params.set('from', from)
+    if (to)   params.set('to', to)
+    fetch(`/api/admin/stats?${params.toString()}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (!cancelled) { setStats(d); setLoading(false) } })
+      .catch(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [from, to])
+
+  return { stats, loading }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const PLAN_LABELS: Record<string, string> = { free: 'Gratuito', starter: 'Starter', business: 'Business', pro: 'Pro' }
@@ -83,6 +111,12 @@ const STATUS_COLORS: Record<string, string> = {
 function fmt(d: string | null) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function fmtMonth(m: string) {
+  // m = 'YYYY-MM'
+  const label = new Date(`${m}-01T00:00:00`).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+  return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
 function fmtBytes(bytes: number) {
@@ -792,9 +826,285 @@ function BillingTab({ orgs }: { orgs: AdminOrg[] }) {
   )
 }
 
+// ── Shared filter bar for the stats tabs ──────────────────────────────────────
+
+function StatsFilters({ from, to, orgFilter, orgs, onFrom, onTo, onOrg }: {
+  from: string; to: string; orgFilter: string
+  orgs: { id: string; name: string }[]
+  onFrom: (v: string) => void; onTo: (v: string) => void; onOrg: (v: string) => void
+}) {
+  const inputCls = 'text-xs px-3 py-1.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring text-foreground'
+  return (
+    <div className="flex flex-wrap items-center gap-3 mb-5">
+      <div className="flex items-center gap-1.5">
+        <CalendarDays className="w-3.5 h-3.5 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">Desde</span>
+        <input type="date" className={inputCls} value={from} onChange={e => onFrom(e.target.value)} />
+        <span className="text-xs text-muted-foreground">Hasta</span>
+        <input type="date" className={inputCls} value={to} onChange={e => onTo(e.target.value)} />
+      </div>
+      <select className={inputCls} value={orgFilter} onChange={e => onOrg(e.target.value)}>
+        <option value="all">Todas las organizaciones</option>
+        {orgs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+      </select>
+      {(from || to) && (
+        <button onClick={() => { onFrom(''); onTo('') }} className="text-xs text-primary hover:underline">
+          Quitar fechas
+        </button>
+      )}
+    </div>
+  )
+}
+
+function StatsLoading() {
+  return (
+    <div className="py-16 flex justify-center">
+      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+    </div>
+  )
+}
+
+// ── Facturas Tab (aggregate counts only) ──────────────────────────────────────
+
+function InvoiceStatsTab() {
+  const [from, setFrom] = useState('')
+  const [to, setTo]     = useState('')
+  const [orgFilter, setOrgFilter] = useState('all')
+  const { stats, loading } = useAdminStats(from, to)
+
+  const orgName = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of stats?.orgs ?? []) m.set(o.id, o.name)
+    return m
+  }, [stats])
+
+  const rows = useMemo(
+    () => (stats?.invoicesByOrgMonth ?? []).filter(r => orgFilter === 'all' || r.organization_id === orgFilter),
+    [stats, orgFilter],
+  )
+
+  const byMonth = useMemo(() => {
+    const m = new Map<string, { count: number; total: number }>()
+    for (const r of rows) {
+      const b = m.get(r.month) ?? { count: 0, total: 0 }
+      b.count += r.count; b.total += r.total
+      m.set(r.month, b)
+    }
+    return Array.from(m.entries()).sort((a, b) => b[0].localeCompare(a[0]))
+  }, [rows])
+
+  const byOrg = useMemo(() => {
+    const m = new Map<string, { count: number; total: number }>()
+    for (const r of rows) {
+      const b = m.get(r.organization_id) ?? { count: 0, total: 0 }
+      b.count += r.count; b.total += r.total
+      m.set(r.organization_id, b)
+    }
+    return Array.from(m.entries()).sort((a, b) => b[1].count - a[1].count)
+  }, [rows])
+
+  const totalCount  = rows.reduce((s, r) => s + r.count, 0)
+  const totalAmount = rows.reduce((s, r) => s + r.total, 0)
+
+  const thCls = 'text-left py-2.5 px-4 font-medium text-muted-foreground'
+
+  if (loading || !stats) return <StatsLoading />
+
+  return (
+    <>
+      <StatsFilters from={from} to={to} orgFilter={orgFilter} orgs={stats.orgs}
+        onFrom={setFrom} onTo={setTo} onOrg={setOrgFilter} />
+
+      <div className="grid grid-cols-2 gap-4 mb-6 max-w-lg">
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-xs text-muted-foreground">Facturas emitidas</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{totalCount}</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-xs text-muted-foreground">Importe facturado</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{fmtEur(totalAmount)}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Per month */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+            <CalendarDays className="w-4 h-4 text-primary" />
+            <h2 className="font-semibold text-foreground text-sm">Facturas por mes</h2>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className={thCls}>Mes</th>
+                <th className={cn(thCls, 'text-center')}>Facturas</th>
+                <th className={cn(thCls, 'text-right')}>Importe</th>
+              </tr>
+            </thead>
+            <tbody>
+              {byMonth.length === 0 ? (
+                <tr><td colSpan={3} className="py-10 text-center text-sm text-muted-foreground">Sin facturas en este periodo</td></tr>
+              ) : byMonth.map(([month, b]) => (
+                <tr key={month} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                  <td className="py-2.5 px-4 font-medium text-foreground">{fmtMonth(month)}</td>
+                  <td className="py-2.5 px-4 text-center font-semibold text-foreground">{b.count}</td>
+                  <td className="py-2.5 px-4 text-right text-muted-foreground">{fmtEur(b.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Per organization */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+            <Building2 className="w-4 h-4 text-primary" />
+            <h2 className="font-semibold text-foreground text-sm">Facturas por organización</h2>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className={thCls}>Organización</th>
+                <th className={cn(thCls, 'text-center')}>Facturas</th>
+                <th className={cn(thCls, 'text-right')}>Importe</th>
+              </tr>
+            </thead>
+            <tbody>
+              {byOrg.length === 0 ? (
+                <tr><td colSpan={3} className="py-10 text-center text-sm text-muted-foreground">Sin facturas en este periodo</td></tr>
+              ) : byOrg.map(([orgId, b]) => (
+                <tr key={orgId} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                  <td className="py-2.5 px-4 font-medium text-foreground">{orgName.get(orgId) ?? '—'}</td>
+                  <td className="py-2.5 px-4 text-center font-semibold text-foreground">{b.count}</td>
+                  <td className="py-2.5 px-4 text-right text-muted-foreground">{fmtEur(b.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ── Inventario Tab (aggregate counts only) ────────────────────────────────────
+
+function InventoryStatsTab() {
+  const [from, setFrom] = useState('')
+  const [to, setTo]     = useState('')
+  const [orgFilter, setOrgFilter] = useState('all')
+  const { stats, loading } = useAdminStats(from, to)
+
+  const orgName = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of stats?.orgs ?? []) m.set(o.id, o.name)
+    return m
+  }, [stats])
+
+  const inventory = useMemo(
+    () => (stats?.inventoryByOrg ?? [])
+      .filter(r => orgFilter === 'all' || r.organization_id === orgFilter)
+      .sort((a, b) => (b.active + b.hidden) - (a.active + a.hidden)),
+    [stats, orgFilter],
+  )
+
+  const newByMonth = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const r of stats?.newProductsByOrgMonth ?? []) {
+      if (orgFilter !== 'all' && r.organization_id !== orgFilter) continue
+      m.set(r.month, (m.get(r.month) ?? 0) + r.count)
+    }
+    return Array.from(m.entries()).sort((a, b) => b[0].localeCompare(a[0]))
+  }, [stats, orgFilter])
+
+  const totalActive = inventory.reduce((s, r) => s + r.active, 0)
+  const totalHidden = inventory.reduce((s, r) => s + r.hidden, 0)
+
+  const thCls = 'text-left py-2.5 px-4 font-medium text-muted-foreground'
+
+  if (loading || !stats) return <StatsLoading />
+
+  return (
+    <>
+      <StatsFilters from={from} to={to} orgFilter={orgFilter} orgs={stats.orgs}
+        onFrom={setFrom} onTo={setTo} onOrg={setOrgFilter} />
+
+      <div className="grid grid-cols-2 gap-4 mb-6 max-w-lg">
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-xs text-muted-foreground">Productos en inventario</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{totalActive}</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-xs text-muted-foreground">Productos ocultos (borrados)</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{totalHidden}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Current inventory per organization */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+            <Package className="w-4 h-4 text-primary" />
+            <h2 className="font-semibold text-foreground text-sm">Inventario por organización</h2>
+            <span className="text-[10px] text-muted-foreground ml-auto">estado actual, no filtra por fecha</span>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className={thCls}>Organización</th>
+                <th className={cn(thCls, 'text-center')}>Activos</th>
+                <th className={cn(thCls, 'text-center')}>Ocultos</th>
+                <th className={cn(thCls, 'text-center')}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {inventory.length === 0 ? (
+                <tr><td colSpan={4} className="py-10 text-center text-sm text-muted-foreground">Sin productos</td></tr>
+              ) : inventory.map(r => (
+                <tr key={r.organization_id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                  <td className="py-2.5 px-4 font-medium text-foreground">{orgName.get(r.organization_id) ?? '—'}</td>
+                  <td className="py-2.5 px-4 text-center font-semibold text-foreground">{r.active}</td>
+                  <td className="py-2.5 px-4 text-center text-muted-foreground">{r.hidden || '—'}</td>
+                  <td className="py-2.5 px-4 text-center font-semibold text-foreground">{r.active + r.hidden}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* New products per month */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+            <CalendarDays className="w-4 h-4 text-primary" />
+            <h2 className="font-semibold text-foreground text-sm">Productos dados de alta por mes</h2>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className={thCls}>Mes</th>
+                <th className={cn(thCls, 'text-center')}>Nuevos productos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {newByMonth.length === 0 ? (
+                <tr><td colSpan={2} className="py-10 text-center text-sm text-muted-foreground">Sin altas en este periodo</td></tr>
+              ) : newByMonth.map(([month, count]) => (
+                <tr key={month} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                  <td className="py-2.5 px-4 font-medium text-foreground">{fmtMonth(month)}</td>
+                  <td className="py-2.5 px-4 text-center font-semibold text-foreground">{count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-type Tab = 'resumen' | 'organizaciones' | 'usuarios' | 'facturacion'
+type Tab = 'resumen' | 'organizaciones' | 'usuarios' | 'facturas' | 'inventario' | 'facturacion'
 
 export default function AdminDashboardPage() {
   const router = useRouter()
@@ -863,7 +1173,9 @@ export default function AdminDashboardPage() {
     { id: 'resumen',        label: 'Resumen',        icon: TrendingUp  },
     { id: 'organizaciones', label: 'Organizaciones', icon: Building2   },
     { id: 'usuarios',       label: 'Usuarios',       icon: Users       },
-    { id: 'facturacion',    label: 'Facturación',    icon: CreditCard  },
+    { id: 'facturas',       label: 'Facturas',       icon: Receipt     },
+    { id: 'inventario',     label: 'Inventario',     icon: Package     },
+    { id: 'facturacion',    label: 'Suscripciones',  icon: CreditCard  },
   ]
 
   return (
@@ -977,6 +1289,8 @@ export default function AdminDashboardPage() {
 
       {activeTab === 'organizaciones' && <OrgsTab orgs={orgs} onRefresh={load} />}
       {activeTab === 'usuarios'       && <UsersTab users={users} onRefresh={load} />}
+      {activeTab === 'facturas'       && <InvoiceStatsTab />}
+      {activeTab === 'inventario'     && <InventoryStatsTab />}
       {activeTab === 'facturacion'    && <BillingTab orgs={orgs} />}
     </div>
   )
