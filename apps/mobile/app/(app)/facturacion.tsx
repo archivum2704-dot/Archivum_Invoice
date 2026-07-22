@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   RefreshControl, ActivityIndicator, Modal, ScrollView, Alert, Linking,
+  KeyboardAvoidingView, Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Plus, Receipt, X, Trash2, Lock, ArrowLeft, ShieldCheck, ChevronRight, Search as SearchIcon, ChevronDown, Clock } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -31,6 +32,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 export default function FacturacionScreen() {
   const { t } = useTranslation();
   const C = useColors();
+  const insets = useSafeAreaInsets();
   const { session, orgId, org, isAdmin, isPaid, isPlatformAdmin } = useAuth();
   const paid = isPaid || isPlatformAdmin;
   const canManage = isAdmin && paid;
@@ -267,12 +269,13 @@ export default function FacturacionScreen() {
 
       {/* New invoice modal */}
       <Modal visible={modal} animationType="slide" onRequestClose={closeModal}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top", "bottom"]}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 }}>
             <Text style={{ fontSize: 18, fontWeight: "700", color: C.text }}>{t("invoicing.new")}</Text>
             <TouchableOpacity onPress={closeModal}><X size={24} color={C.muted} /></TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 32 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
             {/* Client */}
             <View>
               <Text style={{ fontSize: 12, fontWeight: "600", color: C.muted, marginBottom: 6 }}>{t("invoicing.client")} *</Text>
@@ -346,19 +349,20 @@ export default function FacturacionScreen() {
             </View>
           </ScrollView>
 
-          <View style={{ padding: 16 }}>
+          <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.bg }}>
             <TouchableOpacity onPress={issue} disabled={issuing} style={{ backgroundColor: C.blue, borderRadius: 12, paddingVertical: 15, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, opacity: issuing ? 0.6 : 1 }}>
               {issuing ? <ActivityIndicator color="#fff" /> : <ShieldCheck size={18} color="#fff" />}
               <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("invoicing.issue")}</Text>
             </TouchableOpacity>
           </View>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
       {/* Client picker modal */}
       <Modal visible={clientPicker} animationType="slide" transparent onRequestClose={() => setClientPicker(false)}>
-        <View style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
-          <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "80%" }}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 20 + insets.bottom, maxHeight: "85%" }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{t("invoicing.client")}</Text>
               <TouchableOpacity onPress={() => setClientPicker(false)}><X size={22} color={C.muted} /></TouchableOpacity>
@@ -392,13 +396,13 @@ export default function FacturacionScreen() {
                 </TouchableOpacity>
               )} />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Article picker modal (per line) */}
       <Modal visible={productPicker !== null} animationType="slide" transparent onRequestClose={() => setProductPicker(null)}>
-        <View style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
-          <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "80%" }}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 20 + insets.bottom, maxHeight: "85%" }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{t("invoicing.selectProduct")}</Text>
               <TouchableOpacity onPress={() => setProductPicker(null)}><X size={22} color={C.muted} /></TouchableOpacity>
@@ -422,7 +426,7 @@ export default function FacturacionScreen() {
                 </TouchableOpacity>
               )} />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
