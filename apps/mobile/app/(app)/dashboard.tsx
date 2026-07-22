@@ -9,6 +9,7 @@ import {
   Bell, AlertTriangle, FileText, ChevronRight, Plus, Package, Receipt,
 } from "lucide-react-native";
 import Svg, { Rect, Text as SvgText } from "react-native-svg";
+import { Logo } from "@/components/Logo";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useColors } from "@/lib/colors";
@@ -179,6 +180,12 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.blue} />}
       >
+        {/* Brand */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 2 }}>
+          <Logo size={28} />
+          <Text style={{ fontSize: 18, fontWeight: "800", color: C.text, letterSpacing: -0.3 }}>archivum</Text>
+        </View>
+
         {/* Header */}
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 }}>
           <View>

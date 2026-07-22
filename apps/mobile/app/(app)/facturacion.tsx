@@ -5,7 +5,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { Plus, Receipt, X, Trash2, Lock, ArrowLeft, ShieldCheck, ChevronRight, Search as SearchIcon } from "lucide-react-native";
+import { Plus, Receipt, X, Trash2, Lock, ArrowLeft, ShieldCheck, ChevronRight, Search as SearchIcon, ChevronDown, Clock } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
@@ -19,6 +20,10 @@ interface Invoice { id: string; full_number: string | null; client_name: string 
 interface Company { id: string; name: string; cif: string | null; }
 interface Product { id: string; name: string; unit_price: number; tax_rate: number; }
 type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string };
+
+// A locally-stored invoice the user started but never successfully issued ("grabó").
+interface LocalDraft { id: string; clientId: string; clientName: string | null; retentionPct: string; lines: Line[]; total: number; savedAt: string; }
+const draftsKey = (orgId: string) => `invoice_drafts_${orgId}`;
 
 const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1", unitPrice: "0", taxRate: "21" });
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -43,6 +48,12 @@ export default function FacturacionScreen() {
   const [retentionPct, setRetentionPct] = useState("");
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
   const [issuing, setIssuing] = useState(false);
+  // Local drafts (started but not yet issued)
+  const [drafts, setDrafts] = useState<LocalDraft[]>([]);
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+  // Article picker (per invoice line)
+  const [productPicker, setProductPicker] = useState<number | null>(null);
+  const [productSearch, setProductSearch] = useState("");
   // Inline new client
   const [ncName, setNcName] = useState(""); const [ncCif, setNcCif] = useState("");
 
@@ -55,6 +66,12 @@ export default function FacturacionScreen() {
     return companies.filter(c => c.name.toLowerCase().includes(q) || (c.cif ?? "").toLowerCase().includes(q));
   }, [companies, clientSearch]);
 
+  const productMatches = useMemo(() => {
+    const q = productSearch.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter(p => p.name.toLowerCase().includes(q));
+  }, [products, productSearch]);
+
   const load = useCallback(async () => {
     if (!orgId) return;
     const [{ data: inv }, { data: co }, { data: pr }] = await Promise.all([
@@ -66,7 +83,21 @@ export default function FacturacionScreen() {
     setLoading(false); setRefreshing(false);
   }, [orgId]);
 
-  useEffect(() => { if (paid) load(); else setLoading(false); }, [load, paid]);
+  const loadDrafts = useCallback(async () => {
+    if (!orgId) return;
+    try {
+      const raw = await AsyncStorage.getItem(draftsKey(orgId));
+      setDrafts(raw ? (JSON.parse(raw) as LocalDraft[]) : []);
+    } catch { setDrafts([]); }
+  }, [orgId]);
+
+  const persistDrafts = useCallback(async (next: LocalDraft[]) => {
+    setDrafts(next);
+    if (!orgId) return;
+    try { await AsyncStorage.setItem(draftsKey(orgId), JSON.stringify(next)); } catch {}
+  }, [orgId]);
+
+  useEffect(() => { if (paid) { load(); loadDrafts(); } else setLoading(false); }, [load, loadDrafts, paid]);
 
   const totals = useMemo(() => {
     let subtotal = 0, tax = 0;
@@ -78,10 +109,44 @@ export default function FacturacionScreen() {
     return { subtotal: r2(subtotal), tax: r2(tax), ret, total: r2(subtotal + tax - ret) };
   }, [lines, retentionPct]);
 
-  const resetForm = () => { setClientId(""); setRetentionPct(""); setLines([emptyLine()]); };
+  const resetForm = () => { setClientId(""); setRetentionPct(""); setLines([emptyLine()]); setEditingDraftId(null); };
 
   const setLine = (i: number, patch: Partial<Line>) => setLines(prev => prev.map((l, idx) => idx === i ? { ...l, ...patch } : l));
-  const pickProduct = (i: number, p: Product) => setLine(i, { productId: p.id, description: p.name, unitPrice: String(p.unit_price), taxRate: String(p.tax_rate) });
+  const pickProduct = (i: number, p: Product) => { setLine(i, { productId: p.id, description: p.name, unitPrice: String(p.unit_price), taxRate: String(p.tax_rate) }); setProductPicker(null); setProductSearch(""); };
+
+  // Does the current form hold anything worth keeping as a draft?
+  const hasDraftContent = () =>
+    !!clientId || lines.some(l => l.description.trim() || (Number(l.quantity) || 0) !== 0 && l.quantity !== "1" || (Number(l.unitPrice) || 0) !== 0);
+
+  const openNew = () => { resetForm(); setModal(true); };
+
+  const openDraft = (d: LocalDraft) => {
+    setEditingDraftId(d.id);
+    setClientId(d.clientId);
+    setRetentionPct(d.retentionPct);
+    setLines(d.lines.length ? d.lines : [emptyLine()]);
+    setModal(true);
+  };
+
+  // Persist the in-progress form as a local draft when the user leaves without issuing.
+  const closeModal = async () => {
+    if (hasDraftContent()) {
+      const id = editingDraftId ?? `draft_${Date.now()}`;
+      const draft: LocalDraft = {
+        id, clientId, clientName: selectedClient?.name ?? null,
+        retentionPct, lines, total: totals.total, savedAt: new Date().toISOString(),
+      };
+      await persistDrafts([draft, ...drafts.filter(d => d.id !== id)]);
+    }
+    setModal(false); resetForm();
+  };
+
+  const removeDraft = (d: LocalDraft) => {
+    Alert.alert(t("invoicing.deleteDraftTitle"), t("invoicing.deleteDraftConfirm"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("common.delete"), style: "destructive", onPress: () => persistDrafts(drafts.filter(x => x.id !== d.id)) },
+    ]);
+  };
 
   const createClient = async () => {
     if (!ncName.trim() || !orgId) return;
@@ -109,6 +174,7 @@ export default function FacturacionScreen() {
       });
       const json = await res.json();
       if (!res.ok) { Alert.alert(t("common.error"), json.detail ?? json.error ?? t("invoicing.errGeneric")); setIssuing(false); return; }
+      if (editingDraftId) await persistDrafts(drafts.filter(d => d.id !== editingDraftId));
       setModal(false); resetForm(); await load();
       router.push(`/(app)/factura/${json.id}`);
     } catch (e) { Alert.alert(t("common.error"), String(e)); }
@@ -124,7 +190,7 @@ export default function FacturacionScreen() {
         <Text style={{ fontSize: 22, fontWeight: "700", color: C.text }}>{t("invoicing.title")}</Text>
       </View>
       {canManage && (
-        <TouchableOpacity onPress={() => { resetForm(); setModal(true); }} style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.blue, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 }}>
+        <TouchableOpacity onPress={openNew} style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.blue, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 }}>
           <Plus size={16} color="#fff" /><Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>{t("invoicing.new")}</Text>
         </TouchableOpacity>
       )}
@@ -162,8 +228,27 @@ export default function FacturacionScreen() {
         <FlatList
           data={invoices} keyExtractor={(i) => i.id}
           contentContainerStyle={{ padding: 16, gap: 10 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={C.blue} />}
-          ListEmptyComponent={<View style={{ alignItems: "center", paddingVertical: 60 }}><Receipt size={40} color={C.muted} /><Text style={{ color: C.muted, marginTop: 12 }}>{t("invoicing.empty")}</Text></View>}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); loadDrafts(); }} tintColor={C.blue} />}
+          ListHeaderComponent={drafts.length > 0 ? (
+            <View style={{ gap: 10, marginBottom: 10 }}>
+              {drafts.map(d => (
+                <View key={d.id} style={{ backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.yellow, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <TouchableOpacity onPress={() => openDraft(d)} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
+                    <View style={{ width: 34, height: 34, borderRadius: 9, backgroundColor: C.yellowL, alignItems: "center", justifyContent: "center" }}>
+                      <Clock size={16} color={C.yellow} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 15, fontWeight: "700", color: C.text }}>{d.clientName ?? t("invoicing.new")}</Text>
+                      <Text style={{ fontSize: 12, color: C.yellow, fontWeight: "600", marginTop: 2 }}>{t("invoicing.pendingDraft")}</Text>
+                    </View>
+                    <Text style={{ fontSize: 14, fontWeight: "700", color: C.text }}>{fmtEur(d.total)}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => removeDraft(d)} hitSlop={8} style={{ padding: 4 }}><Trash2 size={18} color={C.red} /></TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          ) : null}
+          ListEmptyComponent={drafts.length > 0 ? null : <View style={{ alignItems: "center", paddingVertical: 60 }}><Receipt size={40} color={C.muted} /><Text style={{ color: C.muted, marginTop: 12 }}>{t("invoicing.empty")}</Text></View>}
           renderItem={({ item }) => (
             <TouchableOpacity onPress={() => router.push(`/(app)/factura/${item.id}`)} style={{ backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
               <View style={{ flex: 1 }}>
@@ -181,11 +266,11 @@ export default function FacturacionScreen() {
       )}
 
       {/* New invoice modal */}
-      <Modal visible={modal} animationType="slide" onRequestClose={() => setModal(false)}>
+      <Modal visible={modal} animationType="slide" onRequestClose={closeModal}>
         <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 }}>
             <Text style={{ fontSize: 18, fontWeight: "700", color: C.text }}>{t("invoicing.new")}</Text>
-            <TouchableOpacity onPress={() => setModal(false)}><X size={24} color={C.muted} /></TouchableOpacity>
+            <TouchableOpacity onPress={closeModal}><X size={24} color={C.muted} /></TouchableOpacity>
           </View>
           <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
             {/* Client */}
@@ -206,21 +291,34 @@ export default function FacturacionScreen() {
               </View>
               {lines.map((l, i) => (
                 <View key={i} style={{ backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 12, padding: 12, marginBottom: 10 }}>
-                  {/* Editing the text must NOT unlink the product — the link drives
+                  {/* Description — free text, or auto-filled from the article picker.
+                      Editing the text must NOT unlink the product — the link drives
                       the automatic stock deduction at issue time. */}
+                  <Text style={{ fontSize: 11, fontWeight: "600", color: C.muted, marginBottom: 4 }}>{t("invoicing.description")}</Text>
                   <TextInput placeholder={t("invoicing.description")} placeholderTextColor={C.muted} value={l.description} onChangeText={(v) => setLine(i, { description: v })}
                     style={{ backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, color: C.text, marginBottom: 8 }} />
                   {products.length > 0 && (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }} contentContainerStyle={{ gap: 6 }}>
-                      {products.map(p => <Chip key={p.id} active={l.productId === p.id} label={p.name} onPress={() => pickProduct(i, p)} />)}
-                    </ScrollView>
+                    <TouchableOpacity onPress={() => { setProductSearch(""); setProductPicker(i); }}
+                      style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 9, marginBottom: 8 }}>
+                      <SearchIcon size={14} color={C.muted} />
+                      <Text style={{ flex: 1, color: l.productId ? C.text : C.muted, fontSize: 13 }} numberOfLines={1}>
+                        {l.productId ? (products.find(p => p.id === l.productId)?.name ?? t("invoicing.searchProduct")) : t("invoicing.searchProduct")}
+                      </Text>
+                      <ChevronDown size={16} color={C.muted} />
+                    </TouchableOpacity>
                   )}
                   <View style={{ flexDirection: "row", gap: 8 }}>
-                    <TextInput placeholder={t("invoicing.qty")} placeholderTextColor={C.muted} keyboardType="decimal-pad" value={l.quantity} onChangeText={(v) => setLine(i, { quantity: v })}
-                      style={{ flex: 1, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, color: C.text }} />
-                    <TextInput placeholder={t("invoicing.price")} placeholderTextColor={C.muted} keyboardType="decimal-pad" value={l.unitPrice} onChangeText={(v) => setLine(i, { unitPrice: v })}
-                      style={{ flex: 1, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, color: C.text }} />
-                    {lines.length > 1 && <TouchableOpacity onPress={() => setLines(lines.filter((_, idx) => idx !== i))} style={{ justifyContent: "center" }}><Trash2 size={18} color={C.red} /></TouchableOpacity>}
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, fontWeight: "600", color: C.muted, marginBottom: 4 }}>{t("invoicing.units")}</Text>
+                      <TextInput placeholder={t("invoicing.qty")} placeholderTextColor={C.muted} keyboardType="decimal-pad" value={l.quantity} onChangeText={(v) => setLine(i, { quantity: v })}
+                        style={{ backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, color: C.text }} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, fontWeight: "600", color: C.muted, marginBottom: 4 }}>{t("invoicing.priceEur")}</Text>
+                      <TextInput placeholder={t("invoicing.price")} placeholderTextColor={C.muted} keyboardType="decimal-pad" value={l.unitPrice} onChangeText={(v) => setLine(i, { unitPrice: v })}
+                        style={{ backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, color: C.text }} />
+                    </View>
+                    {lines.length > 1 && <TouchableOpacity onPress={() => setLines(lines.filter((_, idx) => idx !== i))} style={{ justifyContent: "flex-end", paddingBottom: 8 }}><Trash2 size={18} color={C.red} /></TouchableOpacity>}
                   </View>
                   <Text style={{ fontSize: 11, color: C.muted, marginTop: 8, marginBottom: 4 }}>{t("invoicing.iva")}</Text>
                   <View style={{ flexDirection: "row", gap: 6 }}>
@@ -291,6 +389,36 @@ export default function FacturacionScreen() {
                 <TouchableOpacity onPress={() => { setClientId(item.id); setClientPicker(false); }} style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border }}>
                   <Text style={{ color: C.text, fontSize: 15 }}>{item.name}</Text>
                   <Text style={{ color: C.muted, fontSize: 12 }}>{item.cif ?? t("invoicing.noCif")}</Text>
+                </TouchableOpacity>
+              )} />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Article picker modal (per line) */}
+      <Modal visible={productPicker !== null} animationType="slide" transparent onRequestClose={() => setProductPicker(null)}>
+        <View style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "80%" }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{t("invoicing.selectProduct")}</Text>
+              <TouchableOpacity onPress={() => setProductPicker(null)}><X size={22} color={C.muted} /></TouchableOpacity>
+            </View>
+            {/* Type-to-search filter */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, marginBottom: 10 }}>
+              <SearchIcon size={15} color={C.muted} />
+              <TextInput placeholder={t("invoicing.searchProduct")} placeholderTextColor={C.muted} value={productSearch} onChangeText={setProductSearch} autoCorrect={false}
+                style={{ flex: 1, paddingVertical: 9, color: C.text }} />
+              {productSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setProductSearch("")} hitSlop={8}><X size={15} color={C.muted} /></TouchableOpacity>
+              )}
+            </View>
+            <FlatList data={productMatches} keyExtractor={(p) => p.id}
+              keyboardShouldPersistTaps="handled"
+              ListEmptyComponent={<Text style={{ color: C.muted, paddingVertical: 16, textAlign: "center" }}>{t("invoicing.noProductMatches")}</Text>}
+              renderItem={({ item }) => (
+                <TouchableOpacity onPress={() => { if (productPicker !== null) pickProduct(productPicker, item); }} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border }}>
+                  <Text style={{ color: C.text, fontSize: 15, flex: 1 }}>{item.name}</Text>
+                  <Text style={{ color: C.muted, fontSize: 13 }}>{fmtEur(item.unit_price)} · {Number(item.tax_rate)}%</Text>
                 </TouchableOpacity>
               )} />
           </View>

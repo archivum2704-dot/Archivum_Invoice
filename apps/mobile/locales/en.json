@@ -62,7 +62,15 @@
     "paywallBody": "Issue Verifactu-compliant invoices by upgrading to a paid plan.",
     "upgrade": "View plans",
     "searchClient": "Search by name or tax ID...",
-    "noClientMatches": "No matching clients"
+    "noClientMatches": "No matching clients",
+    "units": "Units",
+    "priceEur": "Price (€)",
+    "searchProduct": "Search article...",
+    "selectProduct": "Select article",
+    "noProductMatches": "No matching articles",
+    "pendingDraft": "Pending to save",
+    "deleteDraftTitle": "Delete draft",
+    "deleteDraftConfirm": "Delete this pending invoice?"
   },
   "common": {
     "save": "Save",

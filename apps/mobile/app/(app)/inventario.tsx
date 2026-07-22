@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   RefreshControl, ActivityIndicator, Modal, ScrollView, Switch, Alert, Linking,
+  KeyboardAvoidingView, Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -271,7 +272,10 @@ export default function InventarioScreen() {
 
       {/* Create / edit modal */}
       <Modal visible={modal} animationType="slide" transparent onRequestClose={() => setModal(false)}>
-        <View style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}
+        >
           <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "88%" }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>{draft.id ? t("inventory.edit") : t("inventory.new")}</Text>
@@ -296,7 +300,7 @@ export default function InventarioScreen() {
               {saving ? <ActivityIndicator color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "600" }}>{t("common.save")}</Text>}
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
