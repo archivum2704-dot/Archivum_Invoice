@@ -1,8 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomInt } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { PLANS, type PlanId } from '@/lib/pricing'
+
+// Generate a readable but strong temporary password.
+// Ambiguous characters (0/O, 1/l/I) are excluded so it can be shared verbally.
+function generatePassword(): string {
+  const upper   = 'ABCDEFGHJKMNPQRSTUVWXYZ'
+  const lower   = 'abcdefghijkmnpqrstuvwxyz'
+  const digits  = '23456789'
+  const symbols = '!@#$%*?'
+  const all = upper + lower + digits + symbols
+  const pick = (set: string) => set[randomInt(set.length)]
+  // Guarantee at least one of each class, then fill to 12 chars.
+  const chars = [pick(upper), pick(lower), pick(digits), pick(symbols)]
+  while (chars.length < 12) chars.push(pick(all))
+  // Fisher–Yates shuffle so the guaranteed chars aren't always first.
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1)
+    ;[chars[i], chars[j]] = [chars[j], chars[i]]
+  }
+  return chars.join('')
+}
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -134,11 +155,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, existing: true })
     }
 
-    // New user — create account + generate invite link (no email sent by Supabase)
+    // New user — create account with a generated password and confirm the email
+    // so they can sign in immediately (no activation click needed).
+    const password = generatePassword()
     const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
       email: normalizedEmail,
+      password,
       user_metadata: { first_name: firstName ?? '', last_name: lastName ?? '' },
-      email_confirm: false,
+      email_confirm: true,
     })
 
     if (createErr || !newUser?.user) {
@@ -154,34 +178,6 @@ export async function POST(req: NextRequest) {
       last_name: lastName ?? '',
     }, { onConflict: 'id' })
 
-    // Generate the activation/set-password link
-    const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-      type: 'invite',
-      email: normalizedEmail,
-      options: { redirectTo: `${APP_URL}/auth/callback` },
-    })
-
-    if (linkErr || !linkData?.properties?.action_link) {
-      console.error('[create-member] generateLink error:', linkErr)
-      // User was created — still add them to org, they can reset password later
-    }
-
-    const activationLink = linkData?.properties?.action_link ?? `${APP_URL}/auth/login`
-
-    // Send invite email via Resend
-    const resend = getResend()
-    const { error: emailErr } = await resend.emails.send({
-      from: FROM_EMAIL,
-      to: normalizedEmail,
-      subject: 'Te han invitado a Archivum',
-      html: buildInviteEmail({ displayName, activationLink, role, appUrl: APP_URL }),
-    })
-
-    if (emailErr) {
-      console.error('[create-member] Resend error:', emailErr)
-      // Non-fatal — user is created, just couldn't send email
-    }
-
     // Add to organization
     const { error: memberErr } = await admin.from('organization_members').insert({
       organization_id: orgId,
@@ -195,7 +191,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'server_error', detail: memberErr.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, existing: false })
+    // Send a welcome email with the credentials (best-effort — never blocks creation)
+    try {
+      const resend = getResend()
+      const { error: emailErr } = await resend.emails.send({
+        from: FROM_EMAIL,
+        to: normalizedEmail,
+        subject: 'Tu cuenta de Archivum',
+        html: buildInviteEmail({ displayName, email: normalizedEmail, password, role, appUrl: APP_URL }),
+      })
+      if (emailErr) console.error('[create-member] Resend error:', emailErr)
+    } catch (mailErr) {
+      // Email not configured or failed — the admin still gets the credentials in the response.
+      console.error('[create-member] email skipped:', mailErr)
+    }
+
+    return NextResponse.json({
+      success: true,
+      existing: false,
+      email: normalizedEmail,
+      displayName,
+      password,
+    })
 
   } catch (err) {
     console.error('[create-member] unhandled error:', err)
@@ -204,15 +221,17 @@ export async function POST(req: NextRequest) {
 }
 
 // ── Email template ────────────────────────────────────────────────────────────
-function buildInviteEmail({ displayName, activationLink, role, appUrl }: {
+function buildInviteEmail({ displayName, email, password, role, appUrl }: {
   displayName: string
-  activationLink: string
+  email: string
+  password: string
   role: string
   appUrl: string
 }) {
   const roleLabel: Record<string, string> = {
     admin: 'Administrador', member: 'Miembro', viewer: 'Visor',
   }
+  const loginUrl = `${appUrl}/auth/login`
   return `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -227,21 +246,28 @@ function buildInviteEmail({ displayName, activationLink, role, appUrl }: {
         </td></tr>
         <!-- Body -->
         <tr><td style="padding:40px;">
-          <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#111827;">Te han invitado</h1>
+          <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#111827;">Tu cuenta está lista</h1>
           <p style="margin:0 0 24px;font-size:15px;color:#6B7280;line-height:1.6;">
             Hola <strong style="color:#111827;">${displayName}</strong>, has sido añadido a Archivum
             con el rol de <strong style="color:#2563EB;">${roleLabel[role] ?? role}</strong>.
+            Estas son tus credenciales de acceso:
           </p>
-          <p style="margin:0 0 24px;font-size:14px;color:#6B7280;line-height:1.6;">
-            Activa tu cuenta y establece tu contraseña haciendo clic en el botón:
-          </p>
-          <a href="${activationLink}"
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;">
+            <tr><td style="padding:16px 20px;">
+              <p style="margin:0 0 4px;font-size:12px;color:#9CA3AF;">Correo</p>
+              <p style="margin:0 0 14px;font-size:15px;font-weight:600;color:#111827;">${email}</p>
+              <p style="margin:0 0 4px;font-size:12px;color:#9CA3AF;">Contraseña temporal</p>
+              <p style="margin:0;font-size:15px;font-weight:600;color:#111827;font-family:monospace;letter-spacing:0.5px;">${password}</p>
+            </td></tr>
+          </table>
+          <a href="${loginUrl}"
              style="display:inline-block;background:#2563EB;color:#FFFFFF;font-size:15px;font-weight:600;
                     padding:14px 32px;border-radius:10px;text-decoration:none;letter-spacing:-0.2px;">
-            Activar mi cuenta →
+            Iniciar sesión →
           </a>
           <p style="margin:24px 0 0;font-size:12px;color:#9CA3AF;">
-            Este enlace expira en 24 horas. Si no esperabas esta invitación, puedes ignorar este correo.
+            Por seguridad, te recomendamos cambiar la contraseña después de tu primer inicio de sesión.
+            Si no esperabas este correo, puedes ignorarlo.
           </p>
         </td></tr>
         <!-- Footer -->

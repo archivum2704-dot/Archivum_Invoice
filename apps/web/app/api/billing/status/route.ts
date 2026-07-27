@@ -52,8 +52,8 @@ export async function GET(req: NextRequest) {
     // Annual doc pool = plan yearly allowance + bonos (250 docs each)
     const maxDocs = plan.docsPerYear + extraDocsQuantity * 250
 
-    // Legacy company limit (kept for DB compat; no longer sold as addon)
-    const maxCompanies = 20 + extraCompaniesQuantity
+    // Client limit: free plan → 1 client. Paid plans → 20 base + extras.
+    const maxCompanies = hasSubscription ? 20 + extraCompaniesQuantity : 1
 
     return NextResponse.json({
       plan: planId,

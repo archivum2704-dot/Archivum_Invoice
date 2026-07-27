@@ -595,10 +595,10 @@
       "limitReached": "You've reached the limit of {max} users. Remove one to add another.",
       "invite": "Add User",
       "createTitle": "Create new user",
-      "createSubtitle": "The user will receive an email to activate their account and set a password.",
+      "createSubtitle": "A temporary password will be generated for you to share with the user.",
       "createUser": "Create",
       "createSuccess": "User created — activation email sent",
-      "createHint": "The user must activate their account before logging in via the User tab.",
+      "createHint": "The user can sign in with their email and the generated password from the User tab.",
       "firstName": "First name",
       "lastName": "Last name",
       "inviteTitle": "Add a new member",
@@ -646,7 +646,13 @@
         "email_rate_limit": "Too many invitation emails sent. Please wait a few minutes and try again, or configure a custom SMTP provider in Supabase.",
         "invalid_email": "This email address is not accepted. Check your Supabase auth settings for domain restrictions.",
         "generic": "An error occurred. Please try again."
-      }
+      },
+      "passwordLabel": "Password",
+      "createdTitle": "User created",
+      "createdSubtitle": "{name} can now sign in. Share these credentials:",
+      "createdHint": "Save or share the password now — for security it won't be shown again. It has also been emailed if email delivery is configured.",
+      "copyCredentials": "Copy credentials",
+      "copied": "Copied"
     },
     "organization": {
       "title": "Organization Details",
