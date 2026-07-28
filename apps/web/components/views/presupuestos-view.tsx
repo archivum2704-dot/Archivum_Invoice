@@ -41,6 +41,8 @@ export function PresupuestosView() {
   const { quotes, loading, mutate } = useQuotes(currentOrg?.id ?? null)
   const { companies, mutate: mutateCompanies } = useCompanies(currentOrg?.id ?? null)
   const { products, mutate: mutateProducts } = useProducts(currentOrg?.id ?? null)
+  // Converted quotes move to Facturas, so they no longer show in the quotes list.
+  const visibleQuotes = quotes.filter(q => q.status !== "converted")
 
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -249,7 +251,7 @@ export function PresupuestosView() {
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-        ) : quotes.length === 0 ? (
+        ) : visibleQuotes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center px-6">
             <FileText className="w-10 h-10 text-muted-foreground/30 mb-3" />
             <p className="text-sm font-medium text-foreground mb-1">Aún no hay presupuestos</p>
@@ -257,7 +259,7 @@ export function PresupuestosView() {
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {quotes.map(q => (
+            {visibleQuotes.map(q => (
               <div key={q.id} className={cn("flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-colors", busyId === q.id && "opacity-50 pointer-events-none")}>
                 <Link href={`/presupuestos/${q.id}`} className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-foreground truncate hover:text-accent">{q.full_number ?? "—"}</p>
