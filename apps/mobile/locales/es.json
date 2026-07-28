@@ -62,7 +62,9 @@
     "paywallBody": "Emite facturas conformes con Verifactu actualizando a un plan de pago.",
     "upgrade": "Ver planes",
     "searchClient": "Buscar por nombre o CIF...",
-    "noClientMatches": "Ningún cliente coincide"
+    "noClientMatches": "Ningún cliente coincide",
+    "discount": "Descuento",
+    "noDiscount": "Sin desc."
   },
   "common": {
     "save": "Guardar",
@@ -87,7 +89,8 @@
     "saving": "Guardando...",
     "error": "Error",
     "viewPlans": "Ver planes y precios",
-    "unknownError": "Error desconocido"
+    "unknownError": "Error desconocido",
+    "done": "Listo"
   },
   "tabs": {
     "home": "Inicio",
@@ -301,7 +304,12 @@
         "missing_fields": "Completa todos los campos requeridos.",
         "server_error": "Error del servidor. Inténtalo de nuevo.",
         "connection": "Error de conexión. Comprueba tu internet."
-      }
+      },
+      "createdTitle": "Usuario creado",
+      "emailLabel": "Correo",
+      "passwordLabel": "Contraseña",
+      "createdHint": "Guarda o comparte la contraseña ahora; por seguridad no volverá a mostrarse.",
+      "copyCreds": "Copiar credenciales"
     },
     "limitFree": "Límite del plan gratuito",
     "limitReached": "Límite de usuarios alcanzado",

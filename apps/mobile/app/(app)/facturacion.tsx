@@ -14,6 +14,7 @@ import { APP_URL } from "@/lib/config";
 
 const IVA_RATES = ["", "4", "10", "21"];
 const RET_RATES = ["", "7", "15", "19"];
+const DISC_RATES = ["", "5", "10", "15", "20"];
 
 interface Invoice { id: string; full_number: string | null; client_name: string | null; total: number; state: string; issue_date: string | null; }
 interface Company { id: string; name: string; cif: string | null; }
@@ -41,6 +42,7 @@ export default function FacturacionScreen() {
   const [clientSearch, setClientSearch] = useState("");
   const [clientId, setClientId] = useState("");
   const [retentionPct, setRetentionPct] = useState("");
+  const [discountPct, setDiscountPct] = useState("");
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
   const [issuing, setIssuing] = useState(false);
   // Inline new client
@@ -69,16 +71,20 @@ export default function FacturacionScreen() {
   useEffect(() => { if (paid) load(); else setLoading(false); }, [load, paid]);
 
   const totals = useMemo(() => {
-    let subtotal = 0, tax = 0;
+    let grossBase = 0, grossTax = 0;
     for (const l of lines) {
       const base = (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0);
-      subtotal += base; tax += base * (Number(l.taxRate) || 0) / 100;
+      grossBase += base; grossTax += base * (Number(l.taxRate) || 0) / 100;
     }
-    const ret = r2(subtotal * (Number(retentionPct) || 0) / 100);
-    return { subtotal: r2(subtotal), tax: r2(tax), ret, total: r2(subtotal + tax - ret) };
-  }, [lines, retentionPct]);
+    const disc = Number(discountPct) || 0;
+    const discount = r2(grossBase * disc / 100);
+    const netBase = r2(grossBase - discount);
+    const tax = r2(grossTax * (1 - disc / 100));
+    const ret = r2(netBase * (Number(retentionPct) || 0) / 100);
+    return { subtotal: r2(grossBase), discount, tax, ret, total: r2(netBase + tax - ret) };
+  }, [lines, retentionPct, discountPct]);
 
-  const resetForm = () => { setClientId(""); setRetentionPct(""); setLines([emptyLine()]); };
+  const resetForm = () => { setClientId(""); setRetentionPct(""); setDiscountPct(""); setLines([emptyLine()]); };
 
   const setLine = (i: number, patch: Partial<Line>) => setLines(prev => prev.map((l, idx) => idx === i ? { ...l, ...patch } : l));
   const pickProduct = (i: number, p: Product) => setLine(i, { productId: p.id, description: p.name, unitPrice: String(p.unit_price), taxRate: String(p.tax_rate) });
@@ -103,7 +109,7 @@ export default function FacturacionScreen() {
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
         body: JSON.stringify({
           orgId, clientCompanyId: clientId, series: "FAC", kind: "ordinary",
-          issueDate: new Date().toISOString().slice(0, 10), retentionPct: Number(retentionPct) || 0,
+          issueDate: new Date().toISOString().slice(0, 10), retentionPct: Number(retentionPct) || 0, discountPct: Number(discountPct) || 0,
           lines: lines.filter(l => l.description.trim()).map(l => ({ productId: l.productId, description: l.description, quantity: Number(l.quantity) || 0, unitPrice: Number(l.unitPrice) || 0, taxRate: Number(l.taxRate) || 0, discountPct: 0 })),
         }),
       });
@@ -238,9 +244,21 @@ export default function FacturacionScreen() {
               </View>
             </View>
 
+            {/* Descuento */}
+            <View>
+              <Text style={{ fontSize: 12, fontWeight: "600", color: C.muted, marginBottom: 8 }}>{t("invoicing.discount")}</Text>
+              <View style={{ flexDirection: "row", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                {DISC_RATES.map(r => <Chip key={r} active={discountPct === r} label={r === "" ? t("invoicing.noDiscount") : `${r}%`} onPress={() => setDiscountPct(r)} />)}
+                <TextInput placeholder="%" placeholderTextColor={C.muted} keyboardType="decimal-pad"
+                  value={DISC_RATES.includes(discountPct) ? "" : discountPct} onChangeText={setDiscountPct}
+                  style={{ width: 56, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, color: C.text, backgroundColor: C.inputBg, textAlign: "right" }} />
+              </View>
+            </View>
+
             {/* Totals */}
             <View style={{ backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 12, padding: 14, gap: 4 }}>
               <Row label={t("invoicing.subtotal")} value={fmtEur(totals.subtotal)} C={C} />
+              {totals.discount > 0 && <Row label={`${t("invoicing.discount")} (${discountPct}%)`} value={`−${fmtEur(totals.discount)}`} C={C} />}
               <Row label={t("invoicing.iva")} value={fmtEur(totals.tax)} C={C} />
               {totals.ret > 0 && <Row label={`${t("invoicing.retention")} (${retentionPct}%)`} value={`−${fmtEur(totals.ret)}`} C={C} />}
               <View style={{ height: 1, backgroundColor: C.border, marginVertical: 4 }} />

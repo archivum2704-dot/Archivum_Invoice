@@ -9,6 +9,7 @@ import {
   Users, Plus, X, ArrowRight, Lock, Trash2,
   Shield, ChevronDown, Check, UserPlus,
 } from "lucide-react-native";
+import * as Clipboard from "expo-clipboard";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
@@ -136,12 +137,14 @@ function InviteModal({ visible, orgId, token, onClose, onInvited, C, t }: {
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState<string | null>(null);
   const [success,   setSuccess]   = useState(false);
+  const [created,   setCreated]   = useState<{ email: string; password: string } | null>(null);
+  const [copied,    setCopied]    = useState(false);
   const [roleOpen,  setRoleOpen]  = useState(false);
 
   useEffect(() => {
     if (visible) {
       setFirstName(""); setLastName(""); setEmail(""); setRole("member");
-      setError(null); setSuccess(false);
+      setError(null); setSuccess(false); setCreated(null); setCopied(false);
     }
   }, [visible]);
 
@@ -165,12 +168,25 @@ function InviteModal({ visible, orgId, token, onClose, onInvited, C, t }: {
         setLoading(false);
         return;
       }
-      setSuccess(true);
-      setTimeout(() => { setSuccess(false); onClose(); onInvited(); }, 1500);
+      // New user → show generated credentials so the admin can share them.
+      if (data.password) {
+        setCreated({ email: data.email, password: data.password });
+        onInvited();
+      } else {
+        setSuccess(true);
+        setTimeout(() => { setSuccess(false); onClose(); onInvited(); }, 1500);
+      }
     } catch {
       setError(t("equipo.invite.errors.connection"));
     }
     setLoading(false);
+  };
+
+  const copyCreds = async () => {
+    if (!created) return;
+    await Clipboard.setStringAsync(`${created.email}\n${created.password}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const rc = getRoleColors(C)[role];
@@ -238,6 +254,31 @@ function InviteModal({ visible, orgId, token, onClose, onInvited, C, t }: {
               </View>
             )}
 
+            {created && (
+              <View style={{ backgroundColor: C.blueL, borderRadius: 12, padding: 14, marginBottom: 14, gap: 10 }}>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: C.text }}>{t("equipo.invite.createdTitle")}</Text>
+                <View>
+                  <Text style={{ fontSize: 11, color: C.muted }}>{t("equipo.invite.emailLabel")}</Text>
+                  <Text selectable style={{ fontSize: 14, fontWeight: "600", color: C.text }}>{created.email}</Text>
+                </View>
+                <View>
+                  <Text style={{ fontSize: 11, color: C.muted }}>{t("equipo.invite.passwordLabel")}</Text>
+                  <Text selectable style={{ fontSize: 15, fontWeight: "700", color: C.text }}>{created.password}</Text>
+                </View>
+                <Text style={{ fontSize: 11, color: C.muted }}>{t("equipo.invite.createdHint")}</Text>
+              </View>
+            )}
+
+            {created ? (
+              <View style={{ marginBottom: 16, gap: 8 }}>
+                <TouchableOpacity onPress={copyCreds} style={{ backgroundColor: C.blue, borderRadius: 10, paddingVertical: 14, alignItems: "center" }}>
+                  <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>{copied ? t("common.copied") : t("equipo.invite.copyCreds")}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={onClose} style={{ borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingVertical: 13, alignItems: "center" }}>
+                  <Text style={{ color: C.text, fontWeight: "600", fontSize: 15 }}>{t("common.done")}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
             <TouchableOpacity
               onPress={handleInvite}
               disabled={loading || !email.trim() || success}
@@ -248,10 +289,13 @@ function InviteModal({ visible, orgId, token, onClose, onInvited, C, t }: {
                 : <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>{t("equipo.invite.send")}</Text>
               }
             </TouchableOpacity>
+            )}
 
+            {!created && (
             <Text style={{ fontSize: 12, color: C.muted, textAlign: "center", marginBottom: 8 }}>
               {t("equipo.invite.emailHint")}
             </Text>
+            )}
           </ScrollView>
         </View>
       </Modal>

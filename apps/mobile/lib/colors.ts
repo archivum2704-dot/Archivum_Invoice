@@ -1,9 +1,9 @@
 import { useTheme } from "@/context/theme-context";
 
 const light = {
-  blue: "#2563EB",
-  blueL: "#EFF6FF",
-  blueMed: "#DBEAFE",
+  blue: "#2E6FD6",
+  blueL: "#EAF1FD",
+  blueMed: "#C9DEF9",
   green: "#16A34A",
   greenL: "#F0FDF4",
   yellow: "#D97706",
