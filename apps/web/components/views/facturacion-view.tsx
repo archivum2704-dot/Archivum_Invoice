@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation"
 import { useTranslations, useLocale } from "next-intl"
 import { cn } from "@/lib/utils"
 import { useOrganization } from "@/lib/context/organization-context"
+import { useRegisterNavGuard } from "@/lib/context/nav-guard-context"
 import { useInvoices } from "@/lib/hooks/use-invoices"
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { useProducts, type Product } from "@/lib/hooks/use-products"
@@ -251,6 +252,41 @@ export function FacturacionView() {
       setError(String(e)); setIssuing(false)
     }
   }
+
+  // ── Unsaved-changes guard ───────────────────────────────────
+  // Dirty when the create modal is open with real content entered.
+  const invoiceDirty =
+    open && (
+      !!clientId || !!notes.trim() || !!retentionPct ||
+      lines.some(l => l.description.trim() !== "" || (Number(l.unitPrice) || 0) > 0)
+    )
+
+  const saveInvoiceDraft = async () => {
+    if (!currentOrg) return
+    const res = await fetch("/api/invoices/draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        orgId: currentOrg.id,
+        clientCompanyId: clientId || null,
+        series, kind, issueDate, notes,
+        retentionPct: Number(retentionPct) || 0,
+        lines: lines.filter(l => l.description.trim()).map(l => ({
+          productId: l.productId,
+          description: l.description,
+          quantity: Number(l.quantity) || 0,
+          unitPrice: Number(l.unitPrice) || 0,
+          taxRate: Number(l.taxRate) || 0,
+          discountPct: Number(l.discountPct) || 0,
+        })),
+      }),
+    })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(json.detail ?? json.error ?? t("errors.generic"))
+    await mutate()
+  }
+
+  useRegisterNavGuard(invoiceDirty, "invoice", saveInvoiceDraft)
 
   // ── Paywall ─────────────────────────────────────────────────
   if (!paid) {

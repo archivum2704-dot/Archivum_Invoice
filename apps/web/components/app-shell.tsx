@@ -5,6 +5,7 @@ import { ReactNode } from "react"
 import { Menu } from "lucide-react"
 import { Sidebar } from "@/components/sidebar"
 import { TutorialAutoLauncher } from "@/components/tutorial-modal"
+import { NavGuardProvider } from "@/lib/context/nav-guard-context"
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -20,6 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [sidebarOpen])
 
   return (
+    <NavGuardProvider>
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Desktop sidebar — always visible on lg+ */}
       <div className="hidden lg:block shrink-0">
@@ -61,5 +63,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* First-login tutorial — shows once, persisted in localStorage */}
       <TutorialAutoLauncher />
     </div>
+    </NavGuardProvider>
   )
 }

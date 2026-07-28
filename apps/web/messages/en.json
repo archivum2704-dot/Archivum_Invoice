@@ -845,5 +845,16 @@
       "title": "Archive document",
       "description": "When you're done, click this button to save. The document will appear in your Library."
     }
+  },
+  "navGuard": {
+    "title": "Leave without finishing?",
+    "bodyDocument": "You're in the middle of uploading a document. If you leave now without archiving it, you can save it as a draft to finish later.",
+    "bodyInvoice": "You're creating an invoice. If you leave now without generating it, you can save it as a draft to finish later.",
+    "hintDocument": "To archive the document, press \"Archive document\".",
+    "hintInvoice": "To issue the invoice, press \"Generate invoice\".",
+    "saveDraft": "Yes, save draft",
+    "keepEditing": "No, keep editing",
+    "saving": "Saving...",
+    "savingError": "Couldn't save the draft. Please try again."
   }
 }
