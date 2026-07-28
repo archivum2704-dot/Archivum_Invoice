@@ -14,7 +14,7 @@ export function Logo({ size = 36, showText = true, invert = false, className, te
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
       <Image
-        src="/logo.svg"
+        src="/logo-mark.png"
         alt="Archivum"
         width={size}
         height={size}

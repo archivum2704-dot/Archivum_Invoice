@@ -16,9 +16,9 @@ export const metadata: Metadata = {
   title: 'Archivum — Invoice Archive',
   description: 'Digital invoice and document management platform.',
   icons: {
-    icon: '/logo.svg',
-    shortcut: '/logo.svg',
-    apple: '/logo.svg',
+    icon: '/logo-mark.png',
+    shortcut: '/logo-mark.png',
+    apple: '/logo-mark.png',
   },
 }
 
