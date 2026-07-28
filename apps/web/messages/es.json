@@ -435,7 +435,8 @@
       "successTitle": "Documento archivado correctamente",
       "successMessage": "El documento {number} ha sido archivado en la biblioteca digital.",
       "viewInLibrary": "Ver en biblioteca",
-      "uploadAnother": "Subir otro"
+      "uploadAnother": "Subir otro",
+      "archiveReminder": "Recuerda pulsar «Archivar Documento» para que tu factura quede correctamente guardada."
     },
     "library": {
       "title": "Biblioteca de Documentos",

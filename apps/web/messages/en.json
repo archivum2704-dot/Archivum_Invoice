@@ -435,7 +435,8 @@
       "successTitle": "Document archived successfully",
       "successMessage": "Document {number} has been archived in the digital library.",
       "viewInLibrary": "View in library",
-      "uploadAnother": "Upload another"
+      "uploadAnother": "Upload another",
+      "archiveReminder": "Remember to press “Archive Document” so your invoice is saved correctly."
     },
     "library": {
       "title": "Document Library",

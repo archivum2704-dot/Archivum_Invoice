@@ -681,6 +681,12 @@ export function SubirView() {
         </div>
       </form>
 
+      {/* Reminder disclaimer (client-requested) */}
+      <div className="mt-8 flex items-center justify-center gap-2.5 bg-primary/5 border border-primary/20 rounded-xl px-5 py-4 text-center">
+        <AlertCircle className="w-4 h-4 text-primary shrink-0" />
+        <p className="text-sm text-foreground/80 leading-relaxed">{t("archiveReminder")}</p>
+      </div>
+
       {/* First-time guided tour through the upload form */}
       <CoachmarkTour
         id="subir-tour-v1"
