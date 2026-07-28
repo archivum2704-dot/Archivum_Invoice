@@ -16,7 +16,8 @@ interface Invoice {
   id: string; full_number: string | null; issue_date: string | null; state: string; kind: string;
   issuer_name: string | null; issuer_cif: string | null; issuer_logo_url: string | null;
   client_name: string | null; client_cif: string | null;
-  subtotal: number; tax_amount: number; retention_pct: number | null; retention_amount: number; total: number;
+  subtotal: number; discount_pct: number | null; discount_amount: number;
+  tax_amount: number; retention_pct: number | null; retention_amount: number; total: number;
   huella: string | null; qr_url: string | null;
 }
 interface Line { id: string; description: string; quantity: number; unit_price: number; tax_rate: number; line_total: number; }
@@ -115,6 +116,7 @@ export default function FacturaDetailScreen() {
 
           <View style={{ height: 1, backgroundColor: C.border }} />
           <Row label={t("invoicing.subtotal")} value={fmtEur(invoice.subtotal)} C={C} />
+          {Number(invoice.discount_amount) !== 0 && <Row label={`${t("invoicing.discount")} (${Number(invoice.discount_pct) || 0}%)`} value={`−${fmtEur(invoice.discount_amount)}`} C={C} />}
           <Row label={t("invoicing.iva")} value={fmtEur(invoice.tax_amount)} C={C} />
           {Number(invoice.retention_amount) !== 0 && <Row label={`${t("invoicing.retention")} (${Number(invoice.retention_pct) || 0}%)`} value={`−${fmtEur(invoice.retention_amount)}`} C={C} />}
           <Row label={t("invoicing.total")} value={fmtEur(invoice.total)} C={C} bold />

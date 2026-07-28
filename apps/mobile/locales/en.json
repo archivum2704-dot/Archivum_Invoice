@@ -62,7 +62,9 @@
     "paywallBody": "Issue Verifactu-compliant invoices by upgrading to a paid plan.",
     "upgrade": "View plans",
     "searchClient": "Search by name or tax ID...",
-    "noClientMatches": "No matching clients"
+    "noClientMatches": "No matching clients",
+    "discount": "Discount",
+    "noDiscount": "No disc."
   },
   "common": {
     "save": "Save",
@@ -87,7 +89,8 @@
     "saving": "Saving...",
     "error": "Error",
     "viewPlans": "View plans & pricing",
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "done": "Done"
   },
   "tabs": {
     "home": "Home",
@@ -301,7 +304,12 @@
         "missing_fields": "Please fill in all required fields.",
         "server_error": "Server error. Please try again.",
         "connection": "Connection error. Check your internet."
-      }
+      },
+      "createdTitle": "User created",
+      "emailLabel": "Email",
+      "passwordLabel": "Password",
+      "createdHint": "Save or share the password now — for security it won't be shown again.",
+      "copyCreds": "Copy credentials"
     },
     "limitFree": "Free plan limit",
     "limitReached": "User limit reached",
@@ -517,5 +525,39 @@
       "namePlaceholder": "Acme Ltd",
       "createButton": "Create company & get started"
     }
+  },
+  "quoting": {
+    "title": "Quotes",
+    "new": "New",
+    "empty": "No quotes yet",
+    "edit": "Edit quote",
+    "create": "Create quote",
+    "saveChanges": "Save changes",
+    "validUntil": "Valid until",
+    "notes": "Notes",
+    "notesPlaceholder": "Terms, validity, payment method…",
+    "convert": "Invoice",
+    "convertTitle": "Convert to invoice",
+    "convertBody": "Convert this quote into an invoice? A Veri*Factu invoice will be issued.",
+    "delete": "Delete",
+    "deleteTitle": "Delete quote",
+    "deleteBody": "Delete this quote? This can't be undone.",
+    "pdf": "PDF",
+    "pdfUnavailable": "PDF not available yet.",
+    "addToInventory": "Add to inventory",
+    "inInventory": "In inventory",
+    "paywallTitle": "Paid plan feature",
+    "paywallBody": "Create quotes with your logo and convert them into invoices.",
+    "status": {
+      "draft": "Draft",
+      "sent": "Sent",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "converted": "Invoiced"
+    },
+    "quoteFor": "Quote for",
+    "notFound": "Quote not found",
+    "viewInvoice": "View invoice",
+    "disclaimer": "This document is a quote and is not valid as an invoice."
   }
 }
