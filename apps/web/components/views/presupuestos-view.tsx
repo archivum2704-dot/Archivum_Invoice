@@ -18,7 +18,6 @@ const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1"
 
 const IVA_RATES = ["", "4", "10", "21"]
 const RETENTION_RATES = ["", "7", "15", "19"]
-const DISCOUNT_RATES = ["", "5", "10", "15", "20"]
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Borrador", sent: "Enviado", accepted: "Aceptado", rejected: "Rechazado", converted: "Facturado",
@@ -38,7 +37,7 @@ export function PresupuestosView() {
   const { currentOrg, isOrgAdmin, isPlatformAdmin } = useOrganization()
   const paid = isPaidPlan(currentOrg) || isPlatformAdmin
   const { quotes, loading, mutate } = useQuotes(currentOrg?.id ?? null)
-  const { companies } = useCompanies(currentOrg?.id ?? null)
+  const { companies, mutate: mutateCompanies } = useCompanies(currentOrg?.id ?? null)
 
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -53,7 +52,34 @@ export function PresupuestosView() {
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
+  // Quick "new client" modal (over the quote modal)
+  const NEW_CLIENT_EMPTY = { name: "", cif: "", address: "", postal_code: "", city: "", province: "" }
+  const [newClientOpen, setNewClientOpen] = useState(false)
+  const [nc, setNc] = useState(NEW_CLIENT_EMPTY)
+  const [savingClient, setSavingClient] = useState(false)
+  const [clientError, setClientError] = useState<string | null>(null)
+
   const inputCls = "w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+
+  const handleCreateClient = async () => {
+    if (!nc.name.trim() || !currentOrg) return
+    setSavingClient(true); setClientError(null)
+    const supabase: any = createClient()
+    const { data, error: err } = await supabase.from("companies").insert({
+      organization_id: currentOrg.id,
+      name: nc.name.trim(),
+      cif: nc.cif.trim() || null,
+      address: nc.address.trim() || null,
+      postal_code: nc.postal_code.trim() || null,
+      city: nc.city.trim() || null,
+      province: nc.province.trim() || null,
+      is_active: true,
+    }).select("id").single()
+    if (err || !data) { setClientError(err?.message ?? "No se pudo crear el cliente."); setSavingClient(false); return }
+    await mutateCompanies()
+    setClientId(data.id)
+    setSavingClient(false); setNewClientOpen(false); setNc(NEW_CLIENT_EMPTY)
+  }
 
   const totals = useMemo(() => {
     let grossBase = 0, grossTax = 0
@@ -245,6 +271,9 @@ export function PresupuestosView() {
                   <option value="">Selecciona un cliente…</option>
                   {companies.map(c => <option key={c.id} value={c.id}>{c.name}{c.cif ? ` · ${c.cif}` : ""}</option>)}
                 </select>
+                <button type="button" onClick={() => { setNc(NEW_CLIENT_EMPTY); setClientError(null); setNewClientOpen(true) }} className="mt-1.5 flex items-center gap-1 text-xs text-accent hover:underline font-medium">
+                  <Plus className="w-3.5 h-3.5" /> Nuevo cliente
+                </button>
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">Fecha</label>
@@ -256,9 +285,10 @@ export function PresupuestosView() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">Descuento</label>
-                <select value={discountPct} onChange={e => setDiscountPct(e.target.value)} className={inputCls}>
-                  {DISCOUNT_RATES.map(r => <option key={r} value={r}>{r === "" ? "Sin descuento" : `${r}%`}</option>)}
-                </select>
+                <div className="relative">
+                  <input type="number" min={0} max={100} step="0.01" value={discountPct} onChange={e => setDiscountPct(e.target.value)} placeholder="0" className={cn(inputCls, "pr-7")} />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">%</span>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">Retención IRPF</label>
@@ -314,6 +344,55 @@ export function PresupuestosView() {
               <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardList className="w-4 h-4" />}
                 {editId ? "Guardar cambios" : "Crear presupuesto"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick "new client" modal (over the quote modal) */}
+      {newClientOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !savingClient && setNewClientOpen(false)} />
+          <div className="relative bg-card border border-border rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-semibold text-foreground">Nuevo cliente</h2>
+              <button onClick={() => !savingClient && setNewClientOpen(false)} className="p-1 rounded-lg hover:bg-muted"><X className="w-4 h-4 text-muted-foreground" /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Nombre <span className="text-destructive">*</span></label>
+                <input autoFocus value={nc.name} onChange={e => setNc({ ...nc, name: e.target.value })} className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">CIF / NIF</label>
+                <input value={nc.cif} onChange={e => setNc({ ...nc, cif: e.target.value })} placeholder="B12345678" className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Dirección</label>
+                <input value={nc.address} onChange={e => setNc({ ...nc, address: e.target.value })} className={inputCls} />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">C.P.</label>
+                  <input value={nc.postal_code} onChange={e => setNc({ ...nc, postal_code: e.target.value })} className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Ciudad</label>
+                  <input value={nc.city} onChange={e => setNc({ ...nc, city: e.target.value })} className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Provincia</label>
+                  <input value={nc.province} onChange={e => setNc({ ...nc, province: e.target.value })} className={inputCls} />
+                </div>
+              </div>
+            </div>
+            {clientError && <p className="text-destructive text-sm mt-3">{clientError}</p>}
+            <div className="flex items-center justify-end gap-2 mt-5">
+              <button onClick={() => !savingClient && setNewClientOpen(false)} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">Cancelar</button>
+              <button onClick={handleCreateClient} disabled={savingClient || !nc.name.trim()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
+                {savingClient ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                Crear cliente
               </button>
             </div>
           </div>

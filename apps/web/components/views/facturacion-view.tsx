@@ -32,8 +32,6 @@ const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1"
 const IVA_RATES = ["", "4", "10", "21"]
 // Spanish IRPF withholding (retención) rates — "" = sin retención
 const RETENTION_RATES = ["", "7", "15", "19"]
-// Global discount presets — "" = sin descuento
-const DISCOUNT_RATES = ["", "5", "10", "15", "20"]
 
 const STATE_STYLES: Record<string, string> = {
   issued:    "bg-[var(--status-paid)]/10 text-[var(--status-paid)]",
@@ -624,9 +622,10 @@ export function FacturacionView() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">{t("discount")}</label>
-                <select value={discountPct} onChange={e => setDiscountPct(e.target.value)} className={inputCls}>
-                  {DISCOUNT_RATES.map(r => <option key={r} value={r}>{r === "" ? t("noDiscount") : `${r}%`}</option>)}
-                </select>
+                <div className="relative">
+                  <input type="number" min={0} max={100} step="0.01" value={discountPct} onChange={e => setDiscountPct(e.target.value)} placeholder="0" className={cn(inputCls, "pr-7")} />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">%</span>
+                </div>
               </div>
             </div>
 
