@@ -554,6 +554,10 @@
       "accepted": "Aceptado",
       "rejected": "Rechazado",
       "converted": "Facturado"
-    }
+    },
+    "quoteFor": "Presupuesto para",
+    "notFound": "Presupuesto no encontrado",
+    "viewInvoice": "Ver factura",
+    "disclaimer": "Este documento es un presupuesto y no tiene validez como factura."
   }
 }

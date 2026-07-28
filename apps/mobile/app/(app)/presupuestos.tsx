@@ -251,7 +251,7 @@ export default function PresupuestosScreen() {
           ListEmptyComponent={<View style={{ alignItems: "center", paddingVertical: 60 }}><ClipboardList size={40} color={C.muted} /><Text style={{ color: C.muted, marginTop: 12 }}>{t("quoting.empty")}</Text></View>}
           renderItem={({ item }) => (
             <View style={{ backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14, opacity: busyId === item.id ? 0.5 : 1 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <TouchableOpacity onPress={() => router.push(`/(app)/presupuesto/${item.id}`)} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 15, fontWeight: "700", color: C.text }}>{item.full_number ?? "—"}</Text>
                   <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{item.client_name ?? "—"} · {item.issue_date ?? ""}</Text>
@@ -260,7 +260,8 @@ export default function PresupuestosScreen() {
                   <Text style={{ fontSize: 14, fontWeight: "700", color: C.text }}>{fmtEur(item.total)}</Text>
                   <Text style={{ fontSize: 11, fontWeight: "600", color: statusColor(item.status) }}>{t(`quoting.status.${item.status}`)}</Text>
                 </View>
-              </View>
+                <ChevronRight size={18} color={C.muted} />
+              </TouchableOpacity>
               {canManage && (
                 <View style={{ flexDirection: "row", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                   <ActBtn icon={<Download size={14} color={C.text} />} label={t("quoting.pdf")} onPress={() => sharePdf(item)} />

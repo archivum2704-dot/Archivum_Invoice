@@ -554,6 +554,10 @@
       "accepted": "Accepted",
       "rejected": "Rejected",
       "converted": "Invoiced"
-    }
+    },
+    "quoteFor": "Quote for",
+    "notFound": "Quote not found",
+    "viewInvoice": "View invoice",
+    "disclaimer": "This document is a quote and is not valid as an invoice."
   }
 }
