@@ -759,7 +759,7 @@ export function FacturacionView() {
 
 // Type-to-search product picker for invoice lines (matches by name or SKU).
 // Picking a product fills the line via pickProduct; picking "manual" unlinks it.
-function ProductPicker({ products, value, onPick }: {
+export function ProductPicker({ products, value, onPick }: {
   products: Product[]
   value: string | null
   onPick: (id: string | null) => void

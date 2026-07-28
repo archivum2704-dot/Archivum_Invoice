@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useQuotes, fetchQuoteWithLines, type Quote } from "@/lib/hooks/use-quotes"
 import { useCompanies } from "@/lib/hooks/use-companies"
+import { useProducts } from "@/lib/hooks/use-products"
+import { ProductPicker } from "@/components/views/facturacion-view"
 import { isPaidPlan } from "@/lib/plan"
 import { createClient } from "@/lib/supabase/client"
 
@@ -38,6 +40,7 @@ export function PresupuestosView() {
   const paid = isPaidPlan(currentOrg) || isPlatformAdmin
   const { quotes, loading, mutate } = useQuotes(currentOrg?.id ?? null)
   const { companies, mutate: mutateCompanies } = useCompanies(currentOrg?.id ?? null)
+  const { products, mutate: mutateProducts } = useProducts(currentOrg?.id ?? null)
 
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -96,8 +99,40 @@ export function PresupuestosView() {
     return { subtotal: grossBase, discountAmount, tax, retention: ret, total: netBase + tax - ret }
   }, [lines, discountPct, retentionPct])
 
+  const [addingProduct, setAddingProduct] = useState<number | null>(null)
+
   const setLine = (i: number, patch: Partial<Line>) =>
     setLines(prev => prev.map((l, idx) => idx === i ? { ...l, ...patch } : l))
+
+  // Pick an existing inventory product → prefill the line and link it.
+  const pickProduct = (i: number, productId: string | null) => {
+    if (!productId) { setLine(i, { productId: null }); return }
+    const p = products.find(pr => pr.id === productId)
+    if (!p) { setLine(i, { productId: null }); return }
+    setLine(i, { productId: p.id, description: p.name, unitPrice: String(p.unit_price), taxRate: String(p.tax_rate) })
+  }
+
+  // Save a manually-typed line as a new inventory product and link it.
+  const handleAddToInventory = async (i: number) => {
+    const l = lines[i]
+    if (!l.description.trim() || !currentOrg) return
+    setAddingProduct(i); setError(null)
+    const supabase: any = createClient()
+    const { data, error: err } = await supabase.from("products").insert({
+      organization_id: currentOrg.id,
+      name: l.description.trim(),
+      sku: `REF-${Date.now().toString().slice(-6)}`,
+      unit: "ud",
+      unit_price: Number(l.unitPrice) || 0,
+      tax_rate: Number(l.taxRate) || 0,
+      track_stock: false,
+      stock_qty: 0,
+    }).select("id").single()
+    setAddingProduct(null)
+    if (err || !data) { setError(err?.message ?? "No se pudo añadir al inventario."); return }
+    await mutateProducts()
+    setLine(i, { productId: data.id })
+  }
 
   const resetForm = () => {
     setEditId(null); setClientId(""); setIssueDate(new Date().toISOString().slice(0, 10))
@@ -308,8 +343,20 @@ export function PresupuestosView() {
               </div>
               <div className="space-y-2">
                 {lines.map((l, i) => (
-                  <div key={i} className="grid grid-cols-[1fr_56px_72px_56px_auto] gap-2 items-center">
-                    <input placeholder="Descripción" value={l.description} onChange={e => setLine(i, { description: e.target.value })} className={cn(inputCls, "py-1.5")} />
+                  <div key={i} className="grid grid-cols-[1fr_56px_72px_56px_auto] gap-2 items-end">
+                    <div className="flex flex-col gap-1">
+                      {products.length > 0 && (
+                        <ProductPicker products={products} value={l.productId} onPick={id => pickProduct(i, id)} />
+                      )}
+                      <input placeholder="Descripción o busca en inventario" value={l.description} onChange={e => setLine(i, { description: e.target.value })} className={cn(inputCls, "py-1.5")} />
+                      {l.description.trim() && !l.productId && (
+                        <button type="button" onClick={() => handleAddToInventory(i)} disabled={addingProduct === i}
+                          className="self-start flex items-center gap-1 text-[11px] text-accent hover:underline disabled:opacity-50">
+                          {addingProduct === i ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />} Añadir al inventario
+                        </button>
+                      )}
+                      {l.productId && <span className="self-start text-[11px] text-muted-foreground">✓ En inventario</span>}
+                    </div>
                     <input type="number" step="0.01" title="Cantidad" value={l.quantity} onChange={e => setLine(i, { quantity: e.target.value })} className={cn(inputCls, "py-1.5 text-right")} />
                     <input type="number" step="0.01" title="Precio" value={l.unitPrice} onChange={e => setLine(i, { unitPrice: e.target.value })} className={cn(inputCls, "py-1.5 text-right")} />
                     <select title="IVA" value={l.taxRate} onChange={e => setLine(i, { taxRate: e.target.value })} className={cn(inputCls, "py-1.5 px-1 text-right")}>
