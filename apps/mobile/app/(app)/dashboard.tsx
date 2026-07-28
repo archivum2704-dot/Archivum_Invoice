@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
-  Bell, AlertTriangle, FileText, ChevronRight, Plus, Package, Receipt,
+  Bell, AlertTriangle, FileText, ChevronRight, Plus, Package, Receipt, ClipboardList,
 } from "lucide-react-native";
 import Svg, { Rect, Text as SvgText } from "react-native-svg";
 import { useAuth } from "@/context/auth-context";
@@ -261,6 +261,16 @@ export default function DashboardScreen() {
                 <Receipt size={18} color={C.blue} />
               </View>
               <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: C.text }}>{t("invoicing.title")}</Text>
+              <ChevronRight size={18} color={C.muted} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/(app)/presupuestos")}
+              style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14 }}
+            >
+              <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
+                <ClipboardList size={18} color={C.blue} />
+              </View>
+              <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: C.text }}>{t("quoting.title")}</Text>
               <ChevronRight size={18} color={C.muted} />
             </TouchableOpacity>
           </View>

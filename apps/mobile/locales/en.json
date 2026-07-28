@@ -525,5 +525,35 @@
       "namePlaceholder": "Acme Ltd",
       "createButton": "Create company & get started"
     }
+  },
+  "quoting": {
+    "title": "Quotes",
+    "new": "New",
+    "empty": "No quotes yet",
+    "edit": "Edit quote",
+    "create": "Create quote",
+    "saveChanges": "Save changes",
+    "validUntil": "Valid until",
+    "notes": "Notes",
+    "notesPlaceholder": "Terms, validity, payment method…",
+    "convert": "Invoice",
+    "convertTitle": "Convert to invoice",
+    "convertBody": "Convert this quote into an invoice? A Veri*Factu invoice will be issued.",
+    "delete": "Delete",
+    "deleteTitle": "Delete quote",
+    "deleteBody": "Delete this quote? This can't be undone.",
+    "pdf": "PDF",
+    "pdfUnavailable": "PDF not available yet.",
+    "addToInventory": "Add to inventory",
+    "inInventory": "In inventory",
+    "paywallTitle": "Paid plan feature",
+    "paywallBody": "Create quotes with your logo and convert them into invoices.",
+    "status": {
+      "draft": "Draft",
+      "sent": "Sent",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "converted": "Invoiced"
+    }
   }
 }
