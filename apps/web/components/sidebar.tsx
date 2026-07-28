@@ -22,6 +22,7 @@ import {
   TrendingDown,
   Package,
   Receipt,
+  ClipboardList,
 } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { useTranslations, useLocale } from "next-intl"
@@ -126,6 +127,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
     ...(currentOrg && currentOrg.id !== ALL_ORGS_ID && (isPaidPlan(currentOrg) || isPlatformAdmin)
       ? [
           { label: t("inventory"), icon: Package, href: "/inventario" },
+          { label: t("quotes"), icon: ClipboardList, href: "/presupuestos" },
           { label: t("invoicing"), icon: Receipt, href: "/facturacion" },
         ]
       : []),

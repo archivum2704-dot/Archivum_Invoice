@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const {
       orgId, clientCompanyId = null, series = 'FAC', kind = 'ordinary',
-      issueDate = null, notes = null, retentionPct = 0, lines = [] as LineInput[],
+      issueDate = null, notes = null, retentionPct = 0, discountPct = 0, lines = [] as LineInput[],
     } = body
 
     const supabase = await getApiClient(req)
@@ -68,9 +68,13 @@ export async function POST(req: NextRequest) {
     })
     subtotal = round2(subtotal)
     taxAmount = round2(taxAmount)
+    const discPct = Number(discountPct) || 0
+    const discountAmount = round2(subtotal * discPct / 100)
+    const netBase = round2(subtotal - discountAmount)
+    taxAmount = round2(taxAmount * (1 - discPct / 100))
     const retPct = Number(retentionPct) || 0
-    const retentionAmount = round2(subtotal * retPct / 100)
-    const total = round2(subtotal + taxAmount - retentionAmount)
+    const retentionAmount = round2(netBase * retPct / 100)
+    const total = round2(netBase + taxAmount - retentionAmount)
 
     const { data: invoice, error: invErr } = await supabase
       .from('invoices')
@@ -79,7 +83,8 @@ export async function POST(req: NextRequest) {
         client_company_id: clientCompanyId || null,
         series, kind, state: 'draft',
         issue_date: issueDate || null,
-        subtotal, tax_amount: taxAmount, total,
+        subtotal, discount_pct: discPct || null, discount_amount: discountAmount,
+        tax_amount: taxAmount, total,
         retention_pct: retPct || null, retention_amount: retentionAmount,
         issuer_name: org?.name ?? null, issuer_cif: org?.cif ?? null, issuer_address: org?.address ?? null,
         issuer_city: org?.city ?? null, issuer_postal_code: org?.postal_code ?? null, issuer_province: org?.province ?? null,

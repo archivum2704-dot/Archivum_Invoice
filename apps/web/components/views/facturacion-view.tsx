@@ -76,6 +76,7 @@ export function FacturacionView() {
   const [kind, setKind] = useState<"ordinary" | "simplified">("ordinary")
   const [notes, setNotes] = useState("")
   const [retentionPct, setRetentionPct] = useState("")
+  const [discountPct, setDiscountPct] = useState("")
   const [lines, setLines] = useState<Line[]>([emptyLine()])
   const [issuing, setIssuing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -175,16 +176,20 @@ export function FacturacionView() {
   }, [invoices, search, selectedStates, selectedKinds, dateFrom, dateTo, numberFrom, numberTo, amountMin, amountMax, sortKey])
 
   const totals = useMemo(() => {
-    let subtotal = 0, tax = 0
+    let grossBase = 0, grossTax = 0
     for (const l of lines) {
       const base = (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0) * (1 - (Number(l.discountPct) || 0) / 100)
-      subtotal += base
-      tax += base * (Number(l.taxRate) || 0) / 100
+      grossBase += base
+      grossTax += base * (Number(l.taxRate) || 0) / 100
     }
     const r2 = (n: number) => Math.round(n * 100) / 100
-    const retention = r2(subtotal * (Number(retentionPct) || 0) / 100)
-    return { subtotal: r2(subtotal), tax: r2(tax), retention, total: r2(subtotal + tax - retention) }
-  }, [lines, retentionPct])
+    const discPct = Number(discountPct) || 0
+    const discount = r2(grossBase * discPct / 100)
+    const netBase = r2(grossBase - discount)
+    const tax = r2(grossTax * (1 - discPct / 100))
+    const retention = r2(netBase * (Number(retentionPct) || 0) / 100)
+    return { subtotal: r2(grossBase), discount, tax, retention, total: r2(netBase + tax - retention) }
+  }, [lines, retentionPct, discountPct])
 
   // Validation: client + client CIF + issue date + issuer CIF + at least one described line
   const issuerHasCif = !!currentOrg?.cif?.trim()
@@ -200,7 +205,7 @@ export function FacturacionView() {
   const resetForm = () => {
     setClientId(""); setClientQuery(""); setClientListOpen(false)
     setSeries("FAC"); setIssueDate(new Date().toISOString().slice(0, 10))
-    setKind("ordinary"); setNotes(""); setRetentionPct(""); setLines([emptyLine()]); setError(null)
+    setKind("ordinary"); setNotes(""); setRetentionPct(""); setDiscountPct(""); setLines([emptyLine()]); setError(null)
   }
 
   const setLine = (i: number, patch: Partial<Line>) =>
@@ -229,6 +234,7 @@ export function FacturacionView() {
           clientCompanyId: clientId,
           series, kind, issueDate, notes,
           retentionPct: Number(retentionPct) || 0,
+          discountPct: Number(discountPct) || 0,
           lines: lines.filter(l => l.description.trim()).map(l => ({
             productId: l.productId,
             description: l.description,
@@ -271,6 +277,7 @@ export function FacturacionView() {
         clientCompanyId: clientId || null,
         series, kind, issueDate, notes,
         retentionPct: Number(retentionPct) || 0,
+        discountPct: Number(discountPct) || 0,
         lines: lines.filter(l => l.description.trim()).map(l => ({
           productId: l.productId,
           description: l.description,
@@ -613,6 +620,13 @@ export function FacturacionView() {
                   {RETENTION_RATES.map(r => <option key={r} value={r}>{r === "" ? t("noRetention") : `${r}%`}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">{t("discount")}</label>
+                <div className="relative">
+                  <input type="number" min={0} max={100} step="0.01" value={discountPct} onChange={e => setDiscountPct(e.target.value)} placeholder="0" className={cn(inputCls, "pr-7")} />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">%</span>
+                </div>
+              </div>
             </div>
 
             {/* Lines */}
@@ -657,6 +671,9 @@ export function FacturacionView() {
             {/* Totals */}
             <div className="border-t border-border pt-3 space-y-1 text-sm">
               <div className="flex justify-between text-muted-foreground"><span>{t("subtotal")}</span><span>{fmtEur(totals.subtotal)}</span></div>
+              {totals.discount > 0 && (
+                <div className="flex justify-between text-muted-foreground"><span>{t("discount")} ({discountPct}%)</span><span>−{fmtEur(totals.discount)}</span></div>
+              )}
               <div className="flex justify-between text-muted-foreground"><span>{t("tax")}</span><span>{fmtEur(totals.tax)}</span></div>
               {totals.retention > 0 && (
                 <div className="flex justify-between text-muted-foreground"><span>{t("retention")} ({retentionPct}%)</span><span>−{fmtEur(totals.retention)}</span></div>
@@ -742,7 +759,7 @@ export function FacturacionView() {
 
 // Type-to-search product picker for invoice lines (matches by name or SKU).
 // Picking a product fills the line via pickProduct; picking "manual" unlinks it.
-function ProductPicker({ products, value, onPick }: {
+export function ProductPicker({ products, value, onPick }: {
   products: Product[]
   value: string | null
   onPick: (id: string | null) => void

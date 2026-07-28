@@ -166,6 +166,9 @@ export function FacturaEmitidaView({ id }: { id: string }) {
         <div className="flex justify-end mb-8">
           <div className="w-56 space-y-1 text-sm">
             <div className="flex justify-between text-muted-foreground"><span>{t("subtotal")}</span><span>{fmtEur(invoice.subtotal)}</span></div>
+            {Number((invoice as any).discount_amount) > 0 && (
+              <div className="flex justify-between text-muted-foreground"><span>{t("discount")} ({Number((invoice as any).discount_pct) || 0}%)</span><span>−{fmtEur(Number((invoice as any).discount_amount))}</span></div>
+            )}
             <div className="flex justify-between text-muted-foreground"><span>{t("tax")}</span><span>{fmtEur(invoice.tax_amount)}</span></div>
             {Number(invoice.retention_amount) !== 0 && (
               <div className="flex justify-between text-muted-foreground"><span>{t("retention")} ({Number(invoice.retention_pct) || 0}%)</span><span>−{fmtEur(invoice.retention_amount)}</span></div>
