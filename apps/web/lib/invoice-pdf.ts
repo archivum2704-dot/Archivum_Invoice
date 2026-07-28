@@ -139,14 +139,17 @@ export async function buildInvoicePdf(data: InvoicePdfData): Promise<Uint8Array>
   if (data.notes) { text(data.notes.slice(0, 120), M, y, 8, font, GREY); y -= 20 }
 
   // ── Verifactu block (bottom) ──
+  // Lift the footer off the page edge so the QR isn't clipped when printed.
+  const FOOT = M + 48
   const qrPng = await QRCode.toBuffer(data.qrUrl, { width: 120, margin: 1 })
   const qrImg = await pdf.embedPng(qrPng)
   const qrSize = 90
-  page.drawImage(qrImg, { x: width - M - qrSize, y: M, width: qrSize, height: qrSize })
-  text('VERI*FACTU', M, M + 70, 11, bold, NAVY)
-  text('Factura verificable en la Sede electrónica de la AEAT', M, M + 56, 8, font, GREY)
-  text('Huella:', M, M + 38, 7, bold, GREY)
-  text(data.huella.slice(0, 64), M, M + 28, 6, font, GREY)
+  // Vertically center the QR against the text block (text spans FOOT..FOOT+70).
+  page.drawImage(qrImg, { x: width - M - qrSize, y: FOOT + 2, width: qrSize, height: qrSize })
+  text('VERI*FACTU', M, FOOT + 70, 11, bold, NAVY)
+  text('Factura verificable en la Sede electrónica de la AEAT', M, FOOT + 56, 8, font, GREY)
+  text('Huella:', M, FOOT + 38, 7, bold, GREY)
+  text(data.huella.slice(0, 64), M, FOOT + 28, 6, font, GREY)
 
   return await pdf.save()
 }

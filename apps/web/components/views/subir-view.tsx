@@ -11,6 +11,7 @@ import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
+import { useRegisterNavGuard } from "@/lib/context/nav-guard-context"
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { useFolders } from "@/lib/hooks/use-folders"
 import { createClient } from "@/lib/supabase/client"
@@ -208,13 +209,12 @@ export function SubirView() {
   }
 
   // ── Real Supabase upload ────────────────────────────────────────────────────
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!currentOrg) return
-    setLoading(true); setError(null)
-
-    try {
-      const supabase = createClient()
+  // Persist the document. `status` is the document status ('draft' for the
+  // navigation-guard save). Limits are only enforced on a real archive, not on
+  // a draft save. Returns the new document id; throws on failure.
+  const persistDocument = async (status: string, enforceLimits: boolean): Promise<string> => {
+    if (!currentOrg) throw new Error(t("errorArchiving"))
+    const supabase = createClient()
       let fileUrl: string | null = null
       let fileName: string | null = null
       let fileSize: number | null = null
@@ -228,7 +228,7 @@ export function SubirView() {
         .single()
 
       // Platform admins (super_admin) have no document/storage/subscription limits.
-      if (orgBilling && !isPlatformAdmin) {
+      if (enforceLimits && orgBilling && !isPlatformAdmin) {
         // Subscription expired?
         const now = new Date()
         const periodEnd = orgBilling.current_period_end ? new Date(orgBilling.current_period_end) : null
@@ -236,27 +236,21 @@ export function SubirView() {
           ["canceled", "unpaid"].includes(orgBilling.subscription_status ?? "") &&
           periodEnd && now > periodEnd
         if (isExpired) {
-          setError("Tu suscripción ha vencido. Renueva para poder subir documentos.")
-          setLoading(false)
-          return
+          throw new Error("Tu suscripción ha vencido. Renueva para poder subir documentos.")
         }
 
         // Quota exhausted?
         if ((orgBilling.doc_quota_pool ?? 0) <= 0) {
-          setError(
+          throw new Error(
             "Has alcanzado el límite de documentos de tu plan. Espera a que se renueve tu cuota mensual o contrata documentos adicionales."
           )
-          setLoading(false)
-          return
         }
 
         // 0b. Storage limit
         if (files.length > 0) {
           const wouldUse = (orgBilling.storage_used_bytes ?? 0) + files[0].file.size
           if (wouldUse > (orgBilling.storage_limit_bytes ?? 1073741824)) {
-            setError(tStorage("limitReached"))
-            setLoading(false)
-            return
+            throw new Error(tStorage("limitReached"))
           }
         }
       }
@@ -298,8 +292,8 @@ export function SubirView() {
           folder_id:          carpeta || null,
           payment_method:     metodoPago || null,
           document_number:    numero.trim() || null,
-          document_type:      tipo as any,
-          status:             (estado || "pending") as any,
+          document_type:      (tipo || "other") as any,
+          status:             status as any,
           total:              totalAmount,
           currency:           moneda,
           issue_date:         fecha || null,
@@ -342,13 +336,31 @@ export function SubirView() {
         }
       }
 
-      setUploadedId(data.id)
+      return data.id
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!currentOrg) return
+    setLoading(true); setError(null)
+    try {
+      const id = await persistDocument(estado || "pending", true)
+      setUploadedId(id)
     } catch (err: any) {
       setError(err?.message ?? t("errorArchiving"))
     } finally {
       setLoading(false)
     }
   }
+
+  // Unsaved-changes guard: dirty when the form has content and hasn't been saved.
+  const isDirty =
+    !uploadedId && (
+      files.length > 0 || !!tipo || !!empresa || !!estado || !!fecha ||
+      !!carpeta || !!metodoPago || etiquetas.length > 0 ||
+      importe.trim() !== "" || numero.trim() !== "" || notas.trim() !== ""
+    )
+  useRegisterNavGuard(isDirty, "document", async () => { await persistDocument("draft", false) })
 
   // ── Success screen ──────────────────────────────────────────────────────────
   if (uploadedId) {
@@ -385,7 +397,7 @@ export function SubirView() {
   return (
     <div className="p-8">
       <div className="flex items-center gap-3 mb-6">
-        <Link href={fromId ? `/factura/${fromId}` : "/biblioteca"} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <Link href={fromId ? `/factura/${fromId}` : "/biblioteca"} data-allow-unsaved className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div>
@@ -659,7 +671,7 @@ export function SubirView() {
                   : <><Upload className="w-4 h-4" />{t("submit")}</>
                 }
               </button>
-              <Link href="/biblioteca"
+              <Link href="/biblioteca" data-allow-unsaved
                 className="w-full flex items-center justify-center py-2.5 text-sm text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors">
                 {tCommon("cancel")}
               </Link>
@@ -668,6 +680,12 @@ export function SubirView() {
           </div>
         </div>
       </form>
+
+      {/* Reminder disclaimer (client-requested) */}
+      <div className="mt-8 flex items-center justify-center gap-2.5 bg-primary/5 border border-primary/20 rounded-xl px-5 py-4 text-center">
+        <AlertCircle className="w-4 h-4 text-primary shrink-0" />
+        <p className="text-sm text-foreground/80 leading-relaxed">{t("archiveReminder")}</p>
+      </div>
 
       {/* First-time guided tour through the upload form */}
       <CoachmarkTour

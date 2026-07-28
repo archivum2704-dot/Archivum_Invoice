@@ -401,7 +401,9 @@
       "convertToDeliveryNote": "Convert to Delivery Note",
       "convertToInvoice": "Convert to Invoice",
       "attachDocument": "Attach Document",
-      "delete": "Delete Document"
+      "delete": "Delete Document",
+      "print": "Print",
+      "deleteConfirm": "Delete this document? This action can't be undone."
     },
     "upload": {
       "title": "Upload New Document",
@@ -435,7 +437,8 @@
       "successTitle": "Document archived successfully",
       "successMessage": "Document {number} has been archived in the digital library.",
       "viewInLibrary": "View in library",
-      "uploadAnother": "Upload another"
+      "uploadAnother": "Upload another",
+      "archiveReminder": "Remember to press “Archive Document” so your invoice is saved correctly."
     },
     "library": {
       "title": "Document Library",
@@ -845,5 +848,16 @@
       "title": "Archive document",
       "description": "When you're done, click this button to save. The document will appear in your Library."
     }
+  },
+  "navGuard": {
+    "title": "Leave without finishing?",
+    "bodyDocument": "You're in the middle of uploading a document. If you leave now without archiving it, you can save it as a draft to finish later.",
+    "bodyInvoice": "You're creating an invoice. If you leave now without generating it, you can save it as a draft to finish later.",
+    "hintDocument": "To archive the document, press \"Archive document\".",
+    "hintInvoice": "To issue the invoice, press \"Generate invoice\".",
+    "saveDraft": "Yes, save draft",
+    "keepEditing": "No, keep editing",
+    "saving": "Saving...",
+    "savingError": "Couldn't save the draft. Please try again."
   }
 }

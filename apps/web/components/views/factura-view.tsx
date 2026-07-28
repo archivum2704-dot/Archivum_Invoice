@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import {
   ArrowLeft, Download, FileText, Building2, Calendar,
   Hash, Clock, CheckCircle2, AlertCircle, FileX,
-  ChevronRight, Plus, ArrowRight, Pencil,
+  ChevronRight, Plus, ArrowRight, Pencil, Printer,
 } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
@@ -256,6 +256,29 @@ export function FacturaView({ id }: FacturaViewProps) {
       })
   }, [id])
 
+  // Print the actual document file. Fetch it as a same-origin blob so the
+  // hidden iframe can trigger the browser print dialog (cross-origin signed
+  // URLs can't be printed directly). Falls back to opening it in a new tab.
+  const handlePrint = async () => {
+    if (!pdfUrl) { window.print(); return }
+    try {
+      const resp = await fetch(pdfUrl)
+      const blob = await resp.blob()
+      const url = URL.createObjectURL(blob)
+      const frame = document.createElement("iframe")
+      frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;"
+      frame.src = url
+      frame.onload = () => {
+        try { frame.contentWindow?.focus(); frame.contentWindow?.print() }
+        catch { window.open(url, "_blank") }
+        setTimeout(() => { URL.revokeObjectURL(url); frame.remove() }, 60000)
+      }
+      document.body.appendChild(frame)
+    } catch {
+      window.open(pdfUrl, "_blank")
+    }
+  }
+
   // ── Loading ──────────────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -346,6 +369,16 @@ export function FacturaView({ id }: FacturaViewProps) {
               <Plus className="w-4 h-4" />
               Crear {tTypes(WORKFLOW_NEXT[doc.document_type as DocumentType] as Parameters<typeof tTypes>[0])}
             </Link>
+          )}
+
+          {pdfUrl && (
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-card border border-border text-foreground rounded-lg hover:bg-muted transition-colors"
+            >
+              <Printer className="w-4 h-4" />
+              <span className="hidden sm:inline">{tActions("print")}</span>
+            </button>
           )}
 
           {pdfUrl && (

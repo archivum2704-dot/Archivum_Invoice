@@ -401,7 +401,9 @@
       "convertToDeliveryNote": "Convertir a Albarán",
       "convertToInvoice": "Convertir a Factura",
       "attachDocument": "Adjuntar Documento",
-      "delete": "Eliminar Documento"
+      "delete": "Eliminar Documento",
+      "print": "Imprimir",
+      "deleteConfirm": "¿Eliminar este documento? Esta acción no se puede deshacer."
     },
     "upload": {
       "title": "Subir Nuevo Documento",
@@ -435,7 +437,8 @@
       "successTitle": "Documento archivado correctamente",
       "successMessage": "El documento {number} ha sido archivado en la biblioteca digital.",
       "viewInLibrary": "Ver en biblioteca",
-      "uploadAnother": "Subir otro"
+      "uploadAnother": "Subir otro",
+      "archiveReminder": "Recuerda pulsar «Archivar Documento» para que tu factura quede correctamente guardada."
     },
     "library": {
       "title": "Biblioteca de Documentos",
@@ -845,5 +848,16 @@
       "title": "Archivar documento",
       "description": "Cuando termines, pulsa este botón para guardar. El documento aparecerá en tu Biblioteca."
     }
+  },
+  "navGuard": {
+    "title": "¿Seguro que quieres salir?",
+    "bodyDocument": "Estás en medio de la carga de un documento. Si sales ahora sin archivarlo, puedes guardarlo como borrador para terminarlo más tarde.",
+    "bodyInvoice": "Estás creando una factura. Si sales ahora sin generarla, puedes guardarla como borrador para terminarla más tarde.",
+    "hintDocument": "Para archivar el documento definitivamente, pulsa «Archivar documento».",
+    "hintInvoice": "Para emitir la factura definitivamente, pulsa «Generar factura».",
+    "saveDraft": "Sí, guardar borrador",
+    "keepEditing": "No, seguir editando",
+    "saving": "Guardando...",
+    "savingError": "No se pudo guardar el borrador. Inténtalo de nuevo."
   }
 }
