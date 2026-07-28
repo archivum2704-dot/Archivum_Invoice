@@ -114,7 +114,8 @@
     "adminPanel": "Panel Admin",
     "users": "Usuarios",
     "settings": "Ajustes",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "quotes": "Presupuestos"
   },
   "inventory": {
     "title": "Inventario",
@@ -262,7 +263,9 @@
     "noProductMatches": "Ningún producto coincide",
     "numberFilter": "Nº de factura",
     "numberFrom": "Desde",
-    "numberTo": "Hasta"
+    "numberTo": "Hasta",
+    "discount": "Descuento",
+    "noDiscount": "Sin descuento"
   },
   "verifactu": {
     "title": "Certificado Verifactu (AEAT)",

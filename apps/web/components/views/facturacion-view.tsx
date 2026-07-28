@@ -32,6 +32,8 @@ const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1"
 const IVA_RATES = ["", "4", "10", "21"]
 // Spanish IRPF withholding (retención) rates — "" = sin retención
 const RETENTION_RATES = ["", "7", "15", "19"]
+// Global discount presets — "" = sin descuento
+const DISCOUNT_RATES = ["", "5", "10", "15", "20"]
 
 const STATE_STYLES: Record<string, string> = {
   issued:    "bg-[var(--status-paid)]/10 text-[var(--status-paid)]",
@@ -76,6 +78,7 @@ export function FacturacionView() {
   const [kind, setKind] = useState<"ordinary" | "simplified">("ordinary")
   const [notes, setNotes] = useState("")
   const [retentionPct, setRetentionPct] = useState("")
+  const [discountPct, setDiscountPct] = useState("")
   const [lines, setLines] = useState<Line[]>([emptyLine()])
   const [issuing, setIssuing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -175,16 +178,20 @@ export function FacturacionView() {
   }, [invoices, search, selectedStates, selectedKinds, dateFrom, dateTo, numberFrom, numberTo, amountMin, amountMax, sortKey])
 
   const totals = useMemo(() => {
-    let subtotal = 0, tax = 0
+    let grossBase = 0, grossTax = 0
     for (const l of lines) {
       const base = (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0) * (1 - (Number(l.discountPct) || 0) / 100)
-      subtotal += base
-      tax += base * (Number(l.taxRate) || 0) / 100
+      grossBase += base
+      grossTax += base * (Number(l.taxRate) || 0) / 100
     }
     const r2 = (n: number) => Math.round(n * 100) / 100
-    const retention = r2(subtotal * (Number(retentionPct) || 0) / 100)
-    return { subtotal: r2(subtotal), tax: r2(tax), retention, total: r2(subtotal + tax - retention) }
-  }, [lines, retentionPct])
+    const discPct = Number(discountPct) || 0
+    const discount = r2(grossBase * discPct / 100)
+    const netBase = r2(grossBase - discount)
+    const tax = r2(grossTax * (1 - discPct / 100))
+    const retention = r2(netBase * (Number(retentionPct) || 0) / 100)
+    return { subtotal: r2(grossBase), discount, tax, retention, total: r2(netBase + tax - retention) }
+  }, [lines, retentionPct, discountPct])
 
   // Validation: client + client CIF + issue date + issuer CIF + at least one described line
   const issuerHasCif = !!currentOrg?.cif?.trim()
@@ -200,7 +207,7 @@ export function FacturacionView() {
   const resetForm = () => {
     setClientId(""); setClientQuery(""); setClientListOpen(false)
     setSeries("FAC"); setIssueDate(new Date().toISOString().slice(0, 10))
-    setKind("ordinary"); setNotes(""); setRetentionPct(""); setLines([emptyLine()]); setError(null)
+    setKind("ordinary"); setNotes(""); setRetentionPct(""); setDiscountPct(""); setLines([emptyLine()]); setError(null)
   }
 
   const setLine = (i: number, patch: Partial<Line>) =>
@@ -229,6 +236,7 @@ export function FacturacionView() {
           clientCompanyId: clientId,
           series, kind, issueDate, notes,
           retentionPct: Number(retentionPct) || 0,
+          discountPct: Number(discountPct) || 0,
           lines: lines.filter(l => l.description.trim()).map(l => ({
             productId: l.productId,
             description: l.description,
@@ -271,6 +279,7 @@ export function FacturacionView() {
         clientCompanyId: clientId || null,
         series, kind, issueDate, notes,
         retentionPct: Number(retentionPct) || 0,
+        discountPct: Number(discountPct) || 0,
         lines: lines.filter(l => l.description.trim()).map(l => ({
           productId: l.productId,
           description: l.description,
@@ -613,6 +622,12 @@ export function FacturacionView() {
                   {RETENTION_RATES.map(r => <option key={r} value={r}>{r === "" ? t("noRetention") : `${r}%`}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">{t("discount")}</label>
+                <select value={discountPct} onChange={e => setDiscountPct(e.target.value)} className={inputCls}>
+                  {DISCOUNT_RATES.map(r => <option key={r} value={r}>{r === "" ? t("noDiscount") : `${r}%`}</option>)}
+                </select>
+              </div>
             </div>
 
             {/* Lines */}
@@ -657,6 +672,9 @@ export function FacturacionView() {
             {/* Totals */}
             <div className="border-t border-border pt-3 space-y-1 text-sm">
               <div className="flex justify-between text-muted-foreground"><span>{t("subtotal")}</span><span>{fmtEur(totals.subtotal)}</span></div>
+              {totals.discount > 0 && (
+                <div className="flex justify-between text-muted-foreground"><span>{t("discount")} ({discountPct}%)</span><span>−{fmtEur(totals.discount)}</span></div>
+              )}
               <div className="flex justify-between text-muted-foreground"><span>{t("tax")}</span><span>{fmtEur(totals.tax)}</span></div>
               {totals.retention > 0 && (
                 <div className="flex justify-between text-muted-foreground"><span>{t("retention")} ({retentionPct}%)</span><span>−{fmtEur(totals.retention)}</span></div>

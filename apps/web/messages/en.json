@@ -114,7 +114,8 @@
     "adminPanel": "Admin Panel",
     "users": "Users",
     "settings": "Settings",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "quotes": "Quotes"
   },
   "inventory": {
     "title": "Inventory",
@@ -262,7 +263,9 @@
     "noProductMatches": "No matching products",
     "numberFilter": "Invoice no.",
     "numberFrom": "From",
-    "numberTo": "To"
+    "numberTo": "To",
+    "discount": "Discount",
+    "noDiscount": "No discount"
   },
   "verifactu": {
     "title": "Verifactu certificate (AEAT)",
