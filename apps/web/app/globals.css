@@ -4,46 +4,50 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* DocVault - Navy + Beige + White palette */
-  --background: oklch(0.975 0.006 80);        /* warm off-white / beige */
-  --foreground: oklch(0.18 0.025 255);        /* deep navy */
-  --card: oklch(1 0 0);                        /* pure white */
-  --card-foreground: oklch(0.18 0.025 255);
+  /* Archivum — brand palette derived from the logo (cyan → blue → purple) */
+  --background: oklch(0.982 0.004 250);        /* cool off-white */
+  --foreground: oklch(0.30 0.055 266);         /* brand navy ink */
+  --card: oklch(1 0 0);                         /* pure white */
+  --card-foreground: oklch(0.30 0.055 266);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.025 255);
-  --primary: oklch(0.28 0.08 255);            /* dark navy blue */
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.93 0.015 80);          /* warm beige */
-  --secondary-foreground: oklch(0.28 0.08 255);
-  --muted: oklch(0.94 0.01 80);
-  --muted-foreground: oklch(0.48 0.03 255);
-  --accent: oklch(0.55 0.12 255);             /* medium blue accent */
-  --accent-foreground: oklch(0.98 0 0);
+  --popover-foreground: oklch(0.30 0.055 266);
+  --primary: oklch(0.35 0.10 266);             /* deep brand navy-blue */
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.955 0.012 250);         /* cool light */
+  --secondary-foreground: oklch(0.35 0.10 266);
+  --muted: oklch(0.955 0.009 250);
+  --muted-foreground: oklch(0.51 0.035 262);
+  --accent: oklch(0.557 0.172 260);            /* brand blue #2E6FD6 */
+  --accent-foreground: oklch(0.99 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.88 0.012 80);
-  --input: oklch(0.92 0.01 80);
-  --ring: oklch(0.55 0.12 255);
-  --chart-1: oklch(0.28 0.08 255);
-  --chart-2: oklch(0.55 0.12 255);
-  --chart-3: oklch(0.72 0.09 255);
-  --chart-4: oklch(0.82 0.06 80);
-  --chart-5: oklch(0.65 0.04 80);
+  --border: oklch(0.905 0.009 255);
+  --input: oklch(0.93 0.008 255);
+  --ring: oklch(0.557 0.172 260);
+  --chart-1: oklch(0.557 0.172 260);           /* blue */
+  --chart-2: oklch(0.718 0.12 205);            /* cyan */
+  --chart-3: oklch(0.425 0.152 268);           /* indigo */
+  --chart-4: oklch(0.424 0.171 296);           /* purple */
+  --chart-5: oklch(0.71 0.133 244);            /* sky */
   --radius: 0.75rem;
-  --sidebar: oklch(1 0 0);                     /* white sidebar */
-  --sidebar-foreground: oklch(0.28 0.08 255);  /* navy blue text */
-  --sidebar-primary: oklch(0.28 0.08 255);     /* navy active item bg */
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.95 0.02 255);      /* light blue hover */
-  --sidebar-accent-foreground: oklch(0.28 0.08 255);
-  --sidebar-border: oklch(0.90 0.012 255);
-  --sidebar-ring: oklch(0.55 0.12 255);
-  /* Custom tokens */
-  --navy: oklch(0.22 0.06 255);
-  --navy-light: oklch(0.30 0.07 255);
-  --beige: oklch(0.93 0.015 80);
-  --beige-dark: oklch(0.88 0.02 80);
-  --blue-mid: oklch(0.55 0.12 255);
+  --sidebar: oklch(1 0 0);                      /* white sidebar */
+  --sidebar-foreground: oklch(0.32 0.06 266);  /* brand navy text */
+  --sidebar-primary: oklch(0.50 0.17 262);     /* brand blue active item bg */
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.95 0.03 250);      /* light blue hover */
+  --sidebar-accent-foreground: oklch(0.35 0.10 266);
+  --sidebar-border: oklch(0.905 0.012 255);
+  --sidebar-ring: oklch(0.557 0.172 260);
+  /* Brand tokens (from the logo) */
+  --brand-cyan: oklch(0.718 0.12 205);
+  --brand-blue: oklch(0.557 0.172 260);
+  --brand-indigo: oklch(0.425 0.152 268);
+  --brand-purple: oklch(0.424 0.171 296);
+  --brand-navy: oklch(0.355 0.071 267);
+  --brand-gradient: linear-gradient(115deg, oklch(0.718 0.12 205) 0%, oklch(0.557 0.172 260) 45%, oklch(0.424 0.171 296) 100%);
+  --navy: oklch(0.30 0.06 266);
+  --navy-light: oklch(0.40 0.09 264);
+  --blue-mid: oklch(0.557 0.172 260);
   --status-paid: oklch(0.55 0.14 145);
   --status-pending: oklch(0.68 0.14 60);
   --status-overdue: oklch(0.58 0.18 25);

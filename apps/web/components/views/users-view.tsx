@@ -337,7 +337,9 @@ function UserRow({ member, orgId, currentUserId, isAdmin, onRefresh }: {
 }
 
 // ── Create user form ──────────────────────────────────────────────────────────
-function CreateUserForm({ orgId, onSuccess }: { orgId: string; onSuccess: () => void }) {
+type CreatedCredentials = { displayName: string; email: string; password: string }
+
+function CreateUserForm({ orgId, onRefresh, onClose }: { orgId: string; onRefresh: () => void; onClose: () => void }) {
   const t = useTranslations("settings.members")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName]   = useState("")
@@ -345,7 +347,8 @@ function CreateUserForm({ orgId, onSuccess }: { orgId: string; onSuccess: () => 
   const [role, setRole]           = useState<OrgRole>("member")
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState<string | null>(null)
-  const [success, setSuccess]     = useState(false)
+  const [created, setCreated]     = useState<CreatedCredentials | null>(null)
+  const [copied, setCopied]       = useState(false)
 
   const inputCls = "px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground w-full"
 
@@ -353,7 +356,6 @@ function CreateUserForm({ orgId, onSuccess }: { orgId: string; onSuccess: () => 
     e.preventDefault()
     setLoading(true)
     setError(null)
-    setSuccess(false)
 
     const res = await fetch("/api/members/create", {
       method: "POST",
@@ -382,9 +384,73 @@ function CreateUserForm({ orgId, onSuccess }: { orgId: string; onSuccess: () => 
       return
     }
 
-    setSuccess(true)
+    // Existing account added to the org — no new password generated.
+    if (data.existing || !data.password) {
+      onRefresh()
+      onClose()
+      return
+    }
+
+    setCreated({
+      displayName: data.displayName || `${firstName} ${lastName}`.trim() || data.email,
+      email: data.email,
+      password: data.password,
+    })
     setFirstName(""); setLastName(""); setEmail("")
-    setTimeout(() => { setSuccess(false); onSuccess() }, 1500)
+    // Refresh the members list so the new user shows immediately, keeping the
+    // credentials panel open so the admin can copy them.
+    onRefresh()
+  }
+
+  const copyCredentials = async () => {
+    if (!created) return
+    const text = `${t("emailLabel")}: ${created.email}\n${t("passwordLabel")}: ${created.password}`
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard unavailable — user can still read the values */ }
+  }
+
+  // ── Credentials panel (shown after a new user is created) ───────────────────
+  if (created) {
+    return (
+      <div className="bg-muted/40 border border-border rounded-xl p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+            <Check className="w-4 h-4 text-accent" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">{t("createdTitle")}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("createdSubtitle", { name: created.displayName })}</p>
+          </div>
+        </div>
+
+        <div className="bg-background border border-border rounded-lg divide-y divide-border">
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-xs text-muted-foreground">{t("emailLabel")}</span>
+            <span className="text-sm font-medium text-foreground">{created.email}</span>
+          </div>
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-xs text-muted-foreground">{t("passwordLabel")}</span>
+            <span className="text-sm font-semibold text-foreground font-mono tracking-wide select-all">{created.password}</span>
+          </div>
+        </div>
+
+        <p className="text-xs text-muted-foreground">{t("createdHint")}</p>
+
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={copyCredentials}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
+            {copied ? <><Check className="w-3.5 h-3.5" /> {t("copied")}</> : t("copyCredentials")}
+          </button>
+          <button type="button" onClick={() => { setCreated(null); onClose() }}
+            className="px-4 py-2 text-sm text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors">
+            {t("done")}
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -425,8 +491,7 @@ function CreateUserForm({ orgId, onSuccess }: { orgId: string; onSuccess: () => 
         </button>
       </div>
 
-      {error   && <p className="text-xs text-destructive">{error}</p>}
-      {success && <p className="text-xs text-accent font-medium flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {t("createSuccess")}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
       <p className="text-xs text-muted-foreground">{t("createHint")}</p>
     </form>
   )
@@ -551,7 +616,7 @@ export function UsersView() {
       {/* Create user form */}
       {showForm && isOrgAdmin && currentOrg && !atLimit && (
         <div className="mb-6">
-          <CreateUserForm orgId={currentOrg.id} onSuccess={() => { setShowForm(false); mutate() }} />
+          <CreateUserForm orgId={currentOrg.id} onRefresh={mutate} onClose={() => setShowForm(false)} />
         </div>
       )}
 
