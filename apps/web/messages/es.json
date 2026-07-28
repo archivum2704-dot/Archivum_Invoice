@@ -401,7 +401,9 @@
       "convertToDeliveryNote": "Convertir a Albarán",
       "convertToInvoice": "Convertir a Factura",
       "attachDocument": "Adjuntar Documento",
-      "delete": "Eliminar Documento"
+      "delete": "Eliminar Documento",
+      "print": "Imprimir",
+      "deleteConfirm": "¿Eliminar este documento? Esta acción no se puede deshacer."
     },
     "upload": {
       "title": "Subir Nuevo Documento",

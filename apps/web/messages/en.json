@@ -401,7 +401,9 @@
       "convertToDeliveryNote": "Convert to Delivery Note",
       "convertToInvoice": "Convert to Invoice",
       "attachDocument": "Attach Document",
-      "delete": "Delete Document"
+      "delete": "Delete Document",
+      "print": "Print",
+      "deleteConfirm": "Delete this document? This action can't be undone."
     },
     "upload": {
       "title": "Upload New Document",

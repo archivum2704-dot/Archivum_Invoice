@@ -135,6 +135,20 @@ export function BibliotecaView() {
     setMovingDoc(null)
   }
 
+  const handleDeleteDoc = async (doc: (typeof documents)[number]) => {
+    if (!confirm(tActions("deleteConfirm"))) return
+    setMovingOutId(doc.id) // reuse the row fade-out animation
+    const supabase = createClient()
+    // Best-effort cleanup: tag links + stored file, then the row.
+    await supabase.from("document_tags").delete().eq("document_id", doc.id)
+    const fileUrl = (doc as any).file_url as string | null
+    if (fileUrl) await supabase.storage.from("documents").remove([fileUrl])
+    const { error } = await supabase.from("documents").delete().eq("id", doc.id)
+    if (error) { setMovingOutId(null); alert(error.message); return }
+    await mutateDocuments()
+    setMovingOutId(null)
+  }
+
   const handleRenameFolder = async (folderId: string) => {
     if (!renameValue.trim() || !currentOrg) return
     setRenameSaving(true)
@@ -797,6 +811,15 @@ export function BibliotecaView() {
                               </div>
                             )}
                           </div>
+                          {isOrgAdmin && (
+                            <button
+                              onClick={() => handleDeleteDoc(doc)}
+                              className="p-1.5 rounded hover:bg-destructive/10 transition-colors"
+                              title={tActions("delete")}
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     )
