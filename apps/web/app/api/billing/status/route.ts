@@ -19,7 +19,15 @@ export async function GET(req: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    if (!member) return NextResponse.json({ error: 'not_member' }, { status: 403 })
+    // Platform admins (super_admin) are never limited, in any organization.
+    const { data: callerProfile } = await supabase
+      .from('profiles')
+      .select('platform_role')
+      .eq('id', user.id)
+      .single()
+    const isPlatformAdmin = callerProfile?.platform_role === 'super_admin'
+
+    if (!member && !isPlatformAdmin) return NextResponse.json({ error: 'not_member' }, { status: 403 })
 
     // Count members, documents and companies
     const [{ count: memberCount }, { count: documentCount }, { count: companyCount }] = await Promise.all([
@@ -46,14 +54,17 @@ export async function GET(req: NextRequest) {
     const hasSubscription      = !!org?.stripe_subscription_id
     const subscriptionStatus   = org?.subscription_status ?? null
 
+    // Super admins have no caps anywhere.
+    const UNLIMITED = 999_999
+
     // User limit = plan base users + extra purchased
-    const maxUsers = plan.users + extraUsersQuantity
+    const maxUsers = isPlatformAdmin ? UNLIMITED : plan.users + extraUsersQuantity
 
     // Annual doc pool = plan yearly allowance + bonos (250 docs each)
-    const maxDocs = plan.docsPerYear + extraDocsQuantity * 250
+    const maxDocs = isPlatformAdmin ? UNLIMITED : plan.docsPerYear + extraDocsQuantity * 250
 
     // Client limit: free plan → 1 client. Paid plans → 20 base + extras.
-    const maxCompanies = hasSubscription ? 20 + extraCompaniesQuantity : 1
+    const maxCompanies = isPlatformAdmin ? UNLIMITED : (hasSubscription ? 20 + extraCompaniesQuantity : 1)
 
     return NextResponse.json({
       plan: planId,
@@ -71,7 +82,7 @@ export async function GET(req: NextRequest) {
       maxCompanies,
       hasSubscription,
       hasCustomer:          !!org?.stripe_customer_id,
-      isAdmin:              ['owner', 'admin'].includes(member.role),
+      isAdmin:              isPlatformAdmin || ['owner', 'admin'].includes(member?.role ?? ''),
     })
   } catch (err) {
     console.error('[billing/status]', err)
