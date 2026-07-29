@@ -90,7 +90,8 @@
     "error": "Error",
     "viewPlans": "Ver planes y precios",
     "unknownError": "Error desconocido",
-    "done": "Listo"
+    "done": "Listo",
+    "billingOnWeb": "Gestiona tu plan desde la versión web de Archivum, en un navegador."
   },
   "tabs": {
     "home": "Inicio",

@@ -90,7 +90,8 @@
     "error": "Error",
     "viewPlans": "View plans & pricing",
     "unknownError": "Unknown error",
-    "done": "Done"
+    "done": "Done",
+    "billingOnWeb": "Manage your plan from the Archivum web app in a browser."
   },
   "tabs": {
     "home": "Home",

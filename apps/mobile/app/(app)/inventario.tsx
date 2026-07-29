@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  RefreshControl, ActivityIndicator, Modal, ScrollView, Switch, Alert, Linking,
+  RefreshControl, ActivityIndicator, Modal, ScrollView, Switch, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -13,7 +13,8 @@ import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
-import { APP_URL } from "@/lib/config";
+import { BillingNotice } from "@/components/BillingNotice";
+
 
 
 interface Product {
@@ -183,10 +184,7 @@ export default function InventarioScreen() {
           </View>
           <Text style={{ fontSize: 17, fontWeight: "600", color: C.text, textAlign: "center" }}>{t("inventory.paywallTitle")}</Text>
           <Text style={{ fontSize: 14, color: C.muted, textAlign: "center", marginTop: 8 }}>{t("inventory.paywallBody")}</Text>
-          <TouchableOpacity onPress={() => Linking.openURL(`${APP_URL}/configuracion/billing`)}
-            style={{ marginTop: 20, backgroundColor: C.blue, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 }}>
-            <Text style={{ color: "#fff", fontWeight: "600" }}>{t("inventory.upgrade")}</Text>
-          </TouchableOpacity>
+          <BillingNotice style={{ marginTop: 20 }} />
         </View>
       </SafeAreaView>
     );
