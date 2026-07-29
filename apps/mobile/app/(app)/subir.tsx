@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, TextInput,
-  ActivityIndicator, KeyboardAvoidingView, Platform, Alert,
+  ActivityIndicator, KeyboardAvoidingView, Platform, Alert, BackHandler,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -407,6 +407,11 @@ function Step3({ onSubmit, onBack, saving, pickedFile, docType, docNumber, compa
         </View>
       ) : null}
 
+      <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-start", backgroundColor: C.blueL, borderRadius: 10, padding: 12 }}>
+        <AlertTriangle size={16} color={C.blue} style={{ marginTop: 1 }} />
+        <Text style={{ fontSize: 12, color: C.text, flex: 1, lineHeight: 17 }}>{t("subir.archiveReminder")}</Text>
+      </View>
+
       <TouchableOpacity onPress={onSubmit} disabled={saving}
         style={{ backgroundColor: C.green, borderRadius: 10, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, opacity: saving ? 0.7 : 1 }}>
         {saving ? <ActivityIndicator color="#fff" /> : <><Check size={18} color="#fff" /><Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>{t("subir.archive")}</Text></>}
@@ -536,12 +541,43 @@ export default function SubirScreen() {
 
   const selectedCompanyName = companies.find((c) => c.id === companyId)?.name ?? "";
 
+  // ── Guard: warn before leaving a half-filled upload ────────────────────────
+  const isDirty =
+    !!pickedFile || !!companyId ||
+    [docNumber, amount, taxable, issueDate, dueDate, notes].some(v => v.trim() !== "");
+
+  const leave = () => router.back();
+
+  const confirmExit = useCallback(() => {
+    Alert.alert(t("subir.leaveTitle"), t("subir.leaveBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("subir.leaveConfirm"), style: "destructive", onPress: leave },
+    ]);
+  }, [t]);
+
+  const handleBack = () => {
+    if (step > 1) { setStep(step - 1); return; }
+    if (isDirty) { confirmExit(); return; }
+    leave();
+  };
+
+  // Android hardware back: same behaviour as the header arrow.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (saving) return true;              // don't interrupt an upload in flight
+      if (step > 1) { setStep(step - 1); return true; }
+      if (isDirty) { confirmExit(); return true; }
+      return false;                          // let the OS pop the screen
+    });
+    return () => sub.remove();
+  }, [step, isDirty, saving, confirmExit]);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         {/* Header */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 }}>
-          <TouchableOpacity onPress={() => step > 1 ? setStep(step - 1) : router.back()}>
+          <TouchableOpacity onPress={handleBack}>
             <ChevronLeft size={24} color={C.blue} />
           </TouchableOpacity>
           <Text style={{ fontSize: 18, fontWeight: "700", color: C.text }}>{t("subir.title")}</Text>

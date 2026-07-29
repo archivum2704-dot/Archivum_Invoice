@@ -363,7 +363,11 @@
     "noCompanies": "Aún no tienes clientes. Crea el primero para asociar el documento.",
     "addFirstCompany": "Añadir primer cliente",
     "newCompany": "Nuevo cliente",
-    "newCompanyPlaceholder": "Nombre del cliente"
+    "newCompanyPlaceholder": "Nombre del cliente",
+    "archiveReminder": "Recuerda pulsar «Archivar» para que tu documento quede correctamente guardado.",
+    "leaveTitle": "¿Salir sin archivar?",
+    "leaveBody": "Se perderá lo que has rellenado. El documento no quedará guardado.",
+    "leaveConfirm": "Salir"
   },
   "tutorial": {
     "skip": "Saltar",

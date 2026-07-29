@@ -363,7 +363,11 @@
     "noCompanies": "You don't have any clients yet. Create the first one to link the document.",
     "addFirstCompany": "Add first client",
     "newCompany": "New client",
-    "newCompanyPlaceholder": "Client name"
+    "newCompanyPlaceholder": "Client name",
+    "archiveReminder": "Remember to press \"Archive\" so your document is saved correctly.",
+    "leaveTitle": "Leave without archiving?",
+    "leaveBody": "You'll lose what you filled in. The document won't be saved.",
+    "leaveConfirm": "Leave"
   },
   "tutorial": {
     "skip": "Skip",
