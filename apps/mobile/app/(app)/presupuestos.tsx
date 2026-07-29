@@ -13,6 +13,7 @@ import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
 
 const IVA_RATES = ["", "4", "10", "21"];
@@ -218,9 +219,7 @@ export default function PresupuestosScreen() {
           <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center", marginBottom: 16 }}><Lock size={26} color={C.blue} /></View>
           <Text style={{ fontSize: 17, fontWeight: "600", color: C.text, textAlign: "center" }}>{t("quoting.paywallTitle")}</Text>
           <Text style={{ fontSize: 14, color: C.muted, textAlign: "center", marginTop: 8 }}>{t("quoting.paywallBody")}</Text>
-          <TouchableOpacity onPress={() => Linking.openURL(`${APP_URL}/configuracion/billing`)} style={{ marginTop: 20, backgroundColor: C.blue, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 }}>
-            <Text style={{ color: "#fff", fontWeight: "600" }}>{t("invoicing.upgrade")}</Text>
-          </TouchableOpacity>
+          <BillingNotice style={{ marginTop: 20 }} />
         </View>
       </SafeAreaView>
     );

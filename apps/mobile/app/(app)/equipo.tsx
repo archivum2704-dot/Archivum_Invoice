@@ -2,11 +2,11 @@ import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   RefreshControl, ActivityIndicator, Modal, ScrollView,
-  Alert, Linking,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  Users, Plus, X, ArrowRight, Lock, Trash2,
+  Users, Plus, X, Lock, Trash2,
   Shield, ChevronDown, Check, UserPlus,
 } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
 import { PLANS, type PlanId } from "@/lib/pricing";
 
@@ -73,13 +74,7 @@ function UpgradeModal({ visible, maxUsers, onClose, C, t }: { visible: boolean; 
             </View>
           ))}
         </View>
-        <TouchableOpacity
-          onPress={() => { onClose(); Linking.openURL(`${APP_URL}/configuracion/billing`); }}
-          style={{ marginHorizontal: 24, backgroundColor: C.blue, borderRadius: 12, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("common.viewPlans")}</Text>
-          <ArrowRight size={16} color="#fff" />
-        </TouchableOpacity>
+        <BillingNotice style={{ marginHorizontal: 24 }} />
         <TouchableOpacity onPress={onClose} style={{ marginTop: 10, alignItems: "center", paddingVertical: 10 }}>
           <Text style={{ fontSize: 14, color: C.muted }}>{t("common.notNow")}</Text>
         </TouchableOpacity>

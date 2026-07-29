@@ -242,13 +242,13 @@ export function EmpresasView() {
   const menuRef = useRef<HTMLDivElement>(null)
   const addBtnRef = useRef<HTMLButtonElement>(null)
 
-  const { currentOrg } = useOrganization()
+  const { currentOrg, isPlatformAdmin } = useOrganization()
   const { companies, loading, mutate } = useCompanies(currentOrg?.id ?? null)
   const { billing } = useBilling(currentOrg?.id ?? null)
 
   const maxCompanies  = billing?.maxCompanies ?? 1
   const isFreePlan    = !billing?.hasSubscription
-  const atLimit       = companies.length >= maxCompanies
+  const atLimit       = !isPlatformAdmin && companies.length >= maxCompanies
 
   function handleAddClick() {
     if (atLimit) { setShowUpgrade(true); return }
@@ -580,7 +580,7 @@ export function EmpresasView() {
             "text-xs font-medium px-3 py-1.5 rounded-full border",
             atLimit ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-muted text-muted-foreground border-border"
           )}>
-            {t("limitCounter", { current: companies.length, max: maxCompanies })}
+            {t("limitCounter", { current: companies.length, max: isPlatformAdmin ? "∞" : maxCompanies })}
           </span>
           <div className="flex items-center bg-card border border-border rounded-lg p-0.5">
             <button

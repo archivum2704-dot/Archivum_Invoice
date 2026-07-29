@@ -65,30 +65,35 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       if (profileError) throw profileError
       setUserProfile(profile)
 
-      // Platform admins load all organizations
+      // Platform admins work inside their own organizations like anyone else —
+      // the cross-organization view lives in /admin-dashboard. Only when a super
+      // admin has no membership at all do we fall back to listing every org, so
+      // they can never be locked out of the app.
       if (profile.platform_role === 'super_admin') {
-        const { data: allOrgs, error: orgsError } = await supabase
-          .from('organizations')
-          .select('*')
-          .eq('is_active', true)
-          .order('name')
+        const { count: ownMemberships } = await supabase
+          .from('organization_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
 
-        if (orgsError) throw orgsError
-        // Prepend the virtual "Todas las empresas" aggregate entry for super admins
-        setUserOrgs([ALL_ORGS_ENTRY, ...(allOrgs ?? [])])
+        if (!ownMemberships) {
+          const { data: allOrgs, error: orgsError } = await supabase
+            .from('organizations')
+            .select('*')
+            .eq('is_active', true)
+            .order('name')
 
-        const activeOrg =
-          (profile.current_org_id === ALL_ORGS_ID ? ALL_ORGS_ENTRY : null) ??
-          allOrgs?.find(o => o.id === profile.current_org_id) ??
-          allOrgs?.[0] ??
-          ALL_ORGS_ENTRY
-        setCurrentOrg(activeOrg)
-        setCurrentMember(null)
-        setLoading(false)
-        return
+          if (orgsError) throw orgsError
+          setUserOrgs([ALL_ORGS_ENTRY, ...(allOrgs ?? [])])
+          setCurrentOrg(
+            allOrgs?.find(o => o.id === profile.current_org_id) ?? allOrgs?.[0] ?? ALL_ORGS_ENTRY
+          )
+          setCurrentMember(null)
+          setLoading(false)
+          return
+        }
       }
 
-      // Regular users load their org memberships
+      // Regular users (and super admins with their own orgs) load their memberships
       const { data: memberships, error: membError } = await supabase
         .from('organization_members')
         .select('*, organizations(*)')

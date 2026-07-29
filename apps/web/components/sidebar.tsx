@@ -298,8 +298,9 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
         </div>
       </div>
 
-      {/* Organization switcher — platform admin + multi-org users only */}
-      {(isPlatformAdmin || userOrgs.length > 1) && (
+      {/* Organization switcher — only for users belonging to several orgs.
+          Platform admins get the cross-organization view in /admin-dashboard. */}
+      {userOrgs.length > 1 && (
         <div className="px-3 py-3 border-t border-sidebar-border">
           <div className="relative">
             <button

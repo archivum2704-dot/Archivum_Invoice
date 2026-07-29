@@ -20,6 +20,7 @@ import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
 import { setLanguage, type Lang } from "@/lib/i18n";
 import { useColors, type Colors } from "@/lib/colors";
+import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
 import { PLANS, type PlanId } from "@/lib/pricing";
 
@@ -522,13 +523,7 @@ export default function AjustesScreen() {
             </View>
           )}
 
-          <TouchableOpacity
-            onPress={() => Linking.openURL(`${APP_URL}/configuracion/billing`)}
-            style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 14 }}
-          >
-            <Text style={{ fontSize: 14, color: C.blue, fontWeight: "600" }}>{t("ajustes.plan.manage")}</Text>
-            <ChevronRight size={16} color={C.blue} />
-          </TouchableOpacity>
+          <BillingNotice style={{ margin: 14 }} />
         </Card>
 
         {/* Preferences */}
