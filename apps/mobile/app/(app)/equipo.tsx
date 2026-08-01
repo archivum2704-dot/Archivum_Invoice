@@ -407,9 +407,9 @@ export default function EquipoScreen() {
     const [{ data: memberData }, { data: orgData }] = await Promise.all([
       supabase
         .from("organization_members")
-        .select("id, user_id, role, profiles(email, first_name, last_name)")
+        .select("id, user_id, role, profiles:profiles!organization_members_user_id_fkey(email, first_name, last_name)")
         .eq("organization_id", orgId)
-        .order("created_at"),
+        .order("joined_at"),
       supabase
         .from("organizations")
         .select("subscription_status, extra_users_quantity, subscription_plan")
