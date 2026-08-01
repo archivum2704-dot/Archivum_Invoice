@@ -564,5 +564,11 @@
     "notFound": "Quote not found",
     "viewInvoice": "View invoice",
     "disclaimer": "This document is a quote and is not valid as an invoice."
+  },
+  "access": {
+    "deniedTitle": "You don't have permission to view this tab",
+    "deniedRole": "Your role in this organization does not include access to this section. If you need it, ask an administrator to adjust your permissions.",
+    "deniedNoCompanies": "You have no assigned client with upload permission yet. Ask an administrator to assign you at least one.",
+    "backToDashboard": "Back to home"
   }
 }

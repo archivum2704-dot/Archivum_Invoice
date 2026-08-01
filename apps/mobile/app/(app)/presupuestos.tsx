@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
+import { RequirePermission } from "@/components/RequirePermission";
 
 const IVA_RATES = ["", "4", "10", "21"];
 const RET_RATES = ["", "7", "15", "19"];
@@ -28,7 +29,7 @@ type Line = { productId: string | null; description: string; quantity: string; u
 const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1", unitPrice: "0", taxRate: "21" });
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-export default function PresupuestosScreen() {
+function PresupuestosScreenContent() {
   const { t } = useTranslation();
   const C = useColors();
   const { session, orgId, org, isAdmin, isPaid, isPlatformAdmin } = useAuth();
@@ -428,5 +429,13 @@ function Row({ label, value, C, bold }: any) {
       <Text style={{ color: bold ? C.text : C.muted, fontWeight: bold ? "700" : "400", fontSize: bold ? 16 : 14 }}>{label}</Text>
       <Text style={{ color: C.text, fontWeight: bold ? "700" : "400", fontSize: bold ? 16 : 14 }}>{value}</Text>
     </View>
+  );
+}
+
+export default function PresupuestosScreen() {
+  return (
+    <RequirePermission section="presupuestos">
+      <PresupuestosScreenContent />
+    </RequirePermission>
   );
 }

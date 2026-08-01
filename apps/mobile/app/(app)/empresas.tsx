@@ -17,6 +17,7 @@ import { Coachmark } from "@/components/Coachmark";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { BillingNotice } from "@/components/BillingNotice";
+import { RequirePermission } from "@/components/RequirePermission";
 
 
 
@@ -261,7 +262,7 @@ function CompanyCard({ company, onMenu, C, t }: { company: Company; onMenu: () =
 }
 
 /* ── Main screen ─────────────────────────────────────────────────────────── */
-export default function EmpresasScreen() {
+function EmpresasScreenContent() {
   const { t } = useTranslation();
   const C = useColors();
   const { orgId } = useAuth();
@@ -474,5 +475,13 @@ export default function EmpresasScreen() {
         C={C} t={t}
       />
     </SafeAreaView>
+  );
+}
+
+export default function EmpresasScreen() {
+  return (
+    <RequirePermission section="empresas">
+      <EmpresasScreenContent />
+    </RequirePermission>
   );
 }

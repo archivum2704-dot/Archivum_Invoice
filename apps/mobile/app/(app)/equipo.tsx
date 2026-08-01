@@ -18,6 +18,7 @@ import { useColors } from "@/lib/colors";
 import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
 import { PLANS, type PlanId } from "@/lib/pricing";
+import { RequirePermission } from "@/components/RequirePermission";
 
 
 type OrgRole = "owner" | "admin" | "member" | "viewer";
@@ -363,7 +364,7 @@ function MemberCard({ member, isSelf, canManage, onRoleChange, onRemove, C, t }:
 }
 
 /* ── Main screen ─────────────────────────────────────────────────────────── */
-export default function EquipoScreen() {
+function EquipoScreenContent() {
   const { t } = useTranslation();
   const C = useColors();
   const { orgId, profile, session } = useAuth();
@@ -572,5 +573,13 @@ export default function EquipoScreen() {
         />
       )}
     </SafeAreaView>
+  );
+}
+
+export default function EquipoScreen() {
+  return (
+    <RequirePermission section="equipo">
+      <EquipoScreenContent />
+    </RequirePermission>
   );
 }
