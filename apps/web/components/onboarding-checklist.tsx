@@ -10,10 +10,11 @@ const STORAGE_KEY = "archivum_onboarding_dismissed"
 
 interface OnboardingChecklistProps {
   orgId: string | null
+  isViewer?: boolean
 }
 
-export function OnboardingChecklist({ orgId }: OnboardingChecklistProps) {
-  const { steps, completedCount, totalCount, allDone, pct, loading } = useOnboarding(orgId)
+export function OnboardingChecklist({ orgId, isViewer = false }: OnboardingChecklistProps) {
+  const { steps, completedCount, totalCount, allDone, pct, loading } = useOnboarding(orgId, isViewer)
   const [dismissed, setDismissed] = useState(false)
   const [mounted,   setMounted]   = useState(false)
 
@@ -44,9 +45,11 @@ export function OnboardingChecklist({ orgId }: OnboardingChecklistProps) {
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-foreground">Primeros pasos</p>
+              <p className="text-sm font-semibold text-foreground">
+                {isViewer ? "Tu acceso" : "Primeros pasos"}
+              </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {completedCount} de {totalCount} completados
+                {isViewer ? "Consulta de solo lectura" : `${completedCount} de ${totalCount} completados`}
               </p>
             </div>
           </div>
@@ -59,13 +62,15 @@ export function OnboardingChecklist({ orgId }: OnboardingChecklistProps) {
           </button>
         </div>
 
-        {/* Progress bar */}
-        <div className="mt-3 w-full h-1.5 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full bg-primary rounded-full transition-all duration-500"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
+        {/* Progress bar — viewers have nothing to complete, so no progress to show */}
+        {!isViewer && (
+          <div className="mt-3 w-full h-1.5 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary rounded-full transition-all duration-500"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Steps */}

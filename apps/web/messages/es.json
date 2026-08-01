@@ -332,6 +332,7 @@
     },
     "noDocumentsYet": "Sin documentos todavía",
     "noDocumentsHint": "Sube tu primer documento para empezar",
+    "noDocumentsHintViewer": "Aquí aparecerán los documentos a los que tengas acceso.",
     "overdueAlert": "{count} documento{plural} vencido{plural}",
     "viewOverdue": "Ver todos",
     "cancelMark": "Marcar como cancelado"

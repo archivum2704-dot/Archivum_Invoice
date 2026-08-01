@@ -332,6 +332,7 @@
     },
     "noDocumentsYet": "No documents yet",
     "noDocumentsHint": "Upload your first document to get started",
+    "noDocumentsHintViewer": "Documents you have been given access to will appear here.",
     "overdueAlert": "{count} overdue document{plural}",
     "viewOverdue": "View all",
     "cancelMark": "Mark as cancelled"
