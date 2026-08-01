@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { createPortal } from "react-dom"
 import {
   Users, Building2, Shield, Trash2, ChevronDown,
   UserPlus, CheckSquare, Square, X, Check, Folder,
@@ -314,6 +315,84 @@ function FolderAccessPanel({ member, orgId, onClose }: { member: OrgMember; orgI
   )
 }
 
+// ── Role menu ────────────────────────────────────────────────────────────────
+const MENU_WIDTH = 144
+const MENU_GAP = 4
+
+/**
+ * Role picker for one member.
+ *
+ * Rendered through a portal because the users list clips its contents
+ * (`overflow-hidden` keeps row hovers inside the card's rounded corners), which
+ * would cut the menu off. Escaping to the body also keeps it above every row.
+ */
+function RoleMenu({ anchorRef, current, onSelect, onClose }: {
+  anchorRef: React.RefObject<HTMLButtonElement | null>
+  current: OrgRole
+  onSelect: (role: OrgRole) => void
+  onClose: () => void
+}) {
+  const t = useTranslations("settings.members")
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+
+  const roles: OrgRole[] = ["admin", "member", "viewer"]
+
+  useEffect(() => {
+    const anchor = anchorRef.current
+    if (!anchor) return
+
+    const place = () => {
+      const r = anchor.getBoundingClientRect()
+      const height = menuRef.current?.offsetHeight ?? roles.length * 33
+      // Flip above the button when there isn't room underneath.
+      const below = r.bottom + MENU_GAP
+      const top = below + height > window.innerHeight ? r.top - MENU_GAP - height : below
+      const left = Math.max(8, Math.min(r.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8))
+      setPos({ top, left })
+    }
+
+    place()
+    window.addEventListener("resize", place)
+    window.addEventListener("scroll", place, true)
+    return () => {
+      window.removeEventListener("resize", place)
+      window.removeEventListener("scroll", place, true)
+    }
+  }, [anchorRef])
+
+  useEffect(() => {
+    const onPointerDown = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (menuRef.current?.contains(target) || anchorRef.current?.contains(target)) return
+      onClose()
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    document.addEventListener("mousedown", onPointerDown)
+    document.addEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown)
+      document.removeEventListener("keydown", onKey)
+    }
+  }, [anchorRef, onClose])
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      style={{ top: pos?.top ?? 0, left: pos?.left ?? 0, width: MENU_WIDTH, visibility: pos ? "visible" : "hidden" }}
+      className="fixed bg-background border border-border rounded-xl shadow-lg z-50 overflow-hidden"
+    >
+      {roles.map((role) => (
+        <button key={role} onClick={() => onSelect(role)}
+          className={cn("w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors", current === role && "font-semibold text-accent")}>
+          {t(`roles.${role}`)}
+        </button>
+      ))}
+    </div>,
+    document.body,
+  )
+}
+
 // ── User row ─────────────────────────────────────────────────────────────────
 function UserRow({ member, orgId, currentUserId, isAdmin, onRefresh }: {
   member: OrgMember; orgId: string; currentUserId: string; isAdmin: boolean; onRefresh: () => void
@@ -323,6 +402,7 @@ function UserRow({ member, orgId, currentUserId, isAdmin, onRefresh }: {
   const [showFolderAccess, setShowFolderAccess] = useState(false)
   const [showRoleMenu, setShowRoleMenu] = useState(false)
   const [loading, setLoading] = useState(false)
+  const roleBtnRef = useRef<HTMLButtonElement>(null)
 
   const profile = member.profile
   const name = profile ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() || profile.email : "—"
@@ -365,6 +445,7 @@ function UserRow({ member, orgId, currentUserId, isAdmin, onRefresh }: {
           {canManage ? (
             <div className="relative">
               <button
+                ref={roleBtnRef}
                 onClick={() => setShowRoleMenu(!showRoleMenu)}
                 className={cn("flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border", ROLE_COLORS[member.role])}
               >
@@ -372,14 +453,12 @@ function UserRow({ member, orgId, currentUserId, isAdmin, onRefresh }: {
                 <ChevronDown className="w-3 h-3" />
               </button>
               {showRoleMenu && (
-                <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-xl shadow-lg z-10 overflow-hidden w-36">
-                  {(["admin", "member", "viewer"] as OrgRole[]).map((role) => (
-                    <button key={role} onClick={() => handleRoleChange(role)}
-                      className={cn("w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors", member.role === role && "font-semibold text-accent")}>
-                      {t(`roles.${role}`)}
-                    </button>
-                  ))}
-                </div>
+                <RoleMenu
+                  anchorRef={roleBtnRef}
+                  current={member.role}
+                  onSelect={handleRoleChange}
+                  onClose={() => setShowRoleMenu(false)}
+                />
               )}
             </div>
           ) : (
