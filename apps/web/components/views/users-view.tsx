@@ -24,6 +24,69 @@ const ROLE_COLORS: Record<OrgRole, string> = {
   viewer: "bg-muted text-muted-foreground border-border",
 }
 
+type PermissionFlags = { can_upload: boolean; can_edit: boolean; can_delete: boolean }
+
+const READ_ONLY: PermissionFlags = { can_upload: false, can_edit: false, can_delete: false }
+
+/** Permissions applied when access is first granted — viewers stay read-only. */
+const defaultGrant = (role: OrgRole): PermissionFlags =>
+  role === "viewer" ? READ_ONLY : { can_upload: true, can_edit: false, can_delete: false }
+
+/**
+ * Permission toggles for one company/folder.
+ *
+ * "Solo ver" is not a stored flag — it is the state where none of the three
+ * write permissions are on. Presenting it explicitly makes the read-only case
+ * something an admin can pick, rather than something they have to infer from
+ * three empty checkboxes.
+ */
+function PermissionToggles({
+  row, onToggle, onReadOnly, disabled,
+}: {
+  row: PermissionFlags
+  onToggle: (field: keyof PermissionFlags) => void
+  onReadOnly: () => void
+  disabled?: boolean
+}) {
+  const t = useTranslations("settings.members")
+  const readOnly = !row.can_upload && !row.can_edit && !row.can_delete
+
+  return (
+    <div className="flex flex-wrap items-center gap-4 px-4 pb-3 pt-0">
+      <label className={cn("flex items-center gap-1.5", disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer")}>
+        <input
+          type="checkbox"
+          checked={readOnly}
+          disabled={disabled}
+          onChange={() => { if (!readOnly) onReadOnly() }}
+          className="w-3.5 h-3.5 accent-accent"
+        />
+        <span className={cn("text-xs font-medium", readOnly ? "text-accent" : "text-muted-foreground")}>
+          {t("permissions.readOnly")}
+        </span>
+      </label>
+
+      <span className="h-3 w-px bg-border" aria-hidden />
+
+      {(["can_upload", "can_edit", "can_delete"] as const).map((field) => {
+        const i18nKey = { can_upload: "canUpload", can_edit: "canEdit", can_delete: "canDelete" }[field]!
+        return (
+          <label key={field} className={cn("flex items-center gap-1.5", disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer")}>
+            <input
+              type="checkbox"
+              checked={row[field]}
+              disabled={disabled}
+              onChange={() => onToggle(field)}
+              className="w-3.5 h-3.5 accent-accent"
+            />
+            <span className="text-xs text-muted-foreground">{t(`permissions.${i18nKey}`)}</span>
+          </label>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Company access panel ─────────────────────────────────────────────────────
 function CompanyAccessPanel({ member, orgId, onClose }: { member: OrgMember; orgId: string; onClose: () => void }) {
   const t = useTranslations("settings.members")
@@ -36,6 +99,8 @@ function CompanyAccessPanel({ member, orgId, onClose }: { member: OrgMember; org
 
   const hasAccess = (companyId: string) => access.some((a) => a.company_id === companyId)
 
+  const isViewer = member.role === "viewer"
+
   const toggleCompany = async (companyId: string) => {
     const supabase = createClient()
     if (hasAccess(companyId)) {
@@ -44,17 +109,25 @@ function CompanyAccessPanel({ member, orgId, onClose }: { member: OrgMember; org
     } else {
       await supabase.from("company_user_access").insert({
         organization_id: orgId, user_id: member.user_id, company_id: companyId,
-        can_upload: true, can_edit: false, can_delete: false,
+        ...defaultGrant(member.role),
       })
     }
     mutate()
   }
 
-  const togglePermission = async (companyId: string, field: "can_upload" | "can_edit" | "can_delete") => {
+  const togglePermission = async (companyId: string, field: keyof PermissionFlags) => {
     const supabase = createClient()
     const current = access.find((a) => a.company_id === companyId)
     if (!current) return
     await supabase.from("company_user_access").update({ [field]: !current[field] }).eq("id", current.id)
+    mutate()
+  }
+
+  const setReadOnly = async (companyId: string) => {
+    const supabase = createClient()
+    const current = access.find((a) => a.company_id === companyId)
+    if (!current) return
+    await supabase.from("company_user_access").update(READ_ONLY).eq("id", current.id)
     mutate()
   }
 
@@ -72,6 +145,11 @@ function CompanyAccessPanel({ member, orgId, onClose }: { member: OrgMember; org
         </div>
 
         <div className="p-5 max-h-[60vh] overflow-y-auto">
+          {isViewer && (
+            <p className="text-xs text-muted-foreground bg-muted/60 border border-border rounded-lg px-3 py-2 mb-4">
+              {t("viewerReadOnlyNotice")}
+            </p>
+          )}
           {companies.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">{t("noCompanies")}</p>
           ) : (
@@ -91,17 +169,12 @@ function CompanyAccessPanel({ member, orgId, onClose }: { member: OrgMember; org
                       </div>
                     </div>
                     {granted && row && (
-                      <div className="flex items-center gap-4 px-4 pb-3 pt-0">
-                        {(["can_upload", "can_edit", "can_delete"] as const).map((field) => {
-                          const i18nKey = { can_upload: "canUpload", can_edit: "canEdit", can_delete: "canDelete" }[field]!
-                          return (
-                            <label key={field} className="flex items-center gap-1.5 cursor-pointer">
-                              <input type="checkbox" checked={row[field]} onChange={() => togglePermission(company.id, field)} className="w-3.5 h-3.5 accent-accent" />
-                              <span className="text-xs text-muted-foreground">{t(`permissions.${i18nKey}`)}</span>
-                            </label>
-                          )
-                        })}
-                      </div>
+                      <PermissionToggles
+                        row={row}
+                        disabled={isViewer}
+                        onToggle={(field) => togglePermission(company.id, field)}
+                        onReadOnly={() => setReadOnly(company.id)}
+                      />
                     )}
                   </div>
                 )
@@ -149,6 +222,7 @@ function FolderAccessPanel({ member, orgId, onClose }: { member: OrgMember; orgI
   }, [member.user_id])
 
   const hasAccess = (folderId: string) => !!access[folderId]
+  const isViewer = member.role === "viewer"
 
   const toggleFolder = async (folderId: string) => {
     const supabase = createClient()
@@ -156,19 +230,26 @@ function FolderAccessPanel({ member, orgId, onClose }: { member: OrgMember; orgI
       await supabase.from("folder_user_access").delete().eq("folder_id", folderId).eq("user_id", member.user_id)
       setAccess(prev => { const n = { ...prev }; delete n[folderId]; return n })
     } else {
-      const row = { folder_id: folderId, user_id: member.user_id, can_upload: true, can_edit: false, can_delete: false }
-      await supabase.from("folder_user_access").insert(row)
-      setAccess(prev => ({ ...prev, [folderId]: { can_upload: true, can_edit: false, can_delete: false } }))
+      const perms = defaultGrant(member.role)
+      await supabase.from("folder_user_access").insert({ folder_id: folderId, user_id: member.user_id, ...perms })
+      setAccess(prev => ({ ...prev, [folderId]: perms }))
     }
   }
 
-  const togglePerm = async (folderId: string, field: "can_upload" | "can_edit" | "can_delete") => {
+  const togglePerm = async (folderId: string, field: keyof PermissionFlags) => {
     const current = access[folderId]
     if (!current) return
     const updated = { ...current, [field]: !current[field] }
     const supabase = createClient()
     await supabase.from("folder_user_access").update({ [field]: updated[field] }).eq("folder_id", folderId).eq("user_id", member.user_id)
     setAccess(prev => ({ ...prev, [folderId]: updated }))
+  }
+
+  const setFolderReadOnly = async (folderId: string) => {
+    if (!access[folderId]) return
+    const supabase = createClient()
+    await supabase.from("folder_user_access").update(READ_ONLY).eq("folder_id", folderId).eq("user_id", member.user_id)
+    setAccess(prev => ({ ...prev, [folderId]: { ...READ_ONLY } }))
   }
 
   return (
@@ -185,6 +266,11 @@ function FolderAccessPanel({ member, orgId, onClose }: { member: OrgMember; orgI
         </div>
 
         <div className="p-5 max-h-[60vh] overflow-y-auto">
+          {isViewer && (
+            <p className="text-xs text-muted-foreground bg-muted/60 border border-border rounded-lg px-3 py-2 mb-4">
+              {tS("viewerReadOnlyNotice")}
+            </p>
+          )}
           {loading ? (
             <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
           ) : folders.length === 0 ? (
@@ -204,17 +290,12 @@ function FolderAccessPanel({ member, orgId, onClose }: { member: OrgMember; orgI
                       <p className="text-sm font-medium text-foreground flex-1 truncate">{folder.name}</p>
                     </div>
                     {granted && row && (
-                      <div className="flex items-center gap-4 px-4 pb-3 pt-0">
-                        {(["can_upload", "can_edit", "can_delete"] as const).map((field) => {
-                          const i18nKey = { can_upload: "canUpload", can_edit: "canEdit", can_delete: "canDelete" }[field]!
-                          return (
-                            <label key={field} className="flex items-center gap-1.5 cursor-pointer">
-                              <input type="checkbox" checked={row[field]} onChange={() => togglePerm(folder.id, field)} className="w-3.5 h-3.5 accent-accent" />
-                              <span className="text-xs text-muted-foreground">{tS(`permissions.${i18nKey}`)}</span>
-                            </label>
-                          )
-                        })}
-                      </div>
+                      <PermissionToggles
+                        row={row}
+                        disabled={isViewer}
+                        onToggle={(field) => togglePerm(folder.id, field)}
+                        onReadOnly={() => setFolderReadOnly(folder.id)}
+                      />
                     )}
                   </div>
                 )

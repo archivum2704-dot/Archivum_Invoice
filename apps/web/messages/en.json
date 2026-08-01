@@ -622,7 +622,7 @@
       "roleDescriptions": {
         "admin": "Can manage members and clients",
         "member": "Access limited to assigned clients",
-        "viewer": "Read-only access to assigned clients"
+        "viewer": "View only: reads and downloads what is assigned, without changing anything"
       },
       "joinedAt": "Joined {date}",
       "removeConfirm": "Remove {name} from this organization?",
@@ -639,6 +639,7 @@
       "allCompanies": "Full access (admin)",
       "noCompanies": "No clients assigned yet",
       "permissions": {
+        "readOnly": "View only",
         "canUpload": "Can upload",
         "canEdit": "Can edit",
         "canDelete": "Can delete"
@@ -658,7 +659,8 @@
       "createdSubtitle": "{name} can now sign in. Share these credentials:",
       "createdHint": "Save or share the password now — for security it won't be shown again. It has also been emailed if email delivery is configured.",
       "copyCredentials": "Copy credentials",
-      "copied": "Copied"
+      "copied": "Copied",
+      "viewerReadOnlyNotice": "This user has the Viewer role: they can only read and download what you assign. They cannot upload, edit or delete anything. To grant write access, change their role to Member."
     },
     "organization": {
       "title": "Organization Details",
