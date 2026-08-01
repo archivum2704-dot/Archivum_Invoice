@@ -1,6 +1,5 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import * as Localization from "expo-localization";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import es from "../locales/es.json";
@@ -15,12 +14,9 @@ export const SUPPORTED_LANGS: Lang[] = ["es", "en"];
 export function initI18n() {
   if (i18n.isInitialized) return;
 
-  // Fallback: device language if supported, otherwise Spanish
-  const deviceLocale = Localization.getLocales()[0]?.languageCode ?? "es";
-  const initialLang: Lang = SUPPORTED_LANGS.includes(deviceLocale as Lang)
-    ? (deviceLocale as Lang)
-    : "es";
-
+  // Spanish is the product's primary language, so it is what we start in
+  // regardless of the device locale. Only an explicit choice by the user
+  // (persisted below) switches away from it.
   i18n
     .use(initReactI18next)
     .init({
@@ -28,7 +24,7 @@ export function initI18n() {
         es: { translation: es },
         en: { translation: en },
       },
-      lng: initialLang,
+      lng: "es",
       fallbackLng: "es",
       interpolation: { escapeValue: false },
       compatibilityJSON: "v4",
