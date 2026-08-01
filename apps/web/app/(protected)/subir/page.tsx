@@ -1,7 +1,10 @@
 import { SubirView } from '@/components/views/subir-view'
-import { redirectViewersAway } from '@/lib/auth/require-role'
+import { RequirePermission } from '@/components/require-permission'
 
-export default async function SubirPage() {
-  await redirectViewersAway()
-  return <SubirView />
+export default function SubirPage() {
+  return (
+    <RequirePermission section="subir">
+      <SubirView />
+    </RequirePermission>
+  )
 }

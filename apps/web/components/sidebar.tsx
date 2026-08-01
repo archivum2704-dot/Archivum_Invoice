@@ -22,6 +22,7 @@ import {
   Package,
   Receipt,
   ClipboardList,
+  Lock,
 } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { useTranslations, useLocale } from "next-intl"
@@ -33,6 +34,8 @@ import { useOverdueDocs } from "@/lib/hooks/use-overdue-docs"
 import { useDocuments } from "@/lib/hooks/use-documents"
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { isPaidPlan } from "@/lib/plan"
+import { canAccess } from "@/lib/permissions"
+import { useAccessContext } from "@/lib/hooks/use-access"
 import type { DocumentStatus } from "@/lib/supabase/types"
 
 // Traffic-light dot colour by document status
@@ -51,7 +54,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   const locale = useLocale()
   const pathname = usePathname()
   const router = useRouter()
-  const { currentOrg, userProfile, currentMember, isPlatformAdmin, isOrgAdmin } = useOrganization()
+  const { currentOrg, userProfile, isPlatformAdmin } = useOrganization()
   const { overdueCount } = useOverdueDocs(currentOrg?.id ?? null)
   const { documents } = useDocuments(currentOrg?.id ?? null)
   const { companies } = useCompanies(currentOrg?.id ?? null)
@@ -103,39 +106,33 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   }
 
 
-  // Role-based nav: admins/owners see everything; members/viewers see limited set
-  const memberRole = currentMember?.role
-  const isOwnerOrAdmin = isOrgAdmin // owner | admin | platform_admin
-  const isViewer = memberRole === "viewer"
+  // Sections a member may not open still render, but locked — a short menu
+  // hides what the product does, while a padlock explains it. The page itself
+  // shows the reason, resolved from the same table in @/lib/permissions.
+  const { ctx: accessCtx } = useAccessContext()
+
+  // Plan-gated modules stay out entirely: those are absent, not restricted.
+  const hasPaidModules =
+    !!currentOrg && currentOrg.id !== ALL_ORGS_ID && (isPaidPlan(currentOrg) || isPlatformAdmin)
 
   const navItems = [
-    { label: t("dashboard"), icon: LayoutDashboard, href: "/dashboard" },
-    // Empresas: only admins/owners manage companies
-    ...(isOwnerOrAdmin
-      ? [{ label: t("companies"), icon: Building2, href: "/empresas" }]
-      : []),
-    { label: t("library"), icon: Library, href: "/biblioteca" },
-    { label: t("search"), icon: Search, href: "/buscador" },
-    // Inventory + Invoicing: paid plans (platform admins always, on a real org)
-    ...(currentOrg && currentOrg.id !== ALL_ORGS_ID && (isPaidPlan(currentOrg) || isPlatformAdmin)
+    { section: "dashboard"    as const, label: t("dashboard"),  icon: LayoutDashboard, href: "/dashboard" },
+    { section: "empresas"     as const, label: t("companies"),  icon: Building2,       href: "/empresas" },
+    { section: "biblioteca"   as const, label: t("library"),    icon: Library,         href: "/biblioteca" },
+    { section: "buscador"     as const, label: t("search"),     icon: Search,          href: "/buscador" },
+    ...(hasPaidModules
       ? [
-          { label: t("inventory"), icon: Package, href: "/inventario" },
-          { label: t("quotes"), icon: ClipboardList, href: "/presupuestos" },
-          { label: t("invoicing"), icon: Receipt, href: "/facturacion" },
+          { section: "inventario"   as const, label: t("inventory"), icon: Package,       href: "/inventario" },
+          { section: "presupuestos" as const, label: t("quotes"),    icon: ClipboardList, href: "/presupuestos" },
+          { section: "facturacion"  as const, label: t("invoicing"), icon: Receipt,       href: "/facturacion" },
         ]
       : []),
-    // Upload: members and admins can upload; viewers cannot
-    ...(!isViewer
-      ? [{ label: t("upload"), icon: Upload, href: "/subir" }]
-      : []),
-    // Usuarios: only admins/owners manage users
-    ...(isOwnerOrAdmin
-      ? [{ label: t("users"), icon: Users, href: "/usuarios" }]
-      : []),
+    { section: "subir"    as const, label: t("upload"), icon: Upload, href: "/subir" },
+    { section: "usuarios" as const, label: t("users"),  icon: Users,  href: "/usuarios" },
     ...(isPlatformAdmin
-      ? [{ label: t("adminPanel"), icon: ShieldCheck, href: "/admin-dashboard" }]
+      ? [{ section: "admin" as const, label: t("adminPanel"), icon: ShieldCheck, href: "/admin-dashboard" }]
       : []),
-  ]
+  ].map(item => ({ ...item, locked: !canAccess(item.section, accessCtx) }))
 
   const initials =
     (userProfile?.first_name?.charAt(0) ?? "") +
@@ -166,21 +163,27 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
         <nav className="grid grid-cols-2 gap-2">
           {navItems.map((item) => {
             const active = pathname === item.href
-            const showBadge = item.href === "/biblioteca" && overdueCount > 0
+            const showBadge = item.href === "/biblioteca" && overdueCount > 0 && !item.locked
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                title={item.locked ? tCommon("noAccess") : undefined}
                 className={cn(
                   "group relative flex flex-col items-center justify-center gap-2 aspect-square rounded-xl border p-2 text-center",
                   "transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.97]",
                   active
                     ? "bg-sidebar-primary/90 border-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-sm"
-                    : "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:border-sidebar-foreground/20"
+                    : item.locked
+                      ? "border-sidebar-border/60 text-sidebar-foreground/35 hover:bg-sidebar-accent/30"
+                      : "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:border-sidebar-foreground/20"
                 )}
               >
-                <item.icon className={cn("w-5 h-5 shrink-0 transition-transform duration-200 group-hover:scale-110", active && "scale-110")} />
+                <item.icon className={cn("w-5 h-5 shrink-0 transition-transform duration-200", !item.locked && "group-hover:scale-110", active && "scale-110")} />
                 <span className="text-[11px] font-medium leading-tight">{item.label}</span>
+                {item.locked && (
+                  <Lock className="absolute top-1.5 right-1.5 w-3 h-3 text-sidebar-foreground/40" />
+                )}
                 {showBadge && (
                   <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--status-overdue)] text-white text-[10px] font-bold flex items-center justify-center">
                     {overdueCount > 99 ? "99+" : overdueCount}

@@ -38,7 +38,8 @@
     "dangerZone": "Danger zone",
     "saving": "Saving...",
     "saved": "Saved",
-    "deleting": "Deleting..."
+    "deleting": "Deleting...",
+    "noAccess": "You don't have access to this section"
   },
   "auth": {
     "login": {
@@ -865,5 +866,11 @@
     "keepEditing": "No, keep editing",
     "saving": "Saving...",
     "savingError": "Couldn't save the draft. Please try again."
+  },
+  "access": {
+    "deniedTitle": "You don't have permission to view this tab",
+    "deniedRole": "Your role in this organization does not include access to this section. If you need it, ask an administrator to adjust your permissions.",
+    "deniedNoCompanies": "You have no assigned client with upload permission yet. Ask an administrator to assign you at least one.",
+    "backToDashboard": "Back to dashboard"
   }
 }
