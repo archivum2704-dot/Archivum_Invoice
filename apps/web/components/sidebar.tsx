@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { useState, useMemo } from "react"
+import { useMemo } from "react"
 import {
   LayoutDashboard,
   Building2,
@@ -11,7 +11,6 @@ import {
   Upload,
   Settings,
   LogOut,
-  ChevronDown,
   ShieldCheck,
   Users,
   X,
@@ -52,9 +51,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   const locale = useLocale()
   const pathname = usePathname()
   const router = useRouter()
-  const { currentOrg, userOrgs, userProfile, currentMember, isPlatformAdmin, isOrgAdmin, switchOrganization } =
-    useOrganization()
-  const [showOrgMenu, setShowOrgMenu] = useState(false)
+  const { currentOrg, userProfile, currentMember, isPlatformAdmin, isOrgAdmin } = useOrganization()
   const { overdueCount } = useOverdueDocs(currentOrg?.id ?? null)
   const { documents } = useDocuments(currentOrg?.id ?? null)
   const { companies } = useCompanies(currentOrg?.id ?? null)
@@ -105,10 +102,6 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
     router.push("/auth/login")
   }
 
-  const handleSwitchOrg = async (orgId: string) => {
-    await switchOrganization(orgId)
-    setShowOrgMenu(false)
-  }
 
   // Role-based nav: admins/owners see everything; members/viewers see limited set
   const memberRole = currentMember?.role
@@ -298,52 +291,6 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
         </div>
       </div>
 
-      {/* Organization switcher — only for users belonging to several orgs.
-          Platform admins get the cross-organization view in /admin-dashboard. */}
-      {userOrgs.length > 1 && (
-        <div className="px-3 py-3 border-t border-sidebar-border">
-          <div className="relative">
-            <button
-              onClick={() => setShowOrgMenu(!showOrgMenu)}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-sidebar-accent/50 transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] text-left"
-            >
-              <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
-                <Building2 className="w-4 h-4 text-sidebar-primary-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sidebar-foreground text-xs font-medium truncate">
-                  {currentOrg?.name ?? "Select organization"}
-                </p>
-              </div>
-              <ChevronDown
-                className={cn(
-                  "w-3.5 h-3.5 text-sidebar-foreground/65 transition-transform",
-                  showOrgMenu && "rotate-180"
-                )}
-              />
-            </button>
-
-            {showOrgMenu && userOrgs.length > 0 && (
-              <div className="absolute bottom-full left-0 right-0 mb-1 bg-sidebar border border-sidebar-border rounded-lg shadow-lg z-50 overflow-hidden">
-                {userOrgs.map((org) => (
-                  <button
-                    key={org.id}
-                    onClick={() => handleSwitchOrg(org.id)}
-                    className={cn(
-                      "w-full text-left px-3 py-2 text-xs transition-colors",
-                      currentOrg?.id === org.id
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent"
-                    )}
-                  >
-                    {org.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Footer */}
       <div className="px-3 py-4 border-t border-sidebar-border space-y-0.5">
