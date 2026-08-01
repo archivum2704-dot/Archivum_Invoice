@@ -30,12 +30,13 @@ export type CompanyAccess = {
 async function fetchMembers(orgId: string): Promise<OrgMember[]> {
   const supabase = createClient()
 
-  // First try with profile join
+  // organization_members has two FKs to profiles (user_id and invited_by), so
+  // the embed must name the user_id one or PostgREST rejects it as ambiguous.
   const { data, error } = await supabase
     .from('organization_members')
     .select(`
       id, organization_id, user_id, role, invited_by, joined_at,
-      profile:profiles ( id, email, first_name, last_name, avatar_url )
+      profile:profiles!organization_members_user_id_fkey ( id, email, first_name, last_name, avatar_url )
     `)
     .eq('organization_id', orgId)
     .order('joined_at')
