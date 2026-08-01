@@ -622,7 +622,7 @@
       "roleDescriptions": {
         "admin": "Puede gestionar miembros y clientes",
         "member": "Acceso limitado a clientes asignados",
-        "viewer": "Acceso de solo lectura a clientes asignados"
+        "viewer": "Solo ver: consulta y descarga lo asignado, sin poder modificar nada"
       },
       "joinedAt": "Se unió el {date}",
       "removeConfirm": "¿Eliminar a {name} de esta organización?",
@@ -639,6 +639,7 @@
       "allCompanies": "Acceso total (administrador)",
       "noCompanies": "Sin clientes asignados todavía",
       "permissions": {
+        "readOnly": "Solo ver",
         "canUpload": "Puede subir",
         "canEdit": "Puede editar",
         "canDelete": "Puede eliminar"
@@ -658,7 +659,8 @@
       "createdSubtitle": "{name} ya puede iniciar sesión. Comparte estas credenciales:",
       "createdHint": "Guarda o comparte la contraseña ahora: por seguridad no volverá a mostrarse. También se ha enviado por correo si el envío está configurado.",
       "copyCredentials": "Copiar credenciales",
-      "copied": "Copiado"
+      "copied": "Copiado",
+      "viewerReadOnlyNotice": "Este usuario tiene el rol Visor: solo puede consultar y descargar lo que le asignes. No puede subir, editar ni eliminar nada. Para darle permisos de escritura, cambia su rol a Miembro."
     },
     "organization": {
       "title": "Datos de la Organización",
