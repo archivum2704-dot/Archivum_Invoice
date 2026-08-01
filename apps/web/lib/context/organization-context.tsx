@@ -25,6 +25,8 @@ interface OrganizationContextType {
   userProfile: Profile | null
   isPlatformAdmin: boolean
   isOrgAdmin: boolean
+  /** Read-only member (external auditors: Hacienda, DIAN…). Never a platform admin. */
+  isViewer: boolean
   loading: boolean
   error: string | null
   switchOrganization: (orgId: string) => Promise<void>
@@ -182,6 +184,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
   const isPlatformAdmin = userProfile?.platform_role === 'super_admin'
   const isOrgAdmin = isPlatformAdmin || currentMember?.role === 'owner' || currentMember?.role === 'admin'
+  const isViewer = !isPlatformAdmin && currentMember?.role === 'viewer'
 
   return (
     <OrganizationContext.Provider
@@ -192,6 +195,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         userProfile,
         isPlatformAdmin,
         isOrgAdmin: isOrgAdmin ?? false,
+        isViewer,
         loading,
         error,
         switchOrganization,

@@ -84,7 +84,7 @@ export function BibliotecaView() {
   const exportRef = useRef<HTMLDivElement>(null)
   const uploadLinkRef = useRef<HTMLAnchorElement>(null)
 
-  const { currentOrg, isOrgAdmin } = useOrganization()
+  const { currentOrg, isOrgAdmin, isViewer } = useOrganization()
   const { documents, loading, mutate: mutateDocuments } = useDocuments(currentOrg?.id ?? null)
   const { folders, mutate: mutateFolders } = useFolders(currentOrg?.id ?? null)
 
@@ -573,9 +573,11 @@ export function BibliotecaView() {
             )}
           </div>
 
-          <Link ref={uploadLinkRef as any} href="/subir" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
-            <Plus className="w-4 h-4" />{t("uploadNew")}
-          </Link>
+          {!isViewer && (
+            <Link ref={uploadLinkRef as any} href="/subir" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+              <Plus className="w-4 h-4" />{t("uploadNew")}
+            </Link>
+          )}
         </div>
       </div>
 
@@ -675,7 +677,7 @@ export function BibliotecaView() {
               {documents.length === 0 ? t("noDocumentsHint") : t("noResultsHint")}
             </p>
           </div>
-          {documents.length === 0 && (
+          {documents.length === 0 && !isViewer && (
             <Link
               href="/subir"
               className="flex items-center gap-1.5 text-xs font-medium text-accent hover:underline"
@@ -1085,7 +1087,7 @@ export function BibliotecaView() {
       )}
 
       {/* First-time hint: empty library */}
-      {documents.length === 0 && (
+      {documents.length === 0 && !isViewer && (
         <Coachmark
           id="biblioteca-upload-first"
           targetRef={uploadLinkRef}

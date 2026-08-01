@@ -11,13 +11,41 @@ export type OnboardingStep = {
   done: boolean
 }
 
-export function useOnboarding(orgId: string | null) {
+export function useOnboarding(orgId: string | null, isViewer = false) {
   const { companies, loading: companiesLoading } = useCompanies(orgId)
   const { documents, loading: docsLoading }      = useDocuments(orgId)
 
   const loading = companiesLoading || docsLoading
 
-  const steps: OnboardingStep[] = useMemo(() => [
+  // Read-only members (external auditors) can't create anything, so the setup
+  // checklist would be a list of dead ends. Orient them around consulting the
+  // archive instead.
+  const steps: OnboardingStep[] = useMemo(() => isViewer ? [
+    {
+      id:          "access",
+      label:       "Acceso de solo lectura",
+      description: "Puedes consultar y descargar lo que te han asignado, sin modificar nada.",
+      href:        "/biblioteca",
+      cta:         "Entendido",
+      done:        true,
+    },
+    {
+      id:          "explore",
+      label:       "Revisa la biblioteca",
+      description: "Aquí están los documentos a los que tienes acceso.",
+      href:        "/biblioteca",
+      cta:         "Ir a biblioteca",
+      done:        documents.length > 0,
+    },
+    {
+      id:          "search",
+      label:       "Busca y filtra",
+      description: "Localiza documentos por cliente, fecha, importe o tipo.",
+      href:        "/buscador",
+      cta:         "Abrir buscador",
+      done:        false,
+    },
+  ] : [
     {
       id:          "org",
       label:       "Organización creada",
@@ -50,7 +78,7 @@ export function useOnboarding(orgId: string | null) {
       cta:         "Ir a biblioteca",
       done:        documents.length > 0,
     },
-  ], [orgId, companies.length, documents.length])
+  ], [orgId, companies.length, documents.length, isViewer])
 
   const completedCount = steps.filter(s => s.done).length
   const totalCount     = steps.length
