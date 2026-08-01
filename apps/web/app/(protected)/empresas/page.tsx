@@ -1,7 +1,10 @@
 import { EmpresasView } from '@/components/views/empresas-view'
-import { redirectViewersAway } from '@/lib/auth/require-role'
+import { RequirePermission } from '@/components/require-permission'
 
-export default async function EmpresasPage() {
-  await redirectViewersAway()
-  return <EmpresasView />
+export default function EmpresasPage() {
+  return (
+    <RequirePermission section="empresas">
+      <EmpresasView />
+    </RequirePermission>
+  )
 }

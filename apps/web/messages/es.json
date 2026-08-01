@@ -38,7 +38,8 @@
     "dangerZone": "Zona de peligro",
     "saving": "Guardando...",
     "saved": "Guardado",
-    "deleting": "Eliminando..."
+    "deleting": "Eliminando...",
+    "noAccess": "No tienes permisos para esta sección"
   },
   "auth": {
     "login": {
@@ -865,5 +866,11 @@
     "keepEditing": "No, seguir editando",
     "saving": "Guardando...",
     "savingError": "No se pudo guardar el borrador. Inténtalo de nuevo."
+  },
+  "access": {
+    "deniedTitle": "No tienes permisos para ver esta pestaña",
+    "deniedRole": "Tu rol en esta organización no incluye el acceso a esta sección. Si necesitas entrar, pídele a un administrador que ajuste tus permisos.",
+    "deniedNoCompanies": "Todavía no tienes ningún cliente asignado con permiso para subir documentos. Pídele a un administrador que te asigne al menos uno.",
+    "backToDashboard": "Volver al panel principal"
   }
 }

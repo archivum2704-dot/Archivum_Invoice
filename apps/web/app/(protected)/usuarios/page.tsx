@@ -1,7 +1,10 @@
-import { UsersView } from "@/components/views/users-view"
-import { redirectViewersAway } from "@/lib/auth/require-role"
+import { UsersView } from '@/components/views/users-view'
+import { RequirePermission } from '@/components/require-permission'
 
-export default async function UsuariosPage() {
-  await redirectViewersAway()
-  return <UsersView />
+export default function UsuariosPage() {
+  return (
+    <RequirePermission section="usuarios">
+      <UsersView />
+    </RequirePermission>
+  )
 }
