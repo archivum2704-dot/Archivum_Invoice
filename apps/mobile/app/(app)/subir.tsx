@@ -18,6 +18,7 @@ import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+import { RequirePermission } from "@/components/RequirePermission";
 
 interface Company { id: string; name: string; }
 
@@ -424,7 +425,7 @@ function Step3({ onSubmit, onBack, saving, pickedFile, docType, docNumber, compa
 }
 
 /* ── Main screen ─────────────────────────────────────────────────────────── */
-export default function SubirScreen() {
+function SubirScreenContent() {
   const { t } = useTranslation();
   const C = useColors();
   const { orgId } = useAuth();
@@ -617,5 +618,13 @@ export default function SubirScreen() {
         description={t("coachmarks.subirFirst.description")}
       />
     </SafeAreaView>
+  );
+}
+
+export default function SubirScreen() {
+  return (
+    <RequirePermission section="subir">
+      <SubirScreenContent />
+    </RequirePermission>
   );
 }

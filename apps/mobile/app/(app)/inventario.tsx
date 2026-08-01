@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { BillingNotice } from "@/components/BillingNotice";
+import { RequirePermission } from "@/components/RequirePermission";
 
 
 
@@ -40,7 +41,7 @@ const EMPTY: Draft = { name: "", sku: "", category: "", unit: "ud", unit_price: 
 // Sentinel for the "uncategorized" filter chip
 const UNCAT = "__uncategorized__";
 
-export default function InventarioScreen() {
+function InventarioScreenContent() {
   const { t } = useTranslation();
   const C = useColors();
   const { orgId, isAdmin, isPaid, isPlatformAdmin } = useAuth();
@@ -325,4 +326,12 @@ function Field({ label, children, C }: any) {
 function Input({ C, ...props }: any) {
   return <TextInput {...props} placeholderTextColor={C.muted}
     style={{ backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, color: C.text, fontSize: 15 }} />;
+}
+
+export default function InventarioScreen() {
+  return (
+    <RequirePermission section="inventario">
+      <InventarioScreenContent />
+    </RequirePermission>
+  );
 }
