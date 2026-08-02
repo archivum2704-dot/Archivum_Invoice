@@ -91,7 +91,8 @@
     "viewPlans": "Ver planes y precios",
     "unknownError": "Error desconocido",
     "done": "Listo",
-    "billingOnWeb": "Gestiona tu plan desde la versión web de Archivum, en un navegador."
+    "billingOnWeb": "Gestiona tu plan desde la versión web de Archivum, en un navegador.",
+    "create": "Crear"
   },
   "tabs": {
     "home": "Inicio",
@@ -163,7 +164,9 @@
     "advancedFilters": "Filtros avanzados",
     "clear": "Limpiar",
     "statusLabel": "Estado",
-    "applyFilters": "Aplicar filtros"
+    "applyFilters": "Aplicar filtros",
+    "newFolder": "Nueva carpeta",
+    "folderNamePlaceholder": "Nombre de la carpeta"
   },
   "buscar": {
     "title": "Buscador",

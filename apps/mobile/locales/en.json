@@ -91,7 +91,8 @@
     "viewPlans": "View plans & pricing",
     "unknownError": "Unknown error",
     "done": "Done",
-    "billingOnWeb": "Manage your plan from the Archivum web app in a browser."
+    "billingOnWeb": "Manage your plan from the Archivum web app in a browser.",
+    "create": "Create"
   },
   "tabs": {
     "home": "Home",
@@ -163,7 +164,9 @@
     "advancedFilters": "Advanced filters",
     "clear": "Clear",
     "statusLabel": "Status",
-    "applyFilters": "Apply filters"
+    "applyFilters": "Apply filters",
+    "newFolder": "New folder",
+    "folderNamePlaceholder": "Folder name"
   },
   "buscar": {
     "title": "Search",
