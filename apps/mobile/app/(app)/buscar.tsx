@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  ActivityIndicator, Modal,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -10,6 +10,7 @@ import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useColors } from "@/lib/colors";
 import { useTranslation } from "react-i18next";
+import { KeyboardModal } from "@/components/KeyboardModal";
 
 type SortKey = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
 
@@ -186,7 +187,7 @@ export default function BuscarScreen() {
       )}
 
       {/* Sort modal */}
-      <Modal visible={sortModal} animationType="slide" transparent onRequestClose={() => setSortModal(false)}>
+      <KeyboardModal visible={sortModal} animationType="slide" transparent onRequestClose={() => setSortModal(false)}>
         <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={() => setSortModal(false)} />
         <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 24 }}>
           <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 4 }} />
@@ -208,7 +209,7 @@ export default function BuscarScreen() {
           ))}
           <View style={{ height: 8 }} />
         </View>
-      </Modal>
+      </KeyboardModal>
     </SafeAreaView>
   );
 }

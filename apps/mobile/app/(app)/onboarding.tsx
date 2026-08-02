@@ -128,7 +128,7 @@ export default function OnboardingScreen() {
             the keyboard, and tapping it only dismissed the keyboard. */}
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 28, justifyContent: "center" }}

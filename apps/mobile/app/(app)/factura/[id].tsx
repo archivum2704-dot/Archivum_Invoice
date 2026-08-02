@@ -75,7 +75,7 @@ export default function FacturaDetailScreen() {
   if (!invoice) return <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}><Text style={{ color: C.muted, padding: 24 }}>{t("invoicing.notFound")}</Text></SafeAreaView>;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top", "bottom"]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 16 }}>
         <TouchableOpacity onPress={() => router.back()}><ArrowLeft size={22} color={C.text} /></TouchableOpacity>
         <Text style={{ fontSize: 18, fontWeight: "700", color: C.text }}>{invoice.full_number}</Text>

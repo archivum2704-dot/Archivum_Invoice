@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  RefreshControl, ActivityIndicator, Modal, ScrollView, Alert,
+  RefreshControl, ActivityIndicator, ScrollView, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -366,7 +366,7 @@ export default function BibliotecaScreen() {
       </TouchableOpacity>
 
       {/* Filter modal */}
-      <Modal visible={filterModal} animationType="slide" transparent onRequestClose={() => setFilterModal(false)}>
+      <KeyboardModal visible={filterModal} animationType="slide" transparent onRequestClose={() => setFilterModal(false)}>
         <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={() => setFilterModal(false)} />
         <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 24 }}>
           {/* Handle */}
@@ -401,7 +401,7 @@ export default function BibliotecaScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </KeyboardModal>
 
       {orgId && (
         <NewFolderModal

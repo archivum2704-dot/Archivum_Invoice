@@ -72,7 +72,7 @@ export default function PresupuestoDetailScreen() {
   const statusColor = quote.status === "accepted" ? C.green : quote.status === "rejected" ? C.red : C.blue;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top", "bottom"]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 16 }}>
         <TouchableOpacity onPress={() => router.back()}><ArrowLeft size={22} color={C.text} /></TouchableOpacity>
         <Text style={{ fontSize: 18, fontWeight: "700", color: C.text, flex: 1 }}>{quote.full_number ?? t("quoting.title")}</Text>
