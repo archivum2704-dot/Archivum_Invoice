@@ -443,6 +443,7 @@ function EmpresasScreenContent() {
         </View>
       ) : (
         <FlatList
+          keyboardShouldPersistTaps="handled"
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (

@@ -232,6 +232,7 @@ function InventarioScreenContent() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><ActivityIndicator color={C.blue} /></View>
       ) : (
         <FlatList
+          keyboardShouldPersistTaps="handled"
           data={filtered}
           keyExtractor={(p) => p.id}
           contentContainerStyle={{ padding: 16, gap: 10 }}

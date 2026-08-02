@@ -508,6 +508,7 @@ function EquipoScreenContent() {
         </View>
       ) : (
         <FlatList
+          keyboardShouldPersistTaps="handled"
           data={members}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => {
