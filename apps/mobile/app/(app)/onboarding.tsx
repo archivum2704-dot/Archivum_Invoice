@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, Dimensions, TextInput,
+  KeyboardAvoidingView, Platform,
   NativeSyntheticEvent, NativeScrollEvent, ActivityIndicator, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -122,7 +123,18 @@ export default function OnboardingScreen() {
   if (showOrgSetup) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
-        <View style={{ flex: 1, paddingHorizontal: 28, justifyContent: "center" }}>
+        {/* The field autofocuses, so the keyboard is up before the user reads
+            anything: without this the "create" button below it sat underneath
+            the keyboard, and tapping it only dismissed the keyboard. */}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 28, justifyContent: "center" }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={{
             width: 80, height: 80, borderRadius: 40, backgroundColor: C.blueL,
             alignItems: "center", justifyContent: "center", alignSelf: "center", marginBottom: 28,
@@ -174,7 +186,8 @@ export default function OnboardingScreen() {
                 </>
             }
           </TouchableOpacity>
-        </View>
+        </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }

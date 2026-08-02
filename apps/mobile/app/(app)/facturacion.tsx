@@ -167,6 +167,7 @@ function FacturacionScreenContent() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><ActivityIndicator color={C.blue} /></View>
       ) : (
         <FlatList
+          keyboardShouldPersistTaps="handled"
           data={invoices} keyExtractor={(i) => i.id}
           contentContainerStyle={{ padding: 16, gap: 10 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={C.blue} />}

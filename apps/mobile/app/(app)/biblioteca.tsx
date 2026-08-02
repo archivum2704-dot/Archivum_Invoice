@@ -342,6 +342,7 @@ export default function BibliotecaScreen() {
         </View>
       ) : (
         <FlatList
+          keyboardShouldPersistTaps="handled"
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <DocRow doc={item} C={C} t={t} />}

@@ -176,6 +176,7 @@ export default function BuscarScreen() {
         </View>
       ) : (
         <FlatList
+          keyboardShouldPersistTaps="handled"
           data={results}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <DocRow doc={item} C={C} t={t} />}
