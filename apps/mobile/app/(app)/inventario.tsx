@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  RefreshControl, ActivityIndicator, Modal, ScrollView, Switch, Alert,
+  RefreshControl, ActivityIndicator, ScrollView, Switch, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { BillingNotice } from "@/components/BillingNotice";
 import { RequirePermission } from "@/components/RequirePermission";
+import { KeyboardModal } from "@/components/KeyboardModal";
 
 
 
@@ -269,7 +270,7 @@ function InventarioScreenContent() {
       )}
 
       {/* Create / edit modal */}
-      <Modal visible={modal} animationType="slide" transparent onRequestClose={() => setModal(false)}>
+      <KeyboardModal visible={modal} animationType="slide" transparent onRequestClose={() => setModal(false)}>
         <View style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
           <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "88%" }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -296,7 +297,7 @@ function InventarioScreenContent() {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </KeyboardModal>
     </SafeAreaView>
   );
 }

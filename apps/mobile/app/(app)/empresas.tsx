@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  RefreshControl, ActivityIndicator, Modal, ScrollView,
+  RefreshControl, ActivityIndicator, ScrollView,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { BillingNotice } from "@/components/BillingNotice";
 import { RequirePermission } from "@/components/RequirePermission";
+import { KeyboardModal } from "@/components/KeyboardModal";
 
 
 
@@ -45,7 +46,7 @@ const NO_SECTOR = "__no_sector__";
 /* ── Upgrade modal ───────────────────────────────────────────────────────── */
 function UpgradeModal({ visible, maxCompanies, onClose, C, t }: { visible: boolean; maxCompanies: number; onClose: () => void; C: any; t: any }) {
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
       <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 28 }}>
         <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 16 }} />
@@ -73,7 +74,7 @@ function UpgradeModal({ visible, maxCompanies, onClose, C, t }: { visible: boole
           <Text style={{ fontSize: 14, color: C.muted }}>{t("common.notNow")}</Text>
         </TouchableOpacity>
       </View>
-    </Modal>
+    </KeyboardModal>
   );
 }
 
@@ -117,7 +118,7 @@ function CompanyModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
       <View style={{ backgroundColor: C.surface, borderRadius: 20, maxHeight: "75%", overflow: "hidden" }}>
         <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12 }} />
@@ -152,7 +153,7 @@ function CompanyModal({
           </TouchableOpacity>
         </ScrollView>
       </View>
-    </Modal>
+    </KeyboardModal>
   );
 }
 
@@ -165,7 +166,7 @@ function ActionMenu({
 }) {
   if (!company) return null;
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
       <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 24 }}>
         <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 8 }} />
@@ -192,7 +193,7 @@ function ActionMenu({
           </TouchableOpacity>
         ))}
       </View>
-    </Modal>
+    </KeyboardModal>
   );
 }
 

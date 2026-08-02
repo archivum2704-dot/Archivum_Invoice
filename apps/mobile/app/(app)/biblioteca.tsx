@@ -1,19 +1,85 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  RefreshControl, ActivityIndicator, Modal, ScrollView,
+  RefreshControl, ActivityIndicator, Modal, ScrollView, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
   Search, SlidersHorizontal, FileText, ChevronRight,
-  BookOpen, X, Plus,
+  BookOpen, X, Plus, Folder as FolderIcon, FolderPlus,
 } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+import { KeyboardModal } from "@/components/KeyboardModal";
+
+interface Folder { id: string; name: string }
+
+/**
+ * Create-folder sheet.
+ *
+ * Kept at module scope so the text field is not remounted on every keystroke —
+ * declaring it inside the screen would drop focus and dismiss the keyboard.
+ */
+function NewFolderModal({ visible, orgId, onClose, onCreated, C, t }: {
+  visible: boolean; orgId: string; onClose: () => void; onCreated: () => void; C: any; t: any;
+}) {
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { if (visible) { setName(""); setSaving(false); } }, [visible]);
+
+  const create = async () => {
+    const clean = name.trim();
+    if (!clean) return;
+    setSaving(true);
+    const { error } = await supabase.from("folders").insert({ organization_id: orgId, name: clean });
+    setSaving(false);
+    if (error) { Alert.alert(t("common.error"), error.message); return; }
+    onCreated();
+    onClose();
+  };
+
+  return (
+    <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
+      <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 28 }}>
+        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 16 }} />
+        <Text style={{ fontSize: 17, fontWeight: "700", color: C.text, paddingHorizontal: 20, marginBottom: 14 }}>
+          {t("biblioteca.newFolder")}
+        </Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          autoFocus
+          placeholder={t("biblioteca.folderNamePlaceholder")}
+          placeholderTextColor={C.muted}
+          onSubmitEditing={create}
+          returnKeyType="done"
+          style={{
+            marginHorizontal: 20, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border,
+            borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, color: C.text, fontSize: 15,
+          }}
+        />
+        <TouchableOpacity
+          onPress={create}
+          disabled={!name.trim() || saving}
+          style={{
+            marginHorizontal: 20, marginTop: 16, borderRadius: 12, paddingVertical: 13,
+            alignItems: "center", backgroundColor: C.blue, opacity: !name.trim() || saving ? 0.5 : 1,
+          }}
+        >
+          {saving
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("common.create")}</Text>}
+        </TouchableOpacity>
+      </View>
+    </KeyboardModal>
+  );
+}
 
 function DocRow({ doc, C, t }: { doc: any; C: any; t: any }) {
   const STATUS: Record<string, { label: string; bg: string; color: string }> = {
@@ -61,7 +127,7 @@ function DocRow({ doc, C, t }: { doc: any; C: any; t: any }) {
 export default function BibliotecaScreen() {
   const { t } = useTranslation();
   const C = useColors();
-  const { orgId } = useAuth();
+  const { orgId, isAdmin } = useAuth();
   const [docs,        setDocs]        = useState<any[]>([]);
   const [filtered,    setFiltered]    = useState<any[]>([]);
   const [query,       setQuery]       = useState("");
@@ -70,6 +136,9 @@ export default function BibliotecaScreen() {
   const [refreshing,  setRefreshing]  = useState(false);
   const [filterModal, setFilterModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [folders,      setFolders]      = useState<Folder[]>([]);
+  const [activeFolder, setActiveFolder] = useState<string | null>(null);
+  const [newFolder,    setNewFolder]    = useState(false);
 
   const DOC_TYPES: Record<string, string> = {
     all:              t("docTypesPlural.all"),
@@ -94,12 +163,21 @@ export default function BibliotecaScreen() {
 
   const load = useCallback(async () => {
     if (!orgId) { setLoading(false); return; }
-    const { data } = await supabase
-      .from("documents")
-      .select("id, document_number, document_type, status, total, issue_date, companies(name)")
-      .eq("organization_id", orgId)
-      .order("created_at", { ascending: false });
-    setDocs(data ?? []);
+    // Row-level security already limits both lists to what this member may see.
+    const [{ data: docData }, { data: folderData }] = await Promise.all([
+      supabase
+        .from("documents")
+        .select("id, document_number, document_type, status, total, issue_date, folder_id, companies(name)")
+        .eq("organization_id", orgId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("folders")
+        .select("id, name")
+        .eq("organization_id", orgId)
+        .order("name"),
+    ]);
+    setDocs(docData ?? []);
+    setFolders((folderData ?? []) as Folder[]);
     setLoading(false);
     setRefreshing(false);
   }, [orgId]);
@@ -109,6 +187,7 @@ export default function BibliotecaScreen() {
   // Filter logic
   useEffect(() => {
     let result = docs;
+    if (activeFolder) result = result.filter((d) => d.folder_id === activeFolder);
     if (activeType !== "all") result = result.filter((d) => d.document_type === activeType);
     if (statusFilter !== "all") result = result.filter((d) => d.status === statusFilter);
     if (query.trim()) {
@@ -120,7 +199,7 @@ export default function BibliotecaScreen() {
       );
     }
     setFiltered(result);
-  }, [docs, query, activeType, statusFilter]);
+  }, [docs, query, activeType, statusFilter, activeFolder]);
 
   const onRefresh = () => { setRefreshing(true); load(); };
 
@@ -134,7 +213,7 @@ export default function BibliotecaScreen() {
     );
   }
 
-  const hasFilters = activeType !== "all" || statusFilter !== "all";
+  const hasFilters = activeType !== "all" || statusFilter !== "all" || activeFolder !== null;
 
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: C.bg }}>
@@ -175,6 +254,45 @@ export default function BibliotecaScreen() {
             {hasFilters && <Text style={{ fontSize: 13, fontWeight: "600", color: "#fff" }}>•</Text>}
           </TouchableOpacity>
         </View>
+
+        {/* Folders — only admins may create them, everyone sees the ones they can reach */}
+        {(folders.length > 0 || isAdmin) && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+            <View style={{ flexDirection: "row", gap: 6, paddingBottom: 4, alignItems: "center" }}>
+              {isAdmin && (
+                <TouchableOpacity
+                  onPress={() => setNewFolder(true)}
+                  style={{
+                    flexDirection: "row", alignItems: "center", gap: 5,
+                    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
+                    borderWidth: 1, borderStyle: "dashed", borderColor: C.blue, backgroundColor: C.blueL,
+                  }}
+                >
+                  <FolderPlus size={13} color={C.blue} />
+                  <Text style={{ fontSize: 12, fontWeight: "600", color: C.blue }}>{t("biblioteca.newFolder")}</Text>
+                </TouchableOpacity>
+              )}
+              {folders.map((f) => {
+                const active = activeFolder === f.id;
+                return (
+                  <TouchableOpacity
+                    key={f.id}
+                    onPress={() => setActiveFolder(active ? null : f.id)}
+                    style={{
+                      flexDirection: "row", alignItems: "center", gap: 5,
+                      paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
+                      backgroundColor: active ? C.blue : C.surface,
+                      borderWidth: 1, borderColor: active ? C.blue : C.border,
+                    }}
+                  >
+                    <FolderIcon size={13} color={active ? "#fff" : C.muted} />
+                    <Text style={{ fontSize: 12, fontWeight: "500", color: active ? "#fff" : C.muted }}>{f.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+        )}
 
         {/* Type chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
@@ -283,6 +401,16 @@ export default function BibliotecaScreen() {
           </View>
         </View>
       </Modal>
+
+      {orgId && (
+        <NewFolderModal
+          visible={newFolder}
+          orgId={orgId}
+          onClose={() => setNewFolder(false)}
+          onCreated={load}
+          C={C} t={t}
+        />
+      )}
 
       {/* First-time hint */}
       <Coachmark

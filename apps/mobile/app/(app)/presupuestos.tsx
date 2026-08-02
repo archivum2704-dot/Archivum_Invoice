@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  RefreshControl, ActivityIndicator, Modal, ScrollView, Alert, Linking,
+  RefreshControl, ActivityIndicator, ScrollView, Alert, Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -16,6 +16,7 @@ import { useColors } from "@/lib/colors";
 import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
 import { RequirePermission } from "@/components/RequirePermission";
+import { KeyboardModal } from "@/components/KeyboardModal";
 
 const IVA_RATES = ["", "4", "10", "21"];
 const RET_RATES = ["", "7", "15", "19"];
@@ -276,7 +277,7 @@ function PresupuestosScreenContent() {
       )}
 
       {/* Create / edit modal */}
-      <Modal visible={modal} animationType="slide" onRequestClose={() => setModal(false)}>
+      <KeyboardModal visible={modal} animationType="slide" onRequestClose={() => setModal(false)}>
         <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 }}>
             <Text style={{ fontSize: 18, fontWeight: "700", color: C.text }}>{editId ? t("quoting.edit") : t("quoting.new")}</Text>
@@ -380,10 +381,10 @@ function PresupuestosScreenContent() {
             </TouchableOpacity>
           </View>
         </SafeAreaView>
-      </Modal>
+      </KeyboardModal>
 
       {/* Client picker modal */}
-      <Modal visible={clientPicker} animationType="slide" transparent onRequestClose={() => setClientPicker(false)}>
+      <KeyboardModal visible={clientPicker} animationType="slide" transparent onRequestClose={() => setClientPicker(false)}>
         <View style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
           <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "80%" }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -418,7 +419,7 @@ function PresupuestosScreenContent() {
               )} />
           </View>
         </View>
-      </Modal>
+      </KeyboardModal>
     </SafeAreaView>
   );
 }

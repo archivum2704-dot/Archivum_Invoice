@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, Switch,
-  Alert, ActivityIndicator, Linking, Modal, TextInput, Image,
+  Alert, ActivityIndicator, Linking, TextInput, Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -23,6 +23,7 @@ import { useColors, type Colors } from "@/lib/colors";
 import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
 import { PLANS, type PlanId } from "@/lib/pricing";
+import { KeyboardModal } from "@/components/KeyboardModal";
 
 function SectionLabel({ children, C }: { children: string; C: Colors }) {
   return (
@@ -72,6 +73,38 @@ interface OrgDraft {
   name: string; cif: string; phone: string; email: string;
   address: string; postal_code: string; city: string; province: string;
   logo_url: string | null;
+}
+
+/**
+ * One labelled text field.
+ *
+ * Must stay at module scope. Declared inside OrgEditModal it was a new
+ * component type on every keystroke, so React unmounted and remounted the
+ * TextInput each time — the field lost focus and the keyboard closed after a
+ * single character.
+ */
+function Field({ label, value, onChange, keyboardType, autoCapitalize, C }: {
+  label: string; value: string; onChange: (v: string) => void;
+  keyboardType?: "email-address" | "phone-pad";
+  autoCapitalize?: "characters" | "none";
+  C: Colors;
+}) {
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 6 }}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        placeholderTextColor={C.muted}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize ?? "sentences"}
+        style={{
+          backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 10,
+          paddingHorizontal: 12, paddingVertical: 10, color: C.text, fontSize: 15,
+        }}
+      />
+    </View>
+  );
 }
 
 function OrgEditModal({ visible, orgId, token, onClose, onSaved, C }: {
@@ -160,24 +193,8 @@ function OrgEditModal({ visible, orgId, token, onClose, onSaved, C }: {
     }
   };
 
-  const inputStyle = {
-    backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 10, color: C.text, fontSize: 15,
-  } as const;
-
-  const F = ({ label, value, onChange, keyboardType, autoCapitalize }: {
-    label: string; value: string; onChange: (v: string) => void;
-    keyboardType?: "email-address" | "phone-pad"; autoCapitalize?: "characters" | "none";
-  }) => (
-    <View style={{ marginBottom: 12 }}>
-      <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 6 }}>{label}</Text>
-      <TextInput value={value} onChangeText={onChange} placeholderTextColor={C.muted}
-        keyboardType={keyboardType} autoCapitalize={autoCapitalize ?? "sentences"} style={inputStyle} />
-    </View>
-  );
-
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <KeyboardModal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 }}>
           <Text style={{ fontSize: 18, fontWeight: "700", color: C.text }}>{t("ajustes.organization.editTitle")}</Text>
@@ -211,16 +228,16 @@ function OrgEditModal({ visible, orgId, token, onClose, onSaved, C }: {
               </View>
               <Text style={{ fontSize: 11, color: C.muted, marginTop: -10, marginBottom: 14 }}>{t("ajustes.organization.logoHint")}</Text>
 
-              <F label={t("ajustes.organization.name")} value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
-              <F label="CIF/NIF" value={draft.cif} onChange={v => setDraft({ ...draft, cif: v })} autoCapitalize="characters" />
-              <F label={t("ajustes.organization.phone")} value={draft.phone} onChange={v => setDraft({ ...draft, phone: v })} keyboardType="phone-pad" />
-              <F label={t("ajustes.organization.email")} value={draft.email} onChange={v => setDraft({ ...draft, email: v })} keyboardType="email-address" autoCapitalize="none" />
-              <F label={t("ajustes.organization.address")} value={draft.address} onChange={v => setDraft({ ...draft, address: v })} />
+              <Field label={t("ajustes.organization.name")} value={draft.name} onChange={v => setDraft({ ...draft, name: v })} C={C} />
+              <Field label="CIF/NIF" value={draft.cif} onChange={v => setDraft({ ...draft, cif: v })} autoCapitalize="characters" C={C} />
+              <Field label={t("ajustes.organization.phone")} value={draft.phone} onChange={v => setDraft({ ...draft, phone: v })} keyboardType="phone-pad" C={C} />
+              <Field label={t("ajustes.organization.email")} value={draft.email} onChange={v => setDraft({ ...draft, email: v })} keyboardType="email-address" autoCapitalize="none" C={C} />
+              <Field label={t("ajustes.organization.address")} value={draft.address} onChange={v => setDraft({ ...draft, address: v })} C={C} />
               <View style={{ flexDirection: "row", gap: 12 }}>
-                <View style={{ flex: 1 }}><F label={t("ajustes.organization.postalCode")} value={draft.postal_code} onChange={v => setDraft({ ...draft, postal_code: v })} /></View>
-                <View style={{ flex: 2 }}><F label={t("ajustes.organization.city")} value={draft.city} onChange={v => setDraft({ ...draft, city: v })} /></View>
+                <View style={{ flex: 1 }}><Field label={t("ajustes.organization.postalCode")} value={draft.postal_code} onChange={v => setDraft({ ...draft, postal_code: v })} C={C} /></View>
+                <View style={{ flex: 2 }}><Field label={t("ajustes.organization.city")} value={draft.city} onChange={v => setDraft({ ...draft, city: v })} C={C} /></View>
               </View>
-              <F label={t("ajustes.organization.province")} value={draft.province} onChange={v => setDraft({ ...draft, province: v })} />
+              <Field label={t("ajustes.organization.province")} value={draft.province} onChange={v => setDraft({ ...draft, province: v })} C={C} />
             </ScrollView>
             <View style={{ padding: 16 }}>
               <TouchableOpacity onPress={save} disabled={saving || !draft.name.trim()}
@@ -231,7 +248,7 @@ function OrgEditModal({ visible, orgId, token, onClose, onSaved, C }: {
           </>
         )}
       </SafeAreaView>
-    </Modal>
+    </KeyboardModal>
   );
 }
 

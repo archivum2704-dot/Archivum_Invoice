@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  RefreshControl, ActivityIndicator, Modal, ScrollView,
+  RefreshControl, ActivityIndicator, ScrollView,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,6 +19,7 @@ import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
 import { PLANS, type PlanId } from "@/lib/pricing";
 import { RequirePermission } from "@/components/RequirePermission";
+import { KeyboardModal } from "@/components/KeyboardModal";
 
 
 type OrgRole = "owner" | "admin" | "member" | "viewer";
@@ -52,7 +53,7 @@ function isPaidActive(status: string) {
 /* ── Upgrade modal ───────────────────────────────────────────────────────── */
 function UpgradeModal({ visible, maxUsers, onClose, C, t }: { visible: boolean; maxUsers: number; onClose: () => void; C: any; t: any }) {
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
       <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 28 }}>
         <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 16 }} />
@@ -80,7 +81,7 @@ function UpgradeModal({ visible, maxUsers, onClose, C, t }: { visible: boolean; 
           <Text style={{ fontSize: 14, color: C.muted }}>{t("common.notNow")}</Text>
         </TouchableOpacity>
       </View>
-    </Modal>
+    </KeyboardModal>
   );
 }
 
@@ -90,7 +91,7 @@ function RolePicker({ visible, current, onSelect, onClose, C, t }: {
 }) {
   const roles: OrgRole[] = ["admin", "member", "viewer"];
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
       <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 28 }}>
         <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 8 }} />
@@ -118,7 +119,7 @@ function RolePicker({ visible, current, onSelect, onClose, C, t }: {
           );
         })}
       </View>
-    </Modal>
+    </KeyboardModal>
   );
 }
 
@@ -189,7 +190,7 @@ function InviteModal({ visible, orgId, token, onClose, onInvited, C, t }: {
 
   return (
     <>
-      <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
         <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
         <View style={{ backgroundColor: C.surface, borderRadius: 20, maxHeight: "85%", overflow: "hidden" }}>
           <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12 }} />
@@ -294,7 +295,7 @@ function InviteModal({ visible, orgId, token, onClose, onInvited, C, t }: {
             )}
           </ScrollView>
         </View>
-      </Modal>
+      </KeyboardModal>
       <RolePicker visible={roleOpen} current={role} onSelect={setRole} onClose={() => setRoleOpen(false)} C={C} t={t} />
     </>
   );
