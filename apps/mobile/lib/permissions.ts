@@ -17,6 +17,7 @@ export type SectionId =
   | "buscar"
   | "inventario"
   | "presupuestos"
+  | "albaranes"
   | "facturacion"
   | "subir"
   | "empresas"
@@ -53,8 +54,10 @@ const RULES: Record<SectionId, (c: AccessContext) => true | DenyReason> = {
   // Stock is an operational tool: useful to members, meaningless to auditors.
   inventario: (c) => (c.isViewer ? "role" : true),
 
-  // Quotes are commercial documents only admins draft.
+  // Quotes are commercial documents only admins draft, and a delivery note is
+  // where a quote gets billed — same audience.
   presupuestos: (c) => (c.isOrgAdmin ? true : "role"),
+  albaranes: (c) => (c.isOrgAdmin ? true : "role"),
 
   // Uploading needs both a role that may write and a client to write into.
   subir: (c) => {

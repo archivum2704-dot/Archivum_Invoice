@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getApiClient } from '@/lib/supabase/api-auth'
 import { issueInvoice, IssueError } from '@/lib/invoice-issue'
 
-/** Accept a quote and turn it into a real Verifactu invoice. */
+/**
+ * Turn a delivery note into a real Verifactu invoice.
+ *
+ * Only a delivery note can be billed. A quote opens one when it is finalized,
+ * so the path to a bill is presupuesto → albarán → factura and there is no
+ * second route that could invoice the same work twice.
+ */
 export async function POST(req: NextRequest) {
   try {
     const { quoteId } = await req.json()
@@ -14,11 +20,14 @@ export async function POST(req: NextRequest) {
 
     const { data: quote } = await supabase
       .from('quotes')
-      .select('id, organization_id, client_company_id, notes, retention_pct, discount_pct, status, converted_invoice_id')
+      .select('id, organization_id, client_company_id, notes, retention_pct, discount_pct, status, kind, source_quote_id, converted_invoice_id')
       .eq('id', quoteId).single()
     if (!quote) return NextResponse.json({ error: 'quote_not_found' }, { status: 404 })
     if (quote.status === 'converted' && quote.converted_invoice_id) {
       return NextResponse.json({ success: true, invoiceId: quote.converted_invoice_id, alreadyConverted: true })
+    }
+    if (quote.kind !== 'delivery_note') {
+      return NextResponse.json({ error: 'not_a_delivery_note' }, { status: 422 })
     }
     if (!quote.client_company_id) return NextResponse.json({ error: 'client_required' }, { status: 400 })
 
@@ -45,6 +54,12 @@ export async function POST(req: NextRequest) {
         discountPct: Number(l.discount_pct) || 0,
       })),
     })
+
+    // The note is billed; its quote is settled with it.
+    if (quote.source_quote_id) {
+      await supabase.from('quotes')
+        .update({ status: 'accepted' }).eq('id', quote.source_quote_id)
+    }
 
     await supabase.from('quotes')
       .update({ status: 'converted', converted_invoice_id: invoiceId })

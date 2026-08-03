@@ -21,7 +21,8 @@ export async function GET(req: NextRequest) {
       .eq('quote_id', quoteId).order('position')
 
     const pdfBytes = await buildQuotePdf({
-      fullNumber: q.full_number ?? 'PRESUPUESTO',
+      kind: q.kind ?? 'quote',
+      fullNumber: q.full_number ?? (q.kind === 'delivery_note' ? 'ALBARÁN' : 'PRESUPUESTO'),
       issueDate: q.issue_date ?? '',
       validUntil: q.valid_until,
       issuer: { name: q.issuer_name ?? '', cif: q.issuer_cif, address: q.issuer_address, postalCode: q.issuer_postal_code, city: q.issuer_city, province: q.issuer_province, logoUrl: q.issuer_logo_url },

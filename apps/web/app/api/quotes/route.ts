@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getApiClient } from '@/lib/supabase/api-auth'
 import { buildQuotePdf } from '@/lib/quote-pdf'
+import { createClient as createServerSupabase } from '@/lib/supabase/server'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
@@ -121,6 +122,54 @@ export async function POST(req: NextRequest) {
       if (linesErr) return NextResponse.json({ error: 'lines_failed', detail: linesErr.message }, { status: 400 })
     }
 
+    // ── Delivery note ────────────────────────────────────────────────────
+    // A finalized quote opens an albarán, and that albarán is what can later
+    // be billed. While it is still open it tracks the quote, so editing the
+    // quote does not leave the note describing different work; once it has
+    // been invoiced it is frozen.
+    let deliveryNoteId: string | null = null
+    if (finalize && quoteId) {
+      const { data: existingNote } = await supabase
+        .from('quotes').select('id, status').eq('source_quote_id', quoteId).maybeSingle()
+
+      const noteRow = {
+        ...row,
+        kind: 'delivery_note',
+        status: 'open',
+        source_quote_id: quoteId,
+      }
+
+      if (!existingNote) {
+        const year = parseInt((issueDate ?? new Date().toISOString()).split('-')[0], 10)
+        const { data: n, error: numErr } = await supabase
+          .rpc('next_quote_number', { p_org: orgId, p_series: 'ALB', p_year: year })
+        if (numErr || n == null) {
+          return NextResponse.json({ error: 'numbering_failed', detail: numErr?.message }, { status: 403 })
+        }
+        const noteNumber = n as number
+        const { data: note, error: noteErr } = await supabase.from('quotes').insert({
+          ...noteRow,
+          series: 'ALB', number: noteNumber,
+          full_number: `ALB-${year}-${String(noteNumber).padStart(4, '0')}`,
+          created_by: user.id,
+        }).select('id').single()
+        if (noteErr || !note) {
+          return NextResponse.json({ error: 'delivery_note_failed', detail: noteErr?.message }, { status: 400 })
+        }
+        deliveryNoteId = note.id
+      } else if (existingNote.status === 'open') {
+        const { series: _s, number: _n, full_number: _f, ...syncable } = noteRow as Record<string, unknown>
+        await supabase.from('quotes').update(syncable).eq('id', existingNote.id)
+        await supabase.from('quote_lines').delete().eq('quote_id', existingNote.id)
+        deliveryNoteId = existingNote.id
+      }
+
+      if (deliveryNoteId && computedLines.length > 0) {
+        await supabase.from('quote_lines')
+          .insert(computedLines.map(l => ({ ...l, quote_id: deliveryNoteId })))
+      }
+    }
+
     // Best-effort: generate PDF + archive in the library (only for finalized quotes)
     if (finalize && quoteId && org) {
       try {
@@ -131,24 +180,26 @@ export async function POST(req: NextRequest) {
           lines: computedLines.map(l => ({ description: l.description, quantity: l.quantity, unit_price: l.unit_price, tax_rate: l.tax_rate, line_total: l.line_total })),
           subtotal, discountPct: discPct, discountAmount, taxAmount, retentionPct: retPct, retentionAmount, total, notes: notes?.trim?.() || null,
         })
+        const archiver = await createServerSupabase(true)
         const storagePath = `${orgId}/quotes/${quoteId}.pdf`
-        const { error: upErr } = await supabase.storage
+        const { error: upErr } = await archiver.storage
           .from('documents').upload(storagePath, pdfBytes, { contentType: 'application/pdf', upsert: true })
-        if (!upErr) {
-          const { data: doc } = await supabase.from('documents').insert({
+        if (upErr) throw new Error(`storage upload failed: ${upErr.message}`)
+        {
+          const { data: doc } = await archiver.from('documents').insert({
             organization_id: orgId, company_id: clientCompanyId || null, uploaded_by: user.id,
             document_number: fullNumber, document_type: 'quote', status: 'draft',
             total, currency: 'EUR', issue_date: issueDate || null,
             file_url: storagePath, file_name: `${fullNumber ?? 'presupuesto'}.pdf`, file_size: pdfBytes.length, file_type: 'application/pdf',
           }).select('id').single()
-          if (doc) await supabase.from('quotes').update({ document_id: doc.id }).eq('id', quoteId)
+          if (doc) await archiver.from('quotes').update({ document_id: doc.id }).eq('id', quoteId)
         }
       } catch (pdfErr) {
-        console.warn('[quotes] PDF archival failed (non-fatal):', pdfErr)
+        console.error('[quotes] archival to Biblioteca failed:', pdfErr)
       }
     }
 
-    return NextResponse.json({ success: true, id: quoteId, fullNumber })
+    return NextResponse.json({ success: true, id: quoteId, fullNumber, deliveryNoteId })
   } catch (err) {
     console.error('[quotes] error:', err)
     return NextResponse.json({ error: 'server_error', detail: String(err) }, { status: 500 })

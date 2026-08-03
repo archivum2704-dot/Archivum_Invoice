@@ -116,7 +116,8 @@
     "users": "Usuarios",
     "settings": "Ajustes",
     "signOut": "Cerrar sesión",
-    "quotes": "Presupuestos"
+    "quotes": "Presupuestos",
+    "deliveryNotes": "Albaranes"
   },
   "inventory": {
     "title": "Inventario",
