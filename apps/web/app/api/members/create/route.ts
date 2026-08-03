@@ -3,7 +3,7 @@ import { randomInt } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
-import { PLANS, type PlanId } from '@/lib/pricing'
+import { resolveEntitlements } from '@/lib/pricing'
 
 // Generate a readable but strong temporary password.
 // Ambiguous characters (0/O, 1/l/I) are excluded so it can be shared verbally.
@@ -100,15 +100,9 @@ export async function POST(req: NextRequest) {
       .eq('id', orgId)
       .single()
 
-    const status = orgBilling?.subscription_status ?? null
-    const hasPaidSub = !!orgBilling?.stripe_subscription_id
-    const isPaidActive = hasPaidSub && (status === 'active' || status === 'trialing')
-
-    const planId = (orgBilling?.subscription_plan ?? 'free') as PlanId
-    const basePlanUsers = (PLANS[planId] ?? PLANS.free).users
-    const maxUsers = isPaidActive
-      ? basePlanUsers + (orgBilling?.extra_users_quantity ?? 0)
-      : PLANS.free.users
+    // Same resolver the billing screens read, so the count shown on screen and
+    // the limit enforced here can never disagree.
+    const { isActive: isPaidActive, maxUsers } = resolveEntitlements(orgBilling)
 
     const { count: memberCount } = await admin
       .from('organization_members')

@@ -17,7 +17,7 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
-import { PLANS, type PlanId } from "@/lib/pricing";
+import { PLANS, resolveEntitlements } from "@/lib/pricing";
 import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
 import { readJson } from "@/lib/api";
@@ -45,10 +45,6 @@ interface PlanInfo {
   subscription_status: string;
   extra_users_quantity: number;
   subscription_plan: string;
-}
-
-function isPaidActive(status: string) {
-  return status === "active" || status === "trialing";
 }
 
 /* ── Upgrade modal ───────────────────────────────────────────────────────── */
@@ -369,7 +365,7 @@ function MemberCard({ member, isSelf, canManage, onRoleChange, onRemove, C, t }:
 function EquipoScreenContent() {
   const { t } = useTranslation();
   const C = useColors();
-  const { orgId, profile, session } = useAuth();
+  const { orgId, profile, session, isPlatformAdmin } = useAuth();
   const [members,      setMembers]      = useState<Member[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [refreshing,   setRefreshing]   = useState(false);
@@ -378,15 +374,11 @@ function EquipoScreenContent() {
   const [upgradeOpen,  setUpgradeOpen]  = useState(false);
   const [roleTarget,   setRoleTarget]   = useState<Member | null>(null);
 
+  // Same resolver the server enforces with, so the counter and the refusal
+  // can never disagree.
   const maxUsers = plan
-    ? (() => {
-        const planId = (plan.subscription_plan ?? "free") as PlanId;
-        const basePlanUsers = (PLANS[planId] ?? PLANS.free).users;
-        return isPaidActive(plan.subscription_status)
-          ? basePlanUsers + plan.extra_users_quantity
-          : PLANS.free.users;
-      })()
-    : 999; // Don't block while plan is loading
+    ? resolveEntitlements(plan, { isPlatformAdmin }).maxUsers
+    : 999; // Don't block while the plan is loading
   const atLimit = plan != null && members.length >= maxUsers;
 
   const currentUserId = profile?.id ?? "";

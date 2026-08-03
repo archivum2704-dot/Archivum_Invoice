@@ -284,10 +284,6 @@ function statusColor(s: string, C: Colors) {
   return C.muted;
 }
 
-function isPaidActive(status: string) {
-  return status === "active" || status === "trialing";
-}
-
 function UsageBar({ value, max, C }: { value: number; max: number; C: Colors }) {
   const pct = Math.min(100, Math.round((value / Math.max(max, 1)) * 100));
   const color = pct >= 90 ? C.red : pct >= 70 ? C.yellow : C.blue;
