@@ -41,7 +41,15 @@ export async function updateSession(request: NextRequest) {
       : request.nextUrl.pathname.startsWith(route),
   )
 
-  if (!user && !isPublicRoute) {
+  // API routes authenticate themselves and answer in JSON — they accept a
+  // bearer token as well as a session cookie, which is how the mobile app
+  // calls them. This check only knows about cookies, so it saw every mobile
+  // request as anonymous and redirected it to the login page: the app then
+  // received an HTML document where it expected JSON and died with
+  // "Unexpected character: <". Let the routes answer for themselves.
+  const isApiRoute = request.nextUrl.pathname.startsWith('/api')
+
+  if (!user && !isPublicRoute && !isApiRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)
