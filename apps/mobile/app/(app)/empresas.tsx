@@ -24,6 +24,7 @@ import { resolveEntitlements } from "@/lib/pricing";
 
 
 interface PlanInfo {
+  subscription_plan: string;
   subscription_status: string;
   extra_companies_quantity: number;
 }
@@ -297,7 +298,7 @@ function EmpresasScreenContent() {
     const [{ data: comps }, { data: counts }, { data: orgData }] = await Promise.all([
       supabase.from("companies").select("id, name, cif, sector, is_active").eq("organization_id", orgId).order("name"),
       supabase.from("documents").select("company_id").eq("organization_id", orgId).not("company_id", "is", null),
-      supabase.from("organizations").select("subscription_status, extra_companies_quantity").eq("id", orgId).single(),
+      supabase.from("organizations").select("subscription_plan, subscription_status, extra_companies_quantity").eq("id", orgId).single(),
     ]);
     const countMap: Record<string, number> = {};
     for (const row of counts ?? []) {

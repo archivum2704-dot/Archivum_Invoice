@@ -64,10 +64,17 @@ export const ADDONS = {
 
 // ── Entitlements ─────────────────────────────────────────────────────────────
 
-/** The billing columns every limit is derived from. */
+/**
+ * The billing columns every limit is derived from.
+ *
+ * plan and status are required, not optional: a caller that forgets to select
+ * subscription_plan would otherwise fall through to the free tier and quietly
+ * report the wrong limit — which is exactly how the clients screen came to
+ * show "1/1" on a Pro organization. Missing them is now a compile error.
+ */
 export type BillingRow = {
-  subscription_plan?: string | null
-  subscription_status?: string | null
+  subscription_plan: string | null
+  subscription_status: string | null
   extra_users_quantity?: number | null
   extra_docs_quantity?: number | null
   extra_companies_quantity?: number | null
