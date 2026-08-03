@@ -79,10 +79,13 @@ export default async function ProtectedLayout({ children }: { children: React.Re
       const isPastDue   = org.subscription_status === 'past_due'
       const isPaused    = org.subscription_status === 'paused'
 
-      // Schedule deletion if not already set
+      // Schedule deletion if not already set. Written with the service-role
+      // client: billing columns are locked against the member's own session,
+      // and this is the app doing bookkeeping, not the member editing a plan.
       if (isExpired && !org.deletion_scheduled_at) {
         const deletionDate = new Date(periodEnd!.getTime() + GRACE_DAYS * 24 * 60 * 60 * 1000)
-        await supabase
+        const admin = await createClient(true)
+        await admin
           .from('organizations')
           .update({
             deletion_scheduled_at: deletionDate.toISOString(),
