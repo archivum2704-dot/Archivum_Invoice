@@ -25,7 +25,13 @@ interface Company { id: string; name: string; cif: string | null; }
 interface Product { id: string; name: string; unit_price: number; tax_rate: number; }
 type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string };
 
-const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1", unitPrice: "0", taxRate: "21" });
+const emptyLine = (): Line => ({ productId: null, description: "", quantity: "", unitPrice: "", taxRate: "21" });
+/** A blank quantity means one unit, a blank price means zero — so both fields
+ *  can show their placeholder instead of a pre-filled value the user has to
+ *  clear before typing. */
+const qtyOf   = (v: string) => (v.trim() === "" ? 1 : (Number(v) || 0));
+const priceOf = (v: string) => (Number(v) || 0);
+
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 function FacturacionScreenContent() {
@@ -77,7 +83,7 @@ function FacturacionScreenContent() {
   const totals = useMemo(() => {
     let grossBase = 0, grossTax = 0;
     for (const l of lines) {
-      const base = (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0);
+      const base = qtyOf(l.quantity) * priceOf(l.unitPrice);
       grossBase += base; grossTax += base * (Number(l.taxRate) || 0) / 100;
     }
     const disc = Number(discountPct) || 0;
@@ -91,7 +97,14 @@ function FacturacionScreenContent() {
   const resetForm = () => { setClientId(""); setRetentionPct(""); setDiscountPct(""); setLines([emptyLine()]); };
 
   const setLine = (i: number, patch: Partial<Line>) => setLines(prev => prev.map((l, idx) => idx === i ? { ...l, ...patch } : l));
-  const pickProduct = (i: number, p: Product) => setLine(i, { productId: p.id, description: p.name, unitPrice: String(p.unit_price), taxRate: String(p.tax_rate) });
+  // Numbers come back from Postgres as "21.00"; the VAT chips compare against
+  // "21", so normalise or the product's own rate would not appear selected.
+  const pickProduct = (i: number, p: Product) => setLine(i, {
+    productId: p.id,
+    description: p.name,
+    unitPrice: String(Number(p.unit_price)),
+    taxRate: String(Number(p.tax_rate)),
+  });
 
   const createClient = async () => {
     if (!ncName.trim() || !orgId) return;
@@ -114,7 +127,7 @@ function FacturacionScreenContent() {
         body: JSON.stringify({
           orgId, clientCompanyId: clientId, series: "FAC", kind: "ordinary",
           issueDate: new Date().toISOString().slice(0, 10), retentionPct: Number(retentionPct) || 0, discountPct: Number(discountPct) || 0,
-          lines: lines.filter(l => l.description.trim()).map(l => ({ productId: l.productId, description: l.description, quantity: Number(l.quantity) || 0, unitPrice: Number(l.unitPrice) || 0, taxRate: Number(l.taxRate) || 0, discountPct: 0 })),
+          lines: lines.filter(l => l.description.trim()).map(l => ({ productId: l.productId, description: l.description, quantity: qtyOf(l.quantity), unitPrice: priceOf(l.unitPrice), taxRate: Number(l.taxRate) || 0, discountPct: 0 })),
         }),
       });
       const json = await readJson(res);
