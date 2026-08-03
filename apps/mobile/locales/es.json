@@ -167,7 +167,12 @@
     "statusLabel": "Estado",
     "applyFilters": "Aplicar filtros",
     "newFolder": "Nueva carpeta",
-    "folderNamePlaceholder": "Nombre de la carpeta"
+    "folderNamePlaceholder": "Nombre de la carpeta",
+    "moveToFolder": "Mover a carpeta",
+    "moveShort": "Mover",
+    "noFolder": "Sin carpeta",
+    "noFoldersYet": "Todavía no hay carpetas. Créalas desde la Biblioteca.",
+    "folderLabel": "Carpeta"
   },
   "buscar": {
     "title": "Buscador",

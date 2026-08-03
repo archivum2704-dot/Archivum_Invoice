@@ -167,7 +167,12 @@
     "statusLabel": "Status",
     "applyFilters": "Apply filters",
     "newFolder": "New folder",
-    "folderNamePlaceholder": "Folder name"
+    "folderNamePlaceholder": "Folder name",
+    "moveToFolder": "Move to folder",
+    "moveShort": "Move",
+    "noFolder": "No folder",
+    "noFoldersYet": "No folders yet. Create them from the Library.",
+    "folderLabel": "Folder"
   },
   "buscar": {
     "title": "Search",

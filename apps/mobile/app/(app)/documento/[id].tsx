@@ -7,13 +7,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import {
   ChevronLeft, Download, Pencil, Trash2,
-  FileText,
+  FileText, FolderInput,
 } from "lucide-react-native";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { supabase } from "@/lib/supabase";
 import { useColors } from "@/lib/colors";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/context/auth-context";
+import { FolderPickerModal, useFolders } from "@/components/FolderPicker";
 
 function Field({ label, value, C }: { label: string; value: string | null | undefined; C: any }) {
   if (value == null || value === "") return null;
@@ -29,6 +31,10 @@ export default function DocumentoDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [doc,     setDoc]     = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [folderOpen, setFolderOpen] = useState(false);
+  const [moving,     setMoving]     = useState(false);
+  const { orgId } = useAuth();
+  const { folders, loading: foldersLoading } = useFolders(orgId);
   const C = useColors();
   const { t } = useTranslation();
 
@@ -67,6 +73,17 @@ export default function DocumentoDetailScreen() {
   };
 
   const [downloading, setDownloading] = useState(false);
+
+  const handleMoveToFolder = async (folderId: string | null) => {
+    setMoving(true);
+    const { error } = await supabase
+      .from("documents")
+      .update({ folder_id: folderId, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    setMoving(false);
+    if (error) { Alert.alert(t("common.error"), error.message); return; }
+    setDoc((d: any) => d ? { ...d, folder_id: folderId } : d);
+  };
 
   const handleDownload = async () => {
     if (!doc?.file_url) return;
@@ -174,6 +191,7 @@ export default function DocumentoDetailScreen() {
           {[
             { icon: downloading ? <ActivityIndicator size={18} color={C.blue} /> : <Download size={18} color={C.blue} />, label: t("documento.download"), onPress: handleDownload, disabled: !doc.file_url || downloading },
             { icon: <Pencil  size={18} color={C.blue} />, label: t("common.edit"),     onPress: () => router.push(`/(app)/editar/${id}`) },
+            { icon: moving ? <ActivityIndicator size={18} color={C.blue} /> : <FolderInput size={18} color={C.blue} />, label: t("biblioteca.moveShort"), onPress: () => setFolderOpen(true), disabled: moving },
           ].map((btn) => (
             <TouchableOpacity
               key={btn.label}
@@ -216,6 +234,14 @@ export default function DocumentoDetailScreen() {
 
         <View style={{ height: 24 }} />
       </ScrollView>
+      <FolderPickerModal
+        visible={folderOpen}
+        folders={folders}
+        current={doc?.folder_id ?? null}
+        loading={foldersLoading}
+        onSelect={handleMoveToFolder}
+        onClose={() => setFolderOpen(false)}
+      />
     </SafeAreaView>
   );
 }
