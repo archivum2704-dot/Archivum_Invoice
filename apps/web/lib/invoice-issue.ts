@@ -4,6 +4,7 @@ import {
 } from '@/lib/verifactu'
 import { buildInvoicePdf } from '@/lib/invoice-pdf'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { createClient as createServerSupabase } from '@/lib/supabase/server'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
@@ -182,7 +183,12 @@ export async function issueInvoice(
   }
 
   // Best-effort: PDF + archive in the library
+  // Archived with the service-role client. The documents bucket does not accept
+  // the caller's client — it is seen as anonymous there, the same finding that
+  // /api/organizations/logo documents — so the upload failed, and with it the
+  // library entry, silently: an issued invoice never appeared in Biblioteca.
   try {
+    const archiver = await createServerSupabase(true)
     const pdfBytes = await buildInvoicePdf({
       fullNumber, issueDate, dueDate: dueDate || null,
       issuer: { name: org.name, cif: org.cif, address: org.address, postalCode: org.postal_code, city: org.city, province: org.province, logoUrl: org.logo_url },
@@ -192,19 +198,23 @@ export async function issueInvoice(
       notes: notes?.trim() || null, huella, qrUrl,
     })
     const storagePath = `${orgId}/invoices/${invoice.id}.pdf`
-    const { error: upErr } = await supabase.storage
+    const { error: upErr } = await archiver.storage
       .from('documents').upload(storagePath, pdfBytes, { contentType: 'application/pdf', upsert: true })
-    if (!upErr) {
-      const { data: doc } = await supabase.from('documents').insert({
+    if (upErr) throw new Error(`storage upload failed: ${upErr.message}`)
+    {
+      const { data: doc, error: docErr } = await archiver.from('documents').insert({
         organization_id: orgId, company_id: clientCompanyId, uploaded_by: userId,
         document_number: fullNumber, document_type: 'invoice_issued', status: 'pending',
         total, currency: 'EUR', issue_date: issueDate,
         file_url: storagePath, file_name: `${fullNumber}.pdf`, file_size: pdfBytes.length, file_type: 'application/pdf',
       }).select('id').single()
-      if (doc) await supabase.from('invoices').update({ document_id: doc.id }).eq('id', invoice.id)
+      if (docErr) throw new Error(`library entry failed: ${docErr.message}`)
+      if (doc) await archiver.from('invoices').update({ document_id: doc.id }).eq('id', invoice.id)
     }
   } catch (pdfErr) {
-    console.warn('[issueInvoice] PDF archival failed (non-fatal):', pdfErr)
+    // Non-fatal: the invoice is legally issued either way, and refusing it here
+    // would leave a numbered, chained invoice the caller believes failed.
+    console.error('[issueInvoice] archival to Biblioteca failed:', pdfErr)
   }
 
   return { id: invoice.id, fullNumber: invoice.full_number }
