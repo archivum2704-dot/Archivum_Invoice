@@ -14,6 +14,7 @@ import {
 } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import Constants from "expo-constants";
+import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "@/context/auth-context";
 import { useTheme } from "@/context/theme-context";
@@ -24,6 +25,7 @@ import { useColors, type Colors } from "@/lib/colors";
 import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
 import { PLANS, type PlanId } from "@/lib/pricing";
+import { parseApiResponse } from "@/lib/api";
 import { KeyboardModal } from "@/components/KeyboardModal";
 
 function SectionLabel({ children, C }: { children: string; C: Colors }) {
@@ -156,21 +158,23 @@ function OrgEditModal({ visible, orgId, token, onClose, onSaved, C }: {
     const asset = res.assets[0];
     setLogoBusy(true);
     try {
-      const form = new FormData();
-      form.append("orgId", orgId);
-      // React Native FormData file descriptor
-      form.append("file", {
-        uri: asset.uri,
-        name: asset.fileName ?? "logo.jpg",
-        type: asset.mimeType ?? "image/jpeg",
-      } as unknown as Blob);
-      const r = await fetch(`${APP_URL}/api/organizations/logo`, {
-        method: "POST",
+      // Uploaded natively rather than with fetch + FormData: React Native has
+      // to stream the picked file itself there, and on Android that failed
+      // outright with "Network request failed". uploadAsync builds the
+      // multipart body in native code from the file URI.
+      const res2 = await FileSystem.uploadAsync(`${APP_URL}/api/organizations/logo`, asset.uri, {
+        httpMethod: "POST",
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: "file",
+        mimeType: asset.mimeType ?? "image/jpeg",
+        parameters: { orgId },
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        body: form,
       });
-      const json = await r.json();
-      if (!r.ok) { Alert.alert(t("common.error"), json.detail ?? json.error ?? ""); return; }
+      const json = parseApiResponse(res2.status, res2.body);
+      if (res2.status < 200 || res2.status >= 300) {
+        Alert.alert(t("common.error"), json.detail ?? json.error ?? `HTTP ${res2.status}`);
+        return;
+      }
       setDraft(d => d ? { ...d, logo_url: json.url } : d);
       onSaved();
     } catch (e) {

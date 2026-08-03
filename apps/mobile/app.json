@@ -51,7 +51,8 @@
           "photosPermission": "Archivum necesita acceso a tu galería para subir documentos.",
           "cameraPermission": "Archivum necesita acceso a tu cámara para fotografiar documentos."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "newArchEnabled": false,
     "experiments": {
@@ -62,7 +63,7 @@
       "eas": {
         "projectId": "48362d1f-a346-46c7-9dab-f4a12a6eb78e"
       },
-      "buildLabel": "kb-controller"
+      "buildLabel": "dates-upload"
     },
     "updates": {
       "url": "https://u.expo.dev/48362d1f-a346-46c7-9dab-f4a12a6eb78e"
