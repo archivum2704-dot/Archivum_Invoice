@@ -7,6 +7,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AuthProvider } from "@/context/auth-context";
 import { ThemeProvider } from "@/context/theme-context";
 // Local supabase client (uses EXPO_PUBLIC_ env vars — avoids shared lib issues)
@@ -30,14 +31,18 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <Stack screenOptions={{ headerShown: false }} />
-            <StatusBar style="auto" />
-          </AuthProvider>
-        </ThemeProvider>
-      </SafeAreaProvider>
+      {/* Drives the keyboard-aware views. The translucent flags let it track
+          the keyboard inside RN modals too, which is where our forms live. */}
+      <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+        <SafeAreaProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <Stack screenOptions={{ headerShown: false }} />
+              <StatusBar style="auto" />
+            </AuthProvider>
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

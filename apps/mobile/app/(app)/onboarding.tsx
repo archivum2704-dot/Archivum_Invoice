@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, Dimensions, TextInput,
-  KeyboardAvoidingView, Platform,
+  Platform,
   NativeSyntheticEvent, NativeScrollEvent, ActivityIndicator, Alert,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -128,7 +129,7 @@ export default function OnboardingScreen() {
             the keyboard, and tapping it only dismissed the keyboard. */}
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior="padding"
         >
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 28, justifyContent: "center" }}
