@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { PLANS, type PlanId } from '@/lib/pricing'
+import { resolveEntitlements } from '@/lib/pricing'
 
 export async function GET(req: NextRequest) {
   try {
@@ -46,25 +46,16 @@ export async function GET(req: NextRequest) {
       .eq('id', orgId)
       .single()
 
-    const planId               = (org?.subscription_plan ?? 'free') as PlanId
-    const plan                 = PLANS[planId] ?? PLANS.free
-    const extraUsersQuantity   = org?.extra_users_quantity     ?? 0
-    const extraDocsQuantity    = org?.extra_docs_quantity      ?? 0
+    const extraUsersQuantity     = org?.extra_users_quantity     ?? 0
+    const extraDocsQuantity      = org?.extra_docs_quantity      ?? 0
     const extraCompaniesQuantity = org?.extra_companies_quantity ?? 0
-    const hasSubscription      = !!org?.stripe_subscription_id
-    const subscriptionStatus   = org?.subscription_status ?? null
+    const subscriptionStatus     = org?.subscription_status ?? null
 
-    // Super admins have no caps anywhere.
-    const UNLIMITED = 999_999
-
-    // User limit = plan base users + extra purchased
-    const maxUsers = isPlatformAdmin ? UNLIMITED : plan.users + extraUsersQuantity
-
-    // Annual doc pool = plan yearly allowance + bonos (250 docs each)
-    const maxDocs = isPlatformAdmin ? UNLIMITED : plan.docsPerYear + extraDocsQuantity * 250
-
-    // Client limit: free plan → 1 client. Paid plans → 20 base + extras.
-    const maxCompanies = isPlatformAdmin ? UNLIMITED : (hasSubscription ? 20 + extraCompaniesQuantity : 1)
+    // Every limit comes from one place, so what this reports is exactly what
+    // the create endpoints will enforce.
+    const { planId, isActive, maxUsers, maxDocs, maxCompanies } =
+      resolveEntitlements(org, { isPlatformAdmin })
+    const hasSubscription = isActive
 
     return NextResponse.json({
       plan: planId,

@@ -19,12 +19,9 @@ import { useColors } from "@/lib/colors";
 import { BillingNotice } from "@/components/BillingNotice";
 import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
+import { resolveEntitlements } from "@/lib/pricing";
 
 
-
-function isPaidActive(status: string) {
-  return status === "active" || status === "trialing";
-}
 
 interface PlanInfo {
   subscription_status: string;
@@ -266,7 +263,7 @@ function CompanyCard({ company, onMenu, C, t }: { company: Company; onMenu: () =
 function EmpresasScreenContent() {
   const { t } = useTranslation();
   const C = useColors();
-  const { orgId } = useAuth();
+  const { orgId, isPlatformAdmin } = useAuth();
   const [companies,    setCompanies]    = useState<Company[]>([]);
   const [filtered,     setFiltered]     = useState<Company[]>([]);
   const [query,        setQuery]        = useState("");
@@ -279,9 +276,10 @@ function EmpresasScreenContent() {
   const [upgradeOpen,  setUpgradeOpen]  = useState(false);
   const [plan,         setPlan]         = useState<PlanInfo | null>(null);
 
+  // Same resolver the server enforces with.
   const maxCompanies = plan
-    ? (isPaidActive(plan.subscription_status) ? 20 + plan.extra_companies_quantity : 1)
-    : 999; // Don't block while plan is loading
+    ? resolveEntitlements(plan, { isPlatformAdmin }).maxCompanies
+    : 999; // Don't block while the plan is loading
 
   const atLimit = plan != null && companies.length >= maxCompanies;
 

@@ -149,3 +149,87 @@ export const PRICING_FAQ = [
     a: "No. El plan gratuito es para siempre. No te pediremos tarjeta para seguir usándolo.",
   },
 ] as const
+
+// ── Entitlements ─────────────────────────────────────────────────────────────
+
+/** The billing columns every limit is derived from. */
+export type BillingRow = {
+  subscription_plan?: string | null
+  subscription_status?: string | null
+  extra_users_quantity?: number | null
+  extra_docs_quantity?: number | null
+  extra_companies_quantity?: number | null
+}
+
+export type Entitlements = {
+  planId: PlanId
+  /** The plan is in force (paid and current, or granted by an admin). */
+  isActive: boolean
+  maxUsers: number
+  maxDocs: number
+  maxCompanies: number
+}
+
+/** Platform admins are never capped; a number, not Infinity, so it renders. */
+export const UNLIMITED = 999_999
+
+/** Statuses that mean the plan is in force right now. */
+const ACTIVE_STATUSES = ['active', 'trialing']
+
+/** Clients (companies) allowed on a paid plan before add-ons. */
+const PAID_BASE_COMPANIES = 20
+
+/**
+ * The single definition of what an organization is entitled to.
+ *
+ * Everything — the counters on screen and the checks that refuse a create —
+ * must read its limits from here. They used to be worked out in three places
+ * with three different rules: one required a Stripe subscription, one only
+ * looked at the status, and one ignored both. An organization on a
+ * hand-granted plan was told it had 2 user slots and then refused the second.
+ *
+ * A Stripe subscription is deliberately *not* required: plans granted from the
+ * admin panel are just as real. What makes that safe is that the billing
+ * columns are writable only by the service role and platform admins — see the
+ * protect_billing_columns trigger.
+ */
+export function resolveEntitlements(
+  org: BillingRow | null | undefined,
+  opts: { isPlatformAdmin?: boolean } = {},
+): Entitlements {
+  const planId = ((org?.subscription_plan ?? 'free') as PlanId) in PLANS
+    ? (org?.subscription_plan ?? 'free') as PlanId
+    : 'free'
+
+  const isActive =
+    planId !== 'free' && ACTIVE_STATUSES.includes(org?.subscription_status ?? '')
+
+  if (opts.isPlatformAdmin) {
+    return { planId, isActive: true, maxUsers: UNLIMITED, maxDocs: UNLIMITED, maxCompanies: UNLIMITED }
+  }
+
+  const plan = PLANS[planId] ?? PLANS.free
+  const extraUsers     = org?.extra_users_quantity ?? 0
+  const extraDocs      = org?.extra_docs_quantity ?? 0
+  const extraCompanies = org?.extra_companies_quantity ?? 0
+
+  // An inactive plan falls back to the free allowance rather than to zero, so
+  // an expired subscription keeps read access and the free tier's limits.
+  if (!isActive) {
+    return {
+      planId,
+      isActive: false,
+      maxUsers: PLANS.free.users,
+      maxDocs: PLANS.free.docsPerYear,
+      maxCompanies: 1,
+    }
+  }
+
+  return {
+    planId,
+    isActive: true,
+    maxUsers: plan.users + extraUsers,
+    maxDocs: plan.docsPerYear + extraDocs * ADDONS.extraDocs.docs,
+    maxCompanies: PAID_BASE_COMPANIES + extraCompanies,
+  }
+}
