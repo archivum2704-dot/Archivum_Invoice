@@ -4,6 +4,8 @@ import DateTimePicker, { type DateTimePickerEvent } from "@react-native-communit
 import { Calendar, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+import { useTheme } from "@/context/theme-context";
+import { KeyboardModal } from "@/components/KeyboardModal";
 
 /** ISO (YYYY-MM-DD) is what every API and the database expect. */
 function toISO(d: Date) {
@@ -48,6 +50,7 @@ export function DateField({
   style?: object;
 }) {
   const C = useColors();
+  const { isDark } = useTheme();
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
@@ -82,24 +85,42 @@ export function DateField({
         )}
       </TouchableOpacity>
 
-      {open && (
+      {/* Android puts up its own floating dialog, so it can render in place. */}
+      {open && Platform.OS === "android" && (
         <DateTimePicker
           value={fromISO(value) ?? new Date()}
           mode="date"
-          display={Platform.OS === "ios" ? "inline" : "default"}
+          display="default"
           minimumDate={minimumDate}
           onChange={handle}
         />
       )}
 
-      {/* iOS keeps the picker on screen until dismissed explicitly */}
-      {open && Platform.OS === "ios" && (
-        <TouchableOpacity
-          onPress={() => setOpen(false)}
-          style={{ alignSelf: "flex-end", paddingVertical: 8, paddingHorizontal: 4 }}
-        >
-          <Text style={{ color: C.blue, fontWeight: "600", fontSize: 14 }}>{t("common.done")}</Text>
-        </TouchableOpacity>
+      {/* iOS renders the calendar as an ordinary view. Left in the form it
+          would push everything below it down and resize the sheet, so it goes
+          in its own sheet and the form underneath stays exactly as it was. */}
+      {Platform.OS === "ios" && (
+        <KeyboardModal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
+          <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={() => setOpen(false)} />
+          <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 12 }}>
+            <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12 }} />
+            <DateTimePicker
+              value={fromISO(value) ?? new Date()}
+              mode="date"
+              display="inline"
+              minimumDate={minimumDate}
+              onChange={handle}
+              themeVariant={isDark ? "dark" : "light"}
+              style={{ height: 360 }}
+            />
+            <TouchableOpacity
+              onPress={() => setOpen(false)}
+              style={{ marginHorizontal: 20, borderRadius: 12, paddingVertical: 13, alignItems: "center", backgroundColor: C.blue }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("common.done")}</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardModal>
       )}
     </View>
   );
