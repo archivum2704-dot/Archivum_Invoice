@@ -22,6 +22,7 @@ import {
   Package,
   Receipt,
   ClipboardList,
+  Truck,
   Lock,
 } from "lucide-react"
 import { Logo } from "@/components/logo"
@@ -124,6 +125,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
       ? [
           { section: "inventario"   as const, label: t("inventory"), icon: Package,       href: "/inventario" },
           { section: "presupuestos" as const, label: t("quotes"),    icon: ClipboardList, href: "/presupuestos" },
+          { section: "albaranes"    as const, label: t("deliveryNotes"), icon: Truck,       href: "/albaranes" },
           { section: "facturacion"  as const, label: t("invoicing"), icon: Receipt,       href: "/facturacion" },
         ]
       : []),

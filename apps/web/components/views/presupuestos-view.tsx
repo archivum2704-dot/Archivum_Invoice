@@ -38,10 +38,10 @@ export function PresupuestosView() {
   const router = useRouter()
   const { currentOrg, isOrgAdmin, isPlatformAdmin } = useOrganization()
   const paid = isPaidPlan(currentOrg) || isPlatformAdmin
-  const { quotes, loading, mutate } = useQuotes(currentOrg?.id ?? null)
+  const { quotes, loading, mutate } = useQuotes(currentOrg?.id ?? null, "quote")
   const { companies, mutate: mutateCompanies } = useCompanies(currentOrg?.id ?? null)
   const { products, mutate: mutateProducts } = useProducts(currentOrg?.id ?? null)
-  // Converted quotes move to Facturas, so they no longer show in the quotes list.
+  // Billed quotes live on in Facturas; the list keeps the open ones.
   const visibleQuotes = quotes.filter(q => q.status !== "converted")
 
   const [open, setOpen] = useState(false)
@@ -186,21 +186,6 @@ export function PresupuestosView() {
     setSaving(false)
   }
 
-  const handleConvert = async (q: Quote) => {
-    if (!confirm(`¿Convertir el presupuesto ${q.full_number ?? ""} en factura? Se emitirá una factura con Verifactu.`)) return
-    setBusyId(q.id)
-    try {
-      const res = await fetch("/api/quotes/convert", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quoteId: q.id }),
-      })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) { alert(json.detail ?? json.error ?? "No se pudo convertir."); setBusyId(null); return }
-      await mutate()
-      router.push(`/facturacion/${json.invoiceId}`)
-    } catch (e) { alert(String(e)); setBusyId(null) }
-  }
-
   const handleDelete = async (q: Quote) => {
     if (!confirm("¿Eliminar este presupuesto? Esta acción no se puede deshacer.")) return
     setBusyId(q.id)
@@ -275,9 +260,6 @@ export function PresupuestosView() {
                     <>
                       <button onClick={() => openEdit(q)} title="Editar" className="p-1.5 rounded hover:bg-muted transition-colors">
                         <Pencil className="w-4 h-4 text-muted-foreground" />
-                      </button>
-                      <button onClick={() => handleConvert(q)} title="Convertir a factura" className="p-1.5 rounded hover:bg-accent/10 transition-colors">
-                        {busyId === q.id ? <Loader2 className="w-4 h-4 animate-spin text-accent" /> : <ArrowRight className="w-4 h-4 text-accent" />}
                       </button>
                       <button onClick={() => handleDelete(q)} title="Eliminar" className="p-1.5 rounded hover:bg-destructive/10 transition-colors">
                         <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />

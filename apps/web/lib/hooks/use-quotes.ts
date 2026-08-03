@@ -2,7 +2,14 @@ import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/client'
 import { ALL_ORGS_ID } from '@/lib/context/organization-context'
 
-export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'converted'
+export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'converted' | 'open'
+
+/**
+ * Quotes and delivery notes share a table — they carry the same client, lines
+ * and totals — and are told apart by this. Any list that means one of them
+ * must filter on it, or it shows both.
+ */
+export type QuoteKind = 'quote' | 'delivery_note'
 
 export type Quote = {
   id: string
@@ -36,6 +43,8 @@ export type Quote = {
   client_postal_code: string | null
   client_province: string | null
   notes: string | null
+  kind: QuoteKind
+  source_quote_id: string | null
   converted_invoice_id: string | null
   document_id: string | null
   created_at: string
@@ -57,19 +66,22 @@ export type QuoteLine = {
   position: number
 }
 
-async function fetchQuotes(orgId: string): Promise<Quote[]> {
+async function fetchQuotes(orgId: string, kind: QuoteKind): Promise<Quote[]> {
   const supabase: any = createClient()
-  let query = supabase.from('quotes').select('*, client:companies!client_company_id(name, cif)')
+  let query = supabase
+    .from('quotes').select('*, client:companies!client_company_id(name, cif)')
+    .eq('kind', kind)
   if (orgId !== ALL_ORGS_ID) query = query.eq('organization_id', orgId)
   const { data, error } = await query.order('created_at', { ascending: false })
   if (error) throw error
   return (data ?? []) as unknown as Quote[]
 }
 
-export function useQuotes(orgId: string | null) {
+/** `kind` is required so a caller cannot forget it and list both. */
+export function useQuotes(orgId: string | null, kind: QuoteKind) {
   const { data, error, isLoading, mutate } = useSWR(
-    orgId ? ['quotes', orgId] : null,
-    () => fetchQuotes(orgId!),
+    orgId ? ['quotes', orgId, kind] : null,
+    () => fetchQuotes(orgId!, kind),
     { revalidateOnFocus: false },
   )
   return { quotes: data ?? [], loading: isLoading, error, mutate }

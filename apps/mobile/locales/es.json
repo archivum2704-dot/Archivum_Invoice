@@ -583,5 +583,18 @@
     "deniedRole": "Tu rol en esta organización no incluye el acceso a esta sección. Si necesitas entrar, pídele a un administrador que ajuste tus permisos.",
     "deniedNoCompanies": "Todavía no tienes ningún cliente asignado con permiso para subir documentos. Pídele a un administrador que te asigne al menos uno.",
     "backToDashboard": "Volver al inicio"
+  },
+  "delivery": {
+    "title": "Albaranes",
+    "subtitle": "Se abre uno por cada presupuesto. Desde aquí se emite su factura.",
+    "bill": "Emitir factura",
+    "billTitle": "Emitir factura",
+    "billBody": "Se emitirá la factura de este albarán con Verifactu. No podrá deshacerse.",
+    "emptyTitle": "No hay albaranes",
+    "emptyBody": "Se crean solos al guardar un presupuesto.",
+    "states": {
+      "open": "Abierto",
+      "converted": "Facturado"
+    }
   }
 }

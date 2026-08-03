@@ -116,7 +116,8 @@
     "users": "Users",
     "settings": "Settings",
     "signOut": "Sign out",
-    "quotes": "Quotes"
+    "quotes": "Quotes",
+    "deliveryNotes": "Delivery notes"
   },
   "inventory": {
     "title": "Inventory",

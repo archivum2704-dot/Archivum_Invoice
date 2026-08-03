@@ -9,6 +9,8 @@ export interface QuotePdfLine {
 }
 
 export interface QuotePdfData {
+  /** Switches the wording between a quote and a delivery note. */
+  kind?: 'quote' | 'delivery_note'
   fullNumber: string
   issueDate: string
   validUntil?: string | null
@@ -32,6 +34,9 @@ const LINE = rgb(0.85, 0.86, 0.88)
 
 /** Builds an A4 PDF of a quote (presupuesto) — same look as an invoice, no Verifactu. */
 export async function buildQuotePdf(data: QuotePdfData): Promise<Uint8Array> {
+  // Delivery notes reuse this layout; only the wording changes.
+  const DOC = data.kind === 'delivery_note' ? 'ALBARÁN' : 'PRESUPUESTO'
+  const FOR = data.kind === 'delivery_note' ? 'ALBARÁN PARA' : 'PRESUPUESTO PARA'
   const pdf = await PDFDocument.create()
   const page = pdf.addPage([595.28, 841.89])
   const font = await pdf.embedFont(StandardFonts.Helvetica)
@@ -70,7 +75,7 @@ export async function buildQuotePdf(data: QuotePdfData): Promise<Uint8Array> {
 
   // Header
   text(data.issuer.name, textX, y, 16, bold, NAVY)
-  right('PRESUPUESTO', width - M, y, 12, bold, GREY)
+  right(DOC, width - M, y, 12, bold, GREY)
   y -= 16
   right(data.fullNumber, width - M, y, 14, bold, NAVY)
   y -= 14
@@ -86,7 +91,7 @@ export async function buildQuotePdf(data: QuotePdfData): Promise<Uint8Array> {
   y -= 18
 
   // Client
-  text('PRESUPUESTO PARA', M, y, 8, bold, GREY); y -= 14
+  text(FOR, M, y, 8, bold, GREY); y -= 14
   text(data.client.name, M, y, 11, bold); y -= 13
   const clientLines = [
     data.client.cif ? `CIF: ${data.client.cif}` : '',
@@ -140,7 +145,7 @@ export async function buildQuotePdf(data: QuotePdfData): Promise<Uint8Array> {
   if (data.notes) { text(data.notes.slice(0, 160), M, y, 8, font, GREY); y -= 20 }
 
   // Footer disclaimer (this is a quote, not an invoice)
-  text('PRESUPUESTO', M, M + 24, 10, bold, NAVY)
+  text(DOC, M, M + 24, 10, bold, NAVY)
   text('Este documento es un presupuesto y no tiene validez como factura.', M, M + 12, 8, font, GREY)
 
   return await pdf.save()

@@ -78,7 +78,7 @@ function PresupuestosScreenContent() {
   const load = useCallback(async () => {
     if (!orgId) return;
     const [{ data: q }, { data: co }, { data: pr }] = await Promise.all([
-      supabase.from("quotes").select("id, full_number, client_name, total, status, issue_date").eq("organization_id", orgId).neq("status", "converted").order("created_at", { ascending: false }),
+      supabase.from("quotes").select("id, full_number, client_name, total, status, issue_date").eq("organization_id", orgId).eq("kind", "quote").neq("status", "converted").order("created_at", { ascending: false }),
       supabase.from("companies").select("id, name, cif").eq("organization_id", orgId).eq("is_active", true).order("name"),
       supabase.from("products").select("id, name, unit_price, tax_rate").eq("organization_id", orgId).eq("is_active", true).order("name"),
     ]);
@@ -175,26 +175,6 @@ function PresupuestosScreenContent() {
     setSaving(false);
   };
 
-  const convert = (q: Quote) => {
-    Alert.alert(t("quoting.convertTitle"), t("quoting.convertBody"), [
-      { text: t("common.cancel"), style: "cancel" },
-      { text: t("quoting.convert"), onPress: async () => {
-        setBusyId(q.id);
-        try {
-          const res = await fetch(`${APP_URL}/api/quotes/convert`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
-            body: JSON.stringify({ quoteId: q.id }),
-          });
-          const json = await readJson(res);
-          if (!res.ok) { Alert.alert(t("common.error"), json.detail ?? json.error ?? t("invoicing.errGeneric")); setBusyId(null); return; }
-          await load();
-          router.push(`/(app)/factura/${json.invoiceId}`);
-        } catch (e) { Alert.alert(t("common.error"), String(e)); setBusyId(null); }
-      } },
-    ]);
-  };
-
   const del = (q: Quote) => {
     Alert.alert(t("quoting.deleteTitle"), t("quoting.deleteBody"), [
       { text: t("common.cancel"), style: "cancel" },
@@ -283,7 +263,6 @@ function PresupuestosScreenContent() {
                 <View style={{ flexDirection: "row", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                   <ActBtn icon={<Download size={14} color={C.text} />} label={t("quoting.pdf")} onPress={() => sharePdf(item)} />
                   <ActBtn icon={<Pencil size={14} color={C.text} />} label={t("common.edit")} onPress={() => openEdit(item)} />
-                  <ActBtn icon={<ArrowRight size={14} color={C.blue} />} label={t("quoting.convert")} onPress={() => convert(item)} />
                   <ActBtn icon={<Trash2 size={14} color={C.red} />} label={t("quoting.delete")} onPress={() => del(item)} danger />
                 </View>
               )}
