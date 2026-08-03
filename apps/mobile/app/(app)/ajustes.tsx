@@ -9,10 +9,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   User, Building2, Copy, Check, Users, Globe, Moon,
   Bell, LogOut, ChevronRight, CreditCard, FileText,
-  CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle,
+  CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle, Info,
   Shield, Pencil, X, ImageOff, Upload, Trash2,
 } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
+import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "@/context/auth-context";
 import { useTheme } from "@/context/theme-context";
@@ -615,6 +616,15 @@ export default function AjustesScreen() {
               try { await AsyncStorage.removeItem("@archivum/onboarding_completed"); } catch {}
               router.push("/(app)/onboarding");
             }}
+            border={false}
+          />
+          {/* Which build is installed. Device-only bugs are impossible to chase
+              when a tester and I cannot tell two APKs apart. */}
+          <Row
+            C={C}
+            icon={<Info size={16} color={C.muted} />}
+            label={t("ajustes.help.version")}
+            value={`${Constants.expoConfig?.version ?? "?"} (${Constants.expoConfig?.extra?.buildLabel ?? "dev"})`}
             border={false}
           />
         </Card>
