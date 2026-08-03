@@ -92,7 +92,8 @@
     "unknownError": "Unknown error",
     "done": "Done",
     "billingOnWeb": "Manage your plan from the Archivum web app in a browser.",
-    "create": "Create"
+    "create": "Create",
+    "selectDate": "Select date"
   },
   "tabs": {
     "home": "Home",

@@ -10,6 +10,7 @@ import { ChevronLeft, Check } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import { useColors } from "@/lib/colors";
 import { useTranslation } from "react-i18next";
+import { DateField } from "@/components/DateField";
 
 function Field({
   label, value, onChangeText, keyboardType = "default", placeholder, C,
@@ -28,6 +29,18 @@ function Field({
         placeholder={placeholder}
         placeholderTextColor={C.muted}
       />
+    </View>
+  );
+}
+
+/** Same framing as Field, but the value comes from the calendar. */
+function DateRow({ label, value, onChange, C }: {
+  label: string; value: string; onChange: (v: string) => void; C: any;
+}) {
+  return (
+    <View style={{ padding: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border }}>
+      <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 6 }}>{label}</Text>
+      <DateField value={value || null} onChange={(v) => onChange(v ?? "")} />
     </View>
   );
 }
@@ -189,9 +202,9 @@ export default function EditarScreen() {
           {/* Fechas */}
           <Text style={sectionStyle}>{t("editar.dates")}</Text>
           <View style={cardStyle}>
-            <Field C={C} label={t("editar.issueDate")}   value={issueDate} onChangeText={setIssueDate} placeholder="2025-01-15" />
-            <Field C={C} label={t("editar.dueDate")}     value={dueDate}   onChangeText={setDueDate}   placeholder="2025-02-15" />
-            <Field C={C} label={t("editar.paymentDate")} value={payDate}   onChangeText={setPayDate}   placeholder="2025-01-20" />
+            <DateRow C={C} label={t("editar.issueDate")}   value={issueDate} onChange={setIssueDate} />
+            <DateRow C={C} label={t("editar.dueDate")}     value={dueDate}   onChange={setDueDate} />
+            <DateRow C={C} label={t("editar.paymentDate")} value={payDate}   onChange={setPayDate} />
           </View>
 
           {/* Importes */}

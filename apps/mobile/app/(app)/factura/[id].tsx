@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { APP_URL } from "@/lib/config";
+import { readJson } from "@/lib/api";
 
 
 interface Invoice {
@@ -63,7 +64,7 @@ export default function FacturaDetailScreen() {
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
             body: JSON.stringify({ orgId, invoiceId: id }),
           });
-          const json = await res.json();
+          const json = await readJson(res);
           if (!res.ok) { Alert.alert(t("common.error"), json.error ?? ""); setRectifying(false); return; }
           router.replace(`/(app)/factura/${json.id}`);
         } catch (e) { Alert.alert(t("common.error"), String(e)); setRectifying(false); }

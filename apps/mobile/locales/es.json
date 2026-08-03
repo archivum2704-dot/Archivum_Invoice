@@ -92,7 +92,8 @@
     "unknownError": "Error desconocido",
     "done": "Listo",
     "billingOnWeb": "Gestiona tu plan desde la versión web de Archivum, en un navegador.",
-    "create": "Crear"
+    "create": "Crear",
+    "selectDate": "Seleccionar fecha"
   },
   "tabs": {
     "home": "Inicio",

@@ -17,6 +17,8 @@ import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
 import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
+import { DateField } from "@/components/DateField";
+import { readJson } from "@/lib/api";
 
 const IVA_RATES = ["", "4", "10", "21"];
 const RET_RATES = ["", "7", "15", "19"];
@@ -153,7 +155,7 @@ function PresupuestosScreenContent() {
           lines: lines.filter(l => l.description.trim()).map(l => ({ productId: l.productId, description: l.description, quantity: Number(l.quantity) || 0, unitPrice: Number(l.unitPrice) || 0, taxRate: Number(l.taxRate) || 0 })),
         }),
       });
-      const json = await res.json();
+      const json = await readJson(res);
       if (!res.ok) { Alert.alert(t("common.error"), json.detail ?? json.error ?? t("invoicing.errGeneric")); setSaving(false); return; }
       setModal(false); resetForm(); await load();
     } catch (e) { Alert.alert(t("common.error"), String(e)); }
@@ -171,7 +173,7 @@ function PresupuestosScreenContent() {
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
             body: JSON.stringify({ quoteId: q.id }),
           });
-          const json = await res.json();
+          const json = await readJson(res);
           if (!res.ok) { Alert.alert(t("common.error"), json.detail ?? json.error ?? t("invoicing.errGeneric")); setBusyId(null); return; }
           await load();
           router.push(`/(app)/factura/${json.invoiceId}`);
@@ -298,8 +300,7 @@ function PresupuestosScreenContent() {
             {/* Válido hasta */}
             <View>
               <Text style={{ fontSize: 12, fontWeight: "600", color: C.muted, marginBottom: 6 }}>{t("quoting.validUntil")}</Text>
-              <TextInput placeholder="AAAA-MM-DD" placeholderTextColor={C.muted} value={validUntil} onChangeText={setValidUntil} autoCorrect={false}
-                style={{ backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, color: C.text }} />
+              <DateField value={validUntil || null} onChange={(v) => setValidUntil(v ?? "")} minimumDate={new Date()} />
             </View>
 
             {/* Lines */}

@@ -20,6 +20,7 @@ import { APP_URL } from "@/lib/config";
 import { PLANS, type PlanId } from "@/lib/pricing";
 import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
+import { readJson } from "@/lib/api";
 
 
 type OrgRole = "owner" | "admin" | "member" | "viewer";
@@ -158,7 +159,7 @@ function InviteModal({ visible, orgId, token, onClose, onInvited, C, t }: {
         },
         body: JSON.stringify({ email: email.trim(), firstName: firstName.trim(), lastName: lastName.trim(), role, orgId }),
       });
-      const data = await res.json();
+      const data = await readJson(res);
       if (!res.ok || !data.success) {
         const errKey = data.error ?? "server_error";
         setError(t(`equipo.invite.errors.${errKey}`, { defaultValue: t("common.unknownError") }));

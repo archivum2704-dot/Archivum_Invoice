@@ -20,6 +20,7 @@ import { Coachmark } from "@/components/Coachmark";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { RequirePermission } from "@/components/RequirePermission";
+import { DateField } from "@/components/DateField";
 
 interface Company { id: string; name: string; }
 
@@ -327,8 +328,6 @@ function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, c
 
         {[
           { label: t("subir.docNumberLabel"), value: docNumber, setter: setDocNumber, ph: "FAC-2025-0001" },
-          { label: t("subir.issueDateLabel"), value: issueDate, setter: setIssueDate, ph: "2025-01-15" },
-          { label: t("subir.dueDateLabel"),   value: dueDate, setter: setDueDate, ph: "2025-02-15" },
           { label: t("subir.totalLabel"),     value: amount, setter: setAmount, ph: "4280.00", keyboard: "numeric" },
           { label: t("subir.subtotalLabel"),  value: taxable, setter: setTaxable, ph: "3537.19", keyboard: "numeric" },
           { label: t("subir.vatLabel"),       value: vatRate, setter: setVatRate, ph: "21", keyboard: "numeric" },
@@ -338,6 +337,15 @@ function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, c
             <TextInput style={inputStyle} placeholder={f.ph} placeholderTextColor={C.muted} value={f.value} onChangeText={f.setter} keyboardType={f.keyboard as any ?? "default"} />
           </View>
         ))}
+
+        <View>
+          <Text style={labelStyle}>{t("subir.issueDateLabel")}</Text>
+          <DateField value={issueDate} onChange={(v) => setIssueDate(v ?? "")} />
+        </View>
+        <View>
+          <Text style={labelStyle}>{t("subir.dueDateLabel")}</Text>
+          <DateField value={dueDate} onChange={(v) => setDueDate(v ?? "")} />
+        </View>
 
         {/* Status */}
         <View>

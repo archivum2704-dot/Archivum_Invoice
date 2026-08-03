@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { APP_URL } from "@/lib/config";
+import { readJson } from "@/lib/api";
 
 interface Quote {
   id: string; full_number: string | null; issue_date: string | null; valid_until: string | null; status: string;
@@ -58,7 +59,7 @@ export default function PresupuestoDetailScreen() {
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
             body: JSON.stringify({ quoteId: id }),
           });
-          const json = await res.json();
+          const json = await readJson(res);
           if (!res.ok) { Alert.alert(t("common.error"), json.detail ?? json.error ?? ""); setConverting(false); return; }
           router.replace(`/(app)/factura/${json.invoiceId}`);
         } catch (e) { Alert.alert(t("common.error"), String(e)); setConverting(false); }

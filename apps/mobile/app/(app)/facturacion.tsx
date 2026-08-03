@@ -14,6 +14,7 @@ import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
 import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
+import { readJson } from "@/lib/api";
 
 const IVA_RATES = ["", "4", "10", "21"];
 const RET_RATES = ["", "7", "15", "19"];
@@ -116,7 +117,7 @@ function FacturacionScreenContent() {
           lines: lines.filter(l => l.description.trim()).map(l => ({ productId: l.productId, description: l.description, quantity: Number(l.quantity) || 0, unitPrice: Number(l.unitPrice) || 0, taxRate: Number(l.taxRate) || 0, discountPct: 0 })),
         }),
       });
-      const json = await res.json();
+      const json = await readJson(res);
       if (!res.ok) { Alert.alert(t("common.error"), json.detail ?? json.error ?? t("invoicing.errGeneric")); setIssuing(false); return; }
       setModal(false); resetForm(); await load();
       router.push(`/(app)/factura/${json.id}`);
