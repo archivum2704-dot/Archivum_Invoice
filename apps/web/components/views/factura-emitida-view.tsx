@@ -15,12 +15,17 @@ import type { Database } from "@/lib/supabase/types"
 type Invoice = Database["public"]["Tables"]["invoices"]["Row"]
 type Line = Database["public"]["Tables"]["invoice_lines"]["Row"]
 
-async function fetchInvoice(id: string): Promise<{ invoice: Invoice; lines: Line[] } | null> {
+type RectifiedBy = { id: string; full_number: string | null } | null
+
+async function fetchInvoice(id: string): Promise<{ invoice: Invoice; lines: Line[]; rectifiedBy: RectifiedBy } | null> {
   const supabase = createClient()
   const { data: invoice, error } = await supabase.from("invoices").select("*").eq("id", id).single()
   if (error || !invoice) return null
   const { data: lines } = await supabase.from("invoice_lines").select("*").eq("invoice_id", id).order("position")
-  return { invoice: invoice as Invoice, lines: (lines ?? []) as Line[] }
+  // The credit note that annuls this invoice, if one was already issued.
+  const { data: rectifiedBy } = await supabase
+    .from("invoices").select("id, full_number").eq("rectifies_invoice_id", id).maybeSingle()
+  return { invoice: invoice as Invoice, lines: (lines ?? []) as Line[], rectifiedBy: rectifiedBy ?? null }
 }
 
 export function FacturaEmitidaView({ id }: { id: string }) {
@@ -42,8 +47,12 @@ export function FacturaEmitidaView({ id }: { id: string }) {
 
   const invoice = data?.invoice
   const lines = data?.lines ?? []
+  const rectifiedBy = data?.rectifiedBy ?? null
 
-  const canRectify = invoice?.state === "issued" && invoice?.kind !== "rectifying" && isOrgAdmin && isPaidPlan(currentOrg)
+  // Once annulled it cannot be annulled again — the server refuses it, so
+  // offering the button only produces an error.
+  const canRectify = invoice?.state === "issued" && invoice?.kind !== "rectifying"
+    && !rectifiedBy && isOrgAdmin && isPaidPlan(currentOrg)
 
   const handleRectify = async () => {
     if (!invoice || !currentOrg || !confirm(t("rectifyConfirm"))) return
@@ -99,6 +108,16 @@ export function FacturaEmitidaView({ id }: { id: string }) {
           <Ban className="w-4 h-4 text-[var(--status-overdue)] shrink-0" />
           <p className="text-sm text-foreground">{t("rectificativeBanner")}</p>
         </div>
+      )}
+
+      {rectifiedBy && (
+        <button
+          onClick={() => router.push(`/facturacion/${rectifiedBy.id}`)}
+          className="mb-4 w-full flex items-center gap-2 px-4 py-2.5 bg-[var(--status-overdue)]/8 border border-[var(--status-overdue)]/20 rounded-xl print:hidden text-left hover:bg-[var(--status-overdue)]/12 transition-colors"
+        >
+          <Ban className="w-4 h-4 text-[var(--status-overdue)] shrink-0" />
+          <p className="text-sm text-foreground flex-1">{t("rectifiedBanner", { number: rectifiedBy.full_number ?? "" })}</p>
+        </button>
       )}
 
       {/* Invoice document */}

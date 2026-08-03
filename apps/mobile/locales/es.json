@@ -56,7 +56,9 @@
     "states": {
       "issued": "Emitida",
       "draft": "Borrador",
-      "cancelled": "Anulada"
+      "cancelled": "Anulada",
+      "rectified": "Rectificada",
+      "rectificative": "Rectificativa"
     },
     "paywallTitle": "La facturación es una función de pago",
     "paywallBody": "Emite facturas conformes con Verifactu actualizando a un plan de pago.",
@@ -64,7 +66,8 @@
     "searchClient": "Buscar por nombre o CIF...",
     "noClientMatches": "Ningún cliente coincide",
     "discount": "Descuento",
-    "noDiscount": "Sin desc."
+    "noDiscount": "Sin desc.",
+    "rectifiedBanner": "Factura anulada por la rectificativa {{number}}"
   },
   "common": {
     "save": "Guardar",

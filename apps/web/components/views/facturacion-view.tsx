@@ -39,6 +39,20 @@ const STATE_STYLES: Record<string, string> = {
   cancelled: "bg-[var(--status-overdue)]/10 text-[var(--status-overdue)]",
 }
 
+/**
+ * What to show as an invoice's status.
+ *
+ * An issued invoice that a credit note has annulled must not keep reading
+ * "Emitida" — legally it stays issued, since an issued invoice cannot be
+ * withdrawn, but to the user it has been corrected. The rectificative points
+ * at the invoice it cancels, so both are derived from the same list.
+ */
+function invoiceStatus(inv: { id: string; state: string; kind: string | null }, rectifiedIds: Set<string>) {
+  if (inv.kind === 'rectifying') return { key: 'rectificative', style: 'bg-[var(--status-pending)]/10 text-[var(--status-pending)]' }
+  if (rectifiedIds.has(inv.id))  return { key: 'rectified',     style: 'bg-[var(--status-overdue)]/10 text-[var(--status-overdue)]' }
+  return { key: inv.state, style: STATE_STYLES[inv.state] }
+}
+
 const INVOICE_STATES = ["issued", "draft", "cancelled"] as const
 const INVOICE_KINDS = ["ordinary", "simplified", "rectifying"] as const
 
@@ -52,6 +66,11 @@ export function FacturacionView() {
   const { currentOrg, isOrgAdmin, isPlatformAdmin } = useOrganization()
   const paid = isPaidPlan(currentOrg) || isPlatformAdmin
   const { invoices, loading, mutate } = useInvoices(currentOrg?.id ?? null)
+  // Ids of invoices already annulled by a credit note.
+  const rectifiedIds = useMemo(
+    () => new Set(invoices.map(i => (i as any).rectifies_invoice_id).filter(Boolean) as string[]),
+    [invoices],
+  )
   const { companies, mutate: mutateCompanies } = useCompanies(currentOrg?.id ?? null)
   const { products } = useProducts(currentOrg?.id ?? null)
 
@@ -517,7 +536,10 @@ export function FacturacionView() {
                         <span className="text-sm font-semibold text-foreground w-32 shrink-0 truncate">{inv.full_number ?? "—"}</span>
                         <span className="flex-1 min-w-0 text-sm text-muted-foreground truncate">{inv.client?.name ?? inv.client_name ?? "—"}</span>
                         <span className="text-xs text-muted-foreground hidden sm:block w-24">{inv.issue_date ?? "—"}</span>
-                        <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium hidden sm:block", STATE_STYLES[inv.state])}>{t(`states.${inv.state}`)}</span>
+                        {(() => {
+                          const st = invoiceStatus(inv, rectifiedIds)
+                          return <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium hidden sm:block", st.style)}>{t(`states.${st.key}`)}</span>
+                        })()}
                         <span className="text-sm font-semibold text-foreground text-right w-28">{fmtEur(Number(inv.total))}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0 group-hover:translate-x-0.5 transition-transform" />
                       </Link>

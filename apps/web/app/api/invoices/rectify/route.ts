@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getApiClient } from '@/lib/supabase/api-auth'
+import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { computeHuella, buildRegistroAlta, buildQrUrl, nowWithOffset } from '@/lib/verifactu'
 import { buildInvoicePdf } from '@/lib/invoice-pdf'
 
@@ -127,7 +128,10 @@ export async function POST(req: NextRequest) {
     await supabase.from('invoices').update({ payment_status: 'cancelled' }).eq('id', invoiceId)
 
     // ── PDF + archive (best-effort) ─────────────────────────
+    // Archived with the service-role client: the documents bucket rejects the
+    // caller's client, so from mobile the credit note never reached Biblioteca.
     try {
+      const archiver = await createServerSupabase(true)
       const pdfBytes = await buildInvoicePdf({
         fullNumber, issueDate,
         issuer: { name: orig.issuer_name ?? '', cif: orig.issuer_cif, address: orig.issuer_address, postalCode: orig.issuer_postal_code, city: orig.issuer_city, province: orig.issuer_province, logoUrl: orig.issuer_logo_url },
@@ -136,18 +140,20 @@ export async function POST(req: NextRequest) {
         subtotal, taxAmount, retentionPct: orig.retention_pct, retentionAmount, total, notes: `Rectificativa por anulación de ${orig.full_number}`, huella, qrUrl,
       })
       const storagePath = `${orgId}/invoices/${rec.id}.pdf`
-      const { error: upErr } = await supabase.storage.from('documents').upload(storagePath, pdfBytes, { contentType: 'application/pdf', upsert: true })
-      if (!upErr) {
-        const { data: doc } = await supabase.from('documents').insert({
+      const { error: upErr } = await archiver.storage.from('documents').upload(storagePath, pdfBytes, { contentType: 'application/pdf', upsert: true })
+      if (upErr) throw new Error(`storage upload failed: ${upErr.message}`)
+      {
+        const { data: doc, error: docErr } = await archiver.from('documents').insert({
           organization_id: orgId, company_id: orig.client_company_id, uploaded_by: user.id,
           document_number: fullNumber, document_type: 'invoice_issued', status: 'cancelled',
           total, currency: 'EUR', issue_date: issueDate,
           file_url: storagePath, file_name: `${fullNumber}.pdf`, file_size: pdfBytes.length, file_type: 'application/pdf',
         }).select('id').single()
-        if (doc) await supabase.from('invoices').update({ document_id: doc.id }).eq('id', rec.id)
+        if (docErr) throw new Error(`library entry failed: ${docErr.message}`)
+        if (doc) await archiver.from('invoices').update({ document_id: doc.id }).eq('id', rec.id)
       }
     } catch (pdfErr) {
-      console.warn('[invoices/rectify] PDF archival failed (non-fatal):', pdfErr)
+      console.error('[invoices/rectify] archival to Biblioteca failed:', pdfErr)
     }
 
     return NextResponse.json({ success: true, id: rec.id, fullNumber: rec.full_number })

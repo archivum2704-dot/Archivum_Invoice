@@ -56,7 +56,9 @@
     "states": {
       "issued": "Issued",
       "draft": "Draft",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "rectified": "Corrected",
+      "rectificative": "Credit note"
     },
     "paywallTitle": "Invoicing is a paid feature",
     "paywallBody": "Issue Verifactu-compliant invoices by upgrading to a paid plan.",
@@ -64,7 +66,8 @@
     "searchClient": "Search by name or tax ID...",
     "noClientMatches": "No matching clients",
     "discount": "Discount",
-    "noDiscount": "No disc."
+    "noDiscount": "No disc.",
+    "rectifiedBanner": "Cancelled by credit note {{number}}"
   },
   "common": {
     "save": "Save",
