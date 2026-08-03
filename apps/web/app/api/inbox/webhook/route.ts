@@ -14,8 +14,8 @@ import { createClient as createAdminClient } from "@supabase/supabase-js"
  * `ParsedEmail`. The `to` address is used to find the organization (the
  * local-part is the org's `inbox_token`). All PDF/image attachments are
  * uploaded to the `documents` bucket and a `documents` row is inserted
- * for each, with `document_type='pending'` so the existing AI extraction
- * pipeline can pick them up.
+ * for each, with `document_type='pending'` so they show up as awaiting
+ * details, which someone then fills in from the library.
  *
  * Security:
  *   - INBOX_WEBHOOK_SECRET (header `x-archivum-webhook-secret`) shields the

@@ -396,7 +396,7 @@
       },
       "upload": {
         "title": "Upload and process documents",
-        "description": "Capture invoices, contracts and receipts. AI extracts the data automatically.",
+        "description": "Capture invoices, contracts and receipts with the camera and file them on the spot.",
         "b1": "Supports PDFs, photos and scans",
         "b2": "Extracts amounts, dates, tax IDs",
         "b3": "No need to transcribe anything"
@@ -440,7 +440,7 @@
     },
     "subirFirst": {
       "title": "Upload your first document",
-      "description": "Take a photo or pick a PDF from your gallery. AI will extract amounts, dates and data automatically."
+      "description": "Take a photo or pick a PDF from your gallery. You then enter the amount, dates and client, and it is saved."
     }
   },
   "ajustes": {
