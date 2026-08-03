@@ -2,7 +2,7 @@
   "expo": {
     "name": "Archivum",
     "slug": "archivum",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -61,7 +61,8 @@
     "extra": {
       "eas": {
         "projectId": "48362d1f-a346-46c7-9dab-f4a12a6eb78e"
-      }
+      },
+      "buildLabel": "kb-fix-2"
     },
     "updates": {
       "url": "https://u.expo.dev/48362d1f-a346-46c7-9dab-f4a12a6eb78e"

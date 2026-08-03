@@ -488,7 +488,8 @@
       "themeSystem": "Sistema"
     },
     "help": {
-      "tutorial": "Ver tutorial de la app"
+      "tutorial": "Ver tutorial de la app",
+      "version": "Versión"
     },
     "cancelSub": {
       "title": "Cancelar suscripción",
