@@ -828,7 +828,7 @@
     },
     "subirDropzone": {
       "title": "Empieza por aquí",
-      "description": "Arrastra una factura, contrato o recibo, o haz click para elegir archivos. La IA extraerá los datos automáticamente."
+      "description": "Arrastra una factura, contrato o recibo, o haz click para elegir archivos. Después rellenas sus datos y queda archivado."
     },
     "subirCompany": {
       "title": "Asocia un cliente (obligatorio)",
@@ -836,7 +836,7 @@
     },
     "subirType": {
       "title": "Tipo de documento (obligatorio)",
-      "description": "Indica si es factura, recibo, albarán, contrato u otro tipo. Esto ayuda a la IA a extraer mejor los datos."
+      "description": "Indica si es factura, recibo, albarán, contrato u otro tipo. Determina qué datos se te piden y cómo se clasifica."
     },
     "subirNumber": {
       "title": "Número del documento (obligatorio)",
@@ -844,7 +844,7 @@
     },
     "subirDate": {
       "title": "Fecha de emisión",
-      "description": "La fecha en la que se emitió el documento. La IA puede sugerirla automáticamente al subir el archivo."
+      "description": "La fecha en la que se emitió el documento. Es la que se usa para ordenarlo y filtrarlo por periodo."
     },
     "subirAmount": {
       "title": "Importe total",

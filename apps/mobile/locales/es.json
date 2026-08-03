@@ -396,7 +396,7 @@
       },
       "upload": {
         "title": "Sube y procesa documentos",
-        "description": "Captura facturas, contratos y recibos. La IA extrae los datos automáticamente.",
+        "description": "Captura facturas, contratos y recibos con la cámara y archívalos al momento.",
         "b1": "Soporta PDF, fotos y escaneos",
         "b2": "Extracción de importes, fechas, NIF/CIF",
         "b3": "Sin necesidad de transcribir nada"
@@ -440,7 +440,7 @@
     },
     "subirFirst": {
       "title": "Sube tu primer documento",
-      "description": "Toma una foto o selecciona un PDF de tu galería. La IA extraerá los importes, fechas y datos automáticamente."
+      "description": "Toma una foto o selecciona un PDF de tu galería. Después indicas importe, fechas y cliente, y queda guardado."
     }
   },
   "ajustes": {

@@ -828,7 +828,7 @@
     },
     "subirDropzone": {
       "title": "Start here",
-      "description": "Drag an invoice, contract or receipt here, or click to choose files. AI will extract the data automatically."
+      "description": "Drag an invoice, contract or receipt here, or click to choose files. You then fill in its details and it is filed."
     },
     "subirCompany": {
       "title": "Link to a client (required)",
@@ -836,7 +836,7 @@
     },
     "subirType": {
       "title": "Document type (required)",
-      "description": "Choose whether it's an invoice, receipt, delivery note, contract, or other. This helps the AI extract data better."
+      "description": "Choose whether it's an invoice, receipt, delivery note, contract, or other. It sets which details you are asked for."
     },
     "subirNumber": {
       "title": "Document number (required)",
