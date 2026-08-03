@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Image, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, Download, ArrowRight, Receipt } from "lucide-react-native";
+import { ArrowLeft, Download, ArrowRight, Receipt, ClipboardList } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
@@ -17,6 +17,7 @@ interface Quote {
   subtotal: number; discount_pct: number | null; discount_amount: number;
   tax_amount: number; retention_pct: number | null; retention_amount: number; total: number;
   notes: string | null; converted_invoice_id: string | null;
+  kind: string; source_quote_id: string | null;
 }
 interface Line { id: string; description: string; quantity: number; unit_price: number; line_total: number; }
 
@@ -31,6 +32,10 @@ export default function PresupuestoDetailScreen() {
   const [lines, setLines] = useState<Line[]>([]);
   const [loading, setLoading] = useState(true);
   const [converting, setConverting] = useState(false);
+  const [opening, setOpening] = useState(false);
+  // The screen is shared by quotes and delivery notes; each links to the other.
+  const [related, setRelated] = useState<{ id: string; full_number: string | null } | null>(null);
+  const isNote = quote?.kind === "delivery_note";
 
   const fmtEur = (n: number) => `${Number(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 
@@ -38,7 +43,14 @@ export default function PresupuestoDetailScreen() {
     (async () => {
       const { data: q } = await supabase.from("quotes").select("*").eq("id", id).single();
       const { data: ln } = await supabase.from("quote_lines").select("*").eq("quote_id", id).order("position");
-      setQuote((q as Quote) ?? null); setLines((ln as Line[]) ?? []); setLoading(false);
+      setQuote((q as Quote) ?? null); setLines((ln as Line[]) ?? []);
+      if (q) {
+        const { data: rel } = (q as any).kind === "delivery_note"
+          ? await supabase.from("quotes").select("id, full_number").eq("id", (q as any).source_quote_id).maybeSingle()
+          : await supabase.from("quotes").select("id, full_number").eq("source_quote_id", (q as any).id).maybeSingle();
+        setRelated((rel as any) ?? null);
+      }
+      setLoading(false);
     })();
   }, [id]);
 
@@ -49,9 +61,9 @@ export default function PresupuestoDetailScreen() {
   };
 
   const convert = () => {
-    Alert.alert(t("quoting.convertTitle"), t("quoting.convertBody"), [
+    Alert.alert(t("delivery.billTitle"), t("delivery.billBody"), [
       { text: t("common.cancel"), style: "cancel" },
-      { text: t("quoting.convert"), onPress: async () => {
+      { text: t("delivery.bill"), onPress: async () => {
         setConverting(true);
         try {
           const res = await fetch(`${APP_URL}/api/quotes/convert`, {
@@ -67,10 +79,29 @@ export default function PresupuestoDetailScreen() {
     ]);
   };
 
+  // Quotes finalized before albaranes existed have no note. Opening one here is
+  // the only way those reach an invoice, since billing runs off the note.
+  const openNote = async () => {
+    setOpening(true);
+    try {
+      const res = await fetch(`${APP_URL}/api/quotes/delivery-note`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ quoteId: id }),
+      });
+      const json = await readJson(res);
+      if (!res.ok) { Alert.alert(t("common.error"), json.detail ?? json.error ?? ""); setOpening(false); return; }
+      router.replace(`/(app)/presupuesto/${json.id}`);
+    } catch (e) { Alert.alert(t("common.error"), String(e)); setOpening(false); }
+  };
+
   if (loading) return <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}><View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><ActivityIndicator color={C.blue} /></View></SafeAreaView>;
   if (!quote) return <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}><Text style={{ color: C.muted, padding: 24 }}>{t("quoting.notFound")}</Text></SafeAreaView>;
 
-  const statusColor = quote.status === "accepted" ? C.green : quote.status === "rejected" ? C.red : C.blue;
+  const statusColor = quote.status === "accepted" ? C.green
+    : quote.status === "rejected" ? C.red
+    : quote.status === "open" ? C.yellow
+    : C.blue;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top", "bottom"]}>
@@ -98,7 +129,7 @@ export default function PresupuestoDetailScreen() {
           <View style={{ height: 1, backgroundColor: C.border }} />
           {/* Client */}
           <View>
-            <Text style={{ fontSize: 11, color: C.muted, textTransform: "uppercase" }}>{t("quoting.quoteFor")}</Text>
+            <Text style={{ fontSize: 11, color: C.muted, textTransform: "uppercase" }}>{isNote ? t("delivery.noteFor") : t("quoting.quoteFor")}</Text>
             <Text style={{ fontSize: 15, fontWeight: "600", color: C.text, marginTop: 2 }}>{quote.client_name ?? "—"}</Text>
             {!!quote.client_cif && <Text style={{ fontSize: 12, color: C.muted }}>CIF: {quote.client_cif}</Text>}
           </View>
@@ -126,7 +157,7 @@ export default function PresupuestoDetailScreen() {
               <Text style={{ fontSize: 12, color: C.muted }}>{quote.notes}</Text>
             </>
           )}
-          <Text style={{ fontSize: 10, color: C.muted }}>{t("quoting.disclaimer")}</Text>
+          <Text style={{ fontSize: 10, color: C.muted }}>{isNote ? t("delivery.disclaimer") : t("quoting.disclaimer")}</Text>
         </View>
 
         {/* Actions */}
@@ -135,10 +166,26 @@ export default function PresupuestoDetailScreen() {
             <Download size={18} color={C.text} /><Text style={{ color: C.text, fontWeight: "600", fontSize: 15 }}>{t("quoting.pdf")}</Text>
           </TouchableOpacity>
 
-          {quote.status !== "converted" && canManage && (
+          {!isNote && !!related && (
+            <TouchableOpacity onPress={() => router.replace(`/(app)/presupuesto/${related.id}`)} style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: C.blue, borderRadius: 12, paddingVertical: 15 }}>
+              <ArrowRight size={18} color="#fff" />
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+                {t("delivery.goToNote", { number: related.full_number ?? "" })}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {!isNote && !related && quote.status !== "converted" && canManage && (
+            <TouchableOpacity onPress={openNote} disabled={opening} style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: C.blue, borderRadius: 12, paddingVertical: 15, opacity: opening ? 0.6 : 1 }}>
+              {opening ? <ActivityIndicator color="#fff" /> : <ClipboardList size={18} color="#fff" />}
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("delivery.openNote")}</Text>
+            </TouchableOpacity>
+          )}
+
+          {isNote && quote.status !== "converted" && canManage && (
             <TouchableOpacity onPress={convert} disabled={converting} style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: C.blue, borderRadius: 12, paddingVertical: 15, opacity: converting ? 0.6 : 1 }}>
               {converting ? <ActivityIndicator color="#fff" /> : <ArrowRight size={18} color="#fff" />}
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("quoting.convert")}</Text>
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("delivery.bill")}</Text>
             </TouchableOpacity>
           )}
 
