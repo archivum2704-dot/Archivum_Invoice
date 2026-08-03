@@ -571,7 +571,8 @@
       "sent": "Sent",
       "accepted": "Accepted",
       "rejected": "Rejected",
-      "converted": "Invoiced"
+      "converted": "Invoiced",
+      "open": "Open"
     },
     "quoteFor": "Quote for",
     "notFound": "Quote not found",
@@ -595,6 +596,10 @@
     "states": {
       "open": "Open",
       "converted": "Invoiced"
-    }
+    },
+    "goToNote": "Go to delivery note {{number}}",
+    "openNote": "Open delivery note",
+    "noteFor": "Delivery note for",
+    "disclaimer": "This document is a delivery note and is not valid as an invoice."
   }
 }

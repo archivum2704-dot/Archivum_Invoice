@@ -571,7 +571,8 @@
       "sent": "Enviado",
       "accepted": "Aceptado",
       "rejected": "Rechazado",
-      "converted": "Facturado"
+      "converted": "Facturado",
+      "open": "Abierto"
     },
     "quoteFor": "Presupuesto para",
     "notFound": "Presupuesto no encontrado",
@@ -595,6 +596,10 @@
     "states": {
       "open": "Abierto",
       "converted": "Facturado"
-    }
+    },
+    "goToNote": "Ir al albarán {{number}}",
+    "openNote": "Abrir albarán",
+    "noteFor": "Albarán para",
+    "disclaimer": "Este documento es un albarán de entrega y no tiene validez como factura."
   }
 }
