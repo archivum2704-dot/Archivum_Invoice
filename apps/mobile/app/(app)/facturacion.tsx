@@ -20,7 +20,11 @@ const IVA_RATES = ["", "4", "10", "21"];
 const RET_RATES = ["", "7", "15", "19"];
 const DISC_RATES = ["", "5", "10", "15", "20"];
 
-interface Invoice { id: string; full_number: string | null; client_name: string | null; total: number; state: string; issue_date: string | null; }
+interface Invoice {
+  id: string; full_number: string | null; client_name: string | null;
+  total: number; state: string; issue_date: string | null;
+  kind: string; rectifies_invoice_id: string | null;
+}
 interface Company { id: string; name: string; cif: string | null; }
 interface Product { id: string; name: string; unit_price: number; tax_rate: number; }
 type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string };
@@ -70,7 +74,7 @@ function FacturacionScreenContent() {
   const load = useCallback(async () => {
     if (!orgId) return;
     const [{ data: inv }, { data: co }, { data: pr }] = await Promise.all([
-      supabase.from("invoices").select("id, full_number, client_name, total, state, issue_date").eq("organization_id", orgId).order("created_at", { ascending: false }),
+      supabase.from("invoices").select("id, full_number, client_name, total, state, issue_date, kind, rectifies_invoice_id").eq("organization_id", orgId).order("created_at", { ascending: false }),
       supabase.from("companies").select("id, name, cif").eq("organization_id", orgId).eq("is_active", true).order("name"),
       supabase.from("products").select("id, name, unit_price, tax_rate").eq("organization_id", orgId).eq("is_active", true).order("name"),
     ]);
@@ -140,6 +144,19 @@ function FacturacionScreenContent() {
 
   const stateColor = (s: string) => s === "issued" ? C.green : s === "cancelled" ? C.red : C.muted;
 
+  // An issued invoice that has been annulled must not keep reading "Emitida",
+  // and its credit note should say what it is. Both are derived from the list
+  // itself: the rectificative points at the invoice it cancels.
+  const rectifiedIds = useMemo(
+    () => new Set(invoices.map(i => i.rectifies_invoice_id).filter(Boolean) as string[]),
+    [invoices],
+  );
+  const statusOf = (inv: Invoice) => {
+    if (inv.kind === "rectifying") return { label: t("invoicing.states.rectificative"), color: C.yellow };
+    if (rectifiedIds.has(inv.id))  return { label: t("invoicing.states.rectified"),     color: C.red };
+    return { label: t(`invoicing.states.${inv.state}`), color: stateColor(inv.state) };
+  };
+
   const Header = (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -194,7 +211,7 @@ function FacturacionScreenContent() {
               </View>
               <View style={{ alignItems: "flex-end" }}>
                 <Text style={{ fontSize: 14, fontWeight: "700", color: C.text }}>{fmtEur(item.total)}</Text>
-                <Text style={{ fontSize: 11, fontWeight: "600", color: stateColor(item.state) }}>{t(`invoicing.states.${item.state}`)}</Text>
+                <Text style={{ fontSize: 11, fontWeight: "600", color: statusOf(item).color }}>{statusOf(item).label}</Text>
               </View>
               <ChevronRight size={18} color={C.muted} />
             </TouchableOpacity>

@@ -220,7 +220,9 @@
     "states": {
       "issued": "Emitida",
       "draft": "Borrador",
-      "cancelled": "Anulada"
+      "cancelled": "Anulada",
+      "rectified": "Rectificada",
+      "rectificative": "Rectificativa"
     },
     "errors": {
       "issuerCif": "Tu empresa necesita un CIF para emitir facturas. Añádelo en Ajustes.",
@@ -266,7 +268,8 @@
     "numberFrom": "Desde",
     "numberTo": "Hasta",
     "discount": "Descuento",
-    "noDiscount": "Sin descuento"
+    "noDiscount": "Sin descuento",
+    "rectifiedBanner": "Factura anulada por la rectificativa {number}"
   },
   "verifactu": {
     "title": "Certificado Verifactu (AEAT)",

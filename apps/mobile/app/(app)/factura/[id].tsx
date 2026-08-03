@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, ShieldCheck, Ban, Copy, Check } from "lucide-react-native";
+import { ArrowLeft, ShieldCheck, Ban, Copy, Check, ChevronRight } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import QRCode from "react-native-qrcode-svg";
 import { useAuth } from "@/context/auth-context";
@@ -20,6 +20,7 @@ interface Invoice {
   subtotal: number; discount_pct: number | null; discount_amount: number;
   tax_amount: number; retention_pct: number | null; retention_amount: number; total: number;
   huella: string | null; qr_url: string | null;
+  rectifies_invoice_id: string | null;
 }
 interface Line { id: string; description: string; quantity: number; unit_price: number; tax_rate: number; line_total: number; }
 
@@ -33,6 +34,8 @@ export default function FacturaDetailScreen() {
   const [lines, setLines] = useState<Line[]>([]);
   const [loading, setLoading] = useState(true);
   const [rectifying, setRectifying] = useState(false);
+  // The credit note that annuls this invoice, if one was already issued.
+  const [rectifiedBy, setRectifiedBy] = useState<{ id: string; full_number: string | null } | null>(null);
   const [huellaCopied, setHuellaCopied] = useState(false);
 
   const copyHuella = async () => {
@@ -47,11 +50,17 @@ export default function FacturaDetailScreen() {
   const load = async () => {
     const { data: inv } = await supabase.from("invoices").select("*").eq("id", id).single();
     const { data: ln } = await supabase.from("invoice_lines").select("*").eq("invoice_id", id).order("position");
+    const { data: rec } = await supabase.from("invoices")
+      .select("id, full_number").eq("rectifies_invoice_id", id).maybeSingle();
+    setRectifiedBy(rec ?? null);
     setInvoice(inv as Invoice); setLines((ln as Line[]) ?? []); setLoading(false);
   };
   useEffect(() => { load(); }, [id]);
 
-  const canRectify = invoice?.state === "issued" && invoice?.kind !== "rectifying" && isAdmin && (isPaid || isPlatformAdmin);
+  // Once annulled it cannot be annulled again — the server refuses it, and
+  // offering the button anyway only produces an error.
+  const canRectify = invoice?.state === "issued" && invoice?.kind !== "rectifying"
+    && !rectifiedBy && isAdmin && (isPaid || isPlatformAdmin);
 
   const rectify = () => {
     Alert.alert(t("invoicing.rectify"), t("invoicing.rectifyConfirm"), [
@@ -87,6 +96,19 @@ export default function FacturaDetailScreen() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: C.redL, borderRadius: 12, padding: 12 }}>
             <Ban size={16} color={C.red} /><Text style={{ color: C.text, fontSize: 13, flex: 1 }}>{t("invoicing.rectificativeBanner")}</Text>
           </View>
+        )}
+
+        {!!rectifiedBy && (
+          <TouchableOpacity
+            onPress={() => router.replace(`/(app)/factura/${rectifiedBy.id}`)}
+            style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: C.redL, borderRadius: 12, padding: 12 }}
+          >
+            <Ban size={16} color={C.red} />
+            <Text style={{ color: C.text, fontSize: 13, flex: 1 }}>
+              {t("invoicing.rectifiedBanner", { number: rectifiedBy.full_number ?? "" })}
+            </Text>
+            <ChevronRight size={16} color={C.muted} />
+          </TouchableOpacity>
         )}
 
         <View style={{ backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 16, gap: 12 }}>
