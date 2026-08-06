@@ -13,11 +13,13 @@ const inputCls = "w-full px-3 py-2 text-sm bg-background border border-border ro
  * the one on file is often a billing inbox and the sender may want a person
  * instead. Nothing is sent until they confirm — this is outward-facing mail.
  */
-export function SendEmailButton({ kind, id, defaultTo, className }: {
+export function SendEmailButton({ kind, id, defaultTo, className, compact }: {
   kind: "invoice" | "quote"
   id: string
   defaultTo?: string | null
   className?: string
+  /** Just "Enviar" — for toolbars where the full label does not fit. */
+  compact?: boolean
 }) {
   const t = useTranslations("email")
   const tCommon = useTranslations("common")
@@ -54,9 +56,9 @@ export function SendEmailButton({ kind, id, defaultTo, className }: {
     <>
       <button
         onClick={openDialog}
-        className={className ?? "flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border rounded-xl hover:bg-muted transition-colors"}
+        className={className ?? "flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border rounded-xl hover:bg-muted whitespace-nowrap transition-colors"}
       >
-        <Mail className="w-4 h-4" /> {t("send")}
+        <Mail className="w-4 h-4" /> {compact ? t("sendShort") : t("send")}
       </button>
 
       {open && (

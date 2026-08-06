@@ -894,6 +894,7 @@
     "attachmentNote": "The PDF will be attached.",
     "noStoredEmail": "This client has no email on file. Type it here or add it to their record.",
     "sentTitle": "Sent successfully",
-    "failed": "The email could not be sent."
+    "failed": "The email could not be sent.",
+    "sendShort": "Send"
   }
 }
