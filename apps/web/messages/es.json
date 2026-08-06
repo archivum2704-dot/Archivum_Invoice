@@ -163,7 +163,12 @@
     "results": "{count} productos",
     "productsIn": "en {category}",
     "exportExcel": "Exportar Excel",
-    "skuPlaceholder": "Automática si se deja vacía"
+    "skuPlaceholder": "Automática si se deja vacía",
+    "minStock": "Stock mínimo",
+    "minStockPlaceholder": "Sin aviso",
+    "minStockHint": "Si lo rellenas, te avisamos aquí cuando el stock baje a ese número o menos. Déjalo vacío para no vigilarlo.",
+    "lowStockBadge": "Stock bajo",
+    "lowStockTitle": "{count, plural, one {# producto ha llegado a su stock mínimo} other {# productos han llegado a su stock mínimo}}"
   },
   "invoicing": {
     "title": "Facturación",

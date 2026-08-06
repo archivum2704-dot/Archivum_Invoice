@@ -18,7 +18,11 @@
     "deleteConfirm": "¿Eliminar \"{{name}}\" del inventario?",
     "paywallTitle": "El inventario es una función de pago",
     "paywallBody": "Gestiona tus productos actualizando a un plan de pago.",
-    "upgrade": "Ver planes"
+    "upgrade": "Ver planes",
+    "minStock": "Stock mínimo",
+    "minStockPlaceholder": "Sin aviso",
+    "minStockHint": "Si lo rellenas, te avisamos cuando el stock baje a ese número o menos.",
+    "lowStockTitle": "{{count}} producto(s) han llegado a su stock mínimo"
   },
   "invoicing": {
     "title": "Facturación",

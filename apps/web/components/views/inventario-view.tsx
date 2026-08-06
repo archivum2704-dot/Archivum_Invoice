@@ -23,11 +23,22 @@ type Draft = {
   tax_rate: string
   track_stock: boolean
   stock_qty: string
+  min_stock: string
 }
 
 const EMPTY: Draft = {
   name: "", sku: "", category: "", description: "", unit: "ud",
-  unit_price: "0", tax_rate: "21", track_stock: true, stock_qty: "0",
+  unit_price: "0", tax_rate: "21", track_stock: true, stock_qty: "0", min_stock: "",
+}
+
+/**
+ * A tracked product at or below its reorder floor.
+ *
+ * Only products with a floor set are watched: a null min_stock means nobody
+ * asked to be warned, and warning anyway would make the flag noise.
+ */
+export function isLowStock(p: { track_stock: boolean; stock_qty: number; min_stock: number | null }) {
+  return p.track_stock && p.min_stock != null && Number(p.stock_qty) <= Number(p.min_stock)
 }
 
 // Sentinel for the "uncategorized" filter option
@@ -69,6 +80,7 @@ export function InventarioView() {
       name: p.name, sku: p.sku ?? "", category: p.category ?? "", description: p.description ?? "", unit: p.unit,
       unit_price: String(p.unit_price), tax_rate: String(p.tax_rate),
       track_stock: p.track_stock, stock_qty: String(p.stock_qty),
+      min_stock: p.min_stock == null ? "" : String(p.min_stock),
     })
     setError(null); setEditing(p)
   }
@@ -98,6 +110,11 @@ export function InventarioView() {
       tax_rate: Number(draft.tax_rate) || 0,
       track_stock: draft.track_stock,
       stock_qty: draft.track_stock ? (Number(draft.stock_qty) || 0) : 0,
+      // Blank means "not watched" — distinct from a floor of 0, which would
+      // only ever warn once the product had already run out.
+      min_stock: draft.track_stock && draft.min_stock.trim() !== ""
+        ? Number(draft.min_stock) || 0
+        : null,
     }
     const res = editing === "new"
       ? await supabase.from("products").insert(payload)
@@ -237,6 +254,11 @@ export function InventarioView() {
       .map(k => ({ key: k, label: k === UNCATEGORIZED ? t("uncategorized") : k, items: m.get(k)! }))
   }, [filtered, selectedCategories, categories, t])
 
+  // Products that have fallen to their floor. Shown as a banner because the
+  // per-row mark is easy to miss in a long list — the point of a minimum is
+  // that someone notices without going looking.
+  const lowStock = useMemo(() => products.filter(isLowStock), [products])
+
   const renderRow = (p: Product) => (
     <div
       key={p.id}
@@ -260,9 +282,25 @@ export function InventarioView() {
       <span className="text-sm font-semibold text-foreground text-right">{fmtEur(p.unit_price)}</span>
       <span className="text-sm text-muted-foreground text-right hidden sm:block">{Number(p.tax_rate)}%</span>
       <span className="text-sm text-right">
-        {p.track_stock
-          ? <span className={cn("font-semibold", Number(p.stock_qty) <= 0 ? "text-[var(--status-overdue)]" : "text-foreground")}>{Number(p.stock_qty)}</span>
-          : <span className="text-muted-foreground/60">—</span>}
+        {p.track_stock ? (
+          <span className="inline-flex items-center justify-end gap-1.5">
+            {isLowStock(p) && (
+              <AlertTriangle className="w-3.5 h-3.5 text-[var(--status-pending)] shrink-0"
+                aria-label={t("lowStockBadge")}>
+                <title>{t("lowStockBadge")}</title>
+              </AlertTriangle>
+            )}
+            <span className={cn(
+              "font-semibold",
+              Number(p.stock_qty) <= 0 ? "text-[var(--status-overdue)]"
+                : isLowStock(p) ? "text-[var(--status-pending)]"
+                : "text-foreground",
+            )}>{Number(p.stock_qty)}</span>
+            {p.min_stock != null && p.track_stock && (
+              <span className="text-[10px] text-muted-foreground/60 tabular-nums">/{Number(p.min_stock)}</span>
+            )}
+          </span>
+        ) : <span className="text-muted-foreground/60">—</span>}
       </span>
       <div className="flex items-center justify-end gap-1">
         {canManage && (
@@ -342,6 +380,21 @@ export function InventarioView() {
           )}
         </div>
       </div>
+
+      {lowStock.length > 0 && (
+        <div className="flex items-start gap-2.5 bg-[var(--status-pending)]/10 border border-[var(--status-pending)]/20 rounded-xl px-4 py-3 mb-5">
+          <AlertTriangle className="w-4 h-4 text-[var(--status-pending)] mt-0.5 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[var(--status-pending)]">
+              {t("lowStockTitle", { count: lowStock.length })}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+              {lowStock.slice(0, 4).map(p => `${p.name} (${Number(p.stock_qty)}/${Number(p.min_stock)})`).join(" · ")}
+              {lowStock.length > 4 && ` · +${lowStock.length - 4}`}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Search bar */}
       <div className="relative mb-6">
@@ -579,9 +632,16 @@ export function InventarioView() {
                 {t("trackStock")}
               </label>
               {draft.track_stock && (
-                <Field label={t("stock")}>
-                  <input type="number" step="1" value={draft.stock_qty} onChange={e => setDraft({ ...draft, stock_qty: e.target.value })} className={inputCls} />
-                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label={t("stock")}>
+                    <input type="number" step="1" value={draft.stock_qty} onChange={e => setDraft({ ...draft, stock_qty: e.target.value })} className={inputCls} />
+                  </Field>
+                  <Field label={t("minStock")}>
+                    <input type="number" step="1" min="0" placeholder={t("minStockPlaceholder")}
+                      value={draft.min_stock} onChange={e => setDraft({ ...draft, min_stock: e.target.value })} className={inputCls} />
+                  </Field>
+                  <p className="col-span-2 -mt-1 text-[11px] text-muted-foreground">{t("minStockHint")}</p>
+                </div>
               )}
 
               {error && (

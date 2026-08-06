@@ -163,7 +163,12 @@
     "results": "{count} products",
     "productsIn": "in {category}",
     "exportExcel": "Export to Excel",
-    "skuPlaceholder": "Auto-generated if left empty"
+    "skuPlaceholder": "Auto-generated if left empty",
+    "minStock": "Minimum stock",
+    "minStockPlaceholder": "No alert",
+    "minStockHint": "Fill this in and we will flag it here when stock falls to that number or below. Leave empty to skip it.",
+    "lowStockBadge": "Low stock",
+    "lowStockTitle": "{count, plural, one {# product has reached its minimum stock} other {# products have reached their minimum stock}}"
   },
   "invoicing": {
     "title": "Invoicing",

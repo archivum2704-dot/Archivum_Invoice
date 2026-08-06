@@ -8,7 +8,7 @@ import { router } from "expo-router";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import * as XLSX from "xlsx";
-import { Plus, Package, X, Pencil, Trash2, Lock, ArrowLeft, Search, FileSpreadsheet } from "lucide-react-native";
+import { Plus, Package, X, Pencil, Trash2, Lock, ArrowLeft, Search, FileSpreadsheet, AlertTriangle } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
@@ -29,15 +29,26 @@ interface Product {
   tax_rate: number;
   track_stock: boolean;
   stock_qty: number;
+  min_stock: number | null;
 }
 
 type Draft = {
   id?: string;
   name: string; sku: string; category: string; unit: string;
-  unit_price: string; tax_rate: string; track_stock: boolean; stock_qty: string;
+  unit_price: string; tax_rate: string; track_stock: boolean; stock_qty: string; min_stock: string;
 };
 
-const EMPTY: Draft = { name: "", sku: "", category: "", unit: "ud", unit_price: "0", tax_rate: "21", track_stock: true, stock_qty: "0" };
+const EMPTY: Draft = { name: "", sku: "", category: "", unit: "ud", unit_price: "0", tax_rate: "21", track_stock: true, stock_qty: "0", min_stock: "" };
+
+/**
+ * A tracked product at or below its reorder floor.
+ *
+ * Only products with a floor set are watched: a null min_stock means nobody
+ * asked to be warned, and warning anyway would make the flag noise.
+ */
+function isLowStock(p: Product) {
+  return p.track_stock && p.min_stock != null && Number(p.stock_qty) <= Number(p.min_stock);
+}
 
 // Sentinel for the "uncategorized" filter chip
 const UNCAT = "__uncategorized__";
@@ -63,6 +74,7 @@ function InventarioScreenContent() {
     new Set(products.map((p) => p.category?.trim()).filter((c): c is string => !!c))
   ).sort((a, b) => a.localeCompare(b));
   const hasUncategorized = products.some((p) => !p.category?.trim());
+  const lowStock = products.filter(isLowStock);
   const q = search.trim().toLowerCase();
   const filtered = products.filter((p) => {
     const matchesSearch =
@@ -110,6 +122,11 @@ function InventarioScreenContent() {
       tax_rate: Number(draft.tax_rate) || 0,
       track_stock: draft.track_stock,
       stock_qty: draft.track_stock ? Number(draft.stock_qty) || 0 : 0,
+      // Blank means "not watched" — distinct from a floor of 0, which would
+      // only ever warn once the product had already run out.
+      min_stock: draft.track_stock && draft.min_stock.trim() !== ""
+        ? Number(draft.min_stock) || 0
+        : null,
     };
     const res = draft.id
       ? await supabase.from("products").update(payload).eq("id", draft.id)
@@ -228,6 +245,29 @@ function InventarioScreenContent() {
         </View>
       )}
 
+      {/* Products that have fallen to their floor. A banner, because the per-row
+          mark is easy to miss — the point of a minimum is that someone notices
+          without going looking. */}
+      {lowStock.length > 0 && (
+        <View style={{
+          flexDirection: "row", alignItems: "flex-start", gap: 8,
+          backgroundColor: C.yellowL, borderWidth: 1, borderColor: C.yellow,
+          borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
+          marginHorizontal: 16, marginBottom: 12,
+        }}>
+          <AlertTriangle size={16} color={C.yellow} style={{ marginTop: 1 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 13, fontWeight: "700", color: C.yellow }}>
+              {t("inventory.lowStockTitle", { count: lowStock.length })}
+            </Text>
+            <Text numberOfLines={2} style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+              {lowStock.slice(0, 4).map((p) => `${p.name} (${Number(p.stock_qty)}/${Number(p.min_stock)})`).join(" · ")}
+              {lowStock.length > 4 ? ` · +${lowStock.length - 4}` : ""}
+            </Text>
+          </View>
+        </View>
+      )}
+
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><ActivityIndicator color={C.blue} /></View>
       ) : (
@@ -249,7 +289,9 @@ function InventarioScreenContent() {
                 <Text style={{ fontSize: 15, fontWeight: "600", color: C.text }}>{item.name}</Text>
                 <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
                   {fmtEur(item.unit_price)} · {Number(item.tax_rate)}% {t("inventory.iva")}
-                  {item.track_stock ? ` · ${t("inventory.stock")}: ${Number(item.stock_qty)}` : ""}
+                  {item.track_stock
+                    ? ` · ${t("inventory.stock")}: ${Number(item.stock_qty)}${item.min_stock != null ? `/${Number(item.min_stock)}` : ""}`
+                    : ""}
                 </Text>
                 {item.category ? (
                   <View style={{ alignSelf: "flex-start", marginTop: 4, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
@@ -259,7 +301,7 @@ function InventarioScreenContent() {
               </View>
               {canManage && (
                 <View style={{ flexDirection: "row", gap: 4 }}>
-                  <TouchableOpacity onPress={() => { setDraft({ id: item.id, name: item.name, sku: item.sku ?? "", category: item.category ?? "", unit: item.unit, unit_price: String(item.unit_price), tax_rate: String(item.tax_rate), track_stock: item.track_stock, stock_qty: String(item.stock_qty) }); setModal(true); }} style={{ padding: 6 }}>
+                  <TouchableOpacity onPress={() => { setDraft({ id: item.id, name: item.name, sku: item.sku ?? "", category: item.category ?? "", unit: item.unit, unit_price: String(item.unit_price), tax_rate: String(item.tax_rate), track_stock: item.track_stock, stock_qty: String(item.stock_qty), min_stock: item.min_stock == null ? "" : String(item.min_stock) }); setModal(true); }} style={{ padding: 6 }}>
                     <Pencil size={16} color={C.muted} />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => remove(item)} style={{ padding: 6 }}><Trash2 size={16} color={C.red} /></TouchableOpacity>
@@ -290,7 +332,17 @@ function InventarioScreenContent() {
                 <Text style={{ color: C.text, fontSize: 14 }}>{t("inventory.trackStock")}</Text>
                 <Switch value={draft.track_stock} onValueChange={(v: boolean) => setDraft({ ...draft, track_stock: v })} />
               </View>
-              {draft.track_stock && <Field label={t("inventory.stock")} C={C}><Input value={draft.stock_qty} onChangeText={(v: string) => setDraft({ ...draft, stock_qty: v })} keyboardType="number-pad" C={C} /></Field>}
+              {draft.track_stock && (
+                <>
+                  <Field label={t("inventory.stock")} C={C}>
+                    <Input value={draft.stock_qty} onChangeText={(v: string) => setDraft({ ...draft, stock_qty: v })} keyboardType="number-pad" C={C} />
+                  </Field>
+                  <Field label={t("inventory.minStock")} C={C}>
+                    <Input value={draft.min_stock} onChangeText={(v: string) => setDraft({ ...draft, min_stock: v })} keyboardType="number-pad" placeholder={t("inventory.minStockPlaceholder")} C={C} />
+                  </Field>
+                  <Text style={{ fontSize: 11, color: C.muted, marginTop: -6 }}>{t("inventory.minStockHint")}</Text>
+                </>
+              )}
             </ScrollView>
             <TouchableOpacity onPress={save} disabled={saving || !draft.name.trim()}
               style={{ backgroundColor: C.blue, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 12, opacity: saving || !draft.name.trim() ? 0.5 : 1 }}>
