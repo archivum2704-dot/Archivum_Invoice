@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getApiClient } from '@/lib/supabase/api-auth'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
-import { computeHuella, buildRegistroAlta, buildQrUrl, nowWithOffset } from '@/lib/verifactu'
+import { computeHuella, buildRegistroAlta, buildQrUrl } from '@/lib/verifactu'
+import { insertChainedInvoice } from '@/lib/invoice-chain'
 import { buildInvoicePdf } from '@/lib/invoice-pdf'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
@@ -45,51 +46,51 @@ export async function POST(req: NextRequest) {
     const fullNumber = `${series}-${year}-${String(number).padStart(4, '0')}`
 
     // ── Huella chain ────────────────────────────────────────
-    const { data: prev } = await supabase.from('invoices')
-      .select('huella').eq('organization_id', orgId).eq('state', 'issued')
-      .not('huella', 'is', null).order('issued_at', { ascending: false }).limit(1).maybeSingle()
-    const previousHuella = prev?.huella ?? ''
-    const generatedAt = nowWithOffset()
-
-    const registroInput = {
-      issuerNif: orig.issuer_cif!.trim(),
-      fullNumber, issueDate, kind: 'rectifying' as const,
-      cuotaTotal: taxAmount, importeTotal: total,
-      previousHuella, generatedAt,
-    }
-    const huella = computeHuella(registroInput)
-    const registroAlta = buildRegistroAlta({
-      ...registroInput,
-      issuerName: orig.issuer_name ?? '',
-      clientNif: orig.client_cif, clientName: orig.client_name,
-      rectified: { issuerNif: orig.issuer_cif!.trim(), fullNumber: orig.full_number!, issueDate: orig.issue_date! },
-    })
+    // A rectificativa joins the same chain as an ordinary invoice, so it takes
+    // its link the same way: the insert claims it, and a clash with a
+    // concurrent issue is retried against the advanced head.
     const qrUrl = buildQrUrl(orig.issuer_cif!.trim(), fullNumber, issueDate, total)
+    // Captured from the attempt that succeeded, for the PDF below.
+    let huella = ''
 
-    // ── Insert rectificative invoice ────────────────────────
-    const { data: rec, error: invErr } = await supabase.from('invoices').insert({
-      organization_id: orgId,
-      client_company_id: orig.client_company_id,
-      series, number, full_number: fullNumber,
-      // Created as draft so the negated lines can be inserted; promoted to
-      // 'issued' below (line inserts are rejected once the parent is 'issued').
-      kind: 'rectifying', state: 'draft',
-      issue_date: issueDate, operation_date: issueDate,
-      subtotal, tax_amount: taxAmount, total,
-      retention_pct: orig.retention_pct, retention_amount: retentionAmount,
-      issuer_name: orig.issuer_name, issuer_cif: orig.issuer_cif, issuer_address: orig.issuer_address,
-      issuer_city: orig.issuer_city, issuer_postal_code: orig.issuer_postal_code, issuer_province: orig.issuer_province,
-      issuer_logo_url: orig.issuer_logo_url,
-      client_name: orig.client_name, client_cif: orig.client_cif, client_address: orig.client_address,
-      client_city: orig.client_city, client_postal_code: orig.client_postal_code, client_province: orig.client_province,
-      notes: `Rectificativa por anulación de ${orig.full_number}`,
-      huella, huella_anterior: previousHuella || null,
-      qr_url: qrUrl, registro_alta: registroAlta,
-      verifactu_status: 'generated', issued_at: generatedAt,
-      payment_status: 'pending', rectifies_invoice_id: invoiceId,
-      created_by: user.id,
-    }).select('id, full_number').single()
-    if (invErr || !rec) return NextResponse.json({ error: 'insert_failed', detail: invErr?.message }, { status: 400 })
+    const chained = await insertChainedInvoice(supabase, orgId, ({ previousHuella, generatedAt }) => {
+      const registroInput = {
+        issuerNif: orig.issuer_cif!.trim(),
+        fullNumber, issueDate, kind: 'rectifying' as const,
+        cuotaTotal: taxAmount, importeTotal: total,
+        previousHuella, generatedAt,
+      }
+      const registroAlta = buildRegistroAlta({
+        ...registroInput,
+        issuerName: orig.issuer_name ?? '',
+        clientNif: orig.client_cif, clientName: orig.client_name,
+        rectified: { issuerNif: orig.issuer_cif!.trim(), fullNumber: orig.full_number!, issueDate: orig.issue_date! },
+      })
+      return {
+        organization_id: orgId,
+        client_company_id: orig.client_company_id,
+        series, number, full_number: fullNumber,
+        // Created as draft so the negated lines can be inserted; promoted to
+        // 'issued' below (line inserts are rejected once the parent is 'issued').
+        kind: 'rectifying', state: 'draft',
+        issue_date: issueDate, operation_date: issueDate,
+        subtotal, tax_amount: taxAmount, total,
+        retention_pct: orig.retention_pct, retention_amount: retentionAmount,
+        issuer_name: orig.issuer_name, issuer_cif: orig.issuer_cif, issuer_address: orig.issuer_address,
+        issuer_city: orig.issuer_city, issuer_postal_code: orig.issuer_postal_code, issuer_province: orig.issuer_province,
+        issuer_logo_url: orig.issuer_logo_url,
+        client_name: orig.client_name, client_cif: orig.client_cif, client_address: orig.client_address,
+        client_city: orig.client_city, client_postal_code: orig.client_postal_code, client_province: orig.client_province,
+        notes: `Rectificativa por anulación de ${orig.full_number}`,
+        huella: (huella = computeHuella(registroInput)), huella_anterior: previousHuella || null,
+        qr_url: qrUrl, registro_alta: registroAlta,
+        verifactu_status: 'generated', issued_at: generatedAt,
+        payment_status: 'pending', rectifies_invoice_id: invoiceId,
+        created_by: user.id,
+      }
+    })
+    if ('error' in chained) return NextResponse.json({ error: 'insert_failed', detail: chained.error }, { status: 400 })
+    const rec = chained
 
     // ── Negated lines ───────────────────────────────────────
     const negLines = (origLines ?? []).map((l, idx) => ({

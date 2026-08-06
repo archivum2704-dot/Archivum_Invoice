@@ -1,10 +1,11 @@
 import {
-  computeHuella, buildRegistroAlta, buildQrUrl, nowWithOffset,
+  computeHuella, buildRegistroAlta, buildQrUrl,
   type InvoiceKind,
 } from '@/lib/verifactu'
 import { buildInvoicePdf } from '@/lib/invoice-pdf'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
+import { insertChainedInvoice } from '@/lib/invoice-chain'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
@@ -113,27 +114,22 @@ export async function issueInvoice(
   const fullNumber = `${series}-${year}-${String(number).padStart(4, '0')}`
 
   // ── Verifactu huella chain ──
-  const { data: prev } = await supabase
-    .from('invoices').select('huella')
-    .eq('organization_id', orgId).eq('state', 'issued')
-    .not('huella', 'is', null)
-    .order('issued_at', { ascending: false }).limit(1).maybeSingle()
-  const previousHuella = prev?.huella ?? ''
-  const generatedAt = nowWithOffset()
-
-  const registroInput = {
-    issuerNif: org.cif!.trim(), fullNumber, issueDate, kind: kind as InvoiceKind,
-    cuotaTotal: taxAmount, importeTotal: total, previousHuella, generatedAt,
-  }
-  const huella = computeHuella(registroInput)
-  const registroAlta = buildRegistroAlta({
-    ...registroInput, issuerName: org.name, clientNif: client.cif!.trim(), clientName: client.name,
-  })
+  // The link is claimed by the insert itself: insertChainedInvoice retries
+  // against a fresh head if another invoice takes the same predecessor, so the
+  // huella is recomputed per attempt while the number stays as taken above.
   const qrUrl = buildQrUrl(org.cif!.trim(), fullNumber, issueDate, total)
+  let huella = ''
 
-  const { data: invoice, error: invErr } = await supabase
-    .from('invoices')
-    .insert({
+  const chained = await insertChainedInvoice(supabase, orgId, ({ previousHuella, generatedAt }) => {
+    const registroInput = {
+      issuerNif: org.cif!.trim(), fullNumber, issueDate, kind: kind as InvoiceKind,
+      cuotaTotal: taxAmount, importeTotal: total, previousHuella, generatedAt,
+    }
+    huella = computeHuella(registroInput)
+    const registroAlta = buildRegistroAlta({
+      ...registroInput, issuerName: org.name, clientNif: client.cif!.trim(), clientName: client.name,
+    })
+    return {
       organization_id: orgId, client_company_id: clientCompanyId,
       series, number, full_number: fullNumber,
       kind, state: 'draft',
@@ -151,9 +147,10 @@ export async function issueInvoice(
       qr_url: qrUrl, registro_alta: registroAlta,
       verifactu_status: 'generated', issued_at: generatedAt,
       payment_status: 'pending', created_by: userId,
-    })
-    .select('id, full_number').single()
-  if (invErr || !invoice) throw new IssueError('insert_failed', 400, invErr?.message)
+    }
+  })
+  if ('error' in chained) throw new IssueError('insert_failed', 400, chained.error)
+  const invoice = chained
 
   const { error: linesErr } = await supabase
     .from('invoice_lines')
