@@ -270,7 +270,11 @@
     "numberTo": "To",
     "discount": "Discount",
     "noDiscount": "No discount",
-    "rectifiedBanner": "Cancelled by credit note {number}"
+    "rectifiedBanner": "Cancelled by credit note {number}",
+    "clientEmail": "Email",
+    "clientPhone": "Phone",
+    "clientEmailHint": "Needed to email them the invoice or quote.",
+    "createClientError": "The client could not be created."
   },
   "verifactu": {
     "title": "Verifactu certificate (AEAT)",
@@ -876,5 +880,16 @@
     "deniedRole": "Your role in this organization does not include access to this section. If you need it, ask an administrator to adjust your permissions.",
     "deniedNoCompanies": "You have no assigned client with upload permission yet. Ask an administrator to assign you at least one.",
     "backToDashboard": "Back to dashboard"
+  },
+  "email": {
+    "title": "Send by email",
+    "send": "Send by email",
+    "to": "To",
+    "message": "Message (optional)",
+    "messagePlaceholder": "Add a note for your client…",
+    "attachmentNote": "The PDF will be attached.",
+    "noStoredEmail": "This client has no email on file. Type it here or add it to their record.",
+    "sentTitle": "Sent successfully",
+    "failed": "The email could not be sent."
   }
 }

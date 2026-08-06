@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { fetchQuoteWithLines, type Quote, type QuoteLine } from "@/lib/hooks/use-quotes"
 import { createClient } from "@/lib/supabase/client"
+import { SendEmailButton } from "@/components/send-email-button"
 
 const fmtEur = (n: number) => `${(n ?? 0).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
 
@@ -32,6 +33,9 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
   // A quote points at the delivery note opened for it; a note points back at
   // its quote. The screen is shared, so it has to know which it is showing.
   const [related, setRelated] = useState<{ id: string; full_number: string | null } | null>(null)
+  // Quotes snapshot the client's name but not their email, so the address to
+  // send to comes from the client record.
+  const [clientEmail, setClientEmail] = useState<string | null>(null)
 
   const isNote = quote?.kind === "delivery_note"
 
@@ -44,6 +48,11 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
           ? await supabase.from("quotes").select("id, full_number").eq("id", data.quote.source_quote_id).maybeSingle()
           : await supabase.from("quotes").select("id, full_number").eq("source_quote_id", data.quote.id).maybeSingle()
         setRelated(rel ?? null)
+        if (data.quote.client_company_id) {
+          const { data: c } = await supabase
+            .from("companies").select("email").eq("id", data.quote.client_company_id).maybeSingle()
+          setClientEmail(c?.email ?? null)
+        }
       }
       setLoading(false)
     })
@@ -98,6 +107,7 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
           <button onClick={() => window.print()} className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border rounded-xl hover:bg-muted transition-colors">
             <Printer className="w-4 h-4" /> Imprimir
           </button>
+          <SendEmailButton kind="quote" id={quote.id} defaultTo={clientEmail} />
           {/* Only a quote is editable, and only a delivery note is billed. */}
           {!isNote && quote.status !== "converted" && (
             <Link href={`/presupuestos?edit=${quote.id}`} className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border rounded-xl hover:bg-muted transition-colors">

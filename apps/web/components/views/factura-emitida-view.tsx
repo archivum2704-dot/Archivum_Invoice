@@ -10,6 +10,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { createClient } from "@/lib/supabase/client"
 import { useOrganization } from "@/lib/context/organization-context"
 import { isPaidPlan } from "@/lib/plan"
+import { SendEmailButton } from "@/components/send-email-button"
 import type { Database } from "@/lib/supabase/types"
 
 type Invoice = Database["public"]["Tables"]["invoices"]["Row"]
@@ -17,7 +18,7 @@ type Line = Database["public"]["Tables"]["invoice_lines"]["Row"]
 
 type RectifiedBy = { id: string; full_number: string | null } | null
 
-async function fetchInvoice(id: string): Promise<{ invoice: Invoice; lines: Line[]; rectifiedBy: RectifiedBy } | null> {
+async function fetchInvoice(id: string): Promise<{ invoice: Invoice; lines: Line[]; rectifiedBy: RectifiedBy; clientEmail: string | null } | null> {
   const supabase = createClient()
   const { data: invoice, error } = await supabase.from("invoices").select("*").eq("id", id).single()
   if (error || !invoice) return null
@@ -25,7 +26,14 @@ async function fetchInvoice(id: string): Promise<{ invoice: Invoice; lines: Line
   // The credit note that annuls this invoice, if one was already issued.
   const { data: rectifiedBy } = await supabase
     .from("invoices").select("id, full_number").eq("rectifies_invoice_id", id).maybeSingle()
-  return { invoice: invoice as Invoice, lines: (lines ?? []) as Line[], rectifiedBy: rectifiedBy ?? null }
+  // The invoice snapshots the client's name and CIF but not their email, so
+  // the address to send it to comes from the client record.
+  const { data: client } = await supabase
+    .from("companies").select("email").eq("id", invoice.client_company_id).maybeSingle()
+  return {
+    invoice: invoice as Invoice, lines: (lines ?? []) as Line[],
+    rectifiedBy: rectifiedBy ?? null, clientEmail: client?.email ?? null,
+  }
 }
 
 export function FacturaEmitidaView({ id }: { id: string }) {
@@ -96,6 +104,7 @@ export function FacturaEmitidaView({ id }: { id: string }) {
               {rectifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />} {t("rectify")}
             </button>
           )}
+          <SendEmailButton kind="invoice" id={id} defaultTo={data?.clientEmail} />
           <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors">
             <Printer className="w-4 h-4" /> {t("print")}
           </button>

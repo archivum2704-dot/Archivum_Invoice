@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { APP_URL } from "@/lib/config";
 import { readJson } from "@/lib/api";
+import { SendEmailButton } from "@/components/SendEmailButton";
 
 
 interface Invoice {
@@ -37,6 +38,9 @@ export default function FacturaDetailScreen() {
   // The credit note that annuls this invoice, if one was already issued.
   const [rectifiedBy, setRectifiedBy] = useState<{ id: string; full_number: string | null } | null>(null);
   const [huellaCopied, setHuellaCopied] = useState(false);
+  // The invoice snapshots the client's name and CIF but not their email, so the
+  // address to send it to comes from the client record.
+  const [clientEmail, setClientEmail] = useState<string | null>(null);
 
   const copyHuella = async () => {
     if (!invoice?.huella) return;
@@ -53,6 +57,11 @@ export default function FacturaDetailScreen() {
     const { data: rec } = await supabase.from("invoices")
       .select("id, full_number").eq("rectifies_invoice_id", id).maybeSingle();
     setRectifiedBy(rec ?? null);
+    if (inv?.client_company_id) {
+      const { data: c } = await supabase
+        .from("companies").select("email").eq("id", inv.client_company_id).maybeSingle();
+      setClientEmail((c as { email: string | null } | null)?.email ?? null);
+    }
     setInvoice(inv as Invoice); setLines((ln as Line[]) ?? []); setLoading(false);
   };
   useEffect(() => { load(); }, [id]);
@@ -167,6 +176,8 @@ export default function FacturaDetailScreen() {
             </View>
           )}
         </View>
+
+        <SendEmailButton kind="invoice" id={id} defaultTo={clientEmail} />
 
         {canRectify && (
           <TouchableOpacity onPress={rectify} disabled={rectifying} style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingVertical: 14, opacity: rectifying ? 0.6 : 1 }}>

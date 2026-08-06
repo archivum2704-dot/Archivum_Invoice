@@ -14,6 +14,7 @@ import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
 import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
+import { NewClientModal, type CreatedClient } from "@/components/NewClientModal";
 import { readJson } from "@/lib/api";
 
 const IVA_RATES = ["", "4", "10", "21"];
@@ -60,7 +61,7 @@ function FacturacionScreenContent() {
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
   const [issuing, setIssuing] = useState(false);
   // Inline new client
-  const [ncName, setNcName] = useState(""); const [ncCif, setNcCif] = useState("");
+  const [newClientOpen, setNewClientOpen] = useState(false);
 
   const fmtEur = (n: number) => `${Number(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
   const selectedClient = companies.find(c => c.id === clientId);
@@ -110,12 +111,10 @@ function FacturacionScreenContent() {
     taxRate: String(Number(p.tax_rate)),
   });
 
-  const createClient = async () => {
-    if (!ncName.trim() || !orgId) return;
-    const { data, error } = await supabase.from("companies").insert({ organization_id: orgId, name: ncName.trim(), cif: ncCif.trim() || null, is_active: true }).select("id, name, cif").single();
-    if (error || !data) { Alert.alert(t("common.error"), error?.message ?? ""); return; }
-    setCompanies(prev => [...prev, data as Company].sort((a, b) => a.name.localeCompare(b.name)));
-    setClientId(data.id); setNcName(""); setNcCif(""); setClientPicker(false);
+  const onClientCreated = (c: CreatedClient) => {
+    setCompanies(prev => [...prev, c as Company].sort((a, b) => a.name.localeCompare(b.name)));
+    setClientId(c.id);
+    setClientPicker(false);
   };
 
   const issue = async () => {
@@ -325,16 +324,13 @@ function FacturacionScreenContent() {
                 <TouchableOpacity onPress={() => setClientSearch("")} hitSlop={8}><X size={15} color={C.muted} /></TouchableOpacity>
               )}
             </View>
-            {/* Inline new client */}
-            <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
-              <TextInput placeholder={t("invoicing.clientName")} placeholderTextColor={C.muted} value={ncName} onChangeText={setNcName}
-                style={{ flex: 2, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 9, color: C.text }} />
-              <TextInput placeholder="CIF" placeholderTextColor={C.muted} value={ncCif} onChangeText={setNcCif} autoCapitalize="characters"
-                style={{ flex: 1, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 9, color: C.text }} />
-              <TouchableOpacity onPress={createClient} disabled={!ncName.trim()} style={{ backgroundColor: C.blue, borderRadius: 8, paddingHorizontal: 14, justifyContent: "center", opacity: ncName.trim() ? 1 : 0.5 }}>
-                <Plus size={18} color="#fff" />
-              </TouchableOpacity>
-            </View>
+            {/* Full "new client" form — a client created here is used on a
+                legal invoice, so it asks for the address and the email too. */}
+            <TouchableOpacity onPress={() => setNewClientOpen(true)}
+              style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: C.blueMed, backgroundColor: C.blueL, borderRadius: 8, paddingVertical: 10, marginBottom: 12 }}>
+              <Plus size={16} color={C.blue} />
+              <Text style={{ color: C.blue, fontWeight: "600", fontSize: 14 }}>{t("invoicing.newClient")}</Text>
+            </TouchableOpacity>
             <FlatList data={clientMatches} keyExtractor={(c) => c.id}
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={<Text style={{ color: C.muted, paddingVertical: 16, textAlign: "center" }}>{t("invoicing.noClientMatches")}</Text>}
@@ -347,6 +343,13 @@ function FacturacionScreenContent() {
           </View>
         </View>
       </KeyboardModal>
+
+      <NewClientModal
+        visible={newClientOpen}
+        orgId={orgId}
+        onCreated={onClientCreated}
+        onClose={() => setNewClientOpen(false)}
+      />
     </SafeAreaView>
   );
 }

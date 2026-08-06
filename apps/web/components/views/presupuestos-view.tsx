@@ -13,6 +13,7 @@ import { useCompanies } from "@/lib/hooks/use-companies"
 import { useProducts } from "@/lib/hooks/use-products"
 import { ProductPicker } from "@/components/views/facturacion-view"
 import { isPaidPlan } from "@/lib/plan"
+import { NewClientModal } from "@/components/new-client-modal"
 import { createClient } from "@/lib/supabase/client"
 
 type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string }
@@ -58,32 +59,14 @@ export function PresupuestosView() {
   const [busyId, setBusyId] = useState<string | null>(null)
 
   // Quick "new client" modal (over the quote modal)
-  const NEW_CLIENT_EMPTY = { name: "", cif: "", address: "", postal_code: "", city: "", province: "" }
+  // The form lives in NewClientModal, shared with facturación.
   const [newClientOpen, setNewClientOpen] = useState(false)
-  const [nc, setNc] = useState(NEW_CLIENT_EMPTY)
-  const [savingClient, setSavingClient] = useState(false)
-  const [clientError, setClientError] = useState<string | null>(null)
 
   const inputCls = "w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
 
-  const handleCreateClient = async () => {
-    if (!nc.name.trim() || !currentOrg) return
-    setSavingClient(true); setClientError(null)
-    const supabase: any = createClient()
-    const { data, error: err } = await supabase.from("companies").insert({
-      organization_id: currentOrg.id,
-      name: nc.name.trim(),
-      cif: nc.cif.trim() || null,
-      address: nc.address.trim() || null,
-      postal_code: nc.postal_code.trim() || null,
-      city: nc.city.trim() || null,
-      province: nc.province.trim() || null,
-      is_active: true,
-    }).select("id").single()
-    if (err || !data) { setClientError(err?.message ?? "No se pudo crear el cliente."); setSavingClient(false); return }
+  const handleClientCreated = async (id: string) => {
     await mutateCompanies()
-    setClientId(data.id)
-    setSavingClient(false); setNewClientOpen(false); setNc(NEW_CLIENT_EMPTY)
+    setClientId(id)
   }
 
   const totals = useMemo(() => {
@@ -290,7 +273,7 @@ export function PresupuestosView() {
                   <option value="">Selecciona un cliente…</option>
                   {companies.map(c => <option key={c.id} value={c.id}>{c.name}{c.cif ? ` · ${c.cif}` : ""}</option>)}
                 </select>
-                <button type="button" onClick={() => { setNc(NEW_CLIENT_EMPTY); setClientError(null); setNewClientOpen(true) }} className="mt-1.5 flex items-center gap-1 text-xs text-accent hover:underline font-medium">
+                <button type="button" onClick={() => setNewClientOpen(true)} className="mt-1.5 flex items-center gap-1 text-xs text-accent hover:underline font-medium">
                   <Plus className="w-3.5 h-3.5" /> Nuevo cliente
                 </button>
               </div>
@@ -382,52 +365,12 @@ export function PresupuestosView() {
       )}
 
       {/* Quick "new client" modal (over the quote modal) */}
-      {newClientOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !savingClient && setNewClientOpen(false)} />
-          <div className="relative bg-card border border-border rounded-2xl shadow-xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-semibold text-foreground">Nuevo cliente</h2>
-              <button onClick={() => !savingClient && setNewClientOpen(false)} className="p-1 rounded-lg hover:bg-muted"><X className="w-4 h-4 text-muted-foreground" /></button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Nombre <span className="text-destructive">*</span></label>
-                <input autoFocus value={nc.name} onChange={e => setNc({ ...nc, name: e.target.value })} className={inputCls} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">CIF / NIF</label>
-                <input value={nc.cif} onChange={e => setNc({ ...nc, cif: e.target.value })} placeholder="B12345678" className={inputCls} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Dirección</label>
-                <input value={nc.address} onChange={e => setNc({ ...nc, address: e.target.value })} className={inputCls} />
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">C.P.</label>
-                  <input value={nc.postal_code} onChange={e => setNc({ ...nc, postal_code: e.target.value })} className={inputCls} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Ciudad</label>
-                  <input value={nc.city} onChange={e => setNc({ ...nc, city: e.target.value })} className={inputCls} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Provincia</label>
-                  <input value={nc.province} onChange={e => setNc({ ...nc, province: e.target.value })} className={inputCls} />
-                </div>
-              </div>
-            </div>
-            {clientError && <p className="text-destructive text-sm mt-3">{clientError}</p>}
-            <div className="flex items-center justify-end gap-2 mt-5">
-              <button onClick={() => !savingClient && setNewClientOpen(false)} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">Cancelar</button>
-              <button onClick={handleCreateClient} disabled={savingClient || !nc.name.trim()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
-                {savingClient ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                Crear cliente
-              </button>
-            </div>
-          </div>
-        </div>
+      {newClientOpen && currentOrg && (
+        <NewClientModal
+          orgId={currentOrg.id}
+          onCreated={handleClientCreated}
+          onClose={() => setNewClientOpen(false)}
+        />
       )}
     </div>
   )

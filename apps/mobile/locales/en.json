@@ -67,7 +67,17 @@
     "noClientMatches": "No matching clients",
     "discount": "Discount",
     "noDiscount": "No disc.",
-    "rectifiedBanner": "Cancelled by credit note {{number}}"
+    "rectifiedBanner": "Cancelled by credit note {{number}}",
+    "newClient": "New client",
+    "createClient": "Create client",
+    "clientEmail": "Email",
+    "clientPhone": "Phone",
+    "clientEmailHint": "Needed to email them the invoice or quote.",
+    "clientAddress": "Address",
+    "clientPostalCode": "Postcode",
+    "clientCity": "City",
+    "clientProvince": "Province",
+    "createClientError": "The client could not be created."
   },
   "common": {
     "save": "Save",
@@ -96,7 +106,8 @@
     "done": "Done",
     "billingOnWeb": "Manage your plan from the Archivum web app in a browser.",
     "create": "Create",
-    "selectDate": "Select date"
+    "selectDate": "Select date",
+    "close": "Close"
   },
   "tabs": {
     "home": "Home",
@@ -601,5 +612,16 @@
     "openNote": "Open delivery note",
     "noteFor": "Delivery note for",
     "disclaimer": "This document is a delivery note and is not valid as an invoice."
+  },
+  "email": {
+    "title": "Send by email",
+    "send": "Send by email",
+    "to": "To",
+    "message": "Message (optional)",
+    "messagePlaceholder": "Add a note for your client…",
+    "attachmentNote": "The PDF will be attached.",
+    "noStoredEmail": "This client has no email on file. Type it here or add it to their record.",
+    "sentTitle": "Sent successfully",
+    "failed": "The email could not be sent."
   }
 }

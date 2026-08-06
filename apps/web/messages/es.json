@@ -270,7 +270,11 @@
     "numberTo": "Hasta",
     "discount": "Descuento",
     "noDiscount": "Sin descuento",
-    "rectifiedBanner": "Factura anulada por la rectificativa {number}"
+    "rectifiedBanner": "Factura anulada por la rectificativa {number}",
+    "clientEmail": "Correo",
+    "clientPhone": "Teléfono",
+    "clientEmailHint": "Necesario para poder enviarle la factura o el presupuesto por correo.",
+    "createClientError": "No se pudo crear el cliente."
   },
   "verifactu": {
     "title": "Certificado Verifactu (AEAT)",
@@ -876,5 +880,16 @@
     "deniedRole": "Tu rol en esta organización no incluye el acceso a esta sección. Si necesitas entrar, pídele a un administrador que ajuste tus permisos.",
     "deniedNoCompanies": "Todavía no tienes ningún cliente asignado con permiso para subir documentos. Pídele a un administrador que te asigne al menos uno.",
     "backToDashboard": "Volver al panel principal"
+  },
+  "email": {
+    "title": "Enviar por correo",
+    "send": "Enviar por correo",
+    "to": "Para",
+    "message": "Mensaje (opcional)",
+    "messagePlaceholder": "Añade una nota para tu cliente…",
+    "attachmentNote": "Se enviará el PDF adjunto.",
+    "noStoredEmail": "Este cliente no tiene correo guardado. Escríbelo aquí o añádelo en su ficha.",
+    "sentTitle": "Enviado correctamente",
+    "failed": "No se pudo enviar el correo."
   }
 }
