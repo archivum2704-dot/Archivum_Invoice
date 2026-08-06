@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { supabase } from "@/lib/supabase";
 import { KeyboardModal } from "@/components/KeyboardModal";
-import { randomUUID } from "expo-crypto";
 
 export interface CreatedClient { id: string; name: string; cif: string | null }
 
@@ -18,6 +17,22 @@ const EMPTY = { name: "", cif: "", email: "", phone: "", address: "", postal_cod
  * shown verbatim. A row-level-security refusal is not: it arrives as "new row
  * violates row-level security policy", which tells the reader nothing.
  */
+/**
+ * A v4-shaped random id for a new client row.
+ *
+ * Deliberately not expo-crypto: that is a native module, so adding it would
+ * make this fix need a new binary instead of riding an over-the-air update.
+ * The value is a primary key, never a secret — access is decided by RLS, not by
+ * the id being unguessable — and the column's unique constraint would surface a
+ * collision as an error rather than letting it corrupt anything.
+ */
+function randomId(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 function explain(err: { code?: string; message?: string }, fallback: string): string {
   if (err.code === "42501") {
     return "Tu usuario no tiene permiso para crear clientes. Pídeselo a un administrador de la organización.";
@@ -56,7 +71,7 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
     // SELECT policy on companies — which a plain member does not satisfy for a
     // client they have just created, so the row was written and the call still
     // failed with a permissions error.
-    const id = randomUUID();
+    const id = randomId();
     const { error } = await supabase.from("companies").insert({
       id,
       organization_id: orgId,
