@@ -11,13 +11,6 @@ export interface CreatedClient { id: string; name: string; cif: string | null }
 const EMPTY = { name: "", cif: "", email: "", phone: "", address: "", postal_code: "", city: "", province: "" };
 
 /**
- * Turn a Postgres error into something a user can act on.
- *
- * The plan-limit trigger already raises its own Spanish message, so that one is
- * shown verbatim. A row-level-security refusal is not: it arrives as "new row
- * violates row-level security policy", which tells the reader nothing.
- */
-/**
  * A v4-shaped random id for a new client row.
  *
  * Deliberately not expo-crypto: that is a native module, so adding it would
@@ -33,6 +26,13 @@ function randomId(): string {
   });
 }
 
+/**
+ * Turn a Postgres error into something a user can act on.
+ *
+ * The plan-limit trigger already raises its own Spanish message, so that one is
+ * shown verbatim. A row-level-security refusal is not: it arrives as "new row
+ * violates row-level security policy", which tells the reader nothing.
+ */
 function explain(err: { code?: string; message?: string }, fallback: string): string {
   if (err.code === "42501") {
     return "Tu usuario no tiene permiso para crear clientes. Pídeselo a un administrador de la organización.";
