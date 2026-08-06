@@ -10,6 +10,21 @@ const EMPTY = { name: "", cif: "", email: "", phone: "", address: "", postal_cod
 const inputCls = "w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
 
 /**
+ * Turn a Postgres error into something a user can act on.
+ *
+ * The plan-limit trigger already raises its own Spanish message, so that one is
+ * shown verbatim. A row-level-security refusal is not: it arrives as "new row
+ * violates row-level security policy", which tells the reader nothing about
+ * what to do.
+ */
+function explain(err: { code?: string; message?: string }, fallback: string): string {
+  if (err.code === "42501") {
+    return "Tu usuario no tiene permiso para crear clientes. Pídeselo a un administrador de la organización."
+  }
+  return err.message ?? fallback
+}
+
+/**
  * Create a client without leaving the invoice or quote being written.
  *
  * Invoicing and quoting each had their own copy of this form, and they drifted:
@@ -36,7 +51,14 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
     if (!nc.name.trim() || !orgId) return
     setSaving(true); setError(null)
     const supabase: any = createClient()
-    const { data, error: err } = await supabase.from("companies").insert({
+    // The id is generated here rather than read back from the insert. Reading
+    // it back means INSERT ... RETURNING, and RETURNING is subject to the
+    // SELECT policy on companies — which a plain member does not satisfy for a
+    // client they have just created, so the row was written and the call still
+    // failed with a permissions error.
+    const id = crypto.randomUUID()
+    const { error: err } = await supabase.from("companies").insert({
+      id,
       organization_id: orgId,
       name: nc.name.trim(),
       cif: nc.cif.trim() || null,
@@ -47,13 +69,11 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
       city: nc.city.trim() || null,
       province: nc.province.trim() || null,
       is_active: true,
-    }).select("id").single()
+    })
 
-    // The plan-limit trigger raises its own Spanish message, so it is worth
-    // showing verbatim rather than replacing it with something generic.
-    if (err || !data) { setError(err?.message ?? t("createClientError")); setSaving(false); return }
+    if (err) { setError(explain(err, t("createClientError"))); setSaving(false); return }
 
-    await onCreated(data.id)
+    await onCreated(id)
     setSaving(false)
     setNc(EMPTY)
     onClose()

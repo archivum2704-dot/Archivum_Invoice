@@ -5,10 +5,25 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { supabase } from "@/lib/supabase";
 import { KeyboardModal } from "@/components/KeyboardModal";
+import { randomUUID } from "expo-crypto";
 
 export interface CreatedClient { id: string; name: string; cif: string | null }
 
 const EMPTY = { name: "", cif: "", email: "", phone: "", address: "", postal_code: "", city: "", province: "" };
+
+/**
+ * Turn a Postgres error into something a user can act on.
+ *
+ * The plan-limit trigger already raises its own Spanish message, so that one is
+ * shown verbatim. A row-level-security refusal is not: it arrives as "new row
+ * violates row-level security policy", which tells the reader nothing.
+ */
+function explain(err: { code?: string; message?: string }, fallback: string): string {
+  if (err.code === "42501") {
+    return "Tu usuario no tiene permiso para crear clientes. Pídeselo a un administrador de la organización.";
+  }
+  return err.message ?? fallback;
+}
 
 /**
  * Create a client without leaving the invoice or quote being written.
@@ -36,7 +51,14 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
   const create = async () => {
     if (!nc.name.trim() || !orgId) return;
     setSaving(true);
-    const { data, error } = await supabase.from("companies").insert({
+    // The id is generated here rather than read back from the insert. Reading
+    // it back means INSERT ... RETURNING, and RETURNING is subject to the
+    // SELECT policy on companies — which a plain member does not satisfy for a
+    // client they have just created, so the row was written and the call still
+    // failed with a permissions error.
+    const id = randomUUID();
+    const { error } = await supabase.from("companies").insert({
+      id,
       organization_id: orgId,
       name: nc.name.trim(),
       cif: nc.cif.trim() || null,
@@ -47,11 +69,10 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
       city: nc.city.trim() || null,
       province: nc.province.trim() || null,
       is_active: true,
-    }).select("id, name, cif").single();
+    });
     setSaving(false);
-    // The plan-limit trigger raises its own Spanish message — worth showing.
-    if (error || !data) { Alert.alert(t("common.error"), error?.message ?? t("invoicing.createClientError")); return; }
-    onCreated(data as CreatedClient);
+    if (error) { Alert.alert(t("common.error"), explain(error, t("invoicing.createClientError"))); return; }
+    onCreated({ id, name: nc.name.trim(), cif: nc.cif.trim() || null });
     setNc(EMPTY);
     onClose();
   };
