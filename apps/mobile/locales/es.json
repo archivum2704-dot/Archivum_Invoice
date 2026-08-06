@@ -333,7 +333,11 @@
       "emailLabel": "Correo",
       "passwordLabel": "Contraseña",
       "createdHint": "Guarda o comparte la contraseña ahora; por seguridad no volverá a mostrarse.",
-      "copyCreds": "Copiar credenciales"
+      "copyCreds": "Copiar credenciales",
+      "accessCodeLabel": "Código de empresa",
+      "accessCodeHint": "En la app móvil entra por «Usuario» con este código, su correo y su contraseña.",
+      "emailSent": "Credenciales enviadas a {{email}}.",
+      "emailNotSent": "No se pudo enviar el correo. Cópialas y pásaselas tú, o no podrá entrar."
     },
     "limitFree": "Límite del plan gratuito",
     "limitReached": "Límite de usuarios alcanzado",

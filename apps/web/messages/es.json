@@ -670,7 +670,11 @@
       "createdHint": "Guarda o comparte la contraseña ahora: por seguridad no volverá a mostrarse. También se ha enviado por correo si el envío está configurado.",
       "copyCredentials": "Copiar credenciales",
       "copied": "Copiado",
-      "viewerReadOnlyNotice": "Este usuario tiene el rol Visor: solo puede consultar y descargar lo que le asignes. No puede subir, editar ni eliminar nada. Para darle permisos de escritura, cambia su rol a Miembro."
+      "viewerReadOnlyNotice": "Este usuario tiene el rol Visor: solo puede consultar y descargar lo que le asignes. No puede subir, editar ni eliminar nada. Para darle permisos de escritura, cambia su rol a Miembro.",
+      "accessCodeLabel": "Código de empresa",
+      "accessCodeHint": "En la app móvil, este usuario entra por «Usuario» e introduce el código de empresa junto con su correo y contraseña. En la web solo necesita correo y contraseña.",
+      "emailSent": "Credenciales enviadas a {email}.",
+      "emailNotSent": "No se pudo enviar el correo. Copia las credenciales y pásaselas tú, o no podrá entrar."
     },
     "organization": {
       "title": "Datos de la Organización",

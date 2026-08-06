@@ -333,7 +333,11 @@
       "emailLabel": "Email",
       "passwordLabel": "Password",
       "createdHint": "Save or share the password now — for security it won't be shown again.",
-      "copyCreds": "Copy credentials"
+      "copyCreds": "Copy credentials",
+      "accessCodeLabel": "Company code",
+      "accessCodeHint": "In the mobile app they sign in under “User” with this code, their email and password.",
+      "emailSent": "Credentials sent to {{email}}.",
+      "emailNotSent": "The email could not be sent. Copy them and pass them on yourself, or they cannot sign in."
     },
     "limitFree": "Free plan limit",
     "limitReached": "User limit reached",
