@@ -1,0 +1,20 @@
+; Zone file — verificación de dominio de Resend para archivum.es
+;
+; Contiene SOLO los registros de correo que pide Resend. No incluye los
+; registros de la web (A / CNAME de archivum.es y www) a propósito: Vercel
+; los conserva tal cual al importar, y meterlos aquí solo abriría la puerta
+; a pisarlos o duplicarlos.
+;
+; Importar en: Vercel → cuenta/equipo → Domains → archivum.es → Import Zone File
+
+$ORIGIN archivum.es.
+
+; ── DKIM — firma las salidas para que no se marquen como suplantación ──
+resend._domainkey.archivum.es.  3600  IN  TXT  "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDocg7m0yYAtdyjDhxzi86k2+Y58kV1YYhMW44TrghvNifGnhbwjECLRoJHJSzA6hRsEZ9mQ9zZxMWfRDH9tepUwbm964taYOqYvOhqkIb7EcCWF/QOvDk14A+md16ORqlQ0MydBtQ5ePzHLSx0F0LlaaCUiw0BDzxVPzwaZrkIQQIDAQAB"
+
+; ── SPF — autoriza a Amazon SES (el transporte de Resend) y recoge rebotes ──
+send.archivum.es.                 60  IN  MX   10 feedback-smtp.eu-west-1.amazonses.com.
+send.archivum.es.                 60  IN  TXT  "v=spf1 include:amazonses.com ~all"
+
+; ── DMARC — en modo observación: informa, no bloquea nada todavía ──
+_dmarc.archivum.es.             3600  IN  TXT  "v=DMARC1; p=none;"
