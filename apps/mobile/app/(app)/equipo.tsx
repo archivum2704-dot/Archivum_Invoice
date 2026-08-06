@@ -131,7 +131,9 @@ function InviteModal({ visible, orgId, token, onClose, onInvited, C, t }: {
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState<string | null>(null);
   const [success,   setSuccess]   = useState(false);
-  const [created,   setCreated]   = useState<{ email: string; password: string } | null>(null);
+  const [created,   setCreated]   = useState<{
+    email: string; password: string; accessCode: string | null; emailSent: boolean;
+  } | null>(null);
   const [copied,    setCopied]    = useState(false);
   const [roleOpen,  setRoleOpen]  = useState(false);
 
@@ -164,7 +166,10 @@ function InviteModal({ visible, orgId, token, onClose, onInvited, C, t }: {
       }
       // New user → show generated credentials so the admin can share them.
       if (data.password) {
-        setCreated({ email: data.email, password: data.password });
+        setCreated({
+          email: data.email, password: data.password,
+          accessCode: data.accessCode ?? null, emailSent: !!data.emailSent,
+        });
         onInvited();
       } else {
         setSuccess(true);
@@ -178,7 +183,11 @@ function InviteModal({ visible, orgId, token, onClose, onInvited, C, t }: {
 
   const copyCreds = async () => {
     if (!created) return;
-    await Clipboard.setStringAsync(`${created.email}\n${created.password}`);
+    await Clipboard.setStringAsync([
+      `${t("equipo.invite.emailLabel")}: ${created.email}`,
+      `${t("equipo.invite.passwordLabel")}: ${created.password}`,
+      created.accessCode ? `${t("equipo.invite.accessCodeLabel")}: ${created.accessCode}` : null,
+    ].filter(Boolean).join("\n"));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -259,6 +268,22 @@ function InviteModal({ visible, orgId, token, onClose, onInvited, C, t }: {
                   <Text style={{ fontSize: 11, color: C.muted }}>{t("equipo.invite.passwordLabel")}</Text>
                   <Text selectable style={{ fontSize: 15, fontWeight: "700", color: C.text }}>{created.password}</Text>
                 </View>
+                {!!created.accessCode && (
+                  <View>
+                    <Text style={{ fontSize: 11, color: C.muted }}>{t("equipo.invite.accessCodeLabel")}</Text>
+                    <Text selectable style={{ fontSize: 18, fontWeight: "800", color: C.text, letterSpacing: 3 }}>
+                      {created.accessCode}
+                    </Text>
+                    <Text style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{t("equipo.invite.accessCodeHint")}</Text>
+                  </View>
+                )}
+                {/* Whether the email actually went out. An admin who assumes it
+                    did will not pass the credentials on, locking the user out. */}
+                <Text style={{ fontSize: 11, fontWeight: "600", color: created.emailSent ? C.green : C.yellow }}>
+                  {created.emailSent
+                    ? t("equipo.invite.emailSent", { email: created.email })
+                    : t("equipo.invite.emailNotSent")}
+                </Text>
                 <Text style={{ fontSize: 11, color: C.muted }}>{t("equipo.invite.createdHint")}</Text>
               </View>
             )}

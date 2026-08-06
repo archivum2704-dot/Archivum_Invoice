@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     // Enforce dynamic user limit based on subscription
     const { data: orgBilling } = await admin
       .from('organizations')
-      .select('subscription_status, stripe_subscription_id, extra_users_quantity, subscription_plan')
+      .select('name, access_code, subscription_status, stripe_subscription_id, extra_users_quantity, subscription_plan')
       .eq('id', orgId)
       .single()
 
@@ -185,19 +185,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'server_error', detail: memberErr.message }, { status: 500 })
     }
 
-    // Send a welcome email with the credentials (best-effort — never blocks creation)
+    // Send a welcome email with the credentials (best-effort — never blocks
+    // creation). Whether it went out is reported back, because an admin who
+    // believes the email arrived will not pass the credentials on by hand, and
+    // the new user is then locked out with nobody aware of it.
+    let emailSent = false
+    let emailError: string | null = null
     try {
       const resend = getResend()
       const { error: emailErr } = await resend.emails.send({
         from: FROM_EMAIL,
         to: normalizedEmail,
-        subject: 'Tu cuenta de Archivum',
-        html: buildInviteEmail({ displayName, email: normalizedEmail, password, role, appUrl: APP_URL }),
+        subject: `Tu cuenta de Archivum · ${orgBilling?.name ?? ''}`.trim(),
+        html: buildInviteEmail({
+          displayName, email: normalizedEmail, password, role, appUrl: APP_URL,
+          orgName: orgBilling?.name ?? null, accessCode: orgBilling?.access_code ?? null,
+        }),
       })
-      if (emailErr) console.error('[create-member] Resend error:', emailErr)
+      if (emailErr) { console.error('[create-member] Resend error:', emailErr); emailError = emailErr.message }
+      else emailSent = true
     } catch (mailErr) {
       // Email not configured or failed — the admin still gets the credentials in the response.
       console.error('[create-member] email skipped:', mailErr)
+      emailError = String(mailErr)
     }
 
     return NextResponse.json({
@@ -206,6 +216,12 @@ export async function POST(req: NextRequest) {
       email: normalizedEmail,
       displayName,
       password,
+      orgName: orgBilling?.name ?? null,
+      // The mobile app asks for this alongside the password; without it a
+      // non-owner cannot sign in there at all.
+      accessCode: orgBilling?.access_code ?? null,
+      emailSent,
+      emailError,
     })
 
   } catch (err) {
@@ -215,12 +231,14 @@ export async function POST(req: NextRequest) {
 }
 
 // ── Email template ────────────────────────────────────────────────────────────
-function buildInviteEmail({ displayName, email, password, role, appUrl }: {
+function buildInviteEmail({ displayName, email, password, role, appUrl, orgName, accessCode }: {
   displayName: string
   email: string
   password: string
   role: string
   appUrl: string
+  orgName: string | null
+  accessCode: string | null
 }) {
   const roleLabel: Record<string, string> = {
     admin: 'Administrador', member: 'Miembro', viewer: 'Visor',
@@ -242,7 +260,8 @@ function buildInviteEmail({ displayName, email, password, role, appUrl }: {
         <tr><td style="padding:40px;">
           <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#111827;">Tu cuenta está lista</h1>
           <p style="margin:0 0 24px;font-size:15px;color:#6B7280;line-height:1.6;">
-            Hola <strong style="color:#111827;">${displayName}</strong>, has sido añadido a Archivum
+            Hola <strong style="color:#111827;">${displayName}</strong>, has sido añadido a
+            <strong style="color:#111827;">${orgName ?? 'Archivum'}</strong>
             con el rol de <strong style="color:#2563EB;">${roleLabel[role] ?? role}</strong>.
             Estas son tus credenciales de acceso:
           </p>
@@ -251,9 +270,15 @@ function buildInviteEmail({ displayName, email, password, role, appUrl }: {
               <p style="margin:0 0 4px;font-size:12px;color:#9CA3AF;">Correo</p>
               <p style="margin:0 0 14px;font-size:15px;font-weight:600;color:#111827;">${email}</p>
               <p style="margin:0 0 4px;font-size:12px;color:#9CA3AF;">Contraseña temporal</p>
-              <p style="margin:0;font-size:15px;font-weight:600;color:#111827;font-family:monospace;letter-spacing:0.5px;">${password}</p>
+              <p style="margin:0 0 14px;font-size:15px;font-weight:600;color:#111827;font-family:monospace;letter-spacing:0.5px;">${password}</p>
+              ${accessCode ? `<p style="margin:0 0 4px;font-size:12px;color:#9CA3AF;">Código de empresa</p>
+              <p style="margin:0;font-size:19px;font-weight:700;color:#111827;font-family:monospace;letter-spacing:2px;">${accessCode}</p>` : ''}
             </td></tr>
           </table>
+          ${accessCode ? `<p style="margin:-8px 0 24px;font-size:13px;color:#6B7280;line-height:1.6;">
+            En la <strong style="color:#111827;">app móvil</strong>, entra por «Usuario» e introduce el
+            código de empresa junto con tu correo y contraseña. En la web basta con el correo y la contraseña.
+          </p>` : ''}
           <a href="${loginUrl}"
              style="display:inline-block;background:#2563EB;color:#FFFFFF;font-size:15px;font-weight:600;
                     padding:14px 32px;border-radius:10px;text-decoration:none;letter-spacing:-0.2px;">

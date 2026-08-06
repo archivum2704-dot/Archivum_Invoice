@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { createPortal } from "react-dom"
 import {
   Users, Building2, Shield, Trash2, ChevronDown,
-  UserPlus, CheckSquare, Square, X, Check, Folder,
+  UserPlus, CheckSquare, Square, X, Check, Folder, AlertTriangle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslations } from "next-intl"
@@ -497,7 +497,11 @@ function UserRow({ member, orgId, currentUserId, isAdmin, onRefresh }: {
 }
 
 // ── Create user form ──────────────────────────────────────────────────────────
-type CreatedCredentials = { displayName: string; email: string; password: string }
+type CreatedCredentials = {
+  displayName: string; email: string; password: string
+  orgName: string | null; accessCode: string | null
+  emailSent: boolean
+}
 
 function CreateUserForm({ orgId, onRefresh, onClose }: { orgId: string; onRefresh: () => void; onClose: () => void }) {
   const t = useTranslations("settings.members")
@@ -555,6 +559,9 @@ function CreateUserForm({ orgId, onRefresh, onClose }: { orgId: string; onRefres
       displayName: data.displayName || `${firstName} ${lastName}`.trim() || data.email,
       email: data.email,
       password: data.password,
+      orgName: data.orgName ?? null,
+      accessCode: data.accessCode ?? null,
+      emailSent: !!data.emailSent,
     })
     setFirstName(""); setLastName(""); setEmail("")
     // Refresh the members list so the new user shows immediately, keeping the
@@ -564,7 +571,11 @@ function CreateUserForm({ orgId, onRefresh, onClose }: { orgId: string; onRefres
 
   const copyCredentials = async () => {
     if (!created) return
-    const text = `${t("emailLabel")}: ${created.email}\n${t("passwordLabel")}: ${created.password}`
+    const text = [
+      `${t("emailLabel")}: ${created.email}`,
+      `${t("passwordLabel")}: ${created.password}`,
+      created.accessCode ? `${t("accessCodeLabel")}: ${created.accessCode}` : null,
+    ].filter(Boolean).join("\n")
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
@@ -595,6 +606,27 @@ function CreateUserForm({ orgId, onRefresh, onClose }: { orgId: string; onRefres
             <span className="text-xs text-muted-foreground">{t("passwordLabel")}</span>
             <span className="text-sm font-semibold text-foreground font-mono tracking-wide select-all">{created.password}</span>
           </div>
+          {created.accessCode && (
+            <div className="flex items-center justify-between px-4 py-3">
+              <span className="text-xs text-muted-foreground">{t("accessCodeLabel")}</span>
+              <span className="text-base font-bold text-foreground font-mono tracking-[0.2em] select-all">{created.accessCode}</span>
+            </div>
+          )}
+        </div>
+
+        {created.accessCode && <p className="text-xs text-muted-foreground">{t("accessCodeHint")}</p>}
+
+        {/* Whether the email actually went out. An admin who assumes it did
+            will not pass the credentials on, and the user is left locked out. */}
+        <div className={cn(
+          "flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs",
+          created.emailSent
+            ? "bg-[var(--status-paid)]/10 border-[var(--status-paid)]/20 text-[var(--status-paid)]"
+            : "bg-[var(--status-pending)]/10 border-[var(--status-pending)]/20 text-[var(--status-pending)]",
+        )}>
+          {created.emailSent
+            ? <><Check className="w-3.5 h-3.5 mt-px shrink-0" /><span>{t("emailSent", { email: created.email })}</span></>
+            : <><AlertTriangle className="w-3.5 h-3.5 mt-px shrink-0" /><span>{t("emailNotSent")}</span></>}
         </div>
 
         <p className="text-xs text-muted-foreground">{t("createdHint")}</p>
@@ -773,8 +805,12 @@ export function UsersView() {
         )}
       </div>
 
-      {/* Create user form */}
-      {showForm && isOrgAdmin && currentOrg && !atLimit && (
+      {/* Create user form.
+          Not gated on atLimit: creating the user that reaches the limit flips
+          it to true, and gating here unmounted the form the moment it had
+          credentials to show — they vanished before they could be copied.
+          handleAddClick already refuses to open it when the limit is reached. */}
+      {showForm && isOrgAdmin && currentOrg && (
         <div className="mb-6">
           <CreateUserForm orgId={currentOrg.id} onRefresh={mutate} onClose={() => setShowForm(false)} />
         </div>
