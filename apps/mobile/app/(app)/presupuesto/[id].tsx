@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { APP_URL } from "@/lib/config";
 import { readJson } from "@/lib/api";
+import { SendEmailButton } from "@/components/SendEmailButton";
 
 interface Quote {
   id: string; full_number: string | null; issue_date: string | null; valid_until: string | null; status: string;
@@ -35,6 +36,8 @@ export default function PresupuestoDetailScreen() {
   const [opening, setOpening] = useState(false);
   // The screen is shared by quotes and delivery notes; each links to the other.
   const [related, setRelated] = useState<{ id: string; full_number: string | null } | null>(null);
+  // Quotes snapshot the client's name but not their email.
+  const [clientEmail, setClientEmail] = useState<string | null>(null);
   const isNote = quote?.kind === "delivery_note";
 
   const fmtEur = (n: number) => `${Number(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
@@ -49,6 +52,11 @@ export default function PresupuestoDetailScreen() {
           ? await supabase.from("quotes").select("id, full_number").eq("id", (q as any).source_quote_id).maybeSingle()
           : await supabase.from("quotes").select("id, full_number").eq("source_quote_id", (q as any).id).maybeSingle();
         setRelated((rel as any) ?? null);
+        if ((q as any).client_company_id) {
+          const { data: c } = await supabase
+            .from("companies").select("email").eq("id", (q as any).client_company_id).maybeSingle();
+          setClientEmail((c as any)?.email ?? null);
+        }
       }
       setLoading(false);
     })();
@@ -165,6 +173,8 @@ export default function PresupuestoDetailScreen() {
           <TouchableOpacity onPress={sharePdf} style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingVertical: 14 }}>
             <Download size={18} color={C.text} /><Text style={{ color: C.text, fontWeight: "600", fontSize: 15 }}>{t("quoting.pdf")}</Text>
           </TouchableOpacity>
+
+          <SendEmailButton kind="quote" id={id} defaultTo={clientEmail} />
 
           {!isNote && !!related && (
             <TouchableOpacity onPress={() => router.replace(`/(app)/presupuesto/${related.id}`)} style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: C.blue, borderRadius: 12, paddingVertical: 15 }}>

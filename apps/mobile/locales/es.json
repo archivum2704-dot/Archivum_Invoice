@@ -67,7 +67,17 @@
     "noClientMatches": "Ningún cliente coincide",
     "discount": "Descuento",
     "noDiscount": "Sin desc.",
-    "rectifiedBanner": "Factura anulada por la rectificativa {{number}}"
+    "rectifiedBanner": "Factura anulada por la rectificativa {{number}}",
+    "newClient": "Nuevo cliente",
+    "createClient": "Crear cliente",
+    "clientEmail": "Correo",
+    "clientPhone": "Teléfono",
+    "clientEmailHint": "Necesario para poder enviarle la factura o el presupuesto por correo.",
+    "clientAddress": "Dirección",
+    "clientPostalCode": "C.P.",
+    "clientCity": "Ciudad",
+    "clientProvince": "Provincia",
+    "createClientError": "No se pudo crear el cliente."
   },
   "common": {
     "save": "Guardar",
@@ -96,7 +106,8 @@
     "done": "Listo",
     "billingOnWeb": "Gestiona tu plan desde la versión web de Archivum, en un navegador.",
     "create": "Crear",
-    "selectDate": "Seleccionar fecha"
+    "selectDate": "Seleccionar fecha",
+    "close": "Cerrar"
   },
   "tabs": {
     "home": "Inicio",
@@ -601,5 +612,16 @@
     "openNote": "Abrir albarán",
     "noteFor": "Albarán para",
     "disclaimer": "Este documento es un albarán de entrega y no tiene validez como factura."
+  },
+  "email": {
+    "title": "Enviar por correo",
+    "send": "Enviar por correo",
+    "to": "Para",
+    "message": "Mensaje (opcional)",
+    "messagePlaceholder": "Añade una nota para tu cliente…",
+    "attachmentNote": "Se enviará el PDF adjunto.",
+    "noStoredEmail": "Este cliente no tiene correo guardado. Escríbelo aquí o añádelo en su ficha.",
+    "sentTitle": "Enviado correctamente",
+    "failed": "No se pudo enviar el correo."
   }
 }
