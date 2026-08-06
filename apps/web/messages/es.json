@@ -894,6 +894,7 @@
     "attachmentNote": "Se enviará el PDF adjunto.",
     "noStoredEmail": "Este cliente no tiene correo guardado. Escríbelo aquí o añádelo en su ficha.",
     "sentTitle": "Enviado correctamente",
-    "failed": "No se pudo enviar el correo."
+    "failed": "No se pudo enviar el correo.",
+    "sendShort": "Enviar"
   }
 }

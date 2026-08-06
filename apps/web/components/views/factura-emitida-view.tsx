@@ -94,18 +94,19 @@ export function FacturaEmitidaView({ id }: { id: string }) {
   return (
     <div className="p-6 sm:p-8 max-w-3xl mx-auto">
       {/* Toolbar (hidden on print) */}
-      <div className="flex items-center justify-between mb-6 print:hidden">
-        <Link href="/facturacion" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+      <div className="flex items-start justify-between gap-4 mb-6 print:hidden">
+        <Link href="/facturacion" className="flex items-center gap-1.5 shrink-0 mt-2 text-sm text-muted-foreground hover:text-foreground whitespace-nowrap transition-colors">
           <ArrowLeft className="w-4 h-4" /> {t("backToList")}
         </Link>
-        <div className="flex items-center gap-2">
+        {/* Wraps between buttons rather than inside their labels. */}
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {canRectify && (
-            <button onClick={handleRectify} disabled={rectifying} className="flex items-center gap-2 px-4 py-2 border border-border text-foreground text-sm font-medium rounded-xl hover:bg-muted disabled:opacity-50 transition-colors">
+            <button onClick={handleRectify} disabled={rectifying} className="flex items-center gap-2 px-4 py-2 border border-border text-foreground text-sm font-medium rounded-xl hover:bg-muted disabled:opacity-50 whitespace-nowrap transition-colors">
               {rectifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />} {t("rectify")}
             </button>
           )}
           <SendEmailButton kind="invoice" id={id} defaultTo={data?.clientEmail} />
-          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors">
+          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 whitespace-nowrap transition-colors">
             <Printer className="w-4 h-4" /> {t("print")}
           </button>
         </div>

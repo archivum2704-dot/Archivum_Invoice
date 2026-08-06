@@ -11,6 +11,11 @@ import { SendEmailButton } from "@/components/send-email-button"
 
 const fmtEur = (n: number) => `${(n ?? 0).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
 
+// Toolbar buttons. whitespace-nowrap is the point: the row wraps between
+// buttons, never inside a label.
+const SECONDARY = "flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border rounded-xl hover:bg-muted whitespace-nowrap transition-colors"
+const PRIMARY = "flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap transition-colors"
+
 const STATUS_LABEL: Record<string, string> = {
   draft: "Borrador", sent: "Enviado", accepted: "Aceptado", rejected: "Rechazado",
   open: "Abierto", converted: "Facturado",
@@ -95,42 +100,45 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
 
   return (
     <div className="p-6 sm:p-8 max-w-3xl mx-auto">
-      {/* Toolbar (hidden on print) */}
-      <div className="flex items-center justify-between mb-6 print:hidden">
-        <Link href={isNote ? "/albaranes" : "/presupuestos"} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+      {/* Toolbar (hidden on print).
+          Five actions do not fit on one line at this width, so the group wraps
+          instead of squeezing: without nowrap the labels broke inside the
+          buttons ("Enviar / por / correo") and the row looked broken. */}
+      <div className="flex items-start justify-between gap-4 mb-6 print:hidden">
+        <Link href={isNote ? "/albaranes" : "/presupuestos"} className="flex items-center gap-1.5 shrink-0 mt-2 text-sm text-muted-foreground hover:text-foreground whitespace-nowrap transition-colors">
           <ArrowLeft className="w-4 h-4" /> {isNote ? "Albaranes" : "Presupuestos"}
         </Link>
-        <div className="flex items-center gap-2">
-          <a href={`/api/quotes/pdf?id=${quote.id}`} className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border rounded-xl hover:bg-muted transition-colors">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <a href={`/api/quotes/pdf?id=${quote.id}`} className={SECONDARY}>
             <Download className="w-4 h-4" /> Descargar
           </a>
-          <button onClick={() => window.print()} className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border rounded-xl hover:bg-muted transition-colors">
+          <button onClick={() => window.print()} className={SECONDARY}>
             <Printer className="w-4 h-4" /> Imprimir
           </button>
-          <SendEmailButton kind="quote" id={quote.id} defaultTo={clientEmail} />
+          <SendEmailButton kind="quote" id={quote.id} defaultTo={clientEmail} compact className={SECONDARY} />
           {/* Only a quote is editable, and only a delivery note is billed. */}
           {!isNote && quote.status !== "converted" && (
-            <Link href={`/presupuestos?edit=${quote.id}`} className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border rounded-xl hover:bg-muted transition-colors">
+            <Link href={`/presupuestos?edit=${quote.id}`} className={SECONDARY}>
               <Pencil className="w-4 h-4" /> Editar
             </Link>
           )}
           {!isNote && related && (
-            <Link href={`/presupuestos/${related.id}`} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors">
-              <ArrowRight className="w-4 h-4" /> Ir al albarán {related.full_number ?? ""}
+            <Link href={`/presupuestos/${related.id}`} className={PRIMARY}>
+              <ArrowRight className="w-4 h-4" /> Albarán {related.full_number ?? ""}
             </Link>
           )}
           {!isNote && !related && quote.status !== "converted" && (
-            <button onClick={handleOpenNote} disabled={opening} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
+            <button onClick={handleOpenNote} disabled={opening} className={PRIMARY}>
               {opening ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardList className="w-4 h-4" />} Abrir albarán
             </button>
           )}
           {isNote && quote.status !== "converted" && (
-            <button onClick={handleConvert} disabled={converting} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
+            <button onClick={handleConvert} disabled={converting} className={PRIMARY}>
               {converting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />} Emitir factura
             </button>
           )}
           {quote.status === "converted" && quote.converted_invoice_id && (
-            <Link href={`/facturacion/${quote.converted_invoice_id}`} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-accent text-accent-foreground rounded-xl hover:bg-accent/90 transition-colors">
+            <Link href={`/facturacion/${quote.converted_invoice_id}`} className={cn(PRIMARY, "bg-accent text-accent-foreground hover:bg-accent/90")}>
               Ver factura
             </Link>
           )}
