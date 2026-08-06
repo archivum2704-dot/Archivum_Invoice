@@ -51,11 +51,14 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
     if (!nc.name.trim() || !orgId) return
     setSaving(true); setError(null)
     const supabase: any = createClient()
-    // The id is generated here rather than read back from the insert. Reading
-    // it back means INSERT ... RETURNING, and RETURNING is subject to the
-    // SELECT policy on companies — which a plain member does not satisfy for a
-    // client they have just created, so the row was written and the call still
-    // failed with a permissions error.
+    // The id is generated here rather than read back from the insert.
+    //
+    // Reading it back means INSERT ... RETURNING, and RETURNING is checked
+    // against the SELECT policy, companies_select = can_access_company(id).
+    // That function resolves the organization by looking the company up in the
+    // table — and at check time the row is not in the table yet, so it finds
+    // nothing and denies. Every user hit this, owners included: the client was
+    // written and the call still failed with a permissions error.
     const id = crypto.randomUUID()
     const { error: err } = await supabase.from("companies").insert({
       id,

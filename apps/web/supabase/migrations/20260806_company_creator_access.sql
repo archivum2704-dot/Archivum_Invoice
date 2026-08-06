@@ -6,6 +6,12 @@
 -- client and then not see it anywhere — not in the invoice picker they created
 -- it from, not in Empresas. The row was there; it was invisible to its author.
 --
+-- (The permissions error reported from the invoice form was a separate fault
+-- in the same area: INSERT ... RETURNING is checked against companies_select,
+-- and can_access_company() cannot resolve a row that is not inserted yet, so
+-- it denied every caller including owners. That one is fixed in the apps by
+-- not reading the row back.)
+--
 -- Granting the creator access closes the gap without loosening the policy for
 -- everyone else, which is the point of client-scoped access in the first place.
 -- Org admins already see every client, so for them this is a no-op row.
