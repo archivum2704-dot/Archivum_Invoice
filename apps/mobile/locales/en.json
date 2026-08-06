@@ -18,7 +18,11 @@
     "deleteConfirm": "Delete \"{{name}}\" from inventory?",
     "paywallTitle": "Inventory is a paid feature",
     "paywallBody": "Manage your products by upgrading to a paid plan.",
-    "upgrade": "View plans"
+    "upgrade": "View plans",
+    "minStock": "Minimum stock",
+    "minStockPlaceholder": "No alert",
+    "minStockHint": "Fill this in and we will warn you when stock falls to that number or below.",
+    "lowStockTitle": "{{count}} product(s) have reached their minimum stock"
   },
   "invoicing": {
     "title": "Invoicing",

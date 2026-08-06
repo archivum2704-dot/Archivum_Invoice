@@ -436,6 +436,7 @@ export type Database = {
           tax_rate: number
           track_stock: boolean
           stock_qty: number
+          min_stock: number | null
           is_active: boolean
           created_by: string | null
           created_at: string
@@ -453,6 +454,7 @@ export type Database = {
           tax_rate?: number
           track_stock?: boolean
           stock_qty?: number
+          min_stock?: number | null
           is_active?: boolean
           created_by?: string | null
         }
@@ -466,6 +468,7 @@ export type Database = {
           tax_rate?: number
           track_stock?: boolean
           stock_qty?: number
+          min_stock?: number | null
           is_active?: boolean
           updated_at?: string
         }

@@ -643,7 +643,7 @@ export function FacturacionView() {
               </div>
               <div className="space-y-2">
                 {lines.map((l, i) => (
-                  <div key={i} className="grid grid-cols-[1fr_56px_72px_56px_auto] gap-2 items-end">
+                  <div key={i} className="grid grid-cols-[1fr_80px_104px_84px_auto] gap-2 items-end">
                     <div className="flex flex-col gap-1">
                       {products.length > 0 && (
                         <ProductPicker
@@ -656,8 +656,8 @@ export function FacturacionView() {
                           drives the automatic stock deduction); unlink via the select. */}
                       <input placeholder={t("description")} value={l.description} onChange={e => setLine(i, { description: e.target.value })} className={cn(inputCls, "py-1.5")} />
                     </div>
-                    <input type="number" step="0.01" title={t("qty")} value={l.quantity} onChange={e => setLine(i, { quantity: e.target.value })} className={cn(inputCls, "py-1.5 text-right")} />
-                    <input type="number" step="0.01" title={t("unitPrice")} value={l.unitPrice} onChange={e => setLine(i, { unitPrice: e.target.value })} className={cn(inputCls, "py-1.5 text-right")} />
+                    <input type="number" step="0.01" title={t("qty")} value={l.quantity} onChange={e => setLine(i, { quantity: e.target.value })} className={cn(inputCls, "py-1.5 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none")} />
+                    <input type="number" step="0.01" title={t("unitPrice")} value={l.unitPrice} onChange={e => setLine(i, { unitPrice: e.target.value })} className={cn(inputCls, "py-1.5 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none")} />
                     <select title={t("tax")} value={l.taxRate} onChange={e => setLine(i, { taxRate: e.target.value })} className={cn(inputCls, "py-1.5 px-1 text-right")}>
                       {IVA_RATES.map(r => <option key={r} value={r}>{r === "" ? t("exempt") : `${r}%`}</option>)}
                     </select>
@@ -667,7 +667,7 @@ export function FacturacionView() {
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-[1fr_56px_72px_56px_auto] gap-2 mt-1 px-1 text-[10px] uppercase tracking-wide text-muted-foreground/60">
+              <div className="grid grid-cols-[1fr_80px_104px_84px_auto] gap-2 mt-1 px-1 text-[10px] uppercase tracking-wide text-muted-foreground/60">
                 <span>{t("description")}</span><span className="text-right">{t("qty")}</span><span className="text-right">{t("unitPrice")}</span><span className="text-right">{t("tax")}%</span><span></span>
               </div>
             </div>
