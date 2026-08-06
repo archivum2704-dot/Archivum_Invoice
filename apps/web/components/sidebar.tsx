@@ -116,21 +116,25 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   const hasPaidModules =
     !!currentOrg && currentOrg.id !== ALL_ORGS_ID && (isPaidPlan(currentOrg) || isPlatformAdmin)
 
+  // Ordered by how the work actually runs: find and file documents first, then
+  // the billing chain in the sequence it happens — inventario feeds a
+  // presupuesto, which opens an albarán, which becomes a factura — and
+  // administration last.
   const navItems = [
-    { section: "dashboard"    as const, label: t("dashboard"),  icon: LayoutDashboard, href: "/dashboard" },
-    { section: "empresas"     as const, label: t("companies"),  icon: Building2,       href: "/empresas" },
-    { section: "biblioteca"   as const, label: t("library"),    icon: Library,         href: "/biblioteca" },
-    { section: "buscador"     as const, label: t("search"),     icon: Search,          href: "/buscador" },
+    { section: "dashboard"  as const, label: t("dashboard"), icon: LayoutDashboard, href: "/dashboard" },
+    { section: "buscador"   as const, label: t("search"),    icon: Search,          href: "/buscador" },
+    { section: "subir"      as const, label: t("upload"),    icon: Upload,          href: "/subir" },
+    { section: "biblioteca" as const, label: t("library"),   icon: Library,         href: "/biblioteca" },
+    { section: "empresas"   as const, label: t("companies"), icon: Building2,       href: "/empresas" },
     ...(hasPaidModules
       ? [
-          { section: "inventario"   as const, label: t("inventory"), icon: Package,       href: "/inventario" },
-          { section: "presupuestos" as const, label: t("quotes"),    icon: ClipboardList, href: "/presupuestos" },
-          { section: "albaranes"    as const, label: t("deliveryNotes"), icon: Truck,       href: "/albaranes" },
-          { section: "facturacion"  as const, label: t("invoicing"), icon: Receipt,       href: "/facturacion" },
+          { section: "inventario"   as const, label: t("inventory"),     icon: Package,       href: "/inventario" },
+          { section: "presupuestos" as const, label: t("quotes"),        icon: ClipboardList, href: "/presupuestos" },
+          { section: "albaranes"    as const, label: t("deliveryNotes"), icon: Truck,         href: "/albaranes" },
+          { section: "facturacion"  as const, label: t("invoicing"),     icon: Receipt,       href: "/facturacion" },
         ]
       : []),
-    { section: "subir"    as const, label: t("upload"), icon: Upload, href: "/subir" },
-    { section: "usuarios" as const, label: t("users"),  icon: Users,  href: "/usuarios" },
+    { section: "usuarios" as const, label: t("users"), icon: Users, href: "/usuarios" },
     ...(isPlatformAdmin
       ? [{ section: "admin" as const, label: t("adminPanel"), icon: ShieldCheck, href: "/admin-dashboard" }]
       : []),
