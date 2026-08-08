@@ -64,6 +64,16 @@ export async function POST(req: NextRequest) {
         ...registroInput,
         issuerName: orig.issuer_name ?? '',
         clientNif: orig.client_cif, clientName: orig.client_name,
+        installationId: orgId,
+        notes: `Rectificativa por anulación de ${orig.full_number}`,
+        // Negated, like the lines themselves: 'por diferencias' declares the
+        // correction, so the desglose carries the amounts being taken back.
+        lines: (origLines ?? []).map((l: any) => ({
+          description: l.description,
+          taxRate: Number(l.tax_rate),
+          base: round2(-Number(l.line_subtotal)),
+          cuota: round2(-Number(l.line_tax)),
+        })),
         rectified: { issuerNif: orig.issuer_cif!.trim(), fullNumber: orig.full_number!, issueDate: orig.issue_date! },
       })
       return {

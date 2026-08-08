@@ -7,7 +7,11 @@ import { useTranslations, useLocale } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { isPaidPlan } from "@/lib/plan"
 
-type CertStatus = { exists: boolean; subject?: string; nif?: string; valid_until?: string; uploaded_at?: string }
+type CertStatus = {
+  exists: boolean; subject?: string; nif?: string; valid_until?: string; uploaded_at?: string
+  /** Producer identity the registro needs and the server does not have. */
+  missingProducer?: string[]
+}
 
 async function fileToBase64(file: File): Promise<string> {
   const buf = new Uint8Array(await file.arrayBuffer())
@@ -95,6 +99,19 @@ export function VerifactuSettingsView() {
         <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("title")}</h1>
       </div>
       <p className="text-sm text-muted-foreground mb-8">{t("subtitle")}</p>
+
+      {/* A registro without the producer's identity is incomplete, and the
+          invoice is issued anyway — so it has to be said somewhere. */}
+      {!!status?.missingProducer?.length && (
+        <div className="flex items-start gap-2.5 bg-[var(--status-pending)]/10 border border-[var(--status-pending)]/20 rounded-xl px-4 py-3 mb-5">
+          <AlertTriangle className="w-4 h-4 text-[var(--status-pending)] mt-0.5 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[var(--status-pending)]">{t("producerMissingTitle")}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("producerMissingBody")}</p>
+            <p className="text-xs font-mono text-muted-foreground mt-1.5 break-all">{status.missingProducer.join(", ")}</p>
+          </div>
+        </div>
+      )}
 
       {/* Current status */}
       <div className="bg-card border border-border rounded-2xl p-5 mb-5">

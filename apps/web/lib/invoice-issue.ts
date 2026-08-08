@@ -127,7 +127,13 @@ export async function issueInvoice(
     }
     huella = computeHuella(registroInput)
     const registroAlta = buildRegistroAlta({
-      ...registroInput, issuerName: org.name, clientNif: client.cif!.trim(), clientName: client.name,
+      ...registroInput,
+      issuerName: org.name, clientNif: client.cif!.trim(), clientName: client.name,
+      installationId: orgId, notes: notes?.trim() || null,
+      lines: computedLines.map(l => ({
+        description: l.description, taxRate: l.tax_rate,
+        base: l.line_subtotal, cuota: l.line_tax,
+      })),
     })
     return {
       organization_id: orgId, client_company_id: clientCompanyId,
