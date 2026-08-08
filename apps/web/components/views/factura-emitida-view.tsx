@@ -10,6 +10,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { createClient } from "@/lib/supabase/client"
 import { useOrganization } from "@/lib/context/organization-context"
 import { isPaidPlan } from "@/lib/plan"
+import { cn } from "@/lib/utils"
 import { SendEmailButton } from "@/components/send-email-button"
 import type { Database } from "@/lib/supabase/types"
 
@@ -215,6 +216,21 @@ export function FacturaEmitidaView({ id }: { id: string }) {
             <div className="min-w-0">
               <p className="text-xs font-bold text-foreground tracking-wide">VERI*FACTU</p>
               <p className="text-[9px] text-muted-foreground">{t("verifactuFooter")}</p>
+              {/* Whether the record actually reached the AEAT. The legend above
+                  claims the invoice is verifiable there, and until the record
+                  has been accepted it is not — so the state is said plainly. */}
+              <p className={cn(
+                "text-[9px] font-semibold mt-0.5 print:hidden",
+                invoice.verifactu_status === "sent" ? "text-[var(--status-paid)]"
+                  : invoice.verifactu_status === "error" ? "text-[var(--status-overdue)]"
+                  : "text-[var(--status-pending)]",
+              )}>
+                {invoice.verifactu_status === "sent"
+                  ? `${t("aeatSent")}${invoice.aeat_csv ? ` · CSV ${invoice.aeat_csv}` : ""}`
+                  : invoice.verifactu_status === "error"
+                    ? `${t("aeatError")}${invoice.aeat_error ? `: ${invoice.aeat_error}` : ""}`
+                    : t("aeatPending")}
+              </p>
               {invoice.huella && (
                 <div className="flex items-center gap-1.5 mt-0.5 print:gap-0">
                   <p className="text-[8px] text-muted-foreground/60 font-mono break-all max-w-[320px]">{t("fingerprint")}: {invoice.huella}</p>

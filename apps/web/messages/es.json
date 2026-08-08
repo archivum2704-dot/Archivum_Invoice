@@ -279,7 +279,10 @@
     "clientEmail": "Correo",
     "clientPhone": "Teléfono",
     "clientEmailHint": "Necesario para poder enviarle la factura o el presupuesto por correo.",
-    "createClientError": "No se pudo crear el cliente."
+    "createClientError": "No se pudo crear el cliente.",
+    "aeatSent": "Registro aceptado por la AEAT",
+    "aeatPending": "Registro pendiente de envío a la AEAT",
+    "aeatError": "La AEAT rechazó el registro"
   },
   "verifactu": {
     "title": "Certificado Verifactu (AEAT)",

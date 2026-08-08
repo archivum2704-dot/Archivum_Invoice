@@ -279,7 +279,10 @@
     "clientEmail": "Email",
     "clientPhone": "Phone",
     "clientEmailHint": "Needed to email them the invoice or quote.",
-    "createClientError": "The client could not be created."
+    "createClientError": "The client could not be created.",
+    "aeatSent": "Record accepted by the AEAT",
+    "aeatPending": "Record pending submission to the AEAT",
+    "aeatError": "The AEAT rejected the record"
   },
   "verifactu": {
     "title": "Verifactu certificate (AEAT)",

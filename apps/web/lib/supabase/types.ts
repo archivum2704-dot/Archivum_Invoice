@@ -513,6 +513,9 @@ export type Database = {
           verifactu_status: 'pending' | 'generated' | 'sent' | 'error' | 'exempt'
           issued_at: string | null
           aeat_csv: string | null
+          aeat_attempts: number
+          aeat_last_attempt_at: string | null
+          aeat_error: string | null
           aeat_response: Record<string, unknown> | null
           submitted_at: string | null
           payment_status: DocumentStatus | null
