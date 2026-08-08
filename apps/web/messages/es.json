@@ -241,7 +241,8 @@
       "client_cif_required": "El cliente necesita un CIF para poder facturarle.",
       "issue_date_required": "La fecha de emisión es obligatoria.",
       "client_required": "Selecciona un cliente.",
-      "no_lines": "Añade al menos una línea con descripción."
+      "no_lines": "Añade al menos una línea con descripción.",
+      "exemptionCause": "Indica el motivo de exención de las líneas exentas."
     },
     "paywallTitle": "La facturación es una función de pago",
     "paywallBody": "Emite facturas digitales conformes con Verifactu actualizando a un plan de pago. La versión gratuita no incluye facturación.",
@@ -286,7 +287,8 @@
     "clientCountry": "País",
     "clientTaxId": "Identificación fiscal",
     "clientTaxIdType": "Tipo de identificación",
-    "clientTaxIdTypeHint": "Obligatorio para clientes de fuera de España: la AEAT necesita saber qué documento es."
+    "clientTaxIdTypeHint": "Obligatorio para clientes de fuera de España: la AEAT necesita saber qué documento es.",
+    "exemptionCausePrompt": "¿Por qué está exenta? (obligatorio)"
   },
   "verifactu": {
     "title": "Certificado Verifactu (AEAT)",

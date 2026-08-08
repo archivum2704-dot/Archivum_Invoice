@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/verifactu",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/verifactu-integrity",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

@@ -16,6 +16,8 @@ export interface IssueLineInput {
   unitPrice: number
   taxRate: number
   discountPct?: number
+  /** L10 cause, required when taxRate is 0. */
+  exemptionCause?: string | null
 }
 
 export interface IssueInvoiceInput {
@@ -78,6 +80,15 @@ export async function issueInvoice(
   if (!client.cif?.trim()) throw new IssueError('client_cif_required', 422)
   if (!issueDate)          throw new IssueError('issue_date_required', 422)
 
+  // An exempt line must say under which article. Enforced here rather than only
+  // in the form, because the quote → invoice conversion reaches this too, and a
+  // record that invented an exemption cause would be immutable once issued.
+  const exemptWithoutCause = lines.find(l => (Number(l.taxRate) || 0) === 0 && !l.exemptionCause)
+  if (exemptWithoutCause) {
+    throw new IssueError('exemption_cause_required', 422,
+      `La línea "${exemptWithoutCause.description}" está exenta de IVA y no indica el motivo (artículo).`)
+  }
+
   // ── Totals (per-line gross, then a global discount reducing base + tax) ──
   let grossBase = 0, grossTax = 0
   const computedLines = lines.map((l, idx) => {
@@ -94,6 +105,9 @@ export async function issueInvoice(
       description: l.description?.trim() || '—',
       quantity: qty, unit_price: price, tax_rate: rate, discount_pct: disc,
       line_subtotal: base, line_tax: tax, line_total: round2(base + tax),
+      // Only carried when the line is actually exempt: a cause on a taxed line
+      // would describe an exemption that is not being claimed.
+      exemption_cause: rate === 0 ? (l.exemptionCause || null) : null,
       position: idx,
     }
   })
@@ -137,6 +151,7 @@ export async function issueInvoice(
       lines: computedLines.map(l => ({
         description: l.description, taxRate: l.tax_rate,
         base: l.line_subtotal, cuota: l.line_tax,
+        exemptionCause: l.exemption_cause,
       })),
     })
     return {

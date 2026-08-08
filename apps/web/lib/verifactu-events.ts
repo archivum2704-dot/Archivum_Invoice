@@ -85,7 +85,7 @@ export interface EventActor {
  * have. The separator style below follows the billing records. Confirm before
  * relying on it — a wrong format yields a plausible huella that is wrong.
  */
-function computeEventHuella(args: {
+export function computeEventHuella(args: {
   producerNif: string
   systemId: string
   systemVersion: string
