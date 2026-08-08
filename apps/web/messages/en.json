@@ -241,7 +241,8 @@
       "client_cif_required": "The client needs a tax ID to be invoiced.",
       "issue_date_required": "Issue date is required.",
       "client_required": "Select a client.",
-      "no_lines": "Add at least one line with a description."
+      "no_lines": "Add at least one line with a description.",
+      "exemptionCause": "Give the exemption reason for the exempt lines."
     },
     "paywallTitle": "Invoicing is a paid feature",
     "paywallBody": "Issue Verifactu-compliant digital invoices by upgrading to a paid plan. The free version does not include invoicing.",
@@ -286,7 +287,8 @@
     "clientCountry": "Country",
     "clientTaxId": "Tax identifier",
     "clientTaxIdType": "Identification type",
-    "clientTaxIdTypeHint": "Required for clients outside Spain: the AEAT needs to know which document this is."
+    "clientTaxIdTypeHint": "Required for clients outside Spain: the AEAT needs to know which document this is.",
+    "exemptionCausePrompt": "Why is it exempt? (required)"
   },
   "verifactu": {
     "title": "Verifactu certificate (AEAT)",

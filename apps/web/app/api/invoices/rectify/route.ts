@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
           taxRate: Number(l.tax_rate),
           base: round2(-Number(l.line_subtotal)),
           cuota: round2(-Number(l.line_tax)),
+          exemptionCause: l.exemption_cause,
         })),
         rectified: { issuerNif: orig.issuer_cif!.trim(), fullNumber: orig.full_number!, issueDate: orig.issue_date! },
       })
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest) {
     const negLines = (origLines ?? []).map((l, idx) => ({
       invoice_id: rec.id, product_id: l.product_id, description: l.description,
       quantity: -Number(l.quantity), unit_price: Number(l.unit_price), tax_rate: Number(l.tax_rate),
-      discount_pct: Number(l.discount_pct),
+      discount_pct: Number(l.discount_pct), exemption_cause: l.exemption_cause,
       line_subtotal: round2(-Number(l.line_subtotal)), line_tax: round2(-Number(l.line_tax)), line_total: round2(-Number(l.line_total)),
       position: idx,
     }))

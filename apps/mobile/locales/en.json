@@ -85,7 +85,9 @@
     "clientCountry": "Country",
     "clientTaxId": "Tax identifier",
     "clientTaxIdType": "Identification type",
-    "clientTaxIdTypeHint": "Required outside Spain: the AEAT needs to know which document this is."
+    "clientTaxIdTypeHint": "Required outside Spain: the AEAT needs to know which document this is.",
+    "exemptionCausePrompt": "Why is it exempt? (required)",
+    "errExemptionCause": "Give the exemption reason for the exempt lines."
   },
   "common": {
     "save": "Save",

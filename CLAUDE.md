@@ -70,16 +70,17 @@ Modo de operación: **VERI\*FACTU** (con remisión). Todo el detalle técnico es
 | QR (ISO 18004, nivel M, 31,75 mm) + leyenda | Orden art. 21 | `lib/invoice-pdf.ts` |
 | Clientes extranjeros por `IDOtro` | Orden L7 | `lib/tax-id-types.ts` |
 | **Declaración responsable visible en el sistema** | RD art. 13.2 | `/declaracion-responsable` (pública) |
+| **Detección de anomalías** (traza + integridad) | Orden art. 9.1.c-f | `lib/verifactu-integrity.ts`, cron cada 6 h |
+| **Registro resumen de eventos** | Orden art. 9.2 | Mismo cron; se genera aunque no haya pasado nada |
+| **Causas de exención E1-E6 por línea** | Orden L10 | `lib/exemption-causes.ts`; el desglose agrupa por causa, no solo por tipo |
 
 ### Pendiente
 
 | Requisito | Norma | Notas |
 |---|---|---|
-| **Proceso de detección de anomalías** | Orden art. 9.1.c-f | Los tipos de evento existen; falta el proceso que los dispara. Debe verificar la cadena de facturación y la de eventos periódicamente |
-| **Registro resumen cada 6 horas** | Orden art. 9.2 | Aunque no haya pasado nada. Y uno antes de apagar el sistema. Es un cron |
 | **Eventos en XML/UTF-8 según el anexo 5** | Orden art. 9.4 | Hoy se guardan como JSONB |
 | Exportación de eventos como operación propia | Orden art. 9.1.i | Hoy van dentro de la exportación de facturación |
-| Causas de exención distintas de E1 | Orden L10 | E1 art. 20, E2 art. 21, E3 art. 22, E4 arts. 23-24, E5 art. 25, E6 otras. Falta un selector por línea. **Pendiente confirmar con el gestor qué casos aplican** |
+| Causa de exención en presupuestos | Orden L10 | El selector está en facturas (web y móvil). Los presupuestos guardan la columna pero no la piden todavía; al convertir, el servidor rechaza una línea exenta sin causa |
 | Regímenes distintos del general | Orden L8 | Hoy `ClaveRegimen` fijo a `01` |
 | Disociación de accesos para la Administración | RD art. 8.4 / 14 | Pendiente de revisión |
 | Prueba real contra preproducción de la AEAT | | Nunca ejecutada |
@@ -188,6 +189,7 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 8 ago | Detección de anomalías cada 6 h, resumen de eventos, causas de exención por línea |
 | 8 ago | Registro de anulación, registro de eventos, exportación, declaración responsable en el sistema, clientes internacionales |
 | 8 ago | Corregido: `protect_issued_invoice` permitía reescribir una factura emitida en dos pasos |
 | 8 ago | Corregido: el cron aceptaba `Bearer undefined` si faltaba el secreto |

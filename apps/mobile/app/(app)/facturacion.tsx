@@ -16,6 +16,7 @@ import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
 import { NewClientModal, type CreatedClient } from "@/components/NewClientModal";
 import { readJson } from "@/lib/api";
+import { EXEMPTION_CAUSES, exemptionShort } from "@/lib/exemption-causes";
 
 const IVA_RATES = ["", "4", "10", "21"];
 const RET_RATES = ["", "7", "15", "19"];
@@ -28,9 +29,9 @@ interface Invoice {
 }
 interface Company { id: string; name: string; cif: string | null; }
 interface Product { id: string; name: string; unit_price: number; tax_rate: number; }
-type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string };
+type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string; exemptionCause: string };
 
-const emptyLine = (): Line => ({ productId: null, description: "", quantity: "", unitPrice: "", taxRate: "21" });
+const emptyLine = (): Line => ({ productId: null, description: "", quantity: "", unitPrice: "", taxRate: "21", exemptionCause: "" });
 /** A blank quantity means one unit, a blank price means zero — so both fields
  *  can show their placeholder instead of a pre-filled value the user has to
  *  clear before typing. */
@@ -122,6 +123,9 @@ function FacturacionScreenContent() {
     if (!clientId) { Alert.alert(t("common.error"), t("invoicing.errClient")); return; }
     if (!selectedClient?.cif?.trim()) { Alert.alert(t("common.error"), t("invoicing.errClientCif")); return; }
     if (!lines.some(l => l.description.trim())) { Alert.alert(t("common.error"), t("invoicing.errLines")); return; }
+    if (lines.some(l => l.taxRate === "" && l.description.trim() && !l.exemptionCause)) {
+      Alert.alert(t("common.error"), t("invoicing.errExemptionCause")); return;
+    }
     setIssuing(true);
     try {
       const res = await fetch(`${APP_URL}/api/invoices/issue`, {
@@ -130,7 +134,8 @@ function FacturacionScreenContent() {
         body: JSON.stringify({
           orgId, clientCompanyId: clientId, series: "FAC", kind: "ordinary",
           issueDate: new Date().toISOString().slice(0, 10), retentionPct: Number(retentionPct) || 0, discountPct: Number(discountPct) || 0,
-          lines: lines.filter(l => l.description.trim()).map(l => ({ productId: l.productId, description: l.description, quantity: qtyOf(l.quantity), unitPrice: priceOf(l.unitPrice), taxRate: Number(l.taxRate) || 0, discountPct: 0 })),
+          lines: lines.filter(l => l.description.trim()).map(l => ({ productId: l.productId, description: l.description, quantity: qtyOf(l.quantity), unitPrice: priceOf(l.unitPrice), taxRate: Number(l.taxRate) || 0, discountPct: 0,
+            exemptionCause: l.taxRate === "" ? l.exemptionCause : null })),
         }),
       });
       const json = await readJson(res);
@@ -262,8 +267,39 @@ function FacturacionScreenContent() {
                   </View>
                   <Text style={{ fontSize: 11, color: C.muted, marginTop: 8, marginBottom: 4 }}>{t("invoicing.iva")}</Text>
                   <View style={{ flexDirection: "row", gap: 6 }}>
-                    {IVA_RATES.map(r => <Chip key={r} active={l.taxRate === r} label={r === "" ? t("invoicing.exempt") : `${r}%`} onPress={() => setLine(i, { taxRate: r })} />)}
+                    {IVA_RATES.map(r => (
+                      <Chip key={r} active={l.taxRate === r} label={r === "" ? t("invoicing.exempt") : `${r}%`}
+                        // Leaving exempt drops the cause: keeping it would
+                        // declare an exemption on a taxed line.
+                        onPress={() => setLine(i, { taxRate: r, ...(r !== "" ? { exemptionCause: "" } : {}) })} />
+                    ))}
                   </View>
+                  {/* Only for an exempt line: the AEAT needs to know under
+                      which article, and there is no safe default. */}
+                  {l.taxRate === "" && (
+                    <View style={{ marginTop: 10 }}>
+                      <Text style={{ fontSize: 11, color: l.exemptionCause ? C.muted : C.yellow, marginBottom: 6 }}>
+                        {t("invoicing.exemptionCausePrompt")}
+                      </Text>
+                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                        {EXEMPTION_CAUSES.map(c => (
+                          <TouchableOpacity key={c.code} onPress={() => setLine(i, { exemptionCause: c.code })}
+                            style={{
+                              paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1,
+                              borderColor: l.exemptionCause === c.code ? C.blue : C.border,
+                              backgroundColor: l.exemptionCause === c.code ? C.blueL : "transparent",
+                            }}>
+                            <Text style={{ fontSize: 12, color: l.exemptionCause === c.code ? C.blue : C.text }}>
+                              {exemptionShort(c.code)}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                      <Text style={{ fontSize: 10, color: C.muted, marginTop: 6 }}>
+                        {EXEMPTION_CAUSES.find(c => c.code === l.exemptionCause)?.es ?? ""}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               ))}
             </View>

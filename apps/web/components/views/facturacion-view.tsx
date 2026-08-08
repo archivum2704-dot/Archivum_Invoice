@@ -16,6 +16,7 @@ import { useCompanies } from "@/lib/hooks/use-companies"
 import { useProducts, type Product } from "@/lib/hooks/use-products"
 import { isPaidPlan } from "@/lib/plan"
 import { NewClientModal } from "@/components/new-client-modal"
+import { EXEMPTION_CAUSES } from "@/lib/exemption-causes"
 
 type Line = {
   productId: string | null
@@ -24,9 +25,11 @@ type Line = {
   unitPrice: string
   taxRate: string
   discountPct: string
+  /** L10 cause. Only meaningful — and only asked for — when taxRate is "". */
+  exemptionCause: string
 }
 
-const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1", unitPrice: "0", taxRate: "21", discountPct: "0" })
+const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1", unitPrice: "0", taxRate: "21", discountPct: "0", exemptionCause: "" })
 
 // Spanish VAT (IVA) rates — "" = exento (0%)
 const IVA_RATES = ["", "4", "10", "21"]
@@ -200,6 +203,11 @@ export function FacturacionView() {
     if (!selectedClient?.cif?.trim()) return t("errors.clientCif")
     if (!issueDate) return t("errors.issueDate")
     if (!lines.some(l => l.description.trim())) return t("errors.noLines")
+    // An exempt line without its cause cannot be declared: the record would
+    // have to invent an article, and the invoice is immutable once issued.
+    if (lines.some(l => l.taxRate === "" && l.description.trim() && !l.exemptionCause)) {
+      return t("errors.exemptionCause")
+    }
     return null
   }, [issuerHasCif, clientId, selectedClient, issueDate, lines, t])
 
@@ -284,6 +292,7 @@ export function FacturacionView() {
           description: l.description,
           quantity: Number(l.quantity) || 0,
           unitPrice: Number(l.unitPrice) || 0,
+          exemptionCause: l.taxRate === "" ? l.exemptionCause : null,
           taxRate: Number(l.taxRate) || 0,
           discountPct: Number(l.discountPct) || 0,
         })),
@@ -658,12 +667,37 @@ export function FacturacionView() {
                     </div>
                     <input type="number" step="0.01" title={t("qty")} value={l.quantity} onChange={e => setLine(i, { quantity: e.target.value })} className={cn(inputCls, "py-1.5 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none")} />
                     <input type="number" step="0.01" title={t("unitPrice")} value={l.unitPrice} onChange={e => setLine(i, { unitPrice: e.target.value })} className={cn(inputCls, "py-1.5 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none")} />
-                    <select title={t("tax")} value={l.taxRate} onChange={e => setLine(i, { taxRate: e.target.value })} className={cn(inputCls, "py-1.5 px-1 text-right")}>
+                    <select title={t("tax")} value={l.taxRate}
+                      onChange={e => setLine(i, {
+                        taxRate: e.target.value,
+                        // Leaving exempt drops the cause: keeping it would
+                        // declare an exemption on a taxed line.
+                        ...(e.target.value !== "" ? { exemptionCause: "" } : {}),
+                      })}
+                      className={cn(inputCls, "py-1.5 px-1 text-right")}>
                       {IVA_RATES.map(r => <option key={r} value={r}>{r === "" ? t("exempt") : `${r}%`}</option>)}
                     </select>
                     <button onClick={() => setLines(lines.filter((_, idx) => idx !== i))} disabled={lines.length === 1} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive disabled:opacity-30">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
+
+                    {/* Only for an exempt line, and only then: the AEAT needs
+                        to know under which article, and there is no safe
+                        default to pick on the user's behalf. */}
+                    {l.taxRate === "" && (
+                      <div className="col-span-5 -mt-1">
+                        <select
+                          value={l.exemptionCause}
+                          onChange={e => setLine(i, { exemptionCause: e.target.value })}
+                          className={cn(inputCls, "py-1.5 text-xs", !l.exemptionCause && "border-[var(--status-pending)]")}
+                        >
+                          <option value="">{t("exemptionCausePrompt")}</option>
+                          {EXEMPTION_CAUSES.map(c => (
+                            <option key={c.code} value={c.code}>{locale === "en" ? c.en : c.es}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

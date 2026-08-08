@@ -90,15 +90,39 @@ export interface RegistroAltaInput {
  * Returns 64-char uppercase hex.
  */
 export function computeHuella(i: RegistroAltaInput): string {
+  return huellaAltaFromParts({
+    issuerNif: i.issuerNif,
+    fullNumber: i.fullNumber,
+    fechaExpedicion: fechaExpedicion(i.issueDate),
+    tipoFactura: tipoFactura(i.kind),
+    cuotaTotal: money(i.cuotaTotal),
+    importeTotal: money(i.importeTotal),
+    previousHuella: i.previousHuella,
+    generatedAt: i.generatedAt,
+  })
+}
+
+/**
+ * The alta huella from values already in their record format.
+ *
+ * Exists so a stored registro can be re-hashed exactly as it was — the
+ * integrity check has to reproduce the huella from what is on disk, and going
+ * back through the formatting would re-derive rather than verify.
+ */
+export function huellaAltaFromParts(p: {
+  issuerNif: string; fullNumber: string; fechaExpedicion: string
+  tipoFactura: string; cuotaTotal: string; importeTotal: string
+  previousHuella: string; generatedAt: string
+}): string {
   const chain =
-    `IDEmisorFactura=${i.issuerNif}` +
-    `&NumSerieFactura=${i.fullNumber}` +
-    `&FechaExpedicionFactura=${fechaExpedicion(i.issueDate)}` +
-    `&TipoFactura=${tipoFactura(i.kind)}` +
-    `&CuotaTotal=${money(i.cuotaTotal)}` +
-    `&ImporteTotal=${money(i.importeTotal)}` +
-    `&Huella=${i.previousHuella}` +
-    `&FechaHoraHusoGenRegistro=${i.generatedAt}`
+    `IDEmisorFactura=${p.issuerNif}` +
+    `&NumSerieFactura=${p.fullNumber}` +
+    `&FechaExpedicionFactura=${p.fechaExpedicion}` +
+    `&TipoFactura=${p.tipoFactura}` +
+    `&CuotaTotal=${p.cuotaTotal}` +
+    `&ImporteTotal=${p.importeTotal}` +
+    `&Huella=${p.previousHuella}` +
+    `&FechaHoraHusoGenRegistro=${p.generatedAt}`
   return createHash('sha256').update(chain, 'utf8').digest('hex').toUpperCase()
 }
 
@@ -155,6 +179,8 @@ export interface RegistroLine {
   base: number
   /** VAT charged on that base. */
   cuota: number
+  /** L10 exemption cause. Required when the rate is 0. */
+  exemptionCause?: string | null
 }
 
 /**
@@ -162,40 +188,45 @@ export interface RegistroLine {
  *
  * The AEAT does not accept a single total — it wants one entry per rate, with
  * its base and its cuota, so the tax can be checked without reading the lines.
- * Entries are grouped by rate and capped at the 12 the spec allows.
+ * Entries are capped at the 12 the spec allows.
  *
- * A 0% line is declared exempt rather than taxed at zero. Which exemption
- * applies is a legal question the invoice does not currently ask, so it goes
- * out as E1 (artículo 20), the common case; capturing the real cause per line
- * is the correct fix and is not something to guess line by line.
+ * Exempt lines group by their **cause**, not merely by the rate: two lines at
+ * 0% under different articles are different operations to the AEAT and must be
+ * declared separately. Lines that carry no cause fall back to E1, which the
+ * invoice form no longer allows to happen — but old records exist and must
+ * still serialise.
  */
 export function buildDesglose(lines: RegistroLine[]) {
-  const byRate = new Map<number, { base: number; cuota: number }>()
+  // Keyed by rate for taxed lines, by cause for exempt ones.
+  const groups = new Map<string, { rate: number; cause: string | null; base: number; cuota: number }>()
+
   for (const l of lines) {
     const rate = Number(l.taxRate) || 0
-    const acc = byRate.get(rate) ?? { base: 0, cuota: 0 }
+    const cause = rate === 0 ? (l.exemptionCause || 'E1') : null
+    const key = rate === 0 ? `exenta:${cause}` : `tipo:${rate}`
+    const acc = groups.get(key) ?? { rate, cause, base: 0, cuota: 0 }
     acc.base += Number(l.base) || 0
     acc.cuota += Number(l.cuota) || 0
-    byRate.set(rate, acc)
+    groups.set(key, acc)
   }
 
-  return Array.from(byRate.entries())
-    .sort((a, b) => a[0] - b[0])
+  return Array.from(groups.values())
+    .sort((a, b) => a.rate - b.rate || (a.cause ?? '').localeCompare(b.cause ?? ''))
     .slice(0, 12)
-    .map(([rate, { base, cuota }]) => rate === 0
+    .map(g => g.rate === 0
       ? {
           Impuesto: '01',                       // IVA
           ClaveRegimen: '01',                   // régimen general
-          OperacionExenta: 'E1',                // exenta por el artículo 20
-          BaseImponibleOimporteNoSujeto: money(base),
+          OperacionExenta: g.cause,             // L10
+          BaseImponibleOimporteNoSujeto: money(g.base),
         }
       : {
           Impuesto: '01',
           ClaveRegimen: '01',
           CalificacionOperacion: 'S1',          // sujeta y no exenta, sin ISP
-          TipoImpositivo: money(rate),
-          BaseImponibleOimporteNoSujeto: money(base),
-          CuotaRepercutida: money(cuota),
+          TipoImpositivo: money(g.rate),
+          BaseImponibleOimporteNoSujeto: money(g.base),
+          CuotaRepercutida: money(g.cuota),
         })
 }
 
@@ -285,12 +316,26 @@ export interface RegistroAnulacionInput {
  * huella that the AEAT will reject.
  */
 export function computeHuellaAnulacion(i: RegistroAnulacionInput): string {
+  return huellaAnulacionFromParts({
+    issuerNif: i.issuerNif,
+    annulledFullNumber: i.annulledFullNumber,
+    fechaExpedicion: fechaExpedicion(i.annulledIssueDate),
+    previousHuella: i.previousHuella,
+    generatedAt: i.generatedAt,
+  })
+}
+
+/** The anulación huella from values already in their record format. */
+export function huellaAnulacionFromParts(p: {
+  issuerNif: string; annulledFullNumber: string; fechaExpedicion: string
+  previousHuella: string; generatedAt: string
+}): string {
   const chain =
-    `IDEmisorFacturaAnulada=${i.issuerNif}` +
-    `&NumSerieFacturaAnulada=${i.annulledFullNumber}` +
-    `&FechaExpedicionFacturaAnulada=${fechaExpedicion(i.annulledIssueDate)}` +
-    `&Huella=${i.previousHuella}` +
-    `&FechaHoraHusoGenRegistro=${i.generatedAt}`
+    `IDEmisorFacturaAnulada=${p.issuerNif}` +
+    `&NumSerieFacturaAnulada=${p.annulledFullNumber}` +
+    `&FechaExpedicionFacturaAnulada=${p.fechaExpedicion}` +
+    `&Huella=${p.previousHuella}` +
+    `&FechaHoraHusoGenRegistro=${p.generatedAt}`
   return createHash('sha256').update(chain, 'utf8').digest('hex').toUpperCase()
 }
 
