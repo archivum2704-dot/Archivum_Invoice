@@ -282,7 +282,11 @@
     "createClientError": "No se pudo crear el cliente.",
     "aeatSent": "Registro aceptado por la AEAT",
     "aeatPending": "Registro pendiente de envío a la AEAT",
-    "aeatError": "La AEAT rechazó el registro"
+    "aeatError": "La AEAT rechazó el registro",
+    "clientCountry": "País",
+    "clientTaxId": "Identificación fiscal",
+    "clientTaxIdType": "Tipo de identificación",
+    "clientTaxIdTypeHint": "Obligatorio para clientes de fuera de España: la AEAT necesita saber qué documento es."
   },
   "verifactu": {
     "title": "Certificado Verifactu (AEAT)",

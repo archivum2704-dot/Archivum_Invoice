@@ -31,6 +31,8 @@ export type Database = {
           postal_code: string | null
           province: string | null
           country: string
+          country_code: string
+          tax_id_type: string | null
           phone: string | null
           email: string | null
           logo_url: string | null
@@ -52,6 +54,8 @@ export type Database = {
           postal_code?: string | null
           province?: string | null
           country?: string
+          country_code?: string
+          tax_id_type?: string | null
           phone?: string | null
           email?: string | null
           logo_url?: string | null
@@ -66,6 +70,8 @@ export type Database = {
           postal_code?: string | null
           province?: string | null
           country?: string
+          country_code?: string
+          tax_id_type?: string | null
           phone?: string | null
           email?: string | null
           logo_url?: string | null
@@ -161,6 +167,8 @@ export type Database = {
           postal_code?: string | null
           province?: string | null
           country?: string
+          country_code?: string
+          tax_id_type?: string | null
           phone?: string | null
           email?: string | null
           contact_person?: string | null
@@ -177,6 +185,8 @@ export type Database = {
           postal_code?: string | null
           province?: string | null
           country?: string
+          country_code?: string
+          tax_id_type?: string | null
           phone?: string | null
           email?: string | null
           contact_person?: string | null
@@ -505,6 +515,8 @@ export type Database = {
           client_city: string | null
           client_postal_code: string | null
           client_province: string | null
+          client_country_code: string | null
+          client_tax_id_type: string | null
           notes: string | null
           huella: string | null
           huella_anterior: string | null

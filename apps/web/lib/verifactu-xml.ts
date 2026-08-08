@@ -92,7 +92,17 @@ export function registroAltaXml(registro: Record<string, any>): string {
       ? [
           '<sum1:Destinatarios><sum1:IDDestinatario>',
           el('sum1:NombreRazon', registro.Destinatario.NombreRazon),
-          el('sum1:NIF', registro.Destinatario.NIF),
+          // A Spanish client carries a NIF; anyone else the IDOtro block. The
+          // two are alternatives in the schema, never both.
+          registro.Destinatario.IDOtro
+            ? [
+                '<sum1:IDOtro>',
+                el('sum1:CodigoPais', registro.Destinatario.IDOtro.CodigoPais),
+                el('sum1:IDType', registro.Destinatario.IDOtro.IDType),
+                el('sum1:ID', registro.Destinatario.IDOtro.ID),
+                '</sum1:IDOtro>',
+              ].join('')
+            : el('sum1:NIF', registro.Destinatario.NIF),
           '</sum1:IDDestinatario></sum1:Destinatarios>',
         ].join('')
       : '',

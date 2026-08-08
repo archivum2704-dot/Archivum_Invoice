@@ -70,7 +70,7 @@ export async function issueInvoice(
   if (!clientCompanyId) throw new IssueError('client_required', 400)
   const { data: client } = await supabase
     .from('companies')
-    .select('name, cif, address, city, postal_code, province')
+    .select('name, cif, address, city, postal_code, province, country_code, tax_id_type')
     .eq('id', clientCompanyId).single()
   if (!client) throw new IssueError('client_not_found', 404)
 
@@ -128,7 +128,11 @@ export async function issueInvoice(
     huella = computeHuella(registroInput)
     const registroAlta = buildRegistroAlta({
       ...registroInput,
-      issuerName: org.name, clientNif: client.cif!.trim(), clientName: client.name,
+      issuerName: org.name,
+      client: {
+        name: client.name, id: client.cif!.trim(),
+        countryCode: client.country_code, idType: client.tax_id_type,
+      },
       installationId: orgId, notes: notes?.trim() || null,
       lines: computedLines.map(l => ({
         description: l.description, taxRate: l.tax_rate,
@@ -148,6 +152,7 @@ export async function issueInvoice(
       issuer_logo_url: org.logo_url,
       client_name: client.name, client_cif: client.cif, client_address: client.address,
       client_city: client.city, client_postal_code: client.postal_code, client_province: client.province,
+      client_country_code: client.country_code, client_tax_id_type: client.tax_id_type,
       notes: notes?.trim() || null,
       huella, huella_anterior: previousHuella || null,
       qr_url: qrUrl, registro_alta: registroAlta,

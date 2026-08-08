@@ -113,6 +113,39 @@ export function buildQrUrl(issuerNif: string, fullNumber: string, issueDate: str
   return `${QR_BASE}?${params.toString()}`
 }
 
+/**
+ * How the recipient of an invoice is identified.
+ *
+ * A Spanish client goes in as a NIF. Anyone else has no NIF to give, so the
+ * AEAT takes a country, a type of document and the number — sending a foreign
+ * identifier in the NIF field would be a false declaration, not a shortcut.
+ */
+export interface RegistroDestinatario {
+  name: string | null
+  /** NIF for a Spanish client; the foreign identifier otherwise. */
+  id: string | null
+  /** ISO-3166-1 alpha-2. 'ES' (or unset) means the NIF path. */
+  countryCode?: string | null
+  /** AEAT L7 code. Unset means the NIF path. */
+  idType?: string | null
+}
+
+/** The Destinatario block, in whichever of its two shapes applies. */
+export function buildDestinatario(d: RegistroDestinatario) {
+  if (!d.id) return null
+  const foreign = !!d.idType && (d.countryCode ?? 'ES').toUpperCase() !== 'ES'
+  return foreign
+    ? {
+        NombreRazon: d.name ?? '',
+        IDOtro: {
+          CodigoPais: (d.countryCode ?? '').toUpperCase(),
+          IDType: d.idType,
+          ID: d.id,
+        },
+      }
+    : { NombreRazon: d.name ?? '', NIF: d.id }
+}
+
 /** One invoice line, reduced to what the desglose needs. */
 export interface RegistroLine {
   description: string
@@ -183,8 +216,8 @@ export function describeOperation(lines: RegistroLine[], notes?: string | null):
 /** The canonical registro de alta payload stored on the invoice (JSONB). */
 export function buildRegistroAlta(args: RegistroAltaInput & {
   issuerName: string
-  clientNif: string | null
-  clientName: string | null
+  /** The recipient, Spanish or not. */
+  client: RegistroDestinatario
   /** Lines, for the desglose and the description. */
   lines: RegistroLine[]
   /** Identifies this installation to the AEAT — the organization's id. */
@@ -211,9 +244,10 @@ export function buildRegistroAlta(args: RegistroAltaInput & {
         FechaExpedicionFactura: fechaExpedicion(args.rectified.issueDate),
       }],
     } : {}),
-    ...(args.clientNif ? {
-      Destinatario: { NIF: args.clientNif, NombreRazon: args.clientName ?? '' },
-    } : {}),
+    ...(() => {
+      const dest = buildDestinatario(args.client)
+      return dest ? { Destinatario: dest } : {}
+    })(),
     DescripcionOperacion: describeOperation(args.lines, args.notes),
     Desglose: { DetalleDesglose: buildDesglose(args.lines) },
     CuotaTotal: money(args.cuotaTotal),

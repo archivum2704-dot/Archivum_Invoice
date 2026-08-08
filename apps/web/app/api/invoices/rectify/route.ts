@@ -63,7 +63,10 @@ export async function POST(req: NextRequest) {
       const registroAlta = buildRegistroAlta({
         ...registroInput,
         issuerName: orig.issuer_name ?? '',
-        clientNif: orig.client_cif, clientName: orig.client_name,
+        client: {
+          name: orig.client_name, id: orig.client_cif,
+          countryCode: orig.client_country_code, idType: orig.client_tax_id_type,
+        },
         installationId: orgId,
         notes: `Rectificativa por anulación de ${orig.full_number}`,
         // Negated, like the lines themselves: 'por diferencias' declares the
@@ -91,6 +94,7 @@ export async function POST(req: NextRequest) {
         issuer_logo_url: orig.issuer_logo_url,
         client_name: orig.client_name, client_cif: orig.client_cif, client_address: orig.client_address,
         client_city: orig.client_city, client_postal_code: orig.client_postal_code, client_province: orig.client_province,
+        client_country_code: orig.client_country_code, client_tax_id_type: orig.client_tax_id_type,
         notes: `Rectificativa por anulación de ${orig.full_number}`,
         huella: (huella = computeHuella(registroInput)), huella_anterior: previousHuella || null,
         qr_url: qrUrl, registro_alta: registroAlta,

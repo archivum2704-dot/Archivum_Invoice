@@ -81,7 +81,11 @@
     "clientPostalCode": "Postcode",
     "clientCity": "City",
     "clientProvince": "Province",
-    "createClientError": "The client could not be created."
+    "createClientError": "The client could not be created.",
+    "clientCountry": "Country",
+    "clientTaxId": "Tax identifier",
+    "clientTaxIdType": "Identification type",
+    "clientTaxIdTypeHint": "Required outside Spain: the AEAT needs to know which document this is."
   },
   "common": {
     "save": "Save",
