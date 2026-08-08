@@ -44,7 +44,8 @@ check('se recorta a 500', describeOperation([{ ...lines[0], description: 'x'.rep
 
 console.log('\n── Registro completo ──')
 const reg: any = buildRegistroAlta({
-  ...chainInput, issuerName: 'Lumen S.A', clientNif: 'A87654321', clientName: 'Cliente_2',
+  ...chainInput, issuerName: 'Lumen S.A',
+  client: { name: 'Cliente_2', id: 'A87654321' },
   lines, installationId: 'org-abc', notes: null,
 })
 for (const f of ['IDVersion','IDFactura','NombreRazonEmisor','TipoFactura','DescripcionOperacion',
@@ -109,7 +110,8 @@ check('un & en el nombre no rompe el XML', withAmp.includes('Bar &amp; Co') && !
 
 // Primer registro de una cadena
 const first: any = buildRegistroAlta({
-  ...chainInput, previousHuella: '', issuerName: 'Lumen S.A', clientNif: 'A1', clientName: 'C',
+  ...chainInput, previousHuella: '', issuerName: 'Lumen S.A',
+  client: { name: 'C', id: 'A1' },
   lines, installationId: 'org-abc',
 })
 check('el primer registro va como PrimerRegistro',
@@ -118,6 +120,39 @@ check('el primer registro va como PrimerRegistro',
 let threw = false
 try { buildSubmissionXml({ nombreRazon: 'L', nif: 'B1' }, new Array(1001).fill(reg)) } catch { threw = true }
 check('rechaza un lote de más de 1000 en vez de recortarlo', threw)
+
+console.log('\n── Cliente extranjero (IDOtro) ──')
+const spanish: any = buildRegistroAlta({
+  ...chainInput, issuerName: 'L', client: { name: 'Cliente ES', id: 'A87654321', countryCode: 'ES' },
+  lines, installationId: 'org-abc',
+})
+check('un cliente español va por NIF', spanish.Destinatario.NIF === 'A87654321' && !spanish.Destinatario.IDOtro)
+
+const foreign: any = buildRegistroAlta({
+  ...chainInput, issuerName: 'L',
+  client: { name: 'Acme GmbH', id: 'DE123456789', countryCode: 'DE', idType: '02' },
+  lines, installationId: 'org-abc',
+})
+check('un cliente extranjero va por IDOtro', !!foreign.Destinatario.IDOtro && !foreign.Destinatario.NIF)
+check('IDOtro lleva país, tipo e identificador',
+  foreign.Destinatario.IDOtro.CodigoPais === 'DE' &&
+  foreign.Destinatario.IDOtro.IDType === '02' &&
+  foreign.Destinatario.IDOtro.ID === 'DE123456789')
+check('nunca salen NIF e IDOtro a la vez',
+  !(foreign.Destinatario.NIF && foreign.Destinatario.IDOtro))
+
+const foreignXml = buildSubmissionXml({ nombreRazon: 'L', nif: 'B1' }, [foreign])
+check('el XML emite IDOtro', foreignXml.includes('<sum1:IDOtro>') && foreignXml.includes('<sum1:CodigoPais>DE<'))
+check('el XML del extranjero no emite NIF de destinatario',
+  !foreignXml.includes('<sum1:NIF>DE123456789<'))
+
+// Un país extranjero sin tipo de documento no debe colarse como NIF español.
+const noType: any = buildRegistroAlta({
+  ...chainInput, issuerName: 'L', client: { name: 'X', id: 'FR999', countryCode: 'FR' },
+  lines, installationId: 'org-abc',
+})
+check('sin tipo de documento cae al NIF (y por eso el formulario lo exige)',
+  noType.Destinatario.NIF === 'FR999')
 
 console.log('\n── Respuesta de la AEAT ──')
 const okResp = parseSubmissionResponse(`

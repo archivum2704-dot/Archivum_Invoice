@@ -2,10 +2,15 @@
 
 import { useState } from "react"
 import { X, Plus, Loader2, AlertTriangle } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
 import { createClient } from "@/lib/supabase/client"
+import { cn } from "@/lib/utils"
+import { TAX_ID_TYPES, isForeignClient } from "@/lib/tax-id-types"
 
-const EMPTY = { name: "", cif: "", email: "", phone: "", address: "", postal_code: "", city: "", province: "" }
+const EMPTY = {
+  name: "", cif: "", email: "", phone: "", address: "", postal_code: "", city: "", province: "",
+  country_code: "ES", tax_id_type: "",
+}
 
 const inputCls = "w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
 
@@ -40,10 +45,12 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
   onClose: () => void
 }) {
   const t = useTranslations("invoicing")
+  const locale = useLocale()
   const tCommon = useTranslations("common")
   const [nc, setNc] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const foreign = isForeignClient(nc.country_code)
 
   const close = () => { if (!saving) onClose() }
 
@@ -71,6 +78,9 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
       postal_code: nc.postal_code.trim() || null,
       city: nc.city.trim() || null,
       province: nc.province.trim() || null,
+      country_code: nc.country_code.trim().toUpperCase() || "ES",
+      // Only a foreign client carries a document type; a Spanish one is a NIF.
+      tax_id_type: isForeignClient(nc.country_code) ? (nc.tax_id_type || null) : null,
       is_active: true,
     })
 
@@ -96,11 +106,35 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
             <label className="block text-sm font-medium text-foreground mb-1.5">{t("clientName")} <span className="text-destructive">*</span></label>
             <input autoFocus value={nc.name} onChange={e => setNc({ ...nc, name: e.target.value })} className={inputCls} />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">CIF</label>
-            <input value={nc.cif} onChange={e => setNc({ ...nc, cif: e.target.value })} placeholder="B12345678" className={inputCls} />
-            <p className="text-[11px] text-muted-foreground mt-1">{t("clientCifHint")}</p>
+          <div className="grid grid-cols-[1fr_100px] gap-2">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                {foreign ? t("clientTaxId") : "CIF"}
+              </label>
+              <input value={nc.cif} onChange={e => setNc({ ...nc, cif: e.target.value })}
+                placeholder={foreign ? "DE123456789" : "B12345678"} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">{t("clientCountry")}</label>
+              <input value={nc.country_code} maxLength={2}
+                onChange={e => setNc({ ...nc, country_code: e.target.value.toUpperCase() })}
+                placeholder="ES" className={cn(inputCls, "uppercase")} />
+            </div>
           </div>
+          {foreign ? (
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                {t("clientTaxIdType")} <span className="text-destructive">*</span>
+              </label>
+              <select value={nc.tax_id_type} onChange={e => setNc({ ...nc, tax_id_type: e.target.value })} className={inputCls}>
+                <option value="">—</option>
+                {TAX_ID_TYPES.map(o => <option key={o.code} value={o.code}>{locale === "en" ? o.en : o.es}</option>)}
+              </select>
+              <p className="text-[11px] text-muted-foreground mt-1">{t("clientTaxIdTypeHint")}</p>
+            </div>
+          ) : (
+            <p className="text-[11px] text-muted-foreground -mt-1">{t("clientCifHint")}</p>
+          )}
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">{t("clientEmail")}</label>

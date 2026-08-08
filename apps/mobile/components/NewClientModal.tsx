@@ -5,10 +5,14 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { supabase } from "@/lib/supabase";
 import { KeyboardModal } from "@/components/KeyboardModal";
+import { TAX_ID_TYPES, isForeignClient } from "@/lib/tax-id-types";
 
 export interface CreatedClient { id: string; name: string; cif: string | null }
 
-const EMPTY = { name: "", cif: "", email: "", phone: "", address: "", postal_code: "", city: "", province: "" };
+const EMPTY = {
+  name: "", cif: "", email: "", phone: "", address: "", postal_code: "", city: "", province: "",
+  country_code: "ES", tax_id_type: "",
+};
 
 /**
  * A v4-shaped random id for a new client row.
@@ -58,6 +62,7 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
   const C = useColors();
   const [nc, setNc] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const foreign = isForeignClient(nc.country_code);
 
   const set = (k: keyof typeof EMPTY) => (v: string) => setNc(prev => ({ ...prev, [k]: v }));
 
@@ -86,6 +91,9 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
       postal_code: nc.postal_code.trim() || null,
       city: nc.city.trim() || null,
       province: nc.province.trim() || null,
+      country_code: nc.country_code.trim().toUpperCase() || "ES",
+      // Only a foreign client carries a document type; a Spanish one is a NIF.
+      tax_id_type: isForeignClient(nc.country_code) ? (nc.tax_id_type || null) : null,
       is_active: true,
     });
     setSaving(false);
@@ -125,7 +133,35 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 12 }}
           >
             {field(`${t("invoicing.clientName")} *`, "name", { autoFocus: true })}
-            {field("CIF", "cif", { autoCapitalize: "characters", placeholder: "B12345678" })}
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <View style={{ flex: 2 }}>
+                {field(foreign ? t("invoicing.clientTaxId") : "CIF", "cif",
+                  { autoCapitalize: "characters", placeholder: foreign ? "DE123456789" : "B12345678" })}
+              </View>
+              <View style={{ flex: 1 }}>
+                {field(t("invoicing.clientCountry"), "country_code", { autoCapitalize: "characters", maxLength: 2, placeholder: "ES" })}
+              </View>
+            </View>
+            {foreign && (
+              <View>
+                <Text style={{ fontSize: 12, color: C.muted, marginBottom: 5 }}>
+                  {t("invoicing.clientTaxIdType")} *
+                </Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                  {TAX_ID_TYPES.map(o => (
+                    <TouchableOpacity key={o.code} onPress={() => setNc(p => ({ ...p, tax_id_type: o.code }))}
+                      style={{
+                        paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1,
+                        borderColor: nc.tax_id_type === o.code ? C.blue : C.border,
+                        backgroundColor: nc.tax_id_type === o.code ? C.blueL : "transparent",
+                      }}>
+                      <Text style={{ fontSize: 12, color: nc.tax_id_type === o.code ? C.blue : C.text }}>{o.es}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>{t("invoicing.clientTaxIdTypeHint")}</Text>
+              </View>
+            )}
             <View style={{ flexDirection: "row", gap: 10 }}>
               {field(t("invoicing.clientEmail"), "email", { keyboardType: "email-address", autoCapitalize: "none", placeholder: "cliente@empresa.com" })}
               {field(t("invoicing.clientPhone"), "phone", { keyboardType: "phone-pad" })}
@@ -140,11 +176,11 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
 
             <TouchableOpacity
               onPress={create}
-              disabled={saving || !nc.name.trim()}
+              disabled={saving || !nc.name.trim() || (foreign && !!nc.cif.trim() && !nc.tax_id_type)}
               style={{
                 flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
                 backgroundColor: C.blue, borderRadius: 12, paddingVertical: 14, marginTop: 4,
-                opacity: saving || !nc.name.trim() ? 0.5 : 1,
+                opacity: saving || !nc.name.trim() || (foreign && !!nc.cif.trim() && !nc.tax_id_type) ? 0.5 : 1,
               }}
             >
               {saving ? <ActivityIndicator color="#fff" /> : <Plus size={18} color="#fff" />}

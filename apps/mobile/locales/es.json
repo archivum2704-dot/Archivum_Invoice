@@ -81,7 +81,11 @@
     "clientPostalCode": "C.P.",
     "clientCity": "Ciudad",
     "clientProvince": "Provincia",
-    "createClientError": "No se pudo crear el cliente."
+    "createClientError": "No se pudo crear el cliente.",
+    "clientCountry": "País",
+    "clientTaxId": "Identificación fiscal",
+    "clientTaxIdType": "Tipo de identificación",
+    "clientTaxIdTypeHint": "Obligatorio fuera de España: la AEAT necesita saber qué documento es."
   },
   "common": {
     "save": "Guardar",

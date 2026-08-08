@@ -282,7 +282,11 @@
     "createClientError": "The client could not be created.",
     "aeatSent": "Record accepted by the AEAT",
     "aeatPending": "Record pending submission to the AEAT",
-    "aeatError": "The AEAT rejected the record"
+    "aeatError": "The AEAT rejected the record",
+    "clientCountry": "Country",
+    "clientTaxId": "Tax identifier",
+    "clientTaxIdType": "Identification type",
+    "clientTaxIdTypeHint": "Required for clients outside Spain: the AEAT needs to know which document this is."
   },
   "verifactu": {
     "title": "Verifactu certificate (AEAT)",
