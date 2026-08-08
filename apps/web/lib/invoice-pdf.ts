@@ -147,7 +147,9 @@ export async function buildInvoicePdf(data: InvoicePdfData): Promise<Uint8Array>
   // ── Verifactu block (bottom) ──
   // Lift the footer off the page edge so the QR isn't clipped when printed.
   const FOOT = M + 48
-  const qrPng = await QRCode.toBuffer(data.qrUrl, { width: 120, margin: 1 })
+  // Art. 21.1 Orden HAC/1177/2024: ISO/IEC 18004, error correction level M,
+  // and between 30x30 and 40x40 mm. 90pt is 31.75 mm, inside that range.
+  const qrPng = await QRCode.toBuffer(data.qrUrl, { width: 120, margin: 1, errorCorrectionLevel: 'M' })
   const qrImg = await pdf.embedPng(qrPng)
   const qrSize = 90
   // Vertically center the QR against the text block (text spans FOOT..FOOT+70).

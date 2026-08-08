@@ -225,6 +225,18 @@ export async function issueInvoice(
     console.error('[issueInvoice] archival to Biblioteca failed:', pdfErr)
   }
 
+  // The record was generated: art. 8.3 wants that logged as it happens.
+  try {
+    const { recordEvent, EVENT_TYPES } = await import('@/lib/verifactu-events')
+    await recordEvent(supabase, {
+      orgId, type: EVENT_TYPES.ALTA,
+      actor: { userId },
+      detail: { fullNumber, huella, total, clientCif: client.cif },
+    })
+  } catch (evErr) {
+    console.error('[issueInvoice] event not recorded:', evErr)
+  }
+
   // Veri*Factu wants the record at the AEAT promptly, so it goes now rather
   // than waiting for the hourly sweep. Best-effort for the same reason as the
   // PDF: the invoice is already issued and immutable, and failing the call

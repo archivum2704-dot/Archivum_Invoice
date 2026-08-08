@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ShieldCheck, Upload, Trash2, Loader2, AlertTriangle, CheckCircle2, Lock, ArrowLeft, FileText, ChevronRight } from "lucide-react"
+import { ShieldCheck, Upload, Trash2, Loader2, AlertTriangle, CheckCircle2, Lock, ArrowLeft, FileText, ChevronRight, ScrollText } from "lucide-react"
 import Link from "next/link"
 import { useTranslations, useLocale } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
@@ -102,6 +102,15 @@ export function VerifactuSettingsView() {
 
       {/* Article 13.2 requires the declaration to be visible in the software
           itself, so every screen about Verifactu links to it. */}
+      <Link href="/configuracion/verifactu/eventos"
+        className="flex items-center justify-between gap-3 bg-card border border-border rounded-xl px-4 py-3 mb-3 hover:bg-muted transition-colors">
+        <span className="flex items-center gap-2.5 min-w-0">
+          <ScrollText className="w-4 h-4 text-muted-foreground shrink-0" />
+          <span className="text-sm font-medium text-foreground">Registro de eventos y exportación</span>
+        </span>
+        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+      </Link>
+
       <Link href="/declaracion-responsable"
         className="flex items-center justify-between gap-3 bg-card border border-border rounded-xl px-4 py-3 mb-5 hover:bg-muted transition-colors">
         <span className="flex items-center gap-2.5 min-w-0">

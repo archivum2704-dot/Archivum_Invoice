@@ -1,0 +1,135 @@
+"use client"
+
+import useSWR from "swr"
+import Link from "next/link"
+import { ArrowLeft, ScrollText, Download, Loader2, AlertTriangle } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
+import { useOrganization } from "@/lib/context/organization-context"
+
+/**
+ * The event log, on screen.
+ *
+ * Article 8.3 does not only require the events to be recorded — they must be
+ * consultable from within the system, which is what this page is for. It reads
+ * them directly: the table is readable by the organization and writable by
+ * nobody, so there is nothing an API route would add.
+ */
+
+type EventRow = {
+  id: string
+  event_type: string
+  actor_email: string | null
+  detail: Record<string, unknown>
+  occurred_at: string
+  huella: string
+  huella_anterior: string | null
+}
+
+const LABELS: Record<string, string> = {
+  registro_alta_generado: "Registro de alta generado",
+  registro_anulacion_generado: "Registro de anulación generado",
+  envio_aeat_iniciado: "Envío a la AEAT iniciado",
+  envio_aeat_aceptado: "Envío aceptado por la AEAT",
+  envio_aeat_rechazado: "Envío rechazado por la AEAT",
+  envio_aeat_fallido: "Envío a la AEAT fallido",
+  exportacion_registros: "Exportación de registros",
+  certificado_subido: "Certificado digital subido",
+  certificado_eliminado: "Certificado digital eliminado",
+  anomalia_detectada: "Anomalía detectada",
+}
+
+const TONE: Record<string, string> = {
+  envio_aeat_aceptado: "text-[var(--status-paid)]",
+  envio_aeat_rechazado: "text-[var(--status-overdue)]",
+  envio_aeat_fallido: "text-[var(--status-overdue)]",
+  anomalia_detectada: "text-[var(--status-overdue)]",
+  exportacion_registros: "text-[var(--status-pending)]",
+}
+
+async function fetchEvents(orgId: string): Promise<EventRow[]> {
+  const supabase: any = createClient()
+  const { data, error } = await supabase
+    .from("verifactu_events")
+    .select("id, event_type, actor_email, detail, occurred_at, huella, huella_anterior")
+    .eq("organization_id", orgId)
+    .order("occurred_at", { ascending: false })
+    .limit(500)
+  if (error) throw error
+  return data ?? []
+}
+
+export function EventosView() {
+  const { currentOrg, isOrgAdmin } = useOrganization()
+  const { data: events, isLoading, error } = useSWR(
+    currentOrg?.id ? ["verifactu-events", currentOrg.id] : null,
+    () => fetchEvents(currentOrg!.id),
+    { revalidateOnFocus: false },
+  )
+
+  return (
+    <div className="p-6 sm:p-8 max-w-4xl mx-auto">
+      <Link href="/configuracion/verifactu" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
+        <ArrowLeft className="w-4 h-4" /> VeriFactu
+      </Link>
+
+      <div className="flex items-start justify-between gap-4 mb-2">
+        <div className="flex items-center gap-2.5">
+          <ScrollText className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-bold text-foreground">Registro de eventos</h1>
+        </div>
+        {isOrgAdmin && currentOrg && (
+          <a
+            href={`/api/verifactu/export?orgId=${currentOrg.id}`}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border rounded-xl hover:bg-muted whitespace-nowrap transition-colors"
+          >
+            <Download className="w-4 h-4" /> Exportar registros
+          </a>
+        )}
+      </div>
+      <p className="text-sm text-muted-foreground mb-8">
+        Sucesos registrados automáticamente por el sistema, conforme al artículo 8.3 del RD 1007/2023.
+        Los eventos son inmutables y están encadenados entre sí.
+      </p>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+      ) : error ? (
+        <div className="flex items-start gap-2 bg-destructive/10 border border-destructive/20 rounded-xl p-4">
+          <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+          <p className="text-sm text-destructive">No se pudo leer el registro de eventos.</p>
+        </div>
+      ) : !events?.length ? (
+        <div className="bg-card border border-border rounded-xl py-16 text-center">
+          <ScrollText className="w-9 h-9 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-sm font-medium text-foreground">Todavía no hay eventos</p>
+          <p className="text-xs text-muted-foreground mt-1">Se registran solos según se usa el sistema.</p>
+        </div>
+      ) : (
+        <div className="bg-card border border-border rounded-xl divide-y divide-border overflow-hidden">
+          {events.map(e => (
+            <div key={e.id} className="px-5 py-3.5">
+              <div className="flex items-baseline justify-between gap-4">
+                <p className={cn("text-sm font-medium", TONE[e.event_type] ?? "text-foreground")}>
+                  {LABELS[e.event_type] ?? e.event_type}
+                </p>
+                <time className="text-xs text-muted-foreground tabular-nums shrink-0">
+                  {new Date(e.occurred_at).toLocaleString("es-ES")}
+                </time>
+              </div>
+              {e.actor_email && <p className="text-xs text-muted-foreground mt-0.5">{e.actor_email}</p>}
+              {Object.keys(e.detail ?? {}).length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1 break-all font-mono">
+                  {JSON.stringify(e.detail)}
+                </p>
+              )}
+              <p className="text-[10px] text-muted-foreground/50 mt-1 font-mono break-all">
+                {e.huella.slice(0, 32)}…
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

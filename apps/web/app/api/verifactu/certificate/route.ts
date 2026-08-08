@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import forge from 'node-forge'
 import { seal } from '@/lib/crypto-vault'
 import { missingProducerConfig } from '@/lib/verifactu'
+import { recordEvent, EVENT_TYPES } from '@/lib/verifactu-events'
 
 export const runtime = 'nodejs'
 
@@ -72,6 +73,14 @@ export async function POST(req: NextRequest) {
     }, { onConflict: 'organization_id' })
     if (error) return NextResponse.json({ error: 'store_failed', detail: error.message }, { status: 500 })
 
+    // A change to the certificate changes who the AEAT sees submitting — art.
+    // 8.3 wants configuration that affects Verifactu on the record.
+    await recordEvent(auth.db, {
+      orgId, type: EVENT_TYPES.CERTIFICADO_ALTA,
+      actor: { userId: auth.user.id, email: auth.user.email },
+      detail: { subject, nif, validUntil },
+    })
+
     return NextResponse.json({ success: true, subject, nif, validUntil })
   } catch (err) {
     return NextResponse.json({ error: 'server_error', detail: String(err) }, { status: 500 })
@@ -99,5 +108,9 @@ export async function DELETE(req: NextRequest) {
   const auth = await authorize(orgId, req)
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
   await auth.db.from('org_certificates').delete().eq('organization_id', orgId)
+  await recordEvent(auth.db, {
+    orgId, type: EVENT_TYPES.CERTIFICADO_BAJA,
+    actor: { userId: auth.user.id, email: auth.user.email },
+  })
   return NextResponse.json({ success: true })
 }
