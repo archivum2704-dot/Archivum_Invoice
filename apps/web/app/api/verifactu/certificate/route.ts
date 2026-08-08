@@ -3,6 +3,7 @@ import { getApiClient } from '@/lib/supabase/api-auth'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import forge from 'node-forge'
 import { seal } from '@/lib/crypto-vault'
+import { missingProducerConfig } from '@/lib/verifactu'
 
 export const runtime = 'nodejs'
 
@@ -85,7 +86,10 @@ export async function GET(req: NextRequest) {
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
   const { data } = await auth.db.from('org_certificates')
     .select('subject, nif, valid_until, uploaded_at').eq('organization_id', orgId).maybeSingle()
-  return NextResponse.json({ exists: !!data, ...data })
+  // Surfaced here because it is the screen an admin looks at when they want to
+  // know whether Verifactu is set up: a registro without the producer's
+  // identity is incomplete, and nothing else would say so.
+  return NextResponse.json({ exists: !!data, ...data, missingProducer: missingProducerConfig() })
 }
 
 // ── Remove certificate ──────────────────────────────────────

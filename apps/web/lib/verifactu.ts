@@ -18,6 +18,41 @@ const QR_BASE = VERIFACTU_ENV === 'prod'
 
 export type InvoiceKind = 'ordinary' | 'simplified' | 'rectifying'
 
+/**
+ * Who produces this software, as the AEAT wants it declared.
+ *
+ * The producer's own name and NIF are not ours to guess — they identify the
+ * legal entity that signs the declaración responsable — so they come from the
+ * environment. Missing values are reported rather than filled in with
+ * something plausible: a registro carrying an invented producer is worse than
+ * one that is visibly incomplete.
+ */
+export function sistemaInformatico(numeroInstalacion: string) {
+  return {
+    NombreRazon: process.env.VERIFACTU_PRODUCER_NAME ?? '',
+    NIF: process.env.VERIFACTU_PRODUCER_NIF ?? '',
+    NombreSistemaInformatico: process.env.VERIFACTU_SYSTEM_NAME ?? 'Archivum',
+    IdSistemaInformatico: process.env.VERIFACTU_SYSTEM_ID ?? 'AR',
+    Version: process.env.VERIFACTU_SYSTEM_VERSION ?? '1.0',
+    // One installation per organization: each is a separate taxpayer.
+    NumeroInstalacion: numeroInstalacion,
+    // The software only ever operates in Veri*Factu mode — it has no
+    // non-remitting variant — and it is a multi-tenant service serving many
+    // taxpayers at once.
+    TipoUsoPosibleSoloVerifactu: 'S',
+    TipoUsoPosibleMultiOT: 'S',
+    IndicadorMultiplesOT: 'S',
+  }
+}
+
+/** Producer identity that has to be configured before a registro is complete. */
+export function missingProducerConfig(): string[] {
+  const missing: string[] = []
+  if (!process.env.VERIFACTU_PRODUCER_NAME?.trim()) missing.push('VERIFACTU_PRODUCER_NAME')
+  if (!process.env.VERIFACTU_PRODUCER_NIF?.trim()) missing.push('VERIFACTU_PRODUCER_NIF')
+  return missing
+}
+
 /** AEAT TipoFactura code for our invoice kinds. */
 export function tipoFactura(kind: InvoiceKind): string {
   switch (kind) {
@@ -78,11 +113,83 @@ export function buildQrUrl(issuerNif: string, fullNumber: string, issueDate: str
   return `${QR_BASE}?${params.toString()}`
 }
 
+/** One invoice line, reduced to what the desglose needs. */
+export interface RegistroLine {
+  description: string
+  /** VAT rate as a number; 0 means exempt. */
+  taxRate: number
+  /** Taxable base after any discount. */
+  base: number
+  /** VAT charged on that base. */
+  cuota: number
+}
+
+/**
+ * Desglose: the invoice broken down by VAT rate.
+ *
+ * The AEAT does not accept a single total — it wants one entry per rate, with
+ * its base and its cuota, so the tax can be checked without reading the lines.
+ * Entries are grouped by rate and capped at the 12 the spec allows.
+ *
+ * A 0% line is declared exempt rather than taxed at zero. Which exemption
+ * applies is a legal question the invoice does not currently ask, so it goes
+ * out as E1 (artículo 20), the common case; capturing the real cause per line
+ * is the correct fix and is not something to guess line by line.
+ */
+export function buildDesglose(lines: RegistroLine[]) {
+  const byRate = new Map<number, { base: number; cuota: number }>()
+  for (const l of lines) {
+    const rate = Number(l.taxRate) || 0
+    const acc = byRate.get(rate) ?? { base: 0, cuota: 0 }
+    acc.base += Number(l.base) || 0
+    acc.cuota += Number(l.cuota) || 0
+    byRate.set(rate, acc)
+  }
+
+  return Array.from(byRate.entries())
+    .sort((a, b) => a[0] - b[0])
+    .slice(0, 12)
+    .map(([rate, { base, cuota }]) => rate === 0
+      ? {
+          Impuesto: '01',                       // IVA
+          ClaveRegimen: '01',                   // régimen general
+          OperacionExenta: 'E1',                // exenta por el artículo 20
+          BaseImponibleOimporteNoSujeto: money(base),
+        }
+      : {
+          Impuesto: '01',
+          ClaveRegimen: '01',
+          CalificacionOperacion: 'S1',          // sujeta y no exenta, sin ISP
+          TipoImpositivo: money(rate),
+          BaseImponibleOimporteNoSujeto: money(base),
+          CuotaRepercutida: money(cuota),
+        })
+}
+
+/**
+ * DescripcionOperacion — mandatory free text, capped at the spec's 500 chars.
+ *
+ * The line descriptions are what actually describe the operation, so they are
+ * what goes out; a note written on the invoice takes precedence when there is
+ * one, since it was written for a reader.
+ */
+export function describeOperation(lines: RegistroLine[], notes?: string | null): string {
+  const fromNotes = notes?.trim()
+  const text = fromNotes || lines.map(l => l.description?.trim()).filter(Boolean).join('; ')
+  const clean = (text || 'Prestación de servicios').replace(/\s+/g, ' ').trim()
+  return clean.length > 500 ? `${clean.slice(0, 497)}...` : clean
+}
+
 /** The canonical registro de alta payload stored on the invoice (JSONB). */
 export function buildRegistroAlta(args: RegistroAltaInput & {
   issuerName: string
   clientNif: string | null
   clientName: string | null
+  /** Lines, for the desglose and the description. */
+  lines: RegistroLine[]
+  /** Identifies this installation to the AEAT — the organization's id. */
+  installationId: string
+  notes?: string | null
   rectified?: { issuerNif: string; fullNumber: string; issueDate: string } | null
 }) {
   return {
@@ -95,7 +202,9 @@ export function buildRegistroAlta(args: RegistroAltaInput & {
     NombreRazonEmisor: args.issuerName,
     TipoFactura: tipoFactura(args.kind),
     ...(args.rectified ? {
-      TipoRectificativa: 'I', // por sustitución
+      // 'I' = por diferencias, which is what negated lines express: the
+      // rectificativa carries only the correction, not the replacement total.
+      TipoRectificativa: 'I',
       FacturasRectificadas: [{
         IDEmisorFactura: args.rectified.issuerNif,
         NumSerieFactura: args.rectified.fullNumber,
@@ -105,12 +214,14 @@ export function buildRegistroAlta(args: RegistroAltaInput & {
     ...(args.clientNif ? {
       Destinatario: { NIF: args.clientNif, NombreRazon: args.clientName ?? '' },
     } : {}),
+    DescripcionOperacion: describeOperation(args.lines, args.notes),
+    Desglose: { DetalleDesglose: buildDesglose(args.lines) },
     CuotaTotal: money(args.cuotaTotal),
     ImporteTotal: money(args.importeTotal),
     Encadenamiento: args.previousHuella
       ? { RegistroAnterior: { Huella: args.previousHuella } }
       : { PrimerRegistro: 'S' },
-    SistemaInformatico: { NombreSistema: 'Archivum', Version: '1.0' },
+    SistemaInformatico: sistemaInformatico(args.installationId),
     FechaHoraHusoGenRegistro: args.generatedAt,
     TipoHuella: '01', // SHA-256
     Huella: computeHuella(args),

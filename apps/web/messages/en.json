@@ -306,7 +306,9 @@
       "vault": "The server encryption key (VERIFACTU_CERT_KEY) is not configured.",
       "forbidden": "You don't have permission to manage this certificate.",
       "generic": "Couldn't save the certificate."
-    }
+    },
+    "producerMissingTitle": "The software producer’s identity is missing",
+    "producerMissingBody": "Without these the billing record generated is incomplete and the AEAT would reject it. Set them in the server environment variables:"
   },
   "dashboard": {
     "title": "Dashboard",
