@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildRegistroAnulacion, computeHuellaAnulacion, nowWithOffset } from '@/lib/verifactu'
 import { readChainHead, isChainConflict } from '@/lib/invoice-chain'
+import { recordEvent, EVENT_TYPES } from '@/lib/verifactu-events'
 
 /**
  * Annulling an alta record (art. 11 RD 1007/2023).
@@ -97,6 +98,13 @@ export async function annulInvoiceRecord(
       // The invoice keeps its own record — an annulled record is not a deleted
       // one — but stops being a live document.
       await db.from('invoices').update({ state: 'cancelled' }).eq('id', invoice.id)
+
+      await recordEvent(supabase, {
+        orgId: args.orgId, type: EVENT_TYPES.ANULACION,
+        actor: { userId },
+        detail: { annulledFullNumber: invoice.full_number, huella, reason: args.reason ?? null },
+      })
+
       return { id: annulment.id, huella }
     }
 

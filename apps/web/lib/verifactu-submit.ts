@@ -2,6 +2,7 @@ import { createClient as createAdminClient, type SupabaseClient } from '@supabas
 import { buildSubmissionXml } from '@/lib/verifactu-xml'
 import { submitToAeat, type StoredCertificate } from '@/lib/verifactu-client'
 import { missingProducerConfig } from '@/lib/verifactu'
+import { recordEvent, EVENT_TYPES } from '@/lib/verifactu-events'
 
 /**
  * Submitting issued invoices to the AEAT.
@@ -105,6 +106,11 @@ export async function submitPendingForOrg(orgId: string, opts: { invoiceId?: str
   )
 
   const attemptedAt = new Date().toISOString()
+  await recordEvent(db, {
+    orgId, type: EVENT_TYPES.ENVIO_INICIADO,
+    detail: { altas: pending.length, anulaciones: annulments.length },
+  })
+
   const result = await submitToAeat(xml, cert as StoredCertificate)
 
   // A transport failure says nothing about the records themselves, so they
@@ -123,6 +129,10 @@ export async function submitPendingForOrg(orgId: string, opts: { invoiceId?: str
       ...annulments.map((a: any) => db.from('verifactu_annulments')
         .update({ ...failure, aeat_attempts: (a.aeat_attempts ?? 0) + 1 }).eq('id', a.id)),
     ])
+    await recordEvent(db, {
+      orgId, type: EVENT_TYPES.ENVIO_FALLIDO,
+      detail: { records: attemptedCount, error: result.error ?? `HTTP ${result.httpStatus}` },
+    })
     return { attempted: attemptedCount, sent: 0, rejected: 0, skipped: null, error: result.error ?? `HTTP ${result.httpStatus}` }
   }
 
@@ -183,6 +193,23 @@ export async function submitPendingForOrg(orgId: string, opts: { invoiceId?: str
           : 'La AEAT no devolvió respuesta para esta factura',
     }).eq('id', i.id)
   }))
+
+  if (sent > 0) {
+    await recordEvent(db, {
+      orgId, type: EVENT_TYPES.ENVIO_ACEPTADO,
+      detail: { records: sent, csv: res.csv, estadoEnvio: res.estadoEnvio },
+    })
+  }
+  if (rejected > 0) {
+    await recordEvent(db, {
+      orgId, type: EVENT_TYPES.ENVIO_RECHAZADO,
+      detail: {
+        records: rejected,
+        errores: res.lineas.filter(l => l.codigoError)
+          .map(l => ({ factura: l.numSerieFactura, codigo: l.codigoError, descripcion: l.descripcionError })),
+      },
+    })
+  }
 
   return { attempted: attemptedCount, sent, rejected, skipped: null, error: null }
 }
