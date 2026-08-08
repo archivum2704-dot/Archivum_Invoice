@@ -3,6 +3,7 @@ import {
   missingProducerConfig, type RegistroLine,
 } from '@/lib/verifactu'
 import { buildSubmissionXml, parseSubmissionResponse, esc } from '@/lib/verifactu-xml'
+import { buildRegistroAnulacion, computeHuellaAnulacion } from '@/lib/verifactu'
 
 let fails = 0
 const check = (name: string, cond: boolean, extra = '') => {
@@ -153,6 +154,51 @@ const noType: any = buildRegistroAlta({
 })
 check('sin tipo de documento cae al NIF (y por eso el formulario lo exige)',
   noType.Destinatario.NIF === 'FR999')
+
+console.log('\n── Registro de anulación (art. 11) ──')
+const anulInput = {
+  issuerNif: 'B12345678',
+  annulledFullNumber: 'FAC-2026-0001',
+  annulledIssueDate: '2026-08-08',
+  previousHuella: reg.Huella,
+  generatedAt: '2026-08-08T13:00:00+02:00',
+}
+const anul: any = buildRegistroAnulacion({ ...anulInput, installationId: 'org-abc' })
+
+check('identifica la factura anulada',
+  anul.IDFactura.IDEmisorFacturaAnulada === 'B12345678' &&
+  anul.IDFactura.NumSerieFacturaAnulada === 'FAC-2026-0001' &&
+  anul.IDFactura.FechaExpedicionFacturaAnulada === '08-08-2026')
+check('se encadena al registro anterior', anul.Encadenamiento.RegistroAnterior.Huella === reg.Huella)
+check('declara quién lo genera', anul.GeneradoPor === 'E')
+check('lleva SistemaInformatico', !!anul.SistemaInformatico.NombreSistemaInformatico)
+check('su huella es la de anulación, no la de alta', anul.Huella === computeHuellaAnulacion(anulInput))
+check('huella distinta a la del alta que anula', anul.Huella !== reg.Huella)
+
+// Anular un registro que la AEAT nunca recibió debe decirlo.
+const nuncaEnviado: any = buildRegistroAnulacion({ ...anulInput, installationId: 'org-abc', sinRegistroPrevio: true })
+check('marca SinRegistroPrevio cuando nunca se envió', nuncaEnviado.SinRegistroPrevio === 'S')
+check('no lo marca cuando sí se envió', anul.SinRegistroPrevio === undefined)
+
+const anulXml = buildSubmissionXml({ nombreRazon: 'L', nif: 'B12345678' },
+  [{ kind: 'anulacion', registro: anul }])
+check('el XML emite RegistroAnulacion', anulXml.includes('<sum1:RegistroAnulacion>'))
+check('el XML del anulación no emite RegistroAlta', !anulXml.includes('<sum1:RegistroAlta>'))
+check('lleva el número de la factura anulada', anulXml.includes('<sum1:NumSerieFacturaAnulada>FAC-2026-0001<'))
+
+const anulOrder = ['IDVersion','IDFactura','GeneradoPor','Encadenamiento','SistemaInformatico',
+                   'FechaHoraHusoGenRegistro','TipoHuella','Huella']
+check('orden de elementos de la anulación',
+  JSON.stringify(directChildren(anulXml, 'RegistroAnulacion')) === JSON.stringify(anulOrder),
+  directChildren(anulXml, 'RegistroAnulacion').join(' > '))
+
+// Alta y anulación viajan en el mismo envío.
+const mixed = buildSubmissionXml({ nombreRazon: 'L', nif: 'B1' },
+  [{ kind: 'alta', registro: reg }, { kind: 'anulacion', registro: anul }])
+check('un envío mezcla altas y anulaciones',
+  mixed.includes('<sum1:RegistroAlta>') && mixed.includes('<sum1:RegistroAnulacion>'))
+check('los registros bare siguen tratándose como alta',
+  buildSubmissionXml({ nombreRazon: 'L', nif: 'B1' }, [reg]).includes('<sum1:RegistroAlta>'))
 
 console.log('\n── Respuesta de la AEAT ──')
 const okResp = parseSubmissionResponse(`

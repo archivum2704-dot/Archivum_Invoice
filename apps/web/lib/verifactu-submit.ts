@@ -67,6 +67,17 @@ export async function submitPendingForOrg(orgId: string, opts: { invoiceId?: str
     .eq('organization_id', orgId).maybeSingle()
   if (!cert) return nothing('La organización no tiene certificado digital')
 
+  // Annulment records travel in the same submission as alta records.
+  let annulQuery = db
+    .from('verifactu_annulments')
+    .select('id, annulled_full_number, registro_anulacion, aeat_attempts')
+    .eq('organization_id', orgId)
+    .in('verifactu_status', ['generated', 'error'])
+    .order('generated_at', { ascending: true })
+    .limit(BATCH_SIZE)
+  if (opts.invoiceId) annulQuery = annulQuery.eq('invoice_id', opts.invoiceId)
+  const { data: pendingAnnulments } = await annulQuery
+
   let query = db
     .from('invoices')
     .select('id, full_number, registro_alta, aeat_attempts')
@@ -78,14 +89,19 @@ export async function submitPendingForOrg(orgId: string, opts: { invoiceId?: str
     .limit(BATCH_SIZE)
   if (opts.invoiceId) query = query.eq('id', opts.invoiceId)
 
-  const { data: pending } = await query
-  if (!pending?.length) return nothing('No hay registros pendientes')
+  const { data: pendingInvoices } = await query
+  const pending = pendingInvoices ?? []
+  const annulments = pendingAnnulments ?? []
+  if (!pending.length && !annulments.length) return nothing('No hay registros pendientes')
 
   // Order matters beyond tidiness: the records form a chain, and the AEAT
   // expects them in the order they were issued.
   const xml = buildSubmissionXml(
     { nombreRazon: org.name, nif: org.cif.trim() },
-    pending.map((i: any) => i.registro_alta),
+    [
+      ...pending.map((i: any) => ({ kind: 'alta' as const, registro: i.registro_alta })),
+      ...annulments.map((a: any) => ({ kind: 'anulacion' as const, registro: a.registro_anulacion })),
+    ],
   )
 
   const attemptedAt = new Date().toISOString()
@@ -93,14 +109,21 @@ export async function submitPendingForOrg(orgId: string, opts: { invoiceId?: str
 
   // A transport failure says nothing about the records themselves, so they
   // stay exactly as they were, only counted and dated.
+  const attemptedCount = pending.length + annulments.length
+
   if (!result.ok || !result.response) {
-    await Promise.all(pending.map((i: any) => db.from('invoices').update({
+    const failure = {
       verifactu_status: 'error',
-      aeat_attempts: (i.aeat_attempts ?? 0) + 1,
       aeat_last_attempt_at: attemptedAt,
       aeat_error: result.error ?? `HTTP ${result.httpStatus}`,
-    }).eq('id', i.id)))
-    return { attempted: pending.length, sent: 0, rejected: 0, skipped: null, error: result.error ?? `HTTP ${result.httpStatus}` }
+    }
+    await Promise.all([
+      ...pending.map((i: any) => db.from('invoices')
+        .update({ ...failure, aeat_attempts: (i.aeat_attempts ?? 0) + 1 }).eq('id', i.id)),
+      ...annulments.map((a: any) => db.from('verifactu_annulments')
+        .update({ ...failure, aeat_attempts: (a.aeat_attempts ?? 0) + 1 }).eq('id', a.id)),
+    ])
+    return { attempted: attemptedCount, sent: 0, rejected: 0, skipped: null, error: result.error ?? `HTTP ${result.httpStatus}` }
   }
 
   const res = result.response
@@ -113,6 +136,27 @@ export async function submitPendingForOrg(orgId: string, opts: { invoiceId?: str
   // Per-record outcome, matched on the invoice number the AEAT echoes back.
   const byNumber = new Map(res.lineas.map(l => [l.numSerieFactura, l]))
   let sent = 0, rejected = 0
+
+  const applyOutcome = (linea: any) =>
+    linea ? (linea.estado === 'Correcto' || linea.estado === 'AceptadoConErrores') : false
+
+  await Promise.all(annulments.map(async (a: any) => {
+    const linea = byNumber.get(a.annulled_full_number)
+    const accepted = applyOutcome(linea)
+    if (accepted) sent++
+    else if (linea) rejected++
+    await db.from('verifactu_annulments').update({
+      verifactu_status: accepted ? 'sent' : 'error',
+      aeat_csv: accepted ? res.csv : null,
+      aeat_response: { estadoEnvio: res.estadoEnvio, csv: res.csv, linea: linea ?? null },
+      submitted_at: accepted ? attemptedAt : null,
+      aeat_attempts: (a.aeat_attempts ?? 0) + 1,
+      aeat_last_attempt_at: attemptedAt,
+      aeat_error: accepted ? null
+        : linea ? `${linea.codigoError ?? ''} ${linea.descripcionError ?? ''}`.trim() || 'Rechazado por la AEAT'
+        : 'La AEAT no devolvió respuesta para este registro',
+    }).eq('id', a.id)
+  }))
 
   await Promise.all(pending.map(async (i: any) => {
     const linea = byNumber.get(i.full_number)
@@ -140,5 +184,5 @@ export async function submitPendingForOrg(orgId: string, opts: { invoiceId?: str
     }).eq('id', i.id)
   }))
 
-  return { attempted: pending.length, sent, rejected, skipped: null, error: null }
+  return { attempted: attemptedCount, sent, rejected, skipped: null, error: null }
 }
