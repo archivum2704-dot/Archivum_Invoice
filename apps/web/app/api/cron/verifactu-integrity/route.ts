@@ -4,7 +4,9 @@ import { cronRequestIsAuthorised } from '@/lib/cron-auth'
 import { runIntegrityCheck, recordEventSummary } from '@/lib/verifactu-integrity'
 
 export const runtime = 'nodejs'
-export const maxDuration = 300
+// Vercel Hobby caps this at 60 seconds; anything higher fails the build, not
+// the request. Raise it here only together with the plan.
+export const maxDuration = 60
 
 /**
  * GET /api/cron/verifactu-integrity — every six hours.

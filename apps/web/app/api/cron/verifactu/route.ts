@@ -1,14 +1,22 @@
 import { NextResponse } from 'next/server'
 import { adminClient, submitPendingForOrg } from '@/lib/verifactu-submit'
 import { cronRequestIsAuthorised } from '@/lib/cron-auth'
+import { runIntegrityCheck, recordEventSummary } from '@/lib/verifactu-integrity'
 
 export const runtime = 'nodejs'
-export const maxDuration = 300
+// Vercel Hobby caps this at 60 seconds; anything higher fails the build, not
+// the request. Raise it here only together with the plan.
+export const maxDuration = 60
 
 /**
  * GET /api/cron/verifactu
  *
- * Sweeps every organization with unsent records and submits them.
+ * The one scheduled Verifactu job: submits what has not reached the AEAT, runs
+ * the anomaly detection, and writes the event summary.
+ *
+ * These were three separate crons until the Hobby plan turned out to allow
+ * two in total. They are combined here rather than dropped, and each still has
+ * its own route for running on demand.
  *
  * Veri*Factu expects records to reach the AEAT promptly after issue, and
  * issuing already attempts it inline — this is the safety net for the ones
@@ -51,11 +59,31 @@ export async function GET(request: Request) {
       }
     }
 
+    // Integrity and the summary cover every organization that has ever
+    // generated a record, not only those with something pending: art. 9.2 wants
+    // the summary written even when nothing happened.
+    const { data: allOrgs } = await db
+      .from('verifactu_chain_links').select('organization_id').limit(20000)
+    const everyOrg = Array.from(new Set((allOrgs ?? []).map((r: any) => r.organization_id))) as string[]
+
+    let anomalies = 0
+    for (const orgId of everyOrg) {
+      try {
+        const report = await runIntegrityCheck(db, orgId)
+        anomalies += report.anomalies.length + report.eventAnomalies.length
+        await recordEventSummary(db, orgId)
+      } catch (err) {
+        // One organization failing must not stop the rest being checked.
+        console.error('[cron/verifactu] integrity', orgId, err)
+      }
+    }
+
     const sent = results.reduce((a, r) => a + Number(r.sent ?? 0), 0)
     const rejected = results.reduce((a, r) => a + Number(r.rejected ?? 0), 0)
-    console.log(`[cron/verifactu] ${orgIds.length} orgs, ${sent} enviadas, ${rejected} rechazadas`)
+    console.log(`[cron/verifactu] ${orgIds.length} orgs con pendientes, ${sent} enviadas, ${rejected} rechazadas, ${anomalies} anomalías`)
+    if (anomalies > 0) console.error(`[cron/verifactu] ${anomalies} anomalías detectadas`)
 
-    return NextResponse.json({ success: true, organizations: orgIds.length, sent, rejected, results })
+    return NextResponse.json({ success: true, organizations: orgIds.length, sent, rejected, anomalies, results })
   } catch (err) {
     console.error('[cron/verifactu] error:', err)
     return NextResponse.json({ error: 'server_error', detail: String(err) }, { status: 500 })

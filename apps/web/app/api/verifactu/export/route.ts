@@ -5,7 +5,9 @@ import { recordEvent, EVENT_TYPES } from '@/lib/verifactu-events'
 import { registroAltaXml, registroAnulacionXml } from '@/lib/verifactu-xml'
 
 export const runtime = 'nodejs'
-export const maxDuration = 120
+// Vercel Hobby caps this at 60 seconds; anything higher fails the build, not
+// the request. Raise it here only together with the plan.
+export const maxDuration = 60
 
 /**
  * GET /api/verifactu/export?orgId=…

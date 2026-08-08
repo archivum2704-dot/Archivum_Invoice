@@ -21,6 +21,31 @@ SaaS español de facturación y gestión documental.
 
 **Monorepo pnpm**: `apps/web`, `apps/mobile`.
 
+### ⚠️ Límites del plan Hobby de Vercel — rompen el despliegue en silencio
+
+**Antes de tocar rutas o crons, lee esto.** El proyecto vive en una cuenta
+**Hobby**. Pasarse de estos límites **no falla en tiempo de ejecución: falla la
+compilación**, y en la lista de Deployments el filtro de estado puede estar
+ocultando los fallidos, así que parece que «no se despliega nada».
+
+| Límite | Hobby | Consecuencia si te pasas |
+|---|---|---|
+| `export const maxDuration` | **60 s** | El build falla entero |
+| Número de cron jobs | **2** | El build falla entero |
+| Frecuencia de los crons | **1 vez al día** | El build falla entero |
+
+Ya pasó una vez: el 8 de agosto se añadieron rutas con `maxDuration = 120/300`
+y un tercer cron horario; **siete merges seguidos a `main` no se desplegaron** y
+producción se quedó anclada en el commit anterior sin que nada lo avisara.
+
+**Cómo diagnosticarlo:** en Deployments, quita el filtro de **Status** (suele
+estar en 6/7, ocultando los `Error`). Ahí aparecen los builds fallidos con el
+mensaje real.
+
+Si algún día se sube a Pro: `maxDuration` hasta 300 s, crons ilimitados y con
+la frecuencia que se quiera. Entonces conviene volver a separar el cron de
+Verifactu (envío horario) del de integridad (cada 6 h).
+
 ### Trabajo diario
 
 ```bash
@@ -46,6 +71,7 @@ Rama de trabajo: `claude/user-client-creation-kk6p58` → merge a `main`.
 | **Documento técnico de la AEAT** (formato de huella, endpoints, códigos de error) | Cliente | Varias cosas están implementadas "según la norma" pero sin poder contrastar el formato exacto |
 | **Declaración responsable** | Abogado | Sin ella no se puede distribuir legalmente |
 | **Decisión: apoderamiento vs certificado por cliente** | Cliente + gestor | Cambia el modelo de servicio; decidirlo antes de programar más |
+| **Plan Hobby de Vercel** | Cliente | El resumen de eventos cada 6 h (art. 9.2) no se puede cumplir con 1 cron diario. Requiere Pro |
 
 ---
 
@@ -71,7 +97,7 @@ Modo de operación: **VERI\*FACTU** (con remisión). Todo el detalle técnico es
 | Clientes extranjeros por `IDOtro` | Orden L7 | `lib/tax-id-types.ts` |
 | **Declaración responsable visible en el sistema** | RD art. 13.2 | `/declaracion-responsable` (pública) |
 | **Detección de anomalías** (traza + integridad) | Orden art. 9.1.c-f | `lib/verifactu-integrity.ts`, cron cada 6 h |
-| **Registro resumen de eventos** | Orden art. 9.2 | Mismo cron; se genera aunque no haya pasado nada |
+| **Registro resumen de eventos** | Orden art. 9.2 | ⚠️ Se genera **una vez al día**, no cada 6 h: el plan Hobby no permite más. **Incumple el art. 9.2 hasta que se suba a Pro** |
 | **Causas de exención E1-E6 por línea** | Orden L10 | `lib/exemption-causes.ts`; el desglose agrupa por causa, no solo por tipo |
 
 ### Pendiente
@@ -189,7 +215,8 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
-| 8 ago | Detección de anomalías cada 6 h, resumen de eventos, causas de exención por línea |
+| 8 ago | **Arreglado: 7 merges sin desplegar** por `maxDuration` y crons por encima de los límites de Hobby |
+| 8 ago | Detección de anomalías, resumen de eventos, causas de exención por línea |
 | 8 ago | Registro de anulación, registro de eventos, exportación, declaración responsable en el sistema, clientes internacionales |
 | 8 ago | Corregido: `protect_issued_invoice` permitía reescribir una factura emitida en dos pasos |
 | 8 ago | Corregido: el cron aceptaba `Bearer undefined` si faltaba el secreto |

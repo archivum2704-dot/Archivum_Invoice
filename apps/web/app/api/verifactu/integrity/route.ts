@@ -4,7 +4,9 @@ import { adminClient } from '@/lib/verifactu-submit'
 import { runIntegrityCheck } from '@/lib/verifactu-integrity'
 
 export const runtime = 'nodejs'
-export const maxDuration = 120
+// Vercel Hobby caps this at 60 seconds; anything higher fails the build, not
+// the request. Raise it here only together with the plan.
+export const maxDuration = 60
 
 /**
  * POST /api/verifactu/integrity — run the check on demand.
