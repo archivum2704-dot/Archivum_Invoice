@@ -249,19 +249,36 @@ organización.
 
 ---
 
-## 7. Conservación
+## 7. Conservación, descarga y volcado
+
+*(art. 8.2.c del Reglamento)*
 
 Los registros de facturación se conservan en PostgreSQL con copias de seguridad
 gestionadas por el proveedor de base de datos. Al no existir vía de borrado
 para una factura expedida, los registros permanecen íntegros durante toda la
 vida de la cuenta.
 
-⚠ **PENDIENTE**: procedimiento formal de exportación y conservación por el
-plazo legal, incluido el supuesto de baja del cliente en el servicio.
+⚠ **PENDIENTE.** El artículo 8.2.c exige además que el sistema cuente con «un
+procedimiento de descarga, volcado y archivo seguro de los registros de
+facturación generados por él, que deberán poder ser exportados a un
+almacenamiento externo en formato electrónico legible». Archivum **no dispone
+todavía** de esa función de exportación.
 
 ---
 
-## 8. Control de acceso
+## 8. Registro de eventos
+
+*(art. 8.3 del Reglamento)*
+
+⚠ **PENDIENTE — no implementado.** El Reglamento exige un registro de eventos
+que recoja automáticamente, en el momento en que se producen, las
+interacciones con el sistema, las operaciones realizadas y los sucesos
+ocurridos durante su uso, y que **debe poder consultarse desde el propio
+sistema informático**.
+
+---
+
+## 9. Control de acceso
 
 - Autenticación mediante Supabase Auth.
 - Autorización mediante **seguridad a nivel de fila** en PostgreSQL: un usuario
@@ -272,7 +289,20 @@ plazo legal, incluido el supuesto de baja del cliente en el servicio.
 
 ---
 
-## 9. Verificación
+### 9.1 Disociación de accesos
+
+*(art. 8.4 del Reglamento)*
+
+⚠ **PENDIENTE de revisión.** El Reglamento exige que el acceso a la información
+con trascendencia tributaria esté disociado del acceso a información
+confidencial de carácter no patrimonial, de forma que la Administración pueda
+acceder directamente a la consulta de los registros de facturación y de
+eventos. Archivum separa por roles y por organización, pero **no dispone de una
+vía de acceso específica para la Administración tributaria**.
+
+---
+
+## 10. Verificación
 
 El repositorio incluye un conjunto de comprobaciones automáticas
 (`npm run verifactu:check`, 57 comprobaciones) que verifican:
@@ -289,29 +319,66 @@ El repositorio incluye un conjunto de comprobaciones automáticas
 
 ---
 
-## 10. Requisitos pendientes
+## 11. Requisitos pendientes
 
 Relación honesta de lo que el sistema **todavía no cumple**:
 
-| Requisito | Estado |
-|---|---|
-| Registro de anulación | ⚠ No implementado |
-| Registro de eventos | ⚠ No implementado |
-| Verificación contra el entorno de preproducción de la AEAT | ⚠ No realizada |
-| Identidad del productor configurada | ⚠ Pendiente |
-| Causas de exención distintas del artículo 20 | ⚠ Solo E1 |
-| Regímenes distintos del general | ⚠ Solo clave 01 |
-| Procedimiento formal de conservación | ⚠ Pendiente |
-| Declaración Responsable | ⚠ Pendiente (asesoría jurídica) |
+| Requisito | Artículo | Estado |
+|---|---|---|
+| Registro de facturación de anulación | 11 | ⚠ No implementado |
+| Registro de eventos, consultable desde el sistema | 8.3 | ⚠ No implementado |
+| Procedimiento de descarga, volcado y exportación | 8.2.c | ⚠ No implementado |
+| Declaración responsable **visible en el propio sistema** | 13.2 | ⚠ No implementado |
+| Disociación de accesos para la Administración | 8.4 / 14 | ⚠ Pendiente de revisión |
+| Verificación contra preproducción de la AEAT | — | ⚠ No realizada |
+| Identidad del productor configurada | 10.1.f | ⚠ Pendiente |
+| Causas de exención distintas del artículo 20 | — | ⚠ Solo E1 |
+| Regímenes distintos del general | — | ⚠ Solo clave 01 |
+| Redacción de la Declaración Responsable | 13 | ⚠ Pendiente (asesoría jurídica) |
 
 **Mientras estos puntos no estén resueltos, el sistema no puede declararse
 conforme al RD 1007/2023, y no debe emitirse Declaración Responsable alguna.**
 
 ---
 
+---
+
+## Anexo A — Contenido exigido a la Declaración Responsable
+
+*(art. 13 del Reglamento, para el asesor que la redacte)*
+
+Corresponde **al productor** del sistema certificar mediante declaración
+responsable que el sistema cumple el artículo 29.2.j de la Ley 58/2003, este
+Reglamento y las especificaciones de la orden ministerial de desarrollo.
+
+Debe contener:
+
+1. Datos que identifiquen el sistema informático y permitan conocer su
+   **tipología, composición y funcionalidades**.
+2. Las **características de la instalación**.
+3. **Datos identificativos y de localización del productor**.
+4. **Fecha y lugar** de la firma.
+
+Requisitos formales que afectan al producto, no solo al documento:
+
+- Debe constar **por escrito y de modo visible en el propio sistema
+  informático, en cada una de sus versiones** (art. 13.2). Esto obliga a que
+  Archivum muestre la declaración dentro de la aplicación.
+- Debe estar disponible **para el cliente y el comercializador en el momento de
+  la adquisición**.
+- El productor debe **guardar y conservar las declaraciones de todas las
+  versiones** producidas o comercializadas (art. 13.3).
+
+Los apartados 1 y 2 pueden redactarse a partir de este documento técnico.
+
+---
+
 ## Referencias
 
-- Real Decreto 1007/2023, de 5 de diciembre
+- Real Decreto 1007/2023, de 5 de diciembre (texto consolidado del BOE).
+  Artículos citados: 8 (requisitos), 9 y 10 (registro de alta), 11 (registro de
+  anulación), 12 (huella), 13 (declaración responsable), 14 (verificación por
+  la Administración), 15 y 16 (remisión y facturas verificables)
 - Orden HAC/1177/2024, de 18 de octubre
 - Sede electrónica de la AEAT — Sistemas Informáticos de Facturación y VERI\*FACTU
   <https://sede.agenciatributaria.gob.es/Sede/iva/sistemas-informaticos-facturacion-verifactu.html>
