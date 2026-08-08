@@ -34,6 +34,9 @@ export async function updateSession(request: NextRequest) {
     '/auth/callback',
     '/auth/error',
     '/setup',
+    // Art. 13.2 of RD 1007/2023: the declaración responsable must be available
+    // to the client when they acquire the product — before they have an account.
+    '/declaracion-responsable',
   ]
   const isPublicRoute = publicRoutes.some(route =>
     route === '/'

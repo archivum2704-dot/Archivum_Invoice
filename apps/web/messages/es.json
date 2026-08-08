@@ -315,7 +315,8 @@
       "generic": "No se pudo guardar el certificado."
     },
     "producerMissingTitle": "Falta la identidad del productor del software",
-    "producerMissingBody": "Sin estos datos el registro de facturación que se genera está incompleto y la AEAT lo rechazaría. Configúralos en las variables de entorno del servidor:"
+    "producerMissingBody": "Sin estos datos el registro de facturación que se genera está incompleto y la AEAT lo rechazaría. Configúralos en las variables de entorno del servidor:",
+    "declarationLink": "Declaración responsable del sistema"
   },
   "dashboard": {
     "title": "Panel Principal",
