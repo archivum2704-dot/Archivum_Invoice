@@ -2,6 +2,7 @@ import {
   buildRegistroAlta, buildDesglose, describeOperation, computeHuella,
   missingProducerConfig, type RegistroLine,
 } from '@/lib/verifactu'
+import { buildSubmissionXml, parseSubmissionResponse, esc } from '@/lib/verifactu-xml'
 
 let fails = 0
 const check = (name: string, cond: boolean, extra = '') => {
@@ -64,6 +65,99 @@ check('huella conocida estable', expected === computeHuella({ ...chainInput }))
 console.log('\n── Configuración del productor ──')
 const missing = missingProducerConfig()
 console.log(missing.length ? `  AVISO  faltan: ${missing.join(', ')}` : '  OK   configurado')
+
+console.log('\n── XML de envío a la AEAT ──')
+const xml = buildSubmissionXml({ nombreRazon: 'Lumen S.A', nif: 'B12345678' }, [reg])
+check('envuelve en SOAP', xml.includes('<soapenv:Envelope') && xml.includes('</soapenv:Envelope>'))
+check('lleva la cabecera del obligado', xml.includes('<sum1:ObligadoEmision>') && xml.includes('B12345678'))
+check('lleva el registro de alta', xml.includes('<sum1:RegistroAlta>'))
+check('lleva el desglose', (xml.match(/<sum1:DetalleDesglose>/g) ?? []).length === 3)
+check('lleva la huella', xml.includes(`<sum1:Huella>${reg.Huella}</sum1:Huella>`))
+check('lleva el encadenamiento anterior', xml.includes('<sum1:RegistroAnterior>') && xml.includes('ABC123'))
+check('lleva SistemaInformatico completo', xml.includes('<sum1:TipoUsoPosibleSoloVerifactu>S<'))
+check('etiquetas equilibradas', (xml.match(/</g) ?? []).length === (xml.match(/>/g) ?? []).length)
+
+// El orden del esquema es secuencia: campos correctos en orden incorrecto =
+// rechazo. Hay que mirar solo los hijos directos: Huella aparece también
+// dentro de Encadenamiento, y buscar por posición encontraría esa primero.
+function directChildren(xml: string, parent: string): string[] {
+  const openTag = `<sum1:${parent}>`
+  const start = xml.indexOf(openTag) + openTag.length
+  const body = xml.slice(start, xml.indexOf(`</sum1:${parent}>`))
+  const names: string[] = []
+  let depth = 0
+  for (const m of body.matchAll(/<(\/?)sum1:([A-Za-z]+)(\/?)>/g)) {
+    const [, closing, name, selfClosing] = m
+    if (closing) { depth--; continue }
+    if (depth === 0) names.push(name)
+    if (!selfClosing) depth++
+  }
+  return names
+}
+
+const schemaOrder = ['IDVersion','IDFactura','NombreRazonEmisor','TipoFactura','DescripcionOperacion',
+                     'Destinatarios','Desglose','CuotaTotal','ImporteTotal','Encadenamiento',
+                     'SistemaInformatico','FechaHoraHusoGenRegistro','TipoHuella','Huella']
+const actualOrder = directChildren(xml, 'RegistroAlta')
+check('orden de elementos según el esquema',
+  JSON.stringify(actualOrder) === JSON.stringify(schemaOrder),
+  actualOrder.join(' > '))
+
+check('escapa el XML', esc('Bar & Co <script>') === 'Bar &amp; Co &lt;script&gt;')
+const withAmp = buildSubmissionXml({ nombreRazon: 'Bar & Co', nif: 'B1' }, [reg])
+check('un & en el nombre no rompe el XML', withAmp.includes('Bar &amp; Co') && !withAmp.includes('Bar & Co<'))
+
+// Primer registro de una cadena
+const first: any = buildRegistroAlta({
+  ...chainInput, previousHuella: '', issuerName: 'Lumen S.A', clientNif: 'A1', clientName: 'C',
+  lines, installationId: 'org-abc',
+})
+check('el primer registro va como PrimerRegistro',
+  buildSubmissionXml({ nombreRazon: 'L', nif: 'B1' }, [first]).includes('<sum1:PrimerRegistro>S<'))
+
+let threw = false
+try { buildSubmissionXml({ nombreRazon: 'L', nif: 'B1' }, new Array(1001).fill(reg)) } catch { threw = true }
+check('rechaza un lote de más de 1000 en vez de recortarlo', threw)
+
+console.log('\n── Respuesta de la AEAT ──')
+const okResp = parseSubmissionResponse(`
+<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/"><env:Body>
+<tikR:RespuestaSuministro xmlns:tikR="urn:x">
+  <tikR:CSV>ABC123CSV</tikR:CSV>
+  <tikR:EstadoEnvio>Correcto</tikR:EstadoEnvio>
+  <tikR:TiempoEsperaEnvio>60</tikR:TiempoEsperaEnvio>
+  <tikR:RespuestaLinea>
+    <tikR:IDFactura><tikR:NumSerieFactura>FAC-2026-0001</tikR:NumSerieFactura></tikR:IDFactura>
+    <tikR:EstadoRegistro>Correcto</tikR:EstadoRegistro>
+  </tikR:RespuestaLinea>
+</tikR:RespuestaSuministro></env:Body></env:Envelope>`)
+check('lee el CSV', okResp.csv === 'ABC123CSV')
+check('lee el estado', okResp.estadoEnvio === 'Correcto')
+check('lee el control de flujo', okResp.tiempoEsperaSegundos === 60)
+check('lee la línea y su número', okResp.lineas[0]?.numSerieFactura === 'FAC-2026-0001')
+check('ignora el prefijo de espacio de nombres', okResp.lineas[0]?.estado === 'Correcto')
+
+const badResp = parseSubmissionResponse(`
+<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/"><env:Body>
+<tikR:RespuestaSuministro xmlns:tikR="urn:x">
+  <tikR:EstadoEnvio>Incorrecto</tikR:EstadoEnvio>
+  <tikR:RespuestaLinea>
+    <tikR:IDFactura><tikR:NumSerieFactura>FAC-2026-0002</tikR:NumSerieFactura></tikR:IDFactura>
+    <tikR:EstadoRegistro>Incorrecto</tikR:EstadoRegistro>
+    <tikR:CodigoErrorRegistro>1100</tikR:CodigoErrorRegistro>
+    <tikR:DescripcionErrorRegistro>NIF no identificado</tikR:DescripcionErrorRegistro>
+  </tikR:RespuestaLinea>
+</tikR:RespuestaSuministro></env:Body></env:Envelope>`)
+check('lee el código de error', badResp.lineas[0]?.codigoError === '1100')
+check('lee la descripción del error', badResp.lineas[0]?.descripcionError === 'NIF no identificado')
+
+const fault = parseSubmissionResponse(`<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/"><env:Body>
+<env:Fault><faultstring>Certificado no valido</faultstring></env:Fault></env:Body></env:Envelope>`)
+check('detecta un SOAP Fault', fault.fault === 'Certificado no valido')
+check('un Fault no parece un envío correcto', fault.estadoEnvio === null)
+
+const garbage = parseSubmissionResponse('<html>error 500</html>')
+check('una respuesta ilegible NO parece correcta', garbage.estadoEnvio === null && garbage.csv === null)
 
 console.log(`\n${fails === 0 ? 'TODO CORRECTO' : fails + ' COMPROBACIONES FALLIDAS'}\n`)
 process.exit(fails === 0 ? 0 : 1)

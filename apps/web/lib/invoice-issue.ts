@@ -220,5 +220,20 @@ export async function issueInvoice(
     console.error('[issueInvoice] archival to Biblioteca failed:', pdfErr)
   }
 
+  // Veri*Factu wants the record at the AEAT promptly, so it goes now rather
+  // than waiting for the hourly sweep. Best-effort for the same reason as the
+  // PDF: the invoice is already issued and immutable, and failing the call
+  // here would tell the caller a legally-existing invoice did not happen. The
+  // sweep picks up whatever does not get through.
+  try {
+    const { submitPendingForOrg } = await import('@/lib/verifactu-submit')
+    const outcome = await submitPendingForOrg(orgId, { invoiceId: invoice.id })
+    if (outcome.error || outcome.skipped) {
+      console.warn('[issueInvoice] AEAT submission deferred:', outcome.error ?? outcome.skipped)
+    }
+  } catch (aeatErr) {
+    console.error('[issueInvoice] AEAT submission failed:', aeatErr)
+  }
+
   return { id: invoice.id, fullNumber: invoice.full_number }
 }
