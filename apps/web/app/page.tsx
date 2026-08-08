@@ -595,6 +595,9 @@ export default function LandingPage() {
           <Logo size={24} textClassName="text-muted-foreground text-xs" />
           <p>© {new Date().getFullYear()} Archivum. Todos los derechos reservados.</p>
           <div className="flex gap-4">
+            {/* Art. 13.2: available to the client at the moment of acquisition,
+                which means reachable without an account. */}
+            <Link href="/declaracion-responsable" className="hover:text-foreground transition-colors">Declaración responsable</Link>
             <Link href="/auth/login"  className="hover:text-foreground transition-colors">Iniciar sesión</Link>
             <Link href="/auth/signup" className="hover:text-foreground transition-colors">Registro</Link>
           </div>

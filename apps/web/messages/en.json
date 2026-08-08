@@ -315,7 +315,8 @@
       "generic": "Couldn't save the certificate."
     },
     "producerMissingTitle": "The software producer’s identity is missing",
-    "producerMissingBody": "Without these the billing record generated is incomplete and the AEAT would reject it. Set them in the server environment variables:"
+    "producerMissingBody": "Without these the billing record generated is incomplete and the AEAT would reject it. Set them in the server environment variables:",
+    "declarationLink": "System responsible declaration"
   },
   "dashboard": {
     "title": "Dashboard",

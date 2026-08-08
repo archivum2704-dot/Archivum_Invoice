@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { adminClient, submitPendingForOrg } from '@/lib/verifactu-submit'
+import { cronRequestIsAuthorised } from '@/lib/cron-auth'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -18,7 +19,7 @@ export const maxDuration = 300
  * Protected by CRON_SECRET, which Vercel sends as a bearer token.
  */
 export async function GET(request: Request) {
-  if (request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!cronRequestIsAuthorised(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
