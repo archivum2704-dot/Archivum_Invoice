@@ -129,12 +129,74 @@ export function registroAltaXml(registro: Record<string, any>): string {
 }
 
 /**
+ * One registro de anulación, in schema order.
+ *
+ * Read defensively for the same reason as the alta writer: a record written
+ * before a field existed must still be sendable.
+ */
+export function registroAnulacionXml(registro: Record<string, any>): string {
+  const f = registro.IDFactura ?? {}
+  const sis = registro.SistemaInformatico ?? {}
+
+  const encadenamiento = registro.Encadenamiento?.RegistroAnterior
+    ? [
+        '<sum1:Encadenamiento><sum1:RegistroAnterior>',
+        el('sum1:IDEmisorFactura', registro.Encadenamiento.RegistroAnterior.IDEmisorFactura ?? f.IDEmisorFacturaAnulada),
+        el('sum1:NumSerieFactura', registro.Encadenamiento.RegistroAnterior.NumSerieFactura),
+        el('sum1:FechaExpedicionFactura', registro.Encadenamiento.RegistroAnterior.FechaExpedicionFactura),
+        el('sum1:Huella', registro.Encadenamiento.RegistroAnterior.Huella),
+        '</sum1:RegistroAnterior></sum1:Encadenamiento>',
+      ].join('')
+    : '<sum1:Encadenamiento><sum1:PrimerRegistro>S</sum1:PrimerRegistro></sum1:Encadenamiento>'
+
+  return [
+    '<sum1:RegistroAnulacion>',
+    el('sum1:IDVersion', registro.IDVersion ?? '1.0'),
+    '<sum1:IDFactura>',
+    el('sum1:IDEmisorFacturaAnulada', f.IDEmisorFacturaAnulada),
+    el('sum1:NumSerieFacturaAnulada', f.NumSerieFacturaAnulada),
+    el('sum1:FechaExpedicionFacturaAnulada', f.FechaExpedicionFacturaAnulada),
+    '</sum1:IDFactura>',
+    el('sum1:SinRegistroPrevio', registro.SinRegistroPrevio),
+    el('sum1:GeneradoPor', registro.GeneradoPor),
+    encadenamiento,
+    '<sum1:SistemaInformatico>',
+    el('sum1:NombreRazon', sis.NombreRazon),
+    el('sum1:NIF', sis.NIF),
+    el('sum1:NombreSistemaInformatico', sis.NombreSistemaInformatico),
+    el('sum1:IdSistemaInformatico', sis.IdSistemaInformatico),
+    el('sum1:Version', sis.Version),
+    el('sum1:NumeroInstalacion', sis.NumeroInstalacion),
+    el('sum1:TipoUsoPosibleSoloVerifactu', sis.TipoUsoPosibleSoloVerifactu),
+    el('sum1:TipoUsoPosibleMultiOT', sis.TipoUsoPosibleMultiOT),
+    el('sum1:IndicadorMultiplesOT', sis.IndicadorMultiplesOT),
+    '</sum1:SistemaInformatico>',
+    el('sum1:FechaHoraHusoGenRegistro', registro.FechaHoraHusoGenRegistro),
+    el('sum1:TipoHuella', registro.TipoHuella ?? '01'),
+    el('sum1:Huella', registro.Huella),
+    '</sum1:RegistroAnulacion>',
+  ].join('')
+}
+
+/** What a submission carries: an alta record or an anulación record. */
+export type SubmissionRecord =
+  | { kind: 'alta'; registro: Record<string, any> }
+  | { kind: 'anulacion'; registro: Record<string, any> }
+
+/**
  * A full submission: one header and up to 1000 records, per the AEAT cap.
  *
  * Batching is the caller's job — this refuses an oversized batch rather than
  * truncating one, because a silently dropped invoice is a missing legal record.
  */
-export function buildSubmissionXml(obligado: Obligado, registros: Record<string, any>[]): string {
+export function buildSubmissionXml(
+  obligado: Obligado,
+  input: Record<string, any>[] | SubmissionRecord[],
+): string {
+  // Alta records may be passed bare, which is what every existing caller does.
+  const registros: SubmissionRecord[] = input.map((r: any) =>
+    r && (r.kind === 'alta' || r.kind === 'anulacion') ? r : { kind: 'alta', registro: r })
+
   if (registros.length === 0) throw new Error('Nothing to submit')
   if (registros.length > 1000) throw new Error(`Batch of ${registros.length} exceeds the AEAT limit of 1000`)
 
@@ -150,7 +212,9 @@ export function buildSubmissionXml(obligado: Obligado, registros: Record<string,
     el('sum1:NIF', obligado.nif),
     '</sum1:ObligadoEmision>',
     '</sum:Cabecera>',
-    registros.map(r => `<sum:RegistroFactura>${registroAltaXml(r)}</sum:RegistroFactura>`).join(''),
+    registros.map(r => `<sum:RegistroFactura>${
+      r.kind === 'anulacion' ? registroAnulacionXml(r.registro) : registroAltaXml(r.registro)
+    }</sum:RegistroFactura>`).join(''),
     '</sum:RegFactuSistemaFacturacion>',
     '</soapenv:Body>',
     '</soapenv:Envelope>',
