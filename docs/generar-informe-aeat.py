@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Genera el informe de situación de Veri*Factu para llevar a la AEAT."""
+"""Genera el informe de situación de Veri*Factu para llevar a la AEAT.
+
+    python3 docs/generar-informe-aeat.py     # requiere reportlab
+
+Escribe el PDF junto a este fichero. Si cambia el estado de conformidad,
+regenéralo: el informe no se actualiza solo.
+"""
+
+import os
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -575,7 +583,8 @@ def pie(canvas, doc):
     canvas.restoreState()
 
 
-SALIDA = "/tmp/claude-0/-home-user-Archivum-Invoice/05041d6a-244d-5bfb-8208-3d7257529c54/scratchpad/Archivum-Verifactu-Estado-y-Consultas-AEAT.pdf"
+SALIDA = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                      "Archivum-Verifactu-Estado-y-Consultas-AEAT.pdf")
 doc = BaseDocTemplate(
     SALIDA, pagesize=A4,
     leftMargin=MARGEN, rightMargin=MARGEN, topMargin=MARGEN, bottomMargin=22 * mm,
