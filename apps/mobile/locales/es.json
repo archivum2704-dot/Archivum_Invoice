@@ -475,7 +475,8 @@
       "billing": "Plan y facturación",
       "preferences": "Preferencias",
       "help": "Ayuda",
-      "danger": "Zona de peligro"
+      "danger": "Zona de peligro",
+      "legal": "Legal"
     },
     "organization": {
       "name": "Nombre",
@@ -538,7 +539,10 @@
     "signOut": "Cerrar sesión",
     "signOutConfirmTitle": "Cerrar sesión",
     "signOutConfirmMessage": "¿Estás seguro de que quieres cerrar sesión?",
-    "user": "Usuario"
+    "user": "Usuario",
+    "legal": {
+      "declaration": "Declaración responsable"
+    }
   },
   "register": {
     "title": "Crear cuenta",

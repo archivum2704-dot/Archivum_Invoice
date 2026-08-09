@@ -475,7 +475,8 @@
       "billing": "Plan & billing",
       "preferences": "Preferences",
       "help": "Help",
-      "danger": "Danger zone"
+      "danger": "Danger zone",
+      "legal": "Legal"
     },
     "organization": {
       "name": "Name",
@@ -538,7 +539,10 @@
     "signOut": "Sign out",
     "signOutConfirmTitle": "Sign out",
     "signOutConfirmMessage": "Are you sure you want to sign out?",
-    "user": "User"
+    "user": "User",
+    "legal": {
+      "declaration": "Responsible declaration"
+    }
   },
   "register": {
     "title": "Create account",

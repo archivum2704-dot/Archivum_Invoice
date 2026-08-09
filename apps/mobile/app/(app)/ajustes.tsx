@@ -10,7 +10,7 @@ import {
   User, Building2, Copy, Check, Users, Globe, Moon,
   Bell, LogOut, ChevronRight, CreditCard, FileText,
   CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle, Info,
-  Shield, Pencil, X, ImageOff, Upload, Trash2,
+  Shield, ShieldCheck, Pencil, X, ImageOff, Upload, Trash2,
 } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import Constants from "expo-constants";
@@ -603,6 +603,22 @@ export default function AjustesScreen() {
               thumbColor="#FFFFFF"
             />
           </View>
+        </Card>
+
+        {/* Legal.
+            Art. 13.2 requires the declaration to be visible in the system
+            itself. It opens in the browser rather than being duplicated as a
+            screen: one source, so the two can never disagree about what the
+            system declares. */}
+        <SectionLabel C={C}>{t("ajustes.sections.legal")}</SectionLabel>
+        <Card C={C}>
+          <Row
+            C={C}
+            icon={<ShieldCheck size={16} color={C.muted} />}
+            label={t("ajustes.legal.declaration")}
+            onPress={() => Linking.openURL(`${APP_URL}/declaracion-responsable`)}
+            border={false}
+          />
         </Card>
 
         {/* Help */}

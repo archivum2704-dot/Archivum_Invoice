@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, Inbox, AlertTriangle, Zap, FileText, Users, Building2, TrendingUp, Upload, Trash2, Loader2, ImageOff } from "lucide-react"
+import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, Inbox, AlertTriangle, Zap, FileText, Users, Building2, TrendingUp, Upload, Trash2, Loader2, ImageOff, ShieldCheck, ChevronRight } from "lucide-react"
+import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
@@ -540,6 +541,30 @@ export function SettingsView() {
               </button>
             )}
           </div>
+        </Section>
+
+        {/* Art. 13.2: the declaration has to be visible in the system itself,
+            and the Verifactu screen it also sits on is admin-only — so it needs
+            a way in that anyone using the app can find. */}
+        <Section
+          title="Legal"
+          description="Documentación del sistema informático de facturación."
+        >
+          <Link
+            href="/declaracion-responsable"
+            className="flex items-center justify-between gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:bg-muted transition-colors"
+          >
+            <span className="flex items-center gap-2.5 min-w-0">
+              <ShieldCheck className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">Declaración responsable</span>
+                <span className="block text-xs text-muted-foreground mt-0.5">
+                  Conformidad del sistema con el RD 1007/2023 y la Orden HAC/1177/2024
+                </span>
+              </span>
+            </span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </Link>
         </Section>
 
         <div className="flex items-center gap-3 pt-6">
