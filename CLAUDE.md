@@ -3,7 +3,7 @@
 > **Léeme primero.** Este fichero es el punto de partida de cada sesión.
 > Cuando cambies algo relevante, actualízalo en el mismo commit.
 >
-> Última actualización: **8 de agosto de 2026**
+> Última actualización: **9 de agosto de 2026**
 
 ---
 
@@ -79,6 +79,12 @@ Rama de trabajo: `claude/user-client-creation-kk6p58` → merge a `main`.
 
 Modo de operación: **VERI\*FACTU** (con remisión). Todo el detalle técnico está en
 [`docs/documentacion-tecnica-verifactu.md`](docs/documentacion-tecnica-verifactu.md).
+
+Para hablar con la AEAT o con un gestor hay un informe en PDF listo para imprimir:
+[`docs/Archivum-Verifactu-Estado-y-Consultas-AEAT.pdf`](docs/Archivum-Verifactu-Estado-y-Consultas-AEAT.pdf).
+Se regenera con `python3 docs/generar-informe-aeat.py` (requiere `reportlab`).
+**Si cambia el estado de conformidad, hay que regenerarlo**: el PDF no se
+actualiza solo y un informe desfasado en manos de un tercero es peor que ninguno.
 
 ### Hecho y verificado
 
@@ -215,6 +221,7 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 9 ago | Informe en PDF del estado de Verifactu para la AEAT; documentación técnica puesta al día (decía que anulación, eventos y exportación no estaban hechos) |
 | 8 ago | **Arreglado: 7 merges sin desplegar** por `maxDuration` y crons por encima de los límites de Hobby |
 | 8 ago | Detección de anomalías, resumen de eventos, causas de exención por línea |
 | 8 ago | Registro de anulación, registro de eventos, exportación, declaración responsable en el sistema, clientes internacionales |

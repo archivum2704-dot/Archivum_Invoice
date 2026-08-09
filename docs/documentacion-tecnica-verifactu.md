@@ -77,7 +77,9 @@ expedición), `NombreRazonEmisor`, `TipoFactura`, `TipoRectificativa` y
 **Desglose.** Se agrupa por tipo impositivo, no por línea de factura. Cada
 entrada declara impuesto, clave de régimen, calificación de la operación, tipo,
 base imponible y cuota repercutida. Las operaciones a tipo cero se declaran
-como exentas, no como tipo cero, por ser figuras distintas.
+como exentas, no como tipo cero, por ser figuras distintas: las líneas exentas
+se agrupan **por causa de exención** (lista L10, códigos E1 a E6), que el
+usuario indica al marcar la línea como exenta.
 
 **Destinatario.** Un cliente español se identifica por NIF. Un cliente no
 residente se identifica mediante el bloque `IDOtro` (código de país según
@@ -208,9 +210,11 @@ credenciales de servicio, puede leerla.
 
 ### 5.3 Momento y reintentos
 
-La remisión se intenta **en el mismo acto de expedición**. Un barrido horario
-recoge los registros que no hayan llegado a la AEAT por indisponibilidad del
-servicio, caducidad del certificado o fallo de red.
+La remisión se intenta **en el mismo acto de expedición**. Un barrido programado
+recoge después los registros que no hayan llegado a la AEAT por indisponibilidad
+del servicio, caducidad del certificado o fallo de red. Ese barrido se ejecuta
+hoy una vez al día, por la misma limitación del plan de alojamiento que afecta
+al resumen de eventos.
 
 Ningún registro se descarta jamás. Un rechazo se anota contra la factura, con
 el código y la descripción devueltos por la AEAT, y queda visible para su
@@ -249,7 +253,23 @@ organización.
 
 ---
 
-## 7. Conservación, descarga y volcado
+## 7. Registro de facturación de anulación
+
+*(art. 11 del Reglamento)*
+
+La anulación de una factura genera su propio registro, encadenado en la misma
+cadena que los registros de alta. Contiene el identificador de la factura
+anulada (emisor, número y fecha de expedición), el encadenamiento con el
+registro anterior, el sistema informático, la marca temporal y su huella,
+calculada sobre el conjunto de campos que fija el artículo 13.1.b de la Orden.
+
+Cuando la factura anulada nunca llegó a remitirse a la AEAT, el registro
+declara `SinRegistroPrevio`. El sistema rechaza anular una factura que ya está
+anulada, que ya ha sido rectificada, o que no ha llegado a expedirse.
+
+---
+
+## 8. Conservación, descarga y volcado
 
 *(art. 8.2.c del Reglamento)*
 
@@ -258,27 +278,70 @@ gestionadas por el proveedor de base de datos. Al no existir vía de borrado
 para una factura expedida, los registros permanecen íntegros durante toda la
 vida de la cuenta.
 
-⚠ **PENDIENTE.** El artículo 8.2.c exige además que el sistema cuente con «un
-procedimiento de descarga, volcado y archivo seguro de los registros de
-facturación generados por él, que deberán poder ser exportados a un
-almacenamiento externo en formato electrónico legible». Archivum **no dispone
-todavía** de esa función de exportación.
+El sistema dispone además de una **exportación de los registros de facturación**
+por período, a fichero electrónico legible, descargable desde la propia
+aplicación. Cada exportación queda anotada en el registro de eventos.
+
+⚠ **PENDIENTE.** El artículo 9.1.i de la Orden trata la exportación de los
+registros de evento como una operación propia. Hoy los eventos se exportan
+dentro de la exportación de facturación, no como operación independiente.
 
 ---
 
-## 8. Registro de eventos
+## 9. Registro de eventos
 
-*(art. 8.3 del Reglamento)*
+*(art. 8.3 del Reglamento y art. 9 de la Orden)*
 
-⚠ **PENDIENTE — no implementado.** El Reglamento exige un registro de eventos
-que recoja automáticamente, en el momento en que se producen, las
-interacciones con el sistema, las operaciones realizadas y los sucesos
-ocurridos durante su uso, y que **debe poder consultarse desde el propio
-sistema informático**.
+El sistema registra automáticamente, en el momento en que se producen, los
+sucesos que la Orden exige y los propios de la operación: generación de
+registros de alta y de anulación, remisiones a la AEAT y su resultado, alta y
+baja de certificados, lanzamiento de las detecciones de anomalías, anomalías
+encontradas, exportaciones y restauraciones.
+
+Los eventos forman **su propia cadena**, con una huella calculada sobre los
+ocho campos que fija el artículo 13.1.c de la Orden. Son **consultables desde
+el propio sistema** en Ajustes → Veri\*Factu → Eventos.
+
+Registrar un evento nunca interrumpe la operación que lo provoca: un fallo al
+anotar se reporta y se traga, porque una factura que no se pudiera expedir por
+no haber podido escribir su línea de registro sería peor resultado que la línea
+ausente. Ningún evento generado por el propio sistema se atribuye a un usuario.
+
+### 9.1 Detección de anomalías
+
+*(art. 9.1.c-f de la Orden)*
+
+Se verifican dos cosas distintas, porque fallan de forma distinta:
+
+- **Trazabilidad**: que el predecesor declarado por cada registro sea la huella
+  del registro anterior. Detecta una cadena rota o bifurcada.
+- **Integridad**: que la huella almacenada en cada registro sea la que su propio
+  contenido produce al recalcularla. Detecta un registro editado en su sitio,
+  donde la cadena seguiría cuadrando pero la huella ya no cubriría lo que dice
+  cubrir.
+
+Se deja constancia tanto del **lanzamiento** de cada comprobación como de su
+resultado: así, la ausencia de hallazgos es prueba de que alguien miró.
+
+### 9.2 Registro resumen de eventos
+
+*(art. 9.2 de la Orden)*
+
+Se genera un resumen de lo ocurrido desde el resumen anterior, incluso cuando
+no ha ocurrido nada — la circunstancia de que no haya actividad es justamente
+lo que el resumen atestigua.
+
+⚠ **PENDIENTE.** El artículo exige un resumen **por cada seis horas** de
+funcionamiento. Hoy se genera **una vez al día**, porque el plan de alojamiento
+contratado no admite más de una tarea programada diaria. **El sistema incumple
+el artículo 9.2 hasta que se amplíe el plan.**
+
+⚠ **PENDIENTE.** El artículo 9.4 exige los registros de evento en XML conforme
+al anexo 5. Hoy se conservan en formato estructurado propio (JSONB).
 
 ---
 
-## 9. Control de acceso
+## 10. Control de acceso
 
 - Autenticación mediante Supabase Auth.
 - Autorización mediante **seguridad a nivel de fila** en PostgreSQL: un usuario
@@ -289,7 +352,7 @@ sistema informático**.
 
 ---
 
-### 9.1 Disociación de accesos
+### 10.1 Disociación de accesos
 
 *(art. 8.4 del Reglamento)*
 
@@ -302,10 +365,10 @@ vía de acceso específica para la Administración tributaria**.
 
 ---
 
-## 10. Verificación
+## 11. Verificación
 
 El repositorio incluye un conjunto de comprobaciones automáticas
-(`npm run verifactu:check`, 57 comprobaciones) que verifican:
+(`npm run verifactu:check`, 78 comprobaciones) que verifican:
 
 - que las bases del desglose suman la base imponible total y las cuotas suman
   la cuota total;
@@ -317,24 +380,45 @@ El repositorio incluye un conjunto de comprobaciones automáticas
 - que una respuesta ilegible o un SOAP Fault nunca se interpretan como envío
   correcto.
 
+Los registros ya generados se recalcularon además **en la propia base de datos**,
+con una implementación independiente de la del programa, y coincidieron uno a
+uno. Al alterar deliberadamente una copia, la comprobación dejó de coincidir.
+
 ---
 
-## 11. Requisitos pendientes
+## 12. Requisitos pendientes
 
 Relación honesta de lo que el sistema **todavía no cumple**:
 
 | Requisito | Artículo | Estado |
 |---|---|---|
-| Registro de facturación de anulación | 11 | ⚠ No implementado |
-| Registro de eventos, consultable desde el sistema | 8.3 | ⚠ No implementado |
-| Procedimiento de descarga, volcado y exportación | 8.2.c | ⚠ No implementado |
-| Declaración responsable **visible en el propio sistema** | 13.2 | ⚠ No implementado |
-| Disociación de accesos para la Administración | 8.4 / 14 | ⚠ Pendiente de revisión |
-| Verificación contra preproducción de la AEAT | — | ⚠ No realizada |
-| Identidad del productor configurada | 10.1.f | ⚠ Pendiente |
-| Causas de exención distintas del artículo 20 | — | ⚠ Solo E1 |
-| Regímenes distintos del general | — | ⚠ Solo clave 01 |
-| Redacción de la Declaración Responsable | 13 | ⚠ Pendiente (asesoría jurídica) |
+| Registros de evento en XML/UTF-8 según el anexo 5 | Orden 9.4 | ⚠ Hoy en formato propio |
+| Exportación de eventos como operación independiente | Orden 9.1.i | ⚠ Va dentro de la de facturación |
+| Registro resumen cada seis horas | Orden 9.2 | ⚠ Diario: lo impide el plan de alojamiento |
+| Causa de exención en presupuestos | Orden L10 | ⚠ Solo en facturas |
+| Regímenes distintos del general | Orden L8 | ⚠ Solo clave 01 |
+| Disociación de accesos para la Administración | RD 8.4 / 14 | ⚠ Pendiente de criterio de la AEAT |
+| Verificación contra preproducción de la AEAT | — | ⚠ Nunca realizada |
+| Identidad del productor configurada | RD 10.1.f | ⚠ Pendiente |
+| Redacción y firma de la Declaración Responsable | RD 13 | ⚠ Pendiente (asesoría jurídica) |
+
+### Formatos que dependen de documentación que no tenemos
+
+El artículo 13.2 de la Orden remite el **algoritmo y la codificación** de la
+huella a un documento técnico de la sede de la AEAT que todavía no obra en
+nuestro poder. Los conjuntos de campos sí están confirmados por el articulado;
+el formato de concatenación no.
+
+| | Campos | Formato |
+|---|---|---|
+| Huella de alta (13.1.a) | ✅ confirmados | ⚠ sin confirmar |
+| Huella de anulación (13.1.b) | ✅ confirmados | ⚠ sin confirmar |
+| Huella de evento (13.1.c) | ✅ confirmados | ⚠ sin confirmar |
+| Endpoints SOAP y espacios de nombres | — | ⚠ sin confirmar (parametrizables) |
+| Códigos de error de la AEAT | — | ⚠ sin listado |
+
+Un formato equivocado produce una huella de aspecto válido que la AEAT rechaza.
+**Es lo primero que hay que contrastar** cuando llegue la documentación técnica.
 
 **Mientras estos puntos no estén resueltos, el sistema no puede declararse
 conforme al RD 1007/2023, y no debe emitirse Declaración Responsable alguna.**
@@ -392,10 +476,18 @@ Los apartados 1 y 2 pueden redactarse a partir de este documento técnico.
 | Continuidad de la cadena | `apps/web/lib/invoice-chain.ts` |
 | Expedición | `apps/web/lib/invoice-issue.ts` |
 | Rectificativas | `apps/web/app/api/invoices/rectify/route.ts` |
+| Registro de anulación | `apps/web/lib/verifactu-annul.ts` |
+| Registro de eventos | `apps/web/lib/verifactu-events.ts` |
+| Detección de anomalías y resumen | `apps/web/lib/verifactu-integrity.ts` |
+| Exportación de registros | `apps/web/app/api/verifactu/export/route.ts` |
+| Causas de exención (L10) | `apps/web/lib/exemption-causes.ts` |
+| Identificación fiscal extranjera (L7) | `apps/web/lib/tax-id-types.ts` |
 | Serialización XML | `apps/web/lib/verifactu-xml.ts` |
 | Transporte mTLS | `apps/web/lib/verifactu-client.ts` |
 | Remisión y reintentos | `apps/web/lib/verifactu-submit.ts` |
 | Cifrado de certificados | `apps/web/lib/crypto-vault.ts` |
-| Inalterabilidad | `apps/web/supabase/migrations/20260628_inventory_invoicing.sql` |
+| Declaración responsable | `apps/web/lib/declaracion-responsable.ts` |
+| QR y representación de la factura | `apps/web/lib/invoice-pdf.ts` |
+| Inalterabilidad | `apps/web/supabase/migrations/20260628_inventory_invoicing.sql` y `20260808_tighten_immutability.sql` |
 | No bifurcación de la cadena | `apps/web/supabase/migrations/20260806_invoice_chain_uniqueness.sql` |
 | Comprobaciones | `apps/web/scripts/verifactu-check.ts` |
