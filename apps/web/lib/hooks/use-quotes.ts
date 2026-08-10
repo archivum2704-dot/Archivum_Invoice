@@ -60,6 +60,8 @@ export type QuoteLine = {
   unit_price: number
   tax_rate: number
   discount_pct: number
+  /** Lista L10, solo en líneas exentas. */
+  exemption_cause: string | null
   line_subtotal: number
   line_tax: number
   line_total: number

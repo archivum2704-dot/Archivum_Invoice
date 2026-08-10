@@ -8,6 +8,7 @@ import { verifactuEndpoint } from '@/lib/verifactu-client'
 import {
   describeAeatError, isSubsanable, rejectsWholeSubmission, AEAT_ERROR_COUNT,
 } from '@/lib/verifactu-error-codes'
+import { registroEventoXml } from '@/lib/verifactu-events-xml'
 
 let fails = 0
 const check = (name: string, cond: boolean, extra = '') => {
@@ -282,6 +283,55 @@ check('un código desconocido se declara desconocido',
   describeAeatError('9999').includes('no reconocido'))
 check('sin código pero con texto de la AEAT, se muestra el texto',
   describeAeatError(null, 'Algo pasó') === 'Algo pasó')
+
+// ── ClaveRegimen ──
+check('por defecto, régimen general', (buildDesglose(lines)[0] as any).ClaveRegimen === '01')
+check('respeta un régimen distinto', (buildDesglose(lines, '17')[0] as any).ClaveRegimen === '17')
+check('lo aplica también a las líneas exentas',
+  (buildDesglose(lines, '17').find((x: any) => x.OperacionExenta) as any)?.ClaveRegimen === '17')
+// Un código inválido tumba el registro entero en la AEAT. Preferimos el
+// régimen general a que se rechace la factura.
+check('un código inválido cae al general', (buildDesglose(lines, '99')[0] as any).ClaveRegimen === '01')
+check('vacío cae al general', (buildDesglose(lines, '')[0] as any).ClaveRegimen === '01')
+
+// ── Serialización del registro de evento (anexo 5) ──
+const evtRegistro = {
+  IDVersion: '1.0',
+  Evento: {
+    SistemaInformatico: {
+      NombreRazon: 'Productora S.L', NIF: 'B12345678',
+      NombreSistemaInformatico: 'Archivum', IdSistemaInformatico: 'AR',
+      Version: '1.0', NumeroInstalacion: 'org-abc',
+      TipoUsoPosibleSoloVerifactu: 'S', TipoUsoPosibleMultiOT: 'S', IndicadorMultiplesOT: 'S',
+    },
+    ObligadoEmision: { NombreRazon: 'Lumen S.A', NIF: 'A87654321' },
+    FechaHoraHusoGenEvento: '2026-08-10T12:00:00+02:00',
+    TipoEvento: '03',
+    OtrosDatosEvento: 'deteccion_anomalias_facturacion_lanzada',
+    Encadenamiento: { PrimerEvento: 'S' },
+    TipoHuella: '01',
+    HuellaEvento: 'ABC123',
+  },
+}
+const evtXml = registroEventoXml(evtRegistro) ?? ''
+check('el evento se serializa con el espacio de nombres del esquema',
+  evtXml.includes('EventosSIF.xsd'))
+check('lleva ObligadoEmision con nombre y NIF',
+  evtXml.includes('<sf:NombreRazon>Lumen S.A</sf:NombreRazon>') && evtXml.includes('<sf:NIF>A87654321</sf:NIF>'))
+check('el primer evento va como PrimerEvento', evtXml.includes('<sf:PrimerEvento>S</sf:PrimerEvento>'))
+check('etiquetas de evento equilibradas',
+  (evtXml.match(/</g) ?? []).length === (evtXml.match(/>/g) ?? []).length)
+// Los eventos escritos antes de corregir el formato no se pueden expresar en
+// el esquema; devolver null es lo correcto, inventar una envoltura no.
+check('un evento con el formato anterior no se serializa',
+  registroEventoXml({ TipoEvento: 'algo', SistemaInformatico: {} }) === null)
+
+const evtOrden = directChildren(evtXml.replace(/sf:/g, 'sum1:'), 'Evento')
+check('orden de elementos del evento según el esquema',
+  JSON.stringify(evtOrden) === JSON.stringify([
+    'SistemaInformatico', 'ObligadoEmision', 'FechaHoraHusoGenEvento', 'TipoEvento',
+    'OtrosDatosEvento', 'Encadenamiento', 'TipoHuella', 'HuellaEvento',
+  ]), evtOrden.join(' > '))
 
 console.log(`\n${fails === 0 ? 'TODO CORRECTO' : fails + ' COMPROBACIONES FALLIDAS'}\n`)
 process.exit(fails === 0 ? 0 : 1)

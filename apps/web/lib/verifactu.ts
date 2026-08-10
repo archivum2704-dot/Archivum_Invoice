@@ -1,4 +1,5 @@
 import { createHash } from 'crypto'
+import { claveRegimen } from '@/lib/regimen-codes'
 
 /**
  * Verifactu (AEAT) record helpers.
@@ -196,7 +197,8 @@ export interface RegistroLine {
  * invoice form no longer allows to happen — but old records exist and must
  * still serialise.
  */
-export function buildDesglose(lines: RegistroLine[]) {
+export function buildDesglose(lines: RegistroLine[], regimen?: string | null) {
+  const clave = claveRegimen(regimen)
   // Keyed by rate for taxed lines, by cause for exempt ones.
   const groups = new Map<string, { rate: number; cause: string | null; base: number; cuota: number }>()
 
@@ -216,13 +218,13 @@ export function buildDesglose(lines: RegistroLine[]) {
     .map(g => g.rate === 0
       ? {
           Impuesto: '01',                       // IVA
-          ClaveRegimen: '01',                   // régimen general
+          ClaveRegimen: clave,                  // L8A; 01 = régimen general
           OperacionExenta: g.cause,             // L10
           BaseImponibleOimporteNoSujeto: money(g.base),
         }
       : {
           Impuesto: '01',
-          ClaveRegimen: '01',
+          ClaveRegimen: clave,
           CalificacionOperacion: 'S1',          // sujeta y no exenta, sin ISP
           TipoImpositivo: money(g.rate),
           BaseImponibleOimporteNoSujeto: money(g.base),
@@ -255,6 +257,8 @@ export function buildRegistroAlta(args: RegistroAltaInput & {
   installationId: string
   notes?: string | null
   rectified?: { issuerNif: string; fullNumber: string; issueDate: string } | null
+  /** L8A. Absent or unknown falls back to the general regime. */
+  claveRegimen?: string | null
 }) {
   return {
     IDVersion: '1.0',
@@ -280,7 +284,7 @@ export function buildRegistroAlta(args: RegistroAltaInput & {
       return dest ? { Destinatario: dest } : {}
     })(),
     DescripcionOperacion: describeOperation(args.lines, args.notes),
-    Desglose: { DetalleDesglose: buildDesglose(args.lines) },
+    Desglose: { DetalleDesglose: buildDesglose(args.lines, args.claveRegimen) },
     CuotaTotal: money(args.cuotaTotal),
     ImporteTotal: money(args.importeTotal),
     Encadenamiento: args.previousHuella

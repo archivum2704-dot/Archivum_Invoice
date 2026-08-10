@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     const { data: lines } = await supabase
       .from('quote_lines')
-      .select('product_id, description, quantity, unit_price, tax_rate, discount_pct, position')
+      .select('product_id, description, quantity, unit_price, tax_rate, discount_pct, exemption_cause, position')
       .eq('quote_id', quoteId).order('position')
     if (!lines || lines.length === 0) return NextResponse.json({ error: 'no_lines' }, { status: 400 })
 
@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
         quantity: Number(l.quantity) || 0,
         unitPrice: Number(l.unit_price) || 0,
         taxRate: Number(l.tax_rate) || 0,
+        exemptionCause: l.exemption_cause ?? null,
         discountPct: Number(l.discount_pct) || 0,
       })),
     })

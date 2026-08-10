@@ -76,7 +76,14 @@ expedición), `NombreRazonEmisor`, `TipoFactura`, `TipoRectificativa` y
 
 **Desglose.** Se agrupa por tipo impositivo, no por línea de factura. Cada
 entrada declara impuesto, clave de régimen, calificación de la operación, tipo,
-base imponible y cuota repercutida. Las operaciones a tipo cero se declaran
+base imponible y cuota repercutida. La **clave de régimen** se toma del
+obligado tributario (`organizations.verifactu_clave_regimen`); por defecto `01`,
+régimen general. Un valor que el esquema no admita cae al régimen general en
+lugar de enviarse tal cual: un código inválido hace que la AEAT rechace el
+registro entero, y una factura rechazada es peor que una presentada bajo el
+régimen general que su titular puede corregir después.
+
+Las operaciones a tipo cero se declaran
 como exentas, no como tipo cero, por ser figuras distintas: las líneas exentas
 se agrupan **por causa de exención** (lista L10, códigos E1 a E6), que el
 usuario indica al marcar la línea como exenta.
@@ -316,9 +323,10 @@ El sistema dispone además de una **exportación de los registros de facturació
 por período, a fichero electrónico legible, descargable desde la propia
 aplicación. Cada exportación queda anotada en el registro de eventos.
 
-⚠ **PENDIENTE.** El artículo 9.1.i de la Orden trata la exportación de los
-registros de evento como una operación propia. Hoy los eventos se exportan
-dentro de la exportación de facturación, no como operación independiente.
+La **exportación de los registros de evento** es una operación distinta, con su
+propia descarga y su propio tipo de evento (09), conforme al artículo 9.1.i de
+la Orden. Admite acotar el período. Ambas exportaciones verifican la cadena que
+están exportando y dejan constancia si encuentran una ruptura.
 
 ---
 
@@ -392,8 +400,17 @@ funcionamiento. Hoy se genera **una vez al día**, porque el plan de alojamiento
 contratado no admite más de una tarea programada diaria. **El sistema incumple
 el artículo 9.2 hasta que se amplíe el plan.**
 
-⚠ **PENDIENTE.** El artículo 9.4 exige los registros de evento en XML conforme
-al anexo 5. Hoy se conservan en formato estructurado propio (JSONB).
+Los registros se conservan en JSONB con **los nombres de elemento del esquema**
+`EventosSIF.xsd`, y se serializan a **XML UTF-8** conforme al anexo 5 al
+exportarlos, de modo que el almacenamiento y el formato exigido no divergen.
+
+⚠ **La serialización omite `ds:Signature`**, que el esquema declara
+obligatorio. En VERI\*FACTU no existe firma electrónica expresa de los
+registros —quedan firmados al remitirse con el certificado del obligado—, así
+que no hay nada que serializar ahí; emitir un elemento vacío afirmaría una
+firma inexistente. La exportación lo hace constar en el propio fichero.
+Pendiente de confirmar con la AEAT, que publica este esquema como definición
+del registro de eventos «para sistemas **no** VERI\*FACTU».
 
 ---
 
@@ -448,12 +465,10 @@ Relación honesta de lo que el sistema **todavía no cumple**:
 
 | Requisito | Artículo | Estado |
 |---|---|---|
-| Registros de evento en XML/UTF-8 según el anexo 5 | Orden 9.4 | ⚠ Hoy en JSONB con los nombres del esquema |
-| Exportación de eventos como operación independiente | Orden 9.1.i | ⚠ Va dentro de la de facturación |
+| Firma `ds:Signature` del registro de evento | Anexo 5 | ⚠ No aplicable en VERI\*FACTU; a confirmar |
 | Registro resumen cada seis horas | Orden 9.2 | ⚠ Diario: lo impide el plan de alojamiento |
-| Causa de exención en presupuestos | Orden L10 | ⚠ Solo en facturas |
-| Regímenes distintos del general | Orden L8 | ⚠ Solo clave 01 |
-| Disociación de accesos para la Administración | RD 8.4 / 14 | ⚠ Pendiente de criterio de la AEAT |
+| Descripciones de las claves de régimen | Orden L8A / L8B | ⚠ Códigos admitidos; faltan las etiquetas |
+| Disociación de accesos para la Administración | RD 8.4 / 14 | ⚠ Pendiente de implementar (el criterio ya se conoce) |
 | Verificación contra preproducción de la AEAT | — | ⚠ Nunca realizada |
 | Identidad del productor configurada | RD 10.1.f | ⚠ Pendiente |
 | Redacción y firma de la Declaración Responsable | RD 13 | ⚠ Pendiente (asesoría jurídica) |

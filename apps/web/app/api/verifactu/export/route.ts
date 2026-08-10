@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     const { data: org } = await db.from('organizations').select('name, cif').eq('id', orgId).single()
     if (!org) return NextResponse.json({ error: 'org_not_found' }, { status: 404 })
 
-    const [{ data: invoices }, { data: annulments }, { data: links }, { data: events }] = await Promise.all([
+    const [{ data: invoices }, { data: annulments }, { data: links }] = await Promise.all([
       db.from('invoices')
         .select('full_number, issue_date, total, huella, huella_anterior, registro_alta, verifactu_status, aeat_csv, submitted_at')
         .eq('organization_id', orgId).not('registro_alta', 'is', null)
@@ -55,9 +55,6 @@ export async function GET(req: NextRequest) {
       db.from('verifactu_chain_links')
         .select('kind, full_number, huella, huella_anterior, generated_at')
         .eq('organization_id', orgId).order('generated_at', { ascending: true }),
-      db.from('verifactu_events')
-        .select('event_type, actor_email, detail, occurred_at, huella, huella_anterior')
-        .eq('organization_id', orgId).order('occurred_at', { ascending: true }),
     ])
 
     // Verify the chain as exported rather than asserting it is intact: an
@@ -81,7 +78,6 @@ export async function GET(req: NextRequest) {
         registrosDeAlta: invoices?.length ?? 0,
         registrosDeAnulacion: annulments?.length ?? 0,
         eslabonesDeCadena: chain.length,
-        eventos: events?.length ?? 0,
         cadenaIntegra: breaks.length === 0,
         rupturasDeCadena: breaks,
       },
@@ -110,7 +106,9 @@ export async function GET(req: NextRequest) {
         xml: registroAnulacionXml(a.registro_anulacion),
       })),
       cadena: chain,
-      registroDeEventos: events ?? [],
+      // El registro de eventos no viaja aquí: el artículo 9.1.i de la Orden lo
+      // trata como operación propia, con su propio tipo de evento.
+      registroDeEventos: 'Se exporta por separado en /api/verifactu/export/eventos',
     }
 
     await recordEvent(db, {

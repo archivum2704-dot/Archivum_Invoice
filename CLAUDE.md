@@ -51,7 +51,7 @@ Verifactu (envío horario) del de integridad (cada 6 h).
 ```bash
 cd apps/web    && npx tsc --noEmit && npm run build
 cd apps/mobile && npx tsc --noEmit && npx expo export --platform android
-cd apps/web    && npm run verifactu:check     # vectores oficiales + 95 comprobaciones
+cd apps/web    && npm run verifactu:check     # vectores oficiales + 106 comprobaciones
 ```
 
 Rama de trabajo: `claude/user-client-creation-kk6p58` → merge a `main`.
@@ -106,17 +106,20 @@ actualiza solo y un informe desfasado en manos de un tercero es peor que ninguno
 | **Causas de exención E1-E6 por línea** | Orden L10 | `lib/exemption-causes.ts`; el desglose agrupa por causa, no solo por tipo |
 | **Huella contrastada con los vectores oficiales** | Doc. AEAT v0.1.2 | `scripts/verifactu-vectors.ts` |
 | **Códigos de error traducidos** (247) | — | `lib/verifactu-error-codes.ts`; distingue rechazo de envío, de registro y subsanable |
+| **Eventos en XML según el anexo 5** | Orden art. 9.4 | `lib/verifactu-events-xml.ts`; sin `ds:Signature`, ver abajo |
+| **Exportación de eventos como operación propia** | Orden art. 9.1.i | `api/verifactu/export/eventos` |
+| **Causa de exención en presupuestos** | Orden L10 | Web y móvil; el servidor la exige al cerrar el presupuesto, no al convertirlo |
+| **Régimen distinto del general** | Orden L8A | `lib/regimen-codes.ts`, columna `organizations.verifactu_clave_regimen` |
+| **Declaración responsable con la estructura oficial** | RD art. 13.4 | `lib/declaracion-responsable.ts`, apartados 1.a-1.l y anexo |
 
 ### Pendiente
 
 | Requisito | Norma | Notas |
 |---|---|---|
-| **Eventos en XML/UTF-8 según el anexo 5** | Orden art. 9.4 | Hoy se guardan como JSONB |
-| Exportación de eventos como operación propia | Orden art. 9.1.i | Hoy van dentro de la exportación de facturación |
-| Causa de exención en presupuestos | Orden L10 | El selector está en facturas (web y móvil). Los presupuestos guardan la columna pero no la piden todavía; al convertir, el servidor rechaza una línea exenta sin causa |
-| Regímenes distintos del general | Orden L8 | Hoy `ClaveRegimen` fijo a `01` |
-| Disociación de accesos para la Administración | RD art. 8.4 / 14 | Pendiente de revisión |
-| Prueba real contra preproducción de la AEAT | | Nunca ejecutada |
+| **Disociación de accesos para la Administración** | RD art. 8.4 / 14 | Ya sabemos qué espera la AEAT: su propio ejemplo de declaración responsable (apartado 2.c) lo resuelve con una casilla en el acceso que limita la sesión a la información con trascendencia tributaria. **Falta implementarlo** |
+| **Prueba real contra preproducción de la AEAT** | | Nunca ejecutada. Solo falta el certificado |
+| Etiquetas de las claves de régimen | Orden L8A / L8B | El código admite ya cualquier clave válida, pero las descripciones están en las listas L8A y L8B, que no vienen en `docs/aeat/`. Hasta tenerlas, la interfaz muestra el código y no una descripción inventada |
+| Firma `ds:Signature` en el registro de evento | Anexo 5 | El esquema la exige; en VERI\*FACTU no hay firma expresa que serializar. Ligado a la consulta de si el registro de eventos nos aplica |
 
 ### Respuesta de la AEAT — 10 de agosto de 2026
 
@@ -278,6 +281,7 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 10 ago | Cerrado el bloque «depende de nosotros»: eventos en XML del anexo 5, exportación de eventos propia, causa de exención en presupuestos y claves de régimen. Declaración responsable con la estructura oficial de la AEAT |
 | 10 ago | **Huella validada contra los vectores oficiales de la AEAT.** Alta y anulación eran correctas; la de evento estaba mal y se corrigió. 247 códigos de error, `TipoEvento` como código, documentación de la AEAT guardada en `docs/aeat/` |
 | 10 ago | **La AEAT contesta**: endpoints, NIF de pruebas y dónde está el documento de la huella. Separados los hosts de representante y sello |
 | 9 ago | Informe en PDF del estado de Verifactu para la AEAT; documentación técnica puesta al día (decía que anulación, eventos y exportación no estaban hechos) |

@@ -11,6 +11,8 @@ interface LineInput {
   quantity: number
   unitPrice: number
   taxRate: number
+  /** Lista L10. Obligatoria en una línea exenta; nula en cualquier otra. */
+  exemptionCause?: string | null
   discountPct?: number
 }
 
@@ -35,6 +37,14 @@ export async function POST(req: NextRequest) {
     if (finalize && !clientCompanyId) return NextResponse.json({ error: 'client_required' }, { status: 400 })
     if (finalize && validLines.length === 0) return NextResponse.json({ error: 'no_lines' }, { status: 400 })
 
+    // Una línea exenta necesita su causa (lista L10). Se exige aquí, al cerrar
+    // el presupuesto, y no al convertirlo en factura: si se dejara para
+    // entonces, el usuario descubriría el problema con el presupuesto ya
+    // enviado al cliente y aceptado.
+    if (finalize && validLines.some(l => (Number(l.taxRate) || 0) === 0 && !l.exemptionCause?.trim())) {
+      return NextResponse.json({ error: 'exemption_cause_required' }, { status: 400 })
+    }
+
     // Snapshots
     const { data: org } = await supabase
       .from('organizations')
@@ -55,6 +65,9 @@ export async function POST(req: NextRequest) {
       const qty = Number(l.quantity) || 0
       const price = Number(l.unitPrice) || 0
       const rate = Number(l.taxRate) || 0
+      // Una línea exenta sin causa no se puede convertir después en factura,
+      // así que se rechaza aquí y no al facturar, cuando ya es tarde.
+      const cause = rate === 0 ? (l.exemptionCause?.trim() || null) : null
       const disc = Number(l.discountPct) || 0
       const base = round2(qty * price * (1 - disc / 100))
       const tax = round2(base * rate / 100)
@@ -62,6 +75,7 @@ export async function POST(req: NextRequest) {
       return {
         product_id: l.productId ?? null, description: l.description.trim(),
         quantity: qty, unit_price: price, tax_rate: rate, discount_pct: disc,
+        exemption_cause: cause,
         line_subtotal: base, line_tax: tax, line_total: round2(base + tax), position: idx,
       }
     })

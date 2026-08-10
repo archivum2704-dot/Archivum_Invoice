@@ -14,10 +14,11 @@ import { useProducts } from "@/lib/hooks/use-products"
 import { ProductPicker } from "@/components/views/facturacion-view"
 import { isPaidPlan } from "@/lib/plan"
 import { NewClientModal } from "@/components/new-client-modal"
+import { EXEMPTION_CAUSES } from "@/lib/exemption-causes"
 import { createClient } from "@/lib/supabase/client"
 
-type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string }
-const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1", unitPrice: "0", taxRate: "21" })
+type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string; exemptionCause: string }
+const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1", unitPrice: "0", taxRate: "21", exemptionCause: "" })
 
 const IVA_RATES = ["", "4", "10", "21"]
 const RETENTION_RATES = ["", "7", "15", "19"]
@@ -140,6 +141,7 @@ export function PresupuestosView() {
     setLines(data.lines.length ? data.lines.map(l => ({
       productId: l.product_id, description: l.description,
       quantity: String(l.quantity), unitPrice: String(l.unit_price), taxRate: String(l.tax_rate),
+      exemptionCause: l.exemption_cause ?? "",
     })) : [emptyLine()])
     setOpen(true)
   }
@@ -148,6 +150,10 @@ export function PresupuestosView() {
     if (!currentOrg) return
     if (!clientId) { setError("Selecciona un cliente."); return }
     if (!lines.some(l => l.description.trim())) { setError("Añade al menos una línea."); return }
+    // Misma regla que en facturas: una línea exenta tiene que decir por qué.
+    if (lines.some(l => l.taxRate === "" && l.description.trim() && !l.exemptionCause)) {
+      setError("Indica la causa de exención de las líneas exentas."); return
+    }
     setSaving(true); setError(null)
     try {
       const res = await fetch("/api/quotes", {
@@ -159,6 +165,7 @@ export function PresupuestosView() {
           lines: lines.filter(l => l.description.trim()).map(l => ({
             productId: l.productId, description: l.description,
             quantity: Number(l.quantity) || 0, unitPrice: Number(l.unitPrice) || 0, taxRate: Number(l.taxRate) || 0,
+            exemptionCause: l.taxRate === "" ? l.exemptionCause : null,
           })),
         }),
       })
@@ -326,12 +333,37 @@ export function PresupuestosView() {
                     </div>
                     <input type="number" step="0.01" title="Cantidad" value={l.quantity} onChange={e => setLine(i, { quantity: e.target.value })} className={cn(inputCls, "py-1.5 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none")} />
                     <input type="number" step="0.01" title="Precio" value={l.unitPrice} onChange={e => setLine(i, { unitPrice: e.target.value })} className={cn(inputCls, "py-1.5 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none")} />
-                    <select title="IVA" value={l.taxRate} onChange={e => setLine(i, { taxRate: e.target.value })} className={cn(inputCls, "py-1.5 px-1 text-right")}>
-                      {IVA_RATES.map(r => <option key={r} value={r}>{r === "" ? "0%" : `${r}%`}</option>)}
+                    <select title="IVA" value={l.taxRate}
+                      onChange={e => setLine(i, {
+                        taxRate: e.target.value,
+                        // Dejar de ser exenta descarta la causa: conservarla
+                        // declararía una exención sobre una línea con impuesto.
+                        ...(e.target.value !== "" ? { exemptionCause: "" } : {}),
+                      })}
+                      className={cn(inputCls, "py-1.5 px-1 text-right")}>
+                      {IVA_RATES.map(r => <option key={r} value={r}>{r === "" ? "Exenta" : `${r}%`}</option>)}
                     </select>
                     <button onClick={() => setLines(lines.filter((_, idx) => idx !== i))} disabled={lines.length === 1} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive disabled:opacity-30">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
+
+                    {/* Solo si la línea es exenta. La AEAT necesita saber por
+                        qué artículo, y no hay valor por defecto que se pueda
+                        elegir en nombre del usuario. */}
+                    {l.taxRate === "" && (
+                      <div className="col-span-5 -mt-1">
+                        <select
+                          value={l.exemptionCause}
+                          onChange={e => setLine(i, { exemptionCause: e.target.value })}
+                          className={cn(inputCls, "py-1.5 text-xs", !l.exemptionCause && "border-[var(--status-pending)]")}
+                        >
+                          <option value="">Causa de exención…</option>
+                          {EXEMPTION_CAUSES.map(c => (
+                            <option key={c.code} value={c.code}>{c.es}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

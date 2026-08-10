@@ -307,6 +307,10 @@ story.append(KeepTogether([
     ["Si el registro de eventos debe remitirse o solo conservarse", "Orden art. 9.4",
      "El esquema de eventos que publica la AEAT se titula «para sistemas no VERI*FACTU». Archivum "
      "opera como VERI*FACTU, así que no sabemos si además de conservarlo hay que enviarlo."],
+    ["Descripciones de las claves de régimen (listas L8A y L8B)", "Orden L8A / L8B",
+     "El esquema publica los códigos válidos pero no qué significa cada uno. El sistema ya los "
+     "admite todos; sin las descripciones no podemos presentar al usuario una lista de la que "
+     "elegir su régimen sin arriesgarnos a etiquetarlo mal."],
     ["Criterio de disociación de accesos para la Administración", "RD art. 8.4 y 14",
      "Sabemos que hay que permitir el acceso de la Administración a los registros, pero no en qué "
      "forma: ¿volcado a requerimiento, acceso en línea, formato concreto?"],

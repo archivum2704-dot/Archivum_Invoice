@@ -65,7 +65,7 @@ export async function issueInvoice(
 
   const { data: org } = await supabase
     .from('organizations')
-    .select('name, cif, address, city, postal_code, province, logo_url')
+    .select('name, cif, address, city, postal_code, province, logo_url, verifactu_clave_regimen')
     .eq('id', orgId).single()
   if (!org) throw new IssueError('org_not_found', 404)
 
@@ -148,6 +148,7 @@ export async function issueInvoice(
         countryCode: client.country_code, idType: client.tax_id_type,
       },
       installationId: orgId, notes: notes?.trim() || null,
+      claveRegimen: org.verifactu_clave_regimen,
       lines: computedLines.map(l => ({
         description: l.description, taxRate: l.tax_rate,
         base: l.line_subtotal, cuota: l.line_tax,

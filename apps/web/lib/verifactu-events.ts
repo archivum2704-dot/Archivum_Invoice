@@ -194,9 +194,13 @@ export async function recordEvent(
   const sis = sistemaInformatico(args.orgId)
 
   let obligadoNif = args.obligadoNif ?? null
-  if (!obligadoNif) {
-    const { data: org } = await db.from('organizations').select('cif').eq('id', args.orgId).maybeSingle()
-    obligadoNif = org?.cif ?? ''
+  let obligadoNombre: string | null = null
+  {
+    // The schema's ObligadoEmision carries name and NIF together, so both are
+    // read even when the caller supplied the NIF.
+    const { data: org } = await db.from('organizations').select('name, cif').eq('id', args.orgId).maybeSingle()
+    obligadoNombre = org?.name ?? null
+    if (!obligadoNif) obligadoNif = org?.cif ?? ''
   }
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -224,7 +228,7 @@ export async function recordEvent(
         IDVersion: '1.0',
         Evento: {
           SistemaInformatico: sis,
-          ObligadoEmision: { NIF: obligadoNif },
+          ObligadoEmision: { NombreRazon: obligadoNombre, NIF: obligadoNif },
           FechaHoraHusoGenEvento: occurredAt,
           TipoEvento: codigo,
           ...(args.detail && Object.keys(args.detail).length

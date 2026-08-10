@@ -26,25 +26,38 @@ type EventRow = {
   huella_anterior: string | null
 }
 
+// Debe seguir a EVENT_TYPES de lib/verifactu-events.ts. No se importa de allí
+// porque ese módulo usa `crypto` y esto es un componente de cliente; un tipo
+// sin etiqueta se muestra con su nombre técnico, nunca en blanco.
 const LABELS: Record<string, string> = {
+  // Exigidos por el artículo 9.1 de la Orden
+  deteccion_anomalias_facturacion_lanzada: "Detección de anomalías en facturación · lanzada",
+  anomalia_facturacion_detectada: "Anomalía detectada en registros de facturación",
+  deteccion_anomalias_eventos_lanzada: "Detección de anomalías en eventos · lanzada",
+  anomalia_eventos_detectada: "Anomalía detectada en registros de evento",
+  restauracion_copia_seguridad: "Restauración de copia de seguridad",
+  exportacion_registros_facturacion: "Exportación de registros de facturación",
+  exportacion_registros_evento: "Exportación de registros de evento",
+  registro_resumen_eventos: "Registro resumen de eventos",
+  // Propios
   registro_alta_generado: "Registro de alta generado",
   registro_anulacion_generado: "Registro de anulación generado",
   envio_aeat_iniciado: "Envío a la AEAT iniciado",
   envio_aeat_aceptado: "Envío aceptado por la AEAT",
   envio_aeat_rechazado: "Envío rechazado por la AEAT",
   envio_aeat_fallido: "Envío a la AEAT fallido",
-  exportacion_registros: "Exportación de registros",
   certificado_subido: "Certificado digital subido",
   certificado_eliminado: "Certificado digital eliminado",
-  anomalia_detectada: "Anomalía detectada",
 }
 
 const TONE: Record<string, string> = {
   envio_aeat_aceptado: "text-[var(--status-paid)]",
   envio_aeat_rechazado: "text-[var(--status-overdue)]",
   envio_aeat_fallido: "text-[var(--status-overdue)]",
-  anomalia_detectada: "text-[var(--status-overdue)]",
-  exportacion_registros: "text-[var(--status-pending)]",
+  anomalia_facturacion_detectada: "text-[var(--status-overdue)]",
+  anomalia_eventos_detectada: "text-[var(--status-overdue)]",
+  exportacion_registros_facturacion: "text-[var(--status-pending)]",
+  exportacion_registros_evento: "text-[var(--status-pending)]",
 }
 
 async function fetchEvents(orgId: string): Promise<EventRow[]> {
@@ -78,13 +91,23 @@ export function EventosView() {
           <ScrollText className="w-6 h-6 text-primary" />
           <h1 className="text-2xl font-bold text-foreground">Registro de eventos</h1>
         </div>
+        {/* Dos exportaciones distintas: el artículo 9.1.i trata la de eventos
+            como operación propia, con su propio tipo de evento. */}
         {isOrgAdmin && currentOrg && (
-          <a
-            href={`/api/verifactu/export?orgId=${currentOrg.id}`}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border rounded-xl hover:bg-muted whitespace-nowrap transition-colors"
-          >
-            <Download className="w-4 h-4" /> Exportar registros
-          </a>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <a
+              href={`/api/verifactu/export?orgId=${currentOrg.id}`}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border rounded-xl hover:bg-muted whitespace-nowrap transition-colors"
+            >
+              <Download className="w-4 h-4" /> Facturación
+            </a>
+            <a
+              href={`/api/verifactu/export/eventos?orgId=${currentOrg.id}`}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border rounded-xl hover:bg-muted whitespace-nowrap transition-colors"
+            >
+              <Download className="w-4 h-4" /> Eventos
+            </a>
+          </div>
         )}
       </div>
       <p className="text-sm text-muted-foreground mb-8">
