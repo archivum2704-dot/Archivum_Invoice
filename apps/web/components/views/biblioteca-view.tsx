@@ -23,6 +23,7 @@ const TYPE_STYLES: Record<string, { icon: React.ElementType; className: string }
   delivery_note:    { icon: Package,   className: "bg-primary/10 text-primary" },
   receipt:          { icon: Receipt,   className: "bg-secondary-foreground/10 text-muted-foreground" },
   order:            { icon: FolderOpen, className: "bg-blue-100/50 text-blue-600" },
+  quote:            { icon: FileSpreadsheet, className: "bg-secondary-foreground/10 text-muted-foreground" },
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -596,7 +597,7 @@ export function BibliotecaView() {
         <div className="relative">
           <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="appearance-none pl-3 pr-8 py-2 text-sm bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
             <option value="all">{t("all")}</option>
-            {["invoice_issued","invoice_received","delivery_note","receipt","order"].map((k) => (
+            {["invoice_issued","invoice_received","delivery_note","receipt","order","quote"].map((k) => (
               <option key={k} value={k}>{tTypes(k as any)}</option>
             ))}
           </select>

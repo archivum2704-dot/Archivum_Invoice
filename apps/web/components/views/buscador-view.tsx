@@ -27,6 +27,7 @@ const TYPE_STYLES: Record<string, string> = {
   delivery_note:    "bg-primary/10 text-primary",
   receipt:          "bg-muted text-muted-foreground",
   order:            "bg-blue-100/50 text-blue-600",
+  quote:            "bg-secondary-foreground/10 text-muted-foreground",
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -37,7 +38,7 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: "bg-muted text-muted-foreground",
 }
 
-const DOC_TYPES    = ["invoice_issued", "invoice_received", "delivery_note", "receipt", "order"] as const
+const DOC_TYPES    = ["invoice_issued", "invoice_received", "delivery_note", "receipt", "order", "quote"] as const
 const DOC_STATUSES = ["paid", "pending", "overdue", "draft", "cancelled"] as const
 
 type SortKey = "date_desc" | "date_asc" | "amount_desc" | "amount_asc"
