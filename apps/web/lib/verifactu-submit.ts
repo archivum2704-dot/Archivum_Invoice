@@ -64,7 +64,7 @@ export async function submitPendingForOrg(orgId: string, opts: { invoiceId?: str
 
   const { data: cert } = await db
     .from('org_certificates')
-    .select('cert_cipher, cert_iv, cert_tag, pass_cipher, pass_iv, pass_tag')
+    .select('cert_cipher, cert_iv, cert_tag, pass_cipher, pass_iv, pass_tag, cert_kind')
     .eq('organization_id', orgId).maybeSingle()
   if (!cert) return nothing('La organización no tiene certificado digital')
 

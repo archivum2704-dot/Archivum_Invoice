@@ -3,7 +3,7 @@
 > **Léeme primero.** Este fichero es el punto de partida de cada sesión.
 > Cuando cambies algo relevante, actualízalo en el mismo commit.
 >
-> Última actualización: **9 de agosto de 2026**
+> Última actualización: **10 de agosto de 2026**
 
 ---
 
@@ -51,7 +51,7 @@ Verifactu (envío horario) del de integridad (cada 6 h).
 ```bash
 cd apps/web    && npx tsc --noEmit && npm run build
 cd apps/mobile && npx tsc --noEmit && npx expo export --platform android
-cd apps/web    && npm run verifactu:check     # 78 comprobaciones
+cd apps/web    && npm run verifactu:check     # 84 comprobaciones
 ```
 
 Rama de trabajo: `claude/user-client-creation-kk6p58` → merge a `main`.
@@ -68,7 +68,7 @@ Rama de trabajo: `claude/user-client-creation-kk6p58` → merge a `main`.
 |---|---|---|
 | **Certificado digital** — 0 subidos | Cliente | Sin él no se puede enviar nada a la AEAT |
 | `VERIFACTU_PRODUCER_NAME` / `_NIF` | Cliente | Sin ellos el registro está incompleto |
-| **Documento técnico de la AEAT** (formato de huella, endpoints, códigos de error) | Cliente | Varias cosas están implementadas "según la norma" pero sin poder contrastar el formato exacto |
+| **Documento v0.1.2 de la huella** | Cliente | La AEAT ya dijo dónde está; hay que descargarlo y subirlo a la sesión (los dominios de la AEAT están bloqueados aquí). Hasta contrastarlo, las huellas no están validadas |
 | **Declaración responsable** | Abogado | Sin ella no se puede distribuir legalmente |
 | **Decisión: apoderamiento vs certificado por cliente** | Cliente + gestor | Cambia el modelo de servicio; decidirlo antes de programar más |
 | **Plan Hobby de Vercel** | Cliente | El resumen de eventos cada 6 h (art. 9.2) no se puede cumplir con 1 cron diario. Requiere Pro |
@@ -117,6 +117,39 @@ actualiza solo y un informe desfasado en manos de un tercero es peor que ninguno
 | Disociación de accesos para la Administración | RD art. 8.4 / 14 | Pendiente de revisión |
 | Prueba real contra preproducción de la AEAT | | Nunca ejecutada |
 
+### Respuesta de la AEAT — 10 de agosto de 2026
+
+Contestaron a las tres primeras consultas del informe. Lo confirmado:
+
+| Qué | Dato |
+|---|---|
+| Documento de la huella | «Detalle de las especificaciones técnicas para la generación de la huella o hash de los registros» **v0.1.2**, en la página de desarrolladores |
+| WSDL y esquemas | Sede de la AEAT → Información técnica → *WSDL de los servicios web* / *Esquemas* |
+| Endpoint de pruebas, certificado de **representante** | `https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP` |
+| Endpoint de pruebas, certificado de **sello** | `https://prewww10.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP` |
+| Requisito para probar | **Solo el certificado electrónico.** No hace falta alta previa |
+| Certificado de pruebas para desarrolladores | `catentidades@correo.aeat.es` |
+| NIF de pruebas, persona física | `99999910G` (CERTIFICADO FISICA PRUEBAS) |
+| NIF de pruebas, persona jurídica | `A39200019` (CERTIFICADO ENTIDAD PRUEBAS) |
+
+**Lo que esto cambió en el código**: representante y sello van a **hosts
+distintos**, y enviar al equivocado hace fallar la remisión. El tipo de
+certificado se deduce al subirlo (`cert_kind` en `org_certificates`) y decide el
+endpoint. Para producción con sello **no hay URL por defecto**: no nos la han
+dado y deducirla por analogía mandaría registros reales a un host sin
+confirmar, así que falla con un mensaje claro hasta que se configure
+`VERIFACTU_ENDPOINT_PROD_SELLO` leyéndola del WSDL.
+
+⚠️ **Falta descargar el documento v0.1.2 de la huella y contrastar el formato.**
+Los dominios de la AEAT están bloqueados desde el entorno de trabajo, así que el
+PDF hay que subirlo a la sesión igual que se hizo con los del BOE. **Es lo
+primero que hay que hacer**: hasta contrastarlo, las huellas ya generadas siguen
+sin estar validadas.
+
+Sin contestar todavía: consultas 4 a 11 del informe (códigos de error, anexo 5,
+modelo multi-obligado, número de instalación, regímenes, resumen cada 6 h,
+acceso de la Administración, declaración responsable).
+
 ### ⚠️ Marcado en el código: formatos sin confirmar
 
 El artículo 13.2 de la Orden remite el **algoritmo y la codificación** de la huella
@@ -158,7 +191,9 @@ Un formato equivocado produce una huella de aspecto válido que la AEAT rechaza.
 | `VERIFACTU_PRODUCER_ADDRESS` / `_EMAIL` / `_WEBSITE` | ❌ | Declaración responsable |
 | `VERIFACTU_DECLARATION_PLACE` / `_DATE` / `_ISSUED` | ❌ | Idem |
 | `VERIFACTU_SYSTEM_ID` | opcional | Por defecto `AR`. **No cambiar una vez en producción** |
-| `VERIFACTU_ENDPOINT_PROD` / `_TEST` | opcional | Sobrescriben las URLs de la AEAT |
+| `VERIFACTU_ENDPOINT_PROD` / `_TEST` | opcional | Sobrescriben las URLs de la AEAT (certificado de representante) |
+| `VERIFACTU_ENDPOINT_TEST_SELLO` | opcional | Por defecto `prewww10`, confirmado por la AEAT |
+| `VERIFACTU_ENDPOINT_PROD_SELLO` | ❌ | **Obligatoria si el obligado usa certificado de sello en producción.** Sin ella la remisión falla a propósito |
 
 ### Móvil
 
@@ -221,6 +256,7 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 10 ago | **La AEAT contesta**: endpoints, NIF de pruebas y dónde está el documento de la huella. Separados los hosts de representante y sello |
 | 9 ago | Informe en PDF del estado de Verifactu para la AEAT; documentación técnica puesta al día (decía que anulación, eventos y exportación no estaban hechos) |
 | 8 ago | **Arreglado: 7 merges sin desplegar** por `maxDuration` y crons por encima de los límites de Hobby |
 | 8 ago | Detección de anomalías, resumen de eventos, causas de exención por línea |

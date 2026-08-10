@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import forge from 'node-forge'
 import { seal } from '@/lib/crypto-vault'
 import { missingProducerConfig } from '@/lib/verifactu'
+import type { CertKind } from '@/lib/verifactu-client'
 import { recordEvent, EVENT_TYPES } from '@/lib/verifactu-events'
 
 export const runtime = 'nodejs'
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
 
     // Parse + validate the .p12 with the given password
     let subject = '', nif: string | null = null, validUntil: string | null = null
+    let certKind: CertKind = 'representante'
     try {
       const der = forge.util.decode64(certBase64)
       const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(der), password)
@@ -51,6 +53,17 @@ export async function POST(req: NextRequest) {
       const cn = cert.subject.getField('CN')?.value as string | undefined
       nif = (sn ?? cn ?? '').replace(/^IDC[A-Z]{2}-/i, '').trim() || null
       validUntil = cert.validity.notAfter.toISOString()
+
+      // Which host the AEAT expects depends on this, so it has to be decided
+      // somewhere. A certificate held by a representative identifies the
+      // natural person holding it — givenName and surname are part of the
+      // subject. A seal certificate identifies only the entity. That structural
+      // difference is what we read; it is not a policy OID lookup, so an
+      // unusual issuer could get it wrong. VERIFACTU_ENDPOINT_* overrides exist
+      // for that case.
+      const givenName = cert.subject.getField('2.5.4.42')?.value
+      const surname = cert.subject.getField('2.5.4.4')?.value
+      certKind = (givenName || surname) ? 'representante' : 'sello'
     } catch {
       return NextResponse.json({ error: 'invalid_certificate' }, { status: 422 })
     }
@@ -68,7 +81,7 @@ export async function POST(req: NextRequest) {
       organization_id: orgId,
       cert_cipher: certSealed.cipher, cert_iv: certSealed.iv, cert_tag: certSealed.tag,
       pass_cipher: passSealed.cipher, pass_iv: passSealed.iv, pass_tag: passSealed.tag,
-      subject, nif, valid_until: validUntil,
+      subject, nif, valid_until: validUntil, cert_kind: certKind,
       uploaded_by: auth.user.id, uploaded_at: new Date().toISOString(),
     }, { onConflict: 'organization_id' })
     if (error) return NextResponse.json({ error: 'store_failed', detail: error.message }, { status: 500 })

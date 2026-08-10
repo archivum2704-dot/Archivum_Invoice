@@ -71,6 +71,8 @@ S = {
                            textColor=GRIS, alignment=TA_JUSTIFY),
     "preg": ParagraphStyle("preg", fontName="DJ-B", fontSize=9.7, leading=14,
                            textColor=AZUL, spaceAfter=3),
+    "pregOk": ParagraphStyle("pregOk", fontName="DJ-B", fontSize=9.7, leading=14,
+                             textColor=VERDE, spaceAfter=3),
     "kv": ParagraphStyle("kv", fontName="DJ", fontSize=9, leading=13,
                          textColor=colors.HexColor("#1A1A1A")),
 }
@@ -132,15 +134,22 @@ def estado(txt, tipo):
                                          leading=11, textColor=c))
 
 
-def bloque_pregunta(n, titulo, cuerpo, pedimos):
+def bloque_pregunta(n, titulo, cuerpo, pedimos, respuesta=None):
+    """Una consulta. Si la AEAT ya la contestó, se muestra la respuesta en su
+    lugar: un informe que sigue preguntando lo ya resuelto desorienta a quien
+    lo lee."""
+    etiqueta = "<b>Respondido por la AEAT (10-08-2026):</b> " + respuesta if respuesta \
+        else "<b>Lo que necesitamos:</b> " + pedimos
     partes = [
-        p("%d. %s" % (n, titulo), "preg"),
+        p("%d. %s%s" % (n, titulo, " — RESUELTO" if respuesta else ""),
+          "pregOk" if respuesta else "preg"),
         p(cuerpo, "p"),
-        Table([[Paragraph("<b>Lo que necesitamos:</b> " + pedimos, S["nota"])]],
+        Table([[Paragraph(etiqueta, S["nota"])]],
               colWidths=[ANCHO],
               style=TableStyle([
-                  ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#EEF3FB")),
-                  ("LINEBEFORE", (0, 0), (0, -1), 2.5, AZULC),
+                  ("BACKGROUND", (0, 0), (-1, -1),
+                   VERDEC if respuesta else colors.HexColor("#EEF3FB")),
+                  ("LINEBEFORE", (0, 0), (0, -1), 2.5, VERDE if respuesta else AZULC),
                   ("LEFTPADDING", (0, 0), (-1, -1), 8),
                   ("RIGHTPADDING", (0, 0), (-1, -1), 8),
                   ("TOPPADDING", (0, 0), (-1, -1), 6),
@@ -166,7 +175,7 @@ ficha = [
     ["Naturaleza", "Servicio multi-obligado: cada organización dada de alta es un obligado "
                    "tributario distinto y una instalación independiente"],
     ["Productor del sistema", "Pendiente de consignar (razón social y NIF)"],
-    ["Fecha del informe", "9 de agosto de 2026"],
+    ["Fecha del informe", "10 de agosto de 2026"],
     ["Situación global", "Núcleo del reglamento implementado y verificado en código. "
                          "No se ha realizado ninguna prueba real contra la AEAT."],
 ]
@@ -295,18 +304,11 @@ story.append(KeepTogether([
                ROJOC, ROJO),
     Spacer(1, 7),
     tabla(["Qué falta", "Norma", "Por qué bloquea"], [
-    ["Documento técnico con el algoritmo y la codificación exactos de la huella",
+    ["Contrastar la huella contra el documento v0.1.2",
      "Orden art. 13.2",
-     "El articulado fija <b>qué campos</b> entran en la huella —y esos los tenemos confirmados— pero "
-     "remite el <b>formato de concatenación y la codificación</b> a un documento de la sede "
-     "electrónica. Un formato equivocado produce una huella de aspecto correcto que la AEAT rechaza. "
-     "Es lo primero que hay que contrastar."],
-    ["Endpoints de los servicios web y espacios de nombres del esquema", "—",
-     "Hoy están configurados según nuestra mejor interpretación y son parametrizables, pero no "
-     "confirmados. Sin ellos no se puede enviar nada."],
-    ["Acceso al entorno de preproducción", "—",
-     "Nunca se ha ejecutado un envío real. Todo lo relativo a la remisión está probado contra "
-     "simulaciones propias, no contra la AEAT."],
+     "La AEAT ya nos ha dicho dónde está el documento. Falta <b>leerlo y comparar</b>: el articulado "
+     "fija qué campos entran en la huella, pero el formato de concatenación sale de ahí. Un formato "
+     "equivocado produce una huella de aspecto correcto que la AEAT rechaza. <b>Es lo primero.</b>"],
     ["Listado de códigos de error", "—",
      "No podemos traducir ni explicar al usuario por qué la AEAT rechaza un registro."],
     ["Formato XML de los registros de evento (anexo 5)", "Orden art. 9.4",
@@ -372,8 +374,9 @@ story.append(KeepTogether([
 story.append(PageBreak())
 story.append(p("3. Preguntas concretas para la Agencia Tributaria", "h1"))
 story.append(p(
-    "Esta es la parte operativa del documento. Son las cuestiones que, resueltas, desbloquean todo "
-    "lo demás. Están ordenadas por urgencia: las cinco primeras impiden hoy hacer una sola prueba real."))
+    "Esta es la parte operativa del documento. Las <b>tres primeras ya están contestadas</b> y se "
+    "conservan con su respuesta, porque la respuesta es justamente lo que había que llevarse. Las "
+    "ocho restantes siguen abiertas."))
 
 preguntas = [
     ("Documento técnico del formato de la huella",
@@ -385,7 +388,11 @@ preguntas = [
      "los eventos por analogía, lo cual no es garantía de nada.",
      "La referencia exacta y la versión vigente de ese documento técnico, y confirmación de si el "
      "criterio de concatenación de los registros de facturación es el mismo que se aplica al registro "
-     "de eventos."),
+     "de eventos.",
+     "El documento es «Detalle de las especificaciones técnicas para la generación de la huella o "
+     "hash de los registros», versión <b>v0.1.2</b>, publicado en la página de desarrolladores de la "
+     "AEAT. <b>Queda contrastar nuestra implementación contra él</b>, en particular la huella del "
+     "registro de eventos."),
 
     ("URLs de los servicios web, WSDL y esquemas XSD vigentes",
      "El sistema envía los registros por servicio web SOAP con autenticación por TLS mutuo. Las "
@@ -393,14 +400,24 @@ preguntas = [
      "hoy configurados según nuestra interpretación de la documentación pública, y son parametrizables "
      "precisamente porque no están confirmados.",
      "Direcciones de los servicios de producción y preproducción, WSDL, y ubicación del juego de "
-     "esquemas XSD vigente, con su número de versión."),
+     "esquemas XSD vigente, con su número de versión.",
+     "WSDL y esquemas están en la sede de la AEAT, en Información técnica. Los endpoints de pruebas "
+     "figuran al final del propio WSDL. Para sistemas que emiten facturas verificables: "
+     "<b>prewww1.aeat.es</b> con certificado de representante y <b>prewww10.aeat.es</b> con "
+     "certificado de sello, ambos en la ruta "
+     "/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP. Que sean hosts distintos ya está "
+     "recogido en el sistema: enviar al equivocado hace fallar la remisión."),
 
     ("Cómo se accede al entorno de preproducción",
      "No hemos ejecutado ni un solo envío real. Es la verificación que más nos importa y la que hoy es "
      "imposible. Necesitamos saber qué requisitos hay que cumplir previamente.",
      "Requisitos de acceso a preproducción: si hace falta certificado específico de pruebas o sirve el "
      "del obligado, si es necesaria alta o solicitud previa, si existen NIF de prueba, y si hay algún "
-     "protocolo de homologación antes de pasar a producción."),
+     "protocolo de homologación antes de pasar a producción.",
+     "<b>El único requisito es disponer de certificado electrónico</b>; no hace falta alta ni "
+     "solicitud previa. Puede pedirse un certificado de pruebas para entidades desarrolladoras "
+     "escribiendo a catentidades@correo.aeat.es. NIF de pruebas facilitados: "
+     "<b>99999910G</b> (persona física) y <b>A39200019</b> (persona jurídica)."),
 
     ("Listado de códigos de error y su significado",
      "Cuando la AEAT rechaza un registro, hoy podemos mostrar al usuario el código devuelto pero no "
@@ -470,8 +487,10 @@ preguntas = [
      "actualiza de forma continua."),
 ]
 
-for i, (tit, cuerpo, pide) in enumerate(preguntas, start=1):
-    story.append(bloque_pregunta(i, tit, cuerpo, pide))
+for i, entrada in enumerate(preguntas, start=1):
+    tit, cuerpo, pide = entrada[0], entrada[1], entrada[2]
+    story.append(bloque_pregunta(i, tit, cuerpo, pide,
+                                 entrada[3] if len(entrada) > 3 else None))
 
 # ── 4. Orden ──
 story.append(p("4. Orden en que conviene desbloquear", "h1"))
@@ -481,12 +500,12 @@ story.append(p(
 story.append(tabla(["Paso", "Qué desbloquea", "De quién depende"], [
     ["1. Certificado electrónico del obligado", "Cualquier comunicación con la AEAT",
      "Titular del sistema"],
-    ["2. Documento técnico de la huella y esquemas vigentes",
-     "Poder contrastar que las huellas ya generadas son válidas antes de emitir en producción",
-     "Agencia Tributaria"],
-    ["3. Acceso a preproducción",
-     "La primera prueba real de extremo a extremo: envío, respuesta, rechazo, reenvío",
-     "Agencia Tributaria"],
+    ["2. Contrastar la huella contra el documento v0.1.2",
+     "Saber si las huellas ya generadas son válidas, antes de emitir en producción",
+     "Nosotros (documento ya localizado)"],
+    ["3. Primera prueba contra preproducción",
+     "La primera verificación real de extremo a extremo: envío, respuesta, rechazo, reenvío",
+     "Desbloqueado en cuanto haya certificado"],
     ["4. Datos del productor", "Completar el registro y poder redactar la declaración responsable",
      "Titular del sistema"],
     ["5. Declaración responsable firmada", "Distribuir el sistema legalmente", "Asesor jurídico"],
@@ -497,19 +516,10 @@ story.append(tabla(["Paso", "Qué desbloquea", "De quién depende"], [
 story.append(PageBreak())
 story.append(p("5. Lista para llevar a la reunión", "h1"))
 story.append(p(
-    "Resumen de una página. Si de la reunión solo salieran estas cinco cosas, el proyecto quedaría "
-    "desbloqueado por completo."))
+    "Lo que sigue abierto después de la respuesta del 10 de agosto. Las consultas sobre el documento "
+    "de la huella, los endpoints y el acceso a preproducción ya están resueltas."))
 
 pedidos = [
-    ("Documento técnico de la huella",
-     "Referencia y versión vigente del documento de la sede electrónica al que remite el art. 13.2 "
-     "de la Orden, y confirmación de si el mismo criterio de concatenación aplica al registro de "
-     "eventos."),
-    ("Servicios web y esquemas",
-     "URLs de producción y preproducción, WSDL, espacios de nombres y juego de esquemas XSD vigente."),
-    ("Acceso a preproducción",
-     "Qué hace falta para poder ejecutar la primera prueba real: certificado, alta previa, NIF de "
-     "prueba, protocolo de homologación."),
     ("Códigos de error",
      "Listado oficial con descripción, distinguiendo los subsanables por reenvío de los que exigen "
      "rectificar o anular."),
@@ -538,9 +548,10 @@ story.append(tp)
 
 story.append(Spacer(1, 10))
 story.append(Table([[Paragraph(
-    "<b>Y dos cosas que no dependen de la Agencia:</b> el certificado electrónico del obligado, sin "
-    "el cual no se puede probar nada, y los datos identificativos del productor del sistema, que van "
-    "dentro de cada registro de facturación.", S["nota"])]], colWidths=[ANCHO],
+    "<b>Y dos cosas que no dependen de la Agencia:</b> el certificado electrónico del obligado —que "
+    "ahora sabemos que es el <i>único</i> requisito para empezar a probar— y los datos "
+    "identificativos del productor del sistema, que van dentro de cada registro de facturación.",
+    S["nota"])]], colWidths=[ANCHO],
     style=TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), AMBARC),
         ("LINEBEFORE", (0, 0), (0, -1), 3, AMBAR),
@@ -571,7 +582,7 @@ def pie(canvas, doc):
     canvas.setFont("DJ", 7.5)
     canvas.setFillColor(GRIS)
     canvas.drawString(MARGEN, 12 * mm,
-                      "Archivum · Estado de conformidad Veri*Factu · 9 de agosto de 2026")
+                      "Archivum · Estado de conformidad Veri*Factu · 10 de agosto de 2026")
     canvas.drawRightString(W - MARGEN, 12 * mm, "Página %d" % doc.page)
     canvas.setStrokeColor(LINEA)
     canvas.setLineWidth(0.5)

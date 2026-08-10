@@ -4,6 +4,7 @@ import {
 } from '@/lib/verifactu'
 import { buildSubmissionXml, parseSubmissionResponse, esc } from '@/lib/verifactu-xml'
 import { buildRegistroAnulacion, computeHuellaAnulacion } from '@/lib/verifactu'
+import { verifactuEndpoint } from '@/lib/verifactu-client'
 
 let fails = 0
 const check = (name: string, cond: boolean, extra = '') => {
@@ -239,6 +240,32 @@ check('un Fault no parece un envío correcto', fault.estadoEnvio === null)
 
 const garbage = parseSubmissionResponse('<html>error 500</html>')
 check('una respuesta ilegible NO parece correcta', garbage.estadoEnvio === null && garbage.csv === null)
+
+// ── Endpoints: representante y sello van a hosts distintos ──
+// Confirmado por la AEAT (agosto de 2026). Enviar al host equivocado no
+// degrada nada: la remisión falla. Estas comprobaciones existen para que
+// nadie los unifique "simplificando".
+const envAntes = process.env.VERIFACTU_ENV
+process.env.VERIFACTU_ENV = 'test'
+check('pruebas, representante → prewww1',
+  verifactuEndpoint('representante').startsWith('https://prewww1.aeat.es/'))
+check('pruebas, sello → prewww10',
+  verifactuEndpoint('sello').startsWith('https://prewww10.aeat.es/'))
+check('representante y sello no comparten host',
+  verifactuEndpoint('representante') !== verifactuEndpoint('sello'))
+check('por defecto se asume representante',
+  verifactuEndpoint() === verifactuEndpoint('representante'))
+
+process.env.VERIFACTU_ENV = 'prod'
+check('producción, representante tiene endpoint',
+  verifactuEndpoint('representante').includes('agenciatributaria.gob.es'))
+// Nunca nos han dado la URL de producción para sello. Fallar es lo correcto:
+// deducirla por analogía mandaría registros reales a un host sin confirmar.
+let saltoSello = false
+try { verifactuEndpoint('sello') } catch { saltoSello = true }
+check('producción con sello sin configurar: falla en vez de adivinar', saltoSello)
+if (envAntes === undefined) delete process.env.VERIFACTU_ENV
+else process.env.VERIFACTU_ENV = envAntes
 
 console.log(`\n${fails === 0 ? 'TODO CORRECTO' : fails + ' COMPROBACIONES FALLIDAS'}\n`)
 process.exit(fails === 0 ? 0 : 1)

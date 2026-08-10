@@ -14,25 +14,63 @@ import { parseSubmissionResponse, type RespuestaSuministro } from '@/lib/verifac
  * certificate on, so every route that reaches this must declare nodejs.
  */
 
+/**
+ * Which kind of certificate the organization uploaded.
+ *
+ * It decides where the submission goes: the AEAT serves seal certificates from
+ * a different host than certificates held by a representative. Posting to the
+ * wrong one fails the submission outright.
+ */
+export type CertKind = 'representante' | 'sello'
+
 // Overridable because these are AEAT-side URLs: they have moved before, and a
 // deployment must be able to follow without a code change.
-const ENDPOINTS = {
-  prod: process.env.VERIFACTU_ENDPOINT_PROD
-    ?? 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
-  test: process.env.VERIFACTU_ENDPOINT_TEST
-    ?? 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
+//
+// The test URLs are the ones the AEAT gave us directly (August 2026). The
+// production URL for representative certificates follows their published
+// naming. There is no default for production with a seal certificate: we have
+// not been told that URL, and inventing one by analogy would send real records
+// to a host nobody confirmed. Configure VERIFACTU_ENDPOINT_PROD_SELLO from the
+// WSDL before going live with a seal certificate.
+const ENDPOINTS: Record<'prod' | 'test', Record<CertKind, string | undefined>> = {
+  prod: {
+    representante: process.env.VERIFACTU_ENDPOINT_PROD
+      ?? 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
+    sello: process.env.VERIFACTU_ENDPOINT_PROD_SELLO,
+  },
+  test: {
+    representante: process.env.VERIFACTU_ENDPOINT_TEST
+      ?? 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
+    sello: process.env.VERIFACTU_ENDPOINT_TEST_SELLO
+      ?? 'https://prewww10.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
+  },
 }
 
-export function verifactuEndpoint(): string {
-  return (process.env.VERIFACTU_ENV ?? 'test').toLowerCase() === 'prod'
-    ? ENDPOINTS.prod
-    : ENDPOINTS.test
+/**
+ * The endpoint for this environment and certificate kind.
+ *
+ * Throws when it is not known, rather than falling back to the representative
+ * URL: a seal certificate presented to the representative endpoint is a
+ * failure we would rather surface at configuration time than at submission.
+ */
+export function verifactuEndpoint(kind: CertKind = 'representante'): string {
+  const env = (process.env.VERIFACTU_ENV ?? 'test').toLowerCase() === 'prod' ? 'prod' : 'test'
+  const url = ENDPOINTS[env][kind]
+  if (!url) {
+    throw new Error(
+      `No hay endpoint configurado para un certificado de ${kind} en ${env}. ` +
+      'Defina VERIFACTU_ENDPOINT_PROD_SELLO con la URL del WSDL de la AEAT.',
+    )
+  }
+  return url
 }
 
 /** The encrypted certificate as stored in org_certificates. */
 export interface StoredCertificate {
   cert_cipher: string; cert_iv: string; cert_tag: string
   pass_cipher: string; pass_iv: string; pass_tag: string
+  /** Absent on rows stored before the column existed; those are representative. */
+  cert_kind?: CertKind | null
 }
 
 export interface SubmissionResult {
@@ -66,7 +104,12 @@ export async function submitToAeat(
     return { ok: false, httpStatus: 0, response: null, raw: '', error: `No se pudo descifrar el certificado: ${err}` }
   }
 
-  const url = new URL(verifactuEndpoint())
+  let url: URL
+  try {
+    url = new URL(verifactuEndpoint(cert.cert_kind ?? 'representante'))
+  } catch (err) {
+    return { ok: false, httpStatus: 0, response: null, raw: '', error: String(err) }
+  }
   const body = Buffer.from(xml, 'utf8')
 
   return new Promise<SubmissionResult>(resolve => {

@@ -208,7 +208,32 @@ La tabla de certificados tiene seguridad a nivel de fila activada **sin
 políticas**, lo que deniega todo acceso desde cliente: solo el servidor, con
 credenciales de servicio, puede leerla.
 
-### 5.3 Momento y reintentos
+### 5.3 Destino de la remisión
+
+La AEAT atiende los certificados de **representante** y los de **sello** en
+hosts distintos. No es un detalle de configuración: presentar un certificado de
+sello en el host de representante hace fallar la remisión.
+
+| Entorno | Representante | Sello |
+|---|---|---|
+| Pruebas | `prewww1.aeat.es` | `prewww10.aeat.es` |
+| Producción | `www1.agenciatributaria.gob.es` | *(sin configurar)* |
+
+Ruta en todos los casos:
+`/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP`. Las URL de pruebas las
+confirmó la propia AEAT en agosto de 2026.
+
+El tipo de certificado se determina al subirlo, leyendo el sujeto del propio
+certificado: los de representante identifican además a la persona física que lo
+posee (nombre y apellidos), los de sello identifican solo a la entidad. Se
+guarda en `org_certificates.cert_kind`.
+
+Para **producción con certificado de sello no hay URL por defecto**: no nos ha
+sido facilitada, y deducirla por analogía enviaría registros reales a un host
+sin confirmar. El sistema falla con un mensaje explícito hasta que se configure
+`VERIFACTU_ENDPOINT_PROD_SELLO` con el valor que figure en el WSDL.
+
+### 5.4 Momento y reintentos
 
 La remisión se intenta **en el mismo acto de expedición**. Un barrido programado
 recoge después los registros que no hayan llegado a la AEAT por indisponibilidad
@@ -220,12 +245,12 @@ Ningún registro se descarta jamás. Un rechazo se anota contra la factura, con
 el código y la descripción devueltos por la AEAT, y queda visible para su
 revisión. Un fallo de transporte deja el registro pendiente y se reintenta.
 
-### 5.4 Control de flujo
+### 5.5 Control de flujo
 
 El tiempo de espera que la AEAT devuelve en cada respuesta se almacena por
 organización y se respeta antes de la siguiente remisión.
 
-### 5.5 Criterio de confirmación
+### 5.6 Criterio de confirmación
 
 Un registro se marca como remitido **únicamente** cuando la AEAT lo confirma de
 forma explícita. Se tratan como no confirmados, y por tanto se reintentan:
@@ -368,7 +393,7 @@ vía de acceso específica para la Administración tributaria**.
 ## 11. Verificación
 
 El repositorio incluye un conjunto de comprobaciones automáticas
-(`npm run verifactu:check`, 78 comprobaciones) que verifican:
+(`npm run verifactu:check`, 84 comprobaciones) que verifican:
 
 - que las bases del desglose suman la base imponible total y las cuotas suman
   la cuota total;
