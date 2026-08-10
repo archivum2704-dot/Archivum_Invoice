@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ClipboardList, Download, ArrowRight, Loader2, FileText } from "lucide-react"
+import { ClipboardList, Download, ArrowRight, Loader2, FileText, FolderPlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useQuotes, type Quote } from "@/lib/hooks/use-quotes"
@@ -31,6 +31,33 @@ export function AlbaranesView() {
   const { currentOrg, isOrgAdmin } = useOrganization()
   const { quotes: notes, loading, mutate } = useQuotes(currentOrg?.id ?? null, "delivery_note")
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [archiving, setArchiving] = useState(false)
+
+  // Los albaranes se archivan solos al abrirse, pero eso es best-effort y los
+  // abiertos antes de que existiera el archivado no tienen copia. Esto lo
+  // repara sin tener que tocar la base de datos a mano.
+  const sinArchivar = notes.filter(n => !n.document_id).length
+  const handleArchive = async () => {
+    if (!currentOrg) return
+    setArchiving(true)
+    try {
+      const res = await fetch("/api/quotes/archive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId: currentOrg.id }),
+      })
+      const json = await res.json()
+      if (!res.ok) { alert(json.detail ?? json.error ?? "No se pudo archivar."); return }
+      await mutate()
+      alert(json.archivados?.length
+        ? `Archivados en la biblioteca: ${json.archivados.join(", ")}`
+        : "No había nada pendiente de archivar.")
+    } catch (e) {
+      alert(String(e))
+    } finally {
+      setArchiving(false)
+    }
+  }
 
   const open = notes.filter(n => n.status !== "converted")
   const billed = notes.filter(n => n.status === "converted")
@@ -95,6 +122,16 @@ export function AlbaranesView() {
         <p className="text-muted-foreground text-sm mt-1">
           Se abre uno por cada presupuesto. Desde aquí se emite su factura.
         </p>
+        {isOrgAdmin && sinArchivar > 0 && (
+          <button
+            onClick={handleArchive}
+            disabled={archiving}
+            className="mt-3 inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border rounded-xl hover:bg-muted disabled:opacity-60 transition-colors"
+          >
+            {archiving ? <Loader2 className="w-4 h-4 animate-spin" /> : <FolderPlus className="w-4 h-4" />}
+            Archivar {sinArchivar} en la biblioteca
+          </button>
+        )}
       </div>
 
       <div className="bg-card border border-border rounded-xl overflow-hidden mb-6">

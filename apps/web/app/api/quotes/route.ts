@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getApiClient } from '@/lib/supabase/api-auth'
-import { buildQuotePdf } from '@/lib/quote-pdf'
+import { archiveQuoteToLibrary } from '@/lib/quote-archive'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
@@ -184,32 +184,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Best-effort: generate PDF + archive in the library (only for finalized quotes)
+    // Archivado en la Biblioteca, best-effort. El presupuesto y su albarán se
+    // archivan por igual: antes solo se archivaba el presupuesto y el albarán
+    // se quedaba sin copia, que es por lo que su filtro no encontraba nada.
     if (finalize && quoteId && org) {
-      try {
-        const pdfBytes = await buildQuotePdf({
-          fullNumber: fullNumber ?? '—', issueDate: issueDate ?? '', validUntil,
-          issuer: { name: org.name, cif: org.cif, address: org.address, postalCode: org.postal_code, city: org.city, province: org.province, logoUrl: org.logo_url },
-          client: { name: client?.name ?? '', cif: client?.cif, address: client?.address, postalCode: client?.postal_code, city: client?.city, province: client?.province },
-          lines: computedLines.map(l => ({ description: l.description, quantity: l.quantity, unit_price: l.unit_price, tax_rate: l.tax_rate, line_total: l.line_total })),
-          subtotal, discountPct: discPct, discountAmount, taxAmount, retentionPct: retPct, retentionAmount, total, notes: notes?.trim?.() || null,
-        })
-        const archiver = await createServerSupabase(true)
-        const storagePath = `${orgId}/quotes/${quoteId}.pdf`
-        const { error: upErr } = await archiver.storage
-          .from('documents').upload(storagePath, pdfBytes, { contentType: 'application/pdf', upsert: true })
-        if (upErr) throw new Error(`storage upload failed: ${upErr.message}`)
-        {
-          const { data: doc } = await archiver.from('documents').insert({
-            organization_id: orgId, company_id: clientCompanyId || null, uploaded_by: user.id,
-            document_number: fullNumber, document_type: 'quote', status: 'draft',
-            total, currency: 'EUR', issue_date: issueDate || null,
-            file_url: storagePath, file_name: `${fullNumber ?? 'presupuesto'}.pdf`, file_size: pdfBytes.length, file_type: 'application/pdf',
-          }).select('id').single()
-          if (doc) await archiver.from('quotes').update({ document_id: doc.id }).eq('id', quoteId)
-        }
-      } catch (pdfErr) {
-        console.error('[quotes] archival to Biblioteca failed:', pdfErr)
+      const archiver = await createServerSupabase(true)
+      await archiveQuoteToLibrary(archiver, { quoteId, orgId, uploadedBy: user.id })
+      if (deliveryNoteId) {
+        await archiveQuoteToLibrary(archiver, { quoteId: deliveryNoteId, orgId, uploadedBy: user.id })
       }
     }
 

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getApiClient } from '@/lib/supabase/api-auth'
+import { createClient as createServerSupabase } from '@/lib/supabase/server'
+import { archiveQuoteToLibrary } from '@/lib/quote-archive'
 
 /**
  * Open the delivery note for a quote that has none.
@@ -67,6 +69,13 @@ export async function POST(req: NextRequest) {
       await supabase.from('quotes').delete().eq('id', note.id)
       return NextResponse.json({ error: 'lines_failed', detail: linesErr.message }, { status: 400 })
     }
+
+    // El albarán se archiva igual que el presupuesto. Best-effort: si falla,
+    // el albarán ya existe y eso es lo que cuenta.
+    const archiver = await createServerSupabase(true)
+    await archiveQuoteToLibrary(archiver, {
+      quoteId: note.id, orgId: quote.organization_id, uploadedBy: user.id,
+    })
 
     return NextResponse.json({ success: true, id: note.id, fullNumber: note.full_number })
   } catch (err) {
