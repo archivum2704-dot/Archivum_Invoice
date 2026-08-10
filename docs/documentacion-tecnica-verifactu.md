@@ -126,11 +126,21 @@ IDEmisorFactura={NIF}
 ```
 
 El resultado se representa en hexadecimal de 64 caracteres en mayúsculas
-(`TipoHuella = 01`).
+(`TipoHuella = 01`). La cadena se codifica en UTF-8 antes de aplicar el
+algoritmo.
 
 Los importes se normalizan a dos decimales con separador `.`; las fechas a
 `DD-MM-AAAA`; la marca temporal en ISO-8601 con desplazamiento horario
-explícito.
+explícito. Los valores se consignan sin espacios al principio ni al final. Un
+campo ausente o vacío aparece igualmente en la cadena, con su nombre y el signo
+`=` sin valor a continuación.
+
+**Contrastado contra los ejemplos oficiales.** El documento de la AEAT
+«Detalle de las especificaciones técnicas para generación de la huella o hash
+de los registros de facturación» (v0.1.2, 27/08/2024) publica en su apartado 6
+tres casos con su huella resultante. Los tres se ejecutan en cada cambio
+(`npm run verifactu:check`) y los tres coinciden. No es una interpretación de
+la norma: es el valor que la AEAT dice que debe salir.
 
 ### 3.2 Continuidad de la cadena
 
@@ -217,21 +227,20 @@ sello en el host de representante hace fallar la remisión.
 | Entorno | Representante | Sello |
 |---|---|---|
 | Pruebas | `prewww1.aeat.es` | `prewww10.aeat.es` |
-| Producción | `www1.agenciatributaria.gob.es` | *(sin configurar)* |
+| Producción | `www1.agenciatributaria.gob.es` | `www10.agenciatributaria.gob.es` |
 
 Ruta en todos los casos:
-`/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP`. Las URL de pruebas las
-confirmó la propia AEAT en agosto de 2026.
+`/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP`. Las cuatro direcciones
+son las de los puertos `SistemaVerifactu`, `SistemaVerifactuSello` y sus
+variantes `Pruebas` del WSDL publicado por la AEAT.
 
 El tipo de certificado se determina al subirlo, leyendo el sujeto del propio
 certificado: los de representante identifican además a la persona física que lo
 posee (nombre y apellidos), los de sello identifican solo a la entidad. Se
 guarda en `org_certificates.cert_kind`.
 
-Para **producción con certificado de sello no hay URL por defecto**: no nos ha
-sido facilitada, y deducirla por analogía enviaría registros reales a un host
-sin confirmar. El sistema falla con un mensaje explícito hasta que se configure
-`VERIFACTU_ENDPOINT_PROD_SELLO` con el valor que figure en el WSDL.
+Las cuatro son parametrizables por variable de entorno, porque son direcciones
+de la AEAT y ya se han movido antes.
 
 ### 5.4 Momento y reintentos
 
@@ -348,7 +357,29 @@ Se verifican dos cosas distintas, porque fallan de forma distinta:
 Se deja constancia tanto del **lanzamiento** de cada comprobación como de su
 resultado: así, la ausencia de hallazgos es prueba de que alguien miró.
 
-### 9.2 Registro resumen de eventos
+### 9.2 Códigos de `TipoEvento`
+
+El esquema `EventosSIF.xsd` no admite texto libre: `TipoEvento` es un código.
+
+| Código | Evento |
+|---|---|
+| 03 / 04 | Lanzamiento y hallazgo de anomalías en registros de facturación |
+| 05 / 06 | Lanzamiento y hallazgo de anomalías en registros de evento |
+| 07 | Restauración de copia de seguridad |
+| 08 / 09 | Exportación de registros de facturación / de evento |
+| 10 | Registro resumen de eventos |
+| 90 | Otros, a registrar voluntariamente por el productor |
+
+Los códigos 01 y 02 (inicio y fin de funcionamiento como NO VERI\*FACTU) no se
+emiten nunca: Archivum solo opera como VERI\*FACTU, y anunciar el otro modo
+sería falso.
+
+Los eventos propios del sistema —generación de registros, remisiones, alta y
+baja de certificados— se registran como **90**, con su nombre descriptivo en
+`OtrosDatosEvento`. La aplicación conserva ese nombre en su propia tabla, que
+es lo que ve el usuario en la pantalla de consulta.
+
+### 9.3 Registro resumen de eventos
 
 *(art. 9.2 de la Orden)*
 
@@ -393,7 +424,7 @@ vía de acceso específica para la Administración tributaria**.
 ## 11. Verificación
 
 El repositorio incluye un conjunto de comprobaciones automáticas
-(`npm run verifactu:check`, 84 comprobaciones) que verifican:
+(`npm run verifactu:check`: los tres vectores oficiales de la AEAT más 95 comprobaciones) que verifican:
 
 - que las bases del desglose suman la base imponible total y las cuotas suman
   la cuota total;
@@ -417,7 +448,7 @@ Relación honesta de lo que el sistema **todavía no cumple**:
 
 | Requisito | Artículo | Estado |
 |---|---|---|
-| Registros de evento en XML/UTF-8 según el anexo 5 | Orden 9.4 | ⚠ Hoy en formato propio |
+| Registros de evento en XML/UTF-8 según el anexo 5 | Orden 9.4 | ⚠ Hoy en JSONB con los nombres del esquema |
 | Exportación de eventos como operación independiente | Orden 9.1.i | ⚠ Va dentro de la de facturación |
 | Registro resumen cada seis horas | Orden 9.2 | ⚠ Diario: lo impide el plan de alojamiento |
 | Causa de exención en presupuestos | Orden L10 | ⚠ Solo en facturas |
@@ -427,23 +458,24 @@ Relación honesta de lo que el sistema **todavía no cumple**:
 | Identidad del productor configurada | RD 10.1.f | ⚠ Pendiente |
 | Redacción y firma de la Declaración Responsable | RD 13 | ⚠ Pendiente (asesoría jurídica) |
 
-### Formatos que dependen de documentación que no tenemos
+### Formatos: ya contrastados
 
 El artículo 13.2 de la Orden remite el **algoritmo y la codificación** de la
-huella a un documento técnico de la sede de la AEAT que todavía no obra en
-nuestro poder. Los conjuntos de campos sí están confirmados por el articulado;
-el formato de concatenación no.
+huella a un documento técnico de la sede de la AEAT. Ese documento (v0.1.2) se
+obtuvo el 10 de agosto de 2026 y se conserva en `docs/aeat/`.
 
 | | Campos | Formato |
 |---|---|---|
-| Huella de alta (13.1.a) | ✅ confirmados | ⚠ sin confirmar |
-| Huella de anulación (13.1.b) | ✅ confirmados | ⚠ sin confirmar |
-| Huella de evento (13.1.c) | ✅ confirmados | ⚠ sin confirmar |
-| Endpoints SOAP y espacios de nombres | — | ⚠ sin confirmar (parametrizables) |
-| Códigos de error de la AEAT | — | ⚠ sin listado |
+| Huella de alta (13.1.a) | ✅ confirmados | ✅ contrastado con dos vectores oficiales |
+| Huella de anulación (13.1.b) | ✅ confirmados | ✅ contrastado con un vector oficial |
+| Huella de evento (13.1.c) | ✅ confirmados | ✅ nueve campos según el apartado 3.c (la AEAT no publica vector) |
+| Endpoints SOAP | — | ✅ los cuatro, del WSDL |
+| Códigos de error de la AEAT | — | ✅ los 247, en `lib/verifactu-error-codes.ts` |
 
-Un formato equivocado produce una huella de aspecto válido que la AEAT rechaza.
-**Es lo primero que hay que contrastar** cuando llegue la documentación técnica.
+Un formato equivocado produce una huella de aspecto válido que la AEAT rechaza
+—marcándola como «Aceptado con errores», según el apartado 7 del documento—.
+Por eso los vectores oficiales se ejecutan en cada cambio. **Si la AEAT publica
+una versión nueva del documento, hay que volver a pasarlos.**
 
 **Mientras estos puntos no estén resueltos, el sistema no puede declararse
 conforme al RD 1007/2023, y no debe emitirse Declaración Responsable alguna.**

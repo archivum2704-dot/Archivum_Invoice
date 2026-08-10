@@ -23,20 +23,16 @@ import { parseSubmissionResponse, type RespuestaSuministro } from '@/lib/verifac
  */
 export type CertKind = 'representante' | 'sello'
 
+// The four addresses of the sfVerifactu service, read from the AEAT's own WSDL
+// (ports SistemaVerifactu, SistemaVerifactuSello, and their Pruebas variants).
 // Overridable because these are AEAT-side URLs: they have moved before, and a
 // deployment must be able to follow without a code change.
-//
-// The test URLs are the ones the AEAT gave us directly (August 2026). The
-// production URL for representative certificates follows their published
-// naming. There is no default for production with a seal certificate: we have
-// not been told that URL, and inventing one by analogy would send real records
-// to a host nobody confirmed. Configure VERIFACTU_ENDPOINT_PROD_SELLO from the
-// WSDL before going live with a seal certificate.
 const ENDPOINTS: Record<'prod' | 'test', Record<CertKind, string | undefined>> = {
   prod: {
     representante: process.env.VERIFACTU_ENDPOINT_PROD
       ?? 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
-    sello: process.env.VERIFACTU_ENDPOINT_PROD_SELLO,
+    sello: process.env.VERIFACTU_ENDPOINT_PROD_SELLO
+      ?? 'https://www10.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
   },
   test: {
     representante: process.env.VERIFACTU_ENDPOINT_TEST

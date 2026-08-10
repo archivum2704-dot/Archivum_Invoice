@@ -65,6 +65,37 @@ export const EVENT_TYPES = {
 
 export type EventType = typeof EVENT_TYPES[keyof typeof EVENT_TYPES]
 
+/**
+ * `TipoEvento` as the AEAT codes it (EventosSIF.xsd, TipoEventoType).
+ *
+ * The schema does not take free text: the field is a two-character code. Ours
+ * are voluntary events, which the AEAT groups under 90 — "otros tipos de
+ * eventos a registrar voluntariamente por la persona o entidad productora".
+ * The descriptive name stays on our own row and in `OtrosDatosEvento`, so the
+ * log remains readable without putting anything invalid in the record.
+ *
+ * Codes 01 and 02 (starting and stopping as NO VERI*FACTU) have no mapping:
+ * Archivum only operates as VERI*FACTU, so raising them would be false.
+ */
+export const AEAT_EVENT_CODE: Record<EventType, string> = {
+  [EVENT_TYPES.DETECCION_LANZADA_FACTURACION]: '03',
+  [EVENT_TYPES.ANOMALIA_FACTURACION]: '04',
+  [EVENT_TYPES.DETECCION_LANZADA_EVENTOS]: '05',
+  [EVENT_TYPES.ANOMALIA_EVENTOS]: '06',
+  [EVENT_TYPES.RESTAURACION_COPIA]: '07',
+  [EVENT_TYPES.EXPORTACION_FACTURACION]: '08',
+  [EVENT_TYPES.EXPORTACION_EVENTOS]: '09',
+  [EVENT_TYPES.RESUMEN]: '10',
+  [EVENT_TYPES.ALTA]: '90',
+  [EVENT_TYPES.ANULACION]: '90',
+  [EVENT_TYPES.ENVIO_INICIADO]: '90',
+  [EVENT_TYPES.ENVIO_ACEPTADO]: '90',
+  [EVENT_TYPES.ENVIO_RECHAZADO]: '90',
+  [EVENT_TYPES.ENVIO_FALLIDO]: '90',
+  [EVENT_TYPES.CERTIFICADO_ALTA]: '90',
+  [EVENT_TYPES.CERTIFICADO_BAJA]: '90',
+}
+
 export interface EventActor {
   userId?: string | null
   email?: string | null
@@ -73,27 +104,59 @@ export interface EventActor {
 /**
  * Huella of an event, chaining it to the previous event.
  *
- * The field subset is the one article 13.1.c of the Orden HAC/1177/2024 fixes:
- * producer id, system id, system version, installation number, NIF of the
- * obliged party, event type, previous event's huella, and the timestamp with
- * its zone. An earlier version of this used the organization id and the event
- * type alone — four fields where the Orden requires eight, which would have
- * produced huellas the AEAT rejects.
+ * The nine fields, their order and their names come from the AEAT's technical
+ * document «Detalle de las especificaciones técnicas para generación de la
+ * huella o hash de los registros de facturación», v0.1.2, section 3.c. Two of
+ * them are both literally called `NIF` — the producer's and the obliged
+ * party's — and that repetition is deliberate: the name is the element's name
+ * in the record, not a unique key.
  *
- * ⚠ The concatenation format and encoding are not in the Orden: article 13.2
- * defers them to a technical document on the AEAT's site, which we do not
- * have. The separator style below follows the billing records. Confirm before
- * relying on it — a wrong format yields a plausible huella that is wrong.
+ * `ID` is the producer's identifier when it is not a Spanish NIF. NIF and ID
+ * are mutually exclusive, and whichever is absent still appears in the string
+ * with an empty value, per section 3 of the same document.
+ *
+ * Until August 2026 this used eight fields under invented names (`IDProductor`,
+ * `NIFObligado`, `Huella`, `FechaHoraHusoEvento`). Every huella it produced was
+ * wrong. Do not "tidy" these names: they are fixed by the AEAT, not by us.
  */
 export function computeEventHuella(args: {
+  /** Producer's NIF, when Spanish. Empty if identified by `producerOtroId`. */
   producerNif: string
+  /** Producer's non-Spanish identifier. Empty when `producerNif` is given. */
+  producerOtroId?: string
   systemId: string
   systemVersion: string
   installationId: string
   obligadoNif: string
+  /** The AEAT's TipoEvento code, not our descriptive name. */
   eventType: string
   occurredAt: string
   previousHuella: string
+}): string {
+  const chain =
+    `NIF=${args.producerNif.trim()}` +
+    `&ID=${(args.producerOtroId ?? '').trim()}` +
+    `&IdSistemaInformatico=${args.systemId.trim()}` +
+    `&Version=${args.systemVersion.trim()}` +
+    `&NumeroInstalacion=${args.installationId.trim()}` +
+    `&NIF=${args.obligadoNif.trim()}` +
+    `&TipoEvento=${args.eventType.trim()}` +
+    `&HuellaEvento=${args.previousHuella.trim()}` +
+    `&FechaHoraHusoGenEvento=${args.occurredAt.trim()}`
+  return createHash('sha256').update(chain, 'utf8').digest('hex').toUpperCase()
+}
+
+/**
+ * The huella as this code computed it before the AEAT's document arrived.
+ *
+ * Kept only so the anomaly detection can still verify events written back
+ * then. Never use it to write a new event: it is the wrong format, and that is
+ * precisely why it is named this way.
+ */
+export function computeEventHuellaLegacy(args: {
+  producerNif: string; systemId: string; systemVersion: string
+  installationId: string; obligadoNif: string; eventType: string
+  occurredAt: string; previousHuella: string
 }): string {
   const chain =
     `IDProductor=${args.producerNif}` +
@@ -142,31 +205,40 @@ export async function recordEvent(
       const previousHuella = (typeof prev === 'string' ? prev : null) ?? ''
       const occurredAt = nowWithOffset()
 
+      const codigo = AEAT_EVENT_CODE[args.type] ?? '90'
       const huella = computeEventHuella({
         producerNif: sis.NIF,
         systemId: sis.IdSistemaInformatico,
         systemVersion: sis.Version,
         installationId: sis.NumeroInstalacion,
         obligadoNif: obligadoNif ?? '',
-        eventType: args.type,
+        eventType: codigo,
         occurredAt,
         previousHuella,
       })
 
+      // Shaped after EventosSIF.xsd. The element names are the schema's, so
+      // that turning this into the XML of annex 5 is a serialization step and
+      // not a translation.
       const registro = {
         IDVersion: '1.0',
-        TipoEvento: args.type,
-        FechaHoraHusoEvento: occurredAt,
-        SistemaInformatico: sis,
-        NIFObligado: obligadoNif,
-        ...(args.actor?.email ? { Usuario: args.actor.email } : {}),
-        DatosEvento: args.detail ?? {},
-        // The Orden calls this grouping "EventoAnterior" for events (art. 9.3).
-        EventoAnterior: previousHuella
-          ? { Huella: previousHuella }
-          : { PrimerRegistro: 'S' },
-        TipoHuella: '01',
-        Huella: huella,
+        Evento: {
+          SistemaInformatico: sis,
+          ObligadoEmision: { NIF: obligadoNif },
+          FechaHoraHusoGenEvento: occurredAt,
+          TipoEvento: codigo,
+          ...(args.detail && Object.keys(args.detail).length
+            ? { DatosPropiosEvento: args.detail }
+            : {}),
+          // TextMax100Type: our own name for the event, plus who caused it.
+          // The AEAT code alone would collapse eight of our events into "90".
+          OtrosDatosEvento: [args.type, args.actor?.email].filter(Boolean).join(' · ').slice(0, 100),
+          Encadenamiento: previousHuella
+            ? { EventoAnterior: { HuellaEvento: previousHuella } }
+            : { PrimerEvento: 'S' },
+          TipoHuella: '01',
+          HuellaEvento: huella,
+        },
       }
 
       const { error } = await db.from('verifactu_events').insert({

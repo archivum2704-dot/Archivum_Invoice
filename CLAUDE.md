@@ -51,7 +51,7 @@ Verifactu (envío horario) del de integridad (cada 6 h).
 ```bash
 cd apps/web    && npx tsc --noEmit && npm run build
 cd apps/mobile && npx tsc --noEmit && npx expo export --platform android
-cd apps/web    && npm run verifactu:check     # 84 comprobaciones
+cd apps/web    && npm run verifactu:check     # vectores oficiales + 95 comprobaciones
 ```
 
 Rama de trabajo: `claude/user-client-creation-kk6p58` → merge a `main`.
@@ -68,7 +68,6 @@ Rama de trabajo: `claude/user-client-creation-kk6p58` → merge a `main`.
 |---|---|---|
 | **Certificado digital** — 0 subidos | Cliente | Sin él no se puede enviar nada a la AEAT |
 | `VERIFACTU_PRODUCER_NAME` / `_NIF` | Cliente | Sin ellos el registro está incompleto |
-| **Documento v0.1.2 de la huella** | Cliente | La AEAT ya dijo dónde está; hay que descargarlo y subirlo a la sesión (los dominios de la AEAT están bloqueados aquí). Hasta contrastarlo, las huellas no están validadas |
 | **Declaración responsable** | Abogado | Sin ella no se puede distribuir legalmente |
 | **Decisión: apoderamiento vs certificado por cliente** | Cliente + gestor | Cambia el modelo de servicio; decidirlo antes de programar más |
 | **Plan Hobby de Vercel** | Cliente | El resumen de eventos cada 6 h (art. 9.2) no se puede cumplir con 1 cron diario. Requiere Pro |
@@ -105,6 +104,8 @@ actualiza solo y un informe desfasado en manos de un tercero es peor que ninguno
 | **Detección de anomalías** (traza + integridad) | Orden art. 9.1.c-f | `lib/verifactu-integrity.ts`, cron cada 6 h |
 | **Registro resumen de eventos** | Orden art. 9.2 | ⚠️ Se genera **una vez al día**, no cada 6 h: el plan Hobby no permite más. **Incumple el art. 9.2 hasta que se suba a Pro** |
 | **Causas de exención E1-E6 por línea** | Orden L10 | `lib/exemption-causes.ts`; el desglose agrupa por causa, no solo por tipo |
+| **Huella contrastada con los vectores oficiales** | Doc. AEAT v0.1.2 | `scripts/verifactu-vectors.ts` |
+| **Códigos de error traducidos** (247) | — | `lib/verifactu-error-codes.ts`; distingue rechazo de envío, de registro y subsanable |
 
 ### Pendiente
 
@@ -135,35 +136,57 @@ Contestaron a las tres primeras consultas del informe. Lo confirmado:
 **Lo que esto cambió en el código**: representante y sello van a **hosts
 distintos**, y enviar al equivocado hace fallar la remisión. El tipo de
 certificado se deduce al subirlo (`cert_kind` en `org_certificates`) y decide el
-endpoint. Para producción con sello **no hay URL por defecto**: no nos la han
-dado y deducirla por analogía mandaría registros reales a un host sin
-confirmar, así que falla con un mensaje claro hasta que se configure
-`VERIFACTU_ENDPOINT_PROD_SELLO` leyéndola del WSDL.
+endpoint. Las cuatro direcciones salen del WSDL:
 
-⚠️ **Falta descargar el documento v0.1.2 de la huella y contrastar el formato.**
-Los dominios de la AEAT están bloqueados desde el entorno de trabajo, así que el
-PDF hay que subirlo a la sesión igual que se hizo con los del BOE. **Es lo
-primero que hay que hacer**: hasta contrastarlo, las huellas ya generadas siguen
-sin estar validadas.
+| | Representante | Sello |
+|---|---|---|
+| Pruebas | `prewww1.aeat.es` | `prewww10.aeat.es` |
+| Producción | `www1.agenciatributaria.gob.es` | `www10.agenciatributaria.gob.es` |
 
-Sin contestar todavía: consultas 4 a 11 del informe (códigos de error, anexo 5,
-modelo multi-obligado, número de instalación, regímenes, resumen cada 6 h,
-acceso de la Administración, declaración responsable).
+El 10 de agosto el cliente descargó toda la documentación y está en
+[`docs/aeat/`](docs/aeat/). Con ella se resolvieron también, sin necesidad de
+preguntar, las consultas **4** (códigos de error) y **5** (estructura del
+registro de eventos, `EventosSIF.xsd`).
 
-### ⚠️ Marcado en el código: formatos sin confirmar
+Sin contestar todavía: consultas **6 a 11** (modelo multi-obligado, número de
+instalación, regímenes, resumen cada 6 h, acceso de la Administración,
+declaración responsable — aunque para esta última hay
+`docs/aeat/EjemplosDeclaracionResponsable.pdf`, que aún no se ha revisado).
 
-El artículo 13.2 de la Orden remite el **algoritmo y la codificación** de la huella
-a un documento técnico de la sede de la AEAT que **todavía no tenemos**. Los
-conjuntos de campos sí están confirmados; el formato de concatenación no.
+### ✅ Huella validada contra los vectores oficiales
 
-- Huella de **alta**: campos confirmados (art. 13.1.a) ✅
-- Huella de **anulación**: campos confirmados (art. 13.1.b) ✅
-- Huella de **evento**: campos confirmados (art. 13.1.c) ✅, **formato sin confirmar** ⚠️
-- **Endpoints SOAP y espacios de nombres**: sin confirmar ⚠️ (configurables por env)
-- **Códigos de error de la AEAT**: sin lista, no se traducen a castellano ⚠️
+**Ya no hay nada que adivinar aquí.** La documentación técnica de la AEAT está en
+[`docs/aeat/`](docs/aeat/) (los dominios de la AEAT están bloqueados desde este
+entorno, por eso se guarda en el repo).
 
-Un formato equivocado produce una huella de aspecto válido que la AEAT rechaza.
-**Es lo primero que hay que contrastar** cuando llegue la documentación técnica.
+`npm run verifactu:check` ejecuta primero
+[`scripts/verifactu-vectors.ts`](apps/web/scripts/verifactu-vectors.ts), que
+comprueba los **tres ejemplos oficiales** del apartado 6 del documento v0.1.2:
+
+| | Estado |
+|---|---|
+| Huella de **alta**, primer registro | ✅ coincide con el vector oficial |
+| Huella de **alta**, encadenada | ✅ coincide con el vector oficial |
+| Huella de **anulación** | ✅ coincide con el vector oficial |
+| Huella de **evento** | ✅ corregida; el documento no publica vector, se comprueba la cadena de los 9 campos |
+| Endpoints SOAP | ✅ los cuatro, leídos del WSDL |
+| Códigos de error | ✅ los 247, en `lib/verifactu-error-codes.ts` |
+
+⚠️ **Lo que estaba mal**: la huella de evento usaba 8 campos con nombres
+inventados (`IDProductor`, `NIFObligado`, `Huella`, `FechaHoraHusoEvento`).
+El apartado 3.c exige **9 campos**, dos de ellos llamados ambos `NIF`, y el
+octavo es `HuellaEvento`. **Todas las huellas de evento generadas antes del 10
+de agosto son inválidas.** `computeEventHuellaLegacy` se conserva solo para que
+la detección de anomalías pueda seguir verificando esos eventos antiguos sin
+denunciarlos como manipulados.
+
+⚠️ **`TipoEvento` es un código, no texto.** El esquema admite `01`–`10` y `90`.
+Los eventos propios van como `90` («otros a registrar voluntariamente»), con
+nuestro nombre descriptivo en `OtrosDatosEvento`. La columna `event_type` de la
+base de datos conserva el nombre largo, que es lo que ve el usuario.
+
+**Si aparece una versión nueva del documento de la huella, vuelve a pasar los
+vectores antes de tocar nada.**
 
 ### Fuentes
 
@@ -192,8 +215,7 @@ Un formato equivocado produce una huella de aspecto válido que la AEAT rechaza.
 | `VERIFACTU_DECLARATION_PLACE` / `_DATE` / `_ISSUED` | ❌ | Idem |
 | `VERIFACTU_SYSTEM_ID` | opcional | Por defecto `AR`. **No cambiar una vez en producción** |
 | `VERIFACTU_ENDPOINT_PROD` / `_TEST` | opcional | Sobrescriben las URLs de la AEAT (certificado de representante) |
-| `VERIFACTU_ENDPOINT_TEST_SELLO` | opcional | Por defecto `prewww10`, confirmado por la AEAT |
-| `VERIFACTU_ENDPOINT_PROD_SELLO` | ❌ | **Obligatoria si el obligado usa certificado de sello en producción.** Sin ella la remisión falla a propósito |
+| `VERIFACTU_ENDPOINT_TEST_SELLO` / `_PROD_SELLO` | opcional | Certificado de sello: `prewww10` y `www10`. Los cuatro endpoints salen del WSDL |
 
 ### Móvil
 
@@ -256,6 +278,7 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 10 ago | **Huella validada contra los vectores oficiales de la AEAT.** Alta y anulación eran correctas; la de evento estaba mal y se corrigió. 247 códigos de error, `TipoEvento` como código, documentación de la AEAT guardada en `docs/aeat/` |
 | 10 ago | **La AEAT contesta**: endpoints, NIF de pruebas y dónde está el documento de la huella. Separados los hosts de representante y sello |
 | 9 ago | Informe en PDF del estado de Verifactu para la AEAT; documentación técnica puesta al día (decía que anulación, eventos y exportación no estaban hechos) |
 | 8 ago | **Arreglado: 7 merges sin desplegar** por `maxDuration` y crons por encima de los límites de Hobby |

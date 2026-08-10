@@ -5,6 +5,9 @@ import {
 import { buildSubmissionXml, parseSubmissionResponse, esc } from '@/lib/verifactu-xml'
 import { buildRegistroAnulacion, computeHuellaAnulacion } from '@/lib/verifactu'
 import { verifactuEndpoint } from '@/lib/verifactu-client'
+import {
+  describeAeatError, isSubsanable, rejectsWholeSubmission, AEAT_ERROR_COUNT,
+} from '@/lib/verifactu-error-codes'
 
 let fails = 0
 const check = (name: string, cond: boolean, extra = '') => {
@@ -257,15 +260,28 @@ check('por defecto se asume representante',
   verifactuEndpoint() === verifactuEndpoint('representante'))
 
 process.env.VERIFACTU_ENV = 'prod'
-check('producción, representante tiene endpoint',
-  verifactuEndpoint('representante').includes('agenciatributaria.gob.es'))
-// Nunca nos han dado la URL de producción para sello. Fallar es lo correcto:
-// deducirla por analogía mandaría registros reales a un host sin confirmar.
-let saltoSello = false
-try { verifactuEndpoint('sello') } catch { saltoSello = true }
-check('producción con sello sin configurar: falla en vez de adivinar', saltoSello)
+// Las cuatro direcciones salen del WSDL de la AEAT, no de deducirlas.
+check('producción, representante → www1',
+  verifactuEndpoint('representante').startsWith('https://www1.agenciatributaria.gob.es/'))
+check('producción, sello → www10',
+  verifactuEndpoint('sello').startsWith('https://www10.agenciatributaria.gob.es/'))
+check('en producción tampoco comparten host',
+  verifactuEndpoint('representante') !== verifactuEndpoint('sello'))
 if (envAntes === undefined) delete process.env.VERIFACTU_ENV
 else process.env.VERIFACTU_ENV = envAntes
+
+// ── Códigos de error de la AEAT ──
+check('4102 rechaza el envío completo', rejectsWholeSubmission('4102'))
+check('1100 no rechaza el envío completo', !rejectsWholeSubmission('1100'))
+check('2004 es subsanable', isSubsanable('2004'))
+check('describe un código conocido',
+  describeAeatError('4107').includes('censo de la AEAT'))
+// Un código que no conocemos no se disfraza de conocido: si algún día la AEAT
+// añade uno, el usuario debe ver que no lo sabemos interpretar.
+check('un código desconocido se declara desconocido',
+  describeAeatError('9999').includes('no reconocido'))
+check('sin código pero con texto de la AEAT, se muestra el texto',
+  describeAeatError(null, 'Algo pasó') === 'Algo pasó')
 
 console.log(`\n${fails === 0 ? 'TODO CORRECTO' : fails + ' COMPROBACIONES FALLIDAS'}\n`)
 process.exit(fails === 0 ? 0 : 1)

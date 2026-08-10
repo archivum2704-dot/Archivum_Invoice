@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "verifactu:check": "tsx scripts/verifactu-check.ts"
+    "verifactu:check": "tsx scripts/verifactu-vectors.ts && tsx scripts/verifactu-check.ts",
+    "verifactu:vectors": "tsx scripts/verifactu-vectors.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

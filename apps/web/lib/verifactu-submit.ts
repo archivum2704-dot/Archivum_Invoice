@@ -1,6 +1,7 @@
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { buildSubmissionXml } from '@/lib/verifactu-xml'
 import { submitToAeat, type StoredCertificate } from '@/lib/verifactu-client'
+import { describeAeatError, isSubsanable } from '@/lib/verifactu-error-codes'
 import { missingProducerConfig } from '@/lib/verifactu'
 import { recordEvent, EVENT_TYPES } from '@/lib/verifactu-events'
 
@@ -163,7 +164,7 @@ export async function submitPendingForOrg(orgId: string, opts: { invoiceId?: str
       aeat_attempts: (a.aeat_attempts ?? 0) + 1,
       aeat_last_attempt_at: attemptedAt,
       aeat_error: accepted ? null
-        : linea ? `${linea.codigoError ?? ''} ${linea.descripcionError ?? ''}`.trim() || 'Rechazado por la AEAT'
+        : linea ? describeAeatError(linea.codigoError, linea.descripcionError)
         : 'La AEAT no devolvió respuesta para este registro',
     }).eq('id', a.id)
   }))
@@ -189,7 +190,7 @@ export async function submitPendingForOrg(orgId: string, opts: { invoiceId?: str
       aeat_error: accepted
         ? null
         : linea
-          ? `${linea.codigoError ?? ''} ${linea.descripcionError ?? ''}`.trim() || 'Rechazado por la AEAT'
+          ? describeAeatError(linea.codigoError, linea.descripcionError)
           : 'La AEAT no devolvió respuesta para esta factura',
     }).eq('id', i.id)
   }))
@@ -206,7 +207,12 @@ export async function submitPendingForOrg(orgId: string, opts: { invoiceId?: str
       detail: {
         records: rejected,
         errores: res.lineas.filter(l => l.codigoError)
-          .map(l => ({ factura: l.numSerieFactura, codigo: l.codigoError, descripcion: l.descripcionError })),
+          .map(l => ({
+            factura: l.numSerieFactura,
+            codigo: l.codigoError,
+            descripcion: describeAeatError(l.codigoError, l.descripcionError),
+            subsanable: isSubsanable(l.codigoError),
+          })),
       },
     })
   }

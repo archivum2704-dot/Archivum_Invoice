@@ -138,7 +138,7 @@ def bloque_pregunta(n, titulo, cuerpo, pedimos, respuesta=None):
     """Una consulta. Si la AEAT ya la contestó, se muestra la respuesta en su
     lugar: un informe que sigue preguntando lo ya resuelto desorienta a quien
     lo lee."""
-    etiqueta = "<b>Respondido por la AEAT (10-08-2026):</b> " + respuesta if respuesta \
+    etiqueta = "<b>Resuelto (10-08-2026):</b> " + respuesta if respuesta \
         else "<b>Lo que necesitamos:</b> " + pedimos
     partes = [
         p("%d. %s%s" % (n, titulo, " — RESUELTO" if respuesta else ""),
@@ -304,16 +304,9 @@ story.append(KeepTogether([
                ROJOC, ROJO),
     Spacer(1, 7),
     tabla(["Qué falta", "Norma", "Por qué bloquea"], [
-    ["Contrastar la huella contra el documento v0.1.2",
-     "Orden art. 13.2",
-     "La AEAT ya nos ha dicho dónde está el documento. Falta <b>leerlo y comparar</b>: el articulado "
-     "fija qué campos entran en la huella, pero el formato de concatenación sale de ahí. Un formato "
-     "equivocado produce una huella de aspecto correcto que la AEAT rechaza. <b>Es lo primero.</b>"],
-    ["Listado de códigos de error", "—",
-     "No podemos traducir ni explicar al usuario por qué la AEAT rechaza un registro."],
-    ["Formato XML de los registros de evento (anexo 5)", "Orden art. 9.4",
-     "Hoy los eventos se conservan en formato estructurado propio. Falta confirmar la estructura "
-     "exigida antes de convertirlos."],
+    ["Si el registro de eventos debe remitirse o solo conservarse", "Orden art. 9.4",
+     "El esquema de eventos que publica la AEAT se titula «para sistemas no VERI*FACTU». Archivum "
+     "opera como VERI*FACTU, así que no sabemos si además de conservarlo hay que enviarlo."],
     ["Criterio de disociación de accesos para la Administración", "RD art. 8.4 y 14",
      "Sabemos que hay que permitir el acceso de la Administración a los registros, pero no en qué "
      "forma: ¿volcado a requerimiento, acceso en línea, formato concreto?"],
@@ -374,9 +367,10 @@ story.append(KeepTogether([
 story.append(PageBreak())
 story.append(p("3. Preguntas concretas para la Agencia Tributaria", "h1"))
 story.append(p(
-    "Esta es la parte operativa del documento. Las <b>tres primeras ya están contestadas</b> y se "
-    "conservan con su respuesta, porque la respuesta es justamente lo que había que llevarse. Las "
-    "ocho restantes siguen abiertas."))
+    "Esta es la parte operativa del documento. Las <b>cinco primeras ya están resueltas</b> —tres por "
+    "respuesta directa de la AEAT y dos con la documentación técnica— y se conservan con su "
+    "respuesta, porque la respuesta es justamente lo que había que llevarse. Las seis restantes "
+    "siguen abiertas."))
 
 preguntas = [
     ("Documento técnico del formato de la huella",
@@ -390,9 +384,10 @@ preguntas = [
      "criterio de concatenación de los registros de facturación es el mismo que se aplica al registro "
      "de eventos.",
      "El documento es «Detalle de las especificaciones técnicas para la generación de la huella o "
-     "hash de los registros», versión <b>v0.1.2</b>, publicado en la página de desarrolladores de la "
-     "AEAT. <b>Queda contrastar nuestra implementación contra él</b>, en particular la huella del "
-     "registro de eventos."),
+     "hash de los registros», versión <b>v0.1.2</b>. Ya contrastado: los <b>tres ejemplos oficiales "
+     "de su apartado 6 coinciden exactamente</b> con lo que genera el sistema, y se ejecutan como "
+     "prueba automática en cada cambio. La huella del registro de evento sí estaba mal —usaba ocho "
+     "campos en vez de nueve— y se ha corregido según el apartado 3.c."),
 
     ("URLs de los servicios web, WSDL y esquemas XSD vigentes",
      "El sistema envía los registros por servicio web SOAP con autenticación por TLS mutuo. Las "
@@ -424,7 +419,11 @@ preguntas = [
      "explicárselo. Para un usuario que acaba de expedir una factura, un código sin explicación es "
      "inútil, y aumenta el riesgo de que ignore un rechazo real.",
      "Listado oficial de códigos de error del servicio, con su descripción y, en particular, cuáles "
-     "son subsanables reenviando y cuáles exigen rectificar o anular el registro."),
+     "son subsanables reenviando y cuáles exigen rectificar o anular el registro.",
+     "Resuelto con el fichero «CodigosError.txt» de la documentación técnica: <b>247 códigos</b>, ya "
+     "en castellano y agrupados por efecto —44 rechazan el envío completo, 193 rechazan la factura y "
+     "10 se aceptan pendientes de subsanar—. Incorporados al sistema; el usuario ve la explicación "
+     "junto al código."),
 
     ("Registro de eventos: formato del anexo 5 y si debe remitirse",
      "Tenemos el registro de eventos implementado, encadenado y consultable desde el sistema, con los "
@@ -432,7 +431,12 @@ preguntas = [
      "convertirlo al XML del anexo 5.",
      "Confirmación de la estructura del anexo 5 y, sobre todo, si el registro de eventos debe "
      "<b>remitirse</b> a la AEAT como los de facturación, o basta con conservarlo y ponerlo a "
-     "disposición cuando se requiera."),
+     "disposición cuando se requiera.",
+     "La estructura está en el esquema «EventosSIF.xsd». De ahí salieron dos correcciones: "
+     "<b>TipoEvento es un código</b> (01 a 10, y 90 para los voluntarios), no texto libre, y los "
+     "nombres de los elementos del registro. Ya aplicadas. <b>Sigue abierto</b> si el registro de "
+     "eventos debe remitirse o basta con conservarlo: el esquema se titula «para sistemas no "
+     "VERI*FACTU» y Archivum opera como VERI*FACTU."),
 
     ("Modelo de servicio para un SaaS multi-obligado: certificado propio o apoderamiento",
      "Archivum da servicio a varios obligados tributarios distintos desde una misma plataforma. Hoy "
@@ -500,29 +504,27 @@ story.append(p(
 story.append(tabla(["Paso", "Qué desbloquea", "De quién depende"], [
     ["1. Certificado electrónico del obligado", "Cualquier comunicación con la AEAT",
      "Titular del sistema"],
-    ["2. Contrastar la huella contra el documento v0.1.2",
-     "Saber si las huellas ya generadas son válidas, antes de emitir en producción",
-     "Nosotros (documento ya localizado)"],
-    ["3. Primera prueba contra preproducción",
+    ["2. Primera prueba contra preproducción",
      "La primera verificación real de extremo a extremo: envío, respuesta, rechazo, reenvío",
      "Desbloqueado en cuanto haya certificado"],
-    ["4. Datos del productor", "Completar el registro y poder redactar la declaración responsable",
+    ["3. Datos del productor", "Completar el registro y poder redactar la declaración responsable",
      "Titular del sistema"],
-    ["5. Declaración responsable firmada", "Distribuir el sistema legalmente", "Asesor jurídico"],
-    ["6. Resto de desarrollo (eventos en XML, exportación propia, regímenes)",
+    ["4. Declaración responsable firmada", "Distribuir el sistema legalmente", "Asesor jurídico"],
+    ["5. Resto de desarrollo (eventos en XML, exportación propia, regímenes)",
      "Cierre de los últimos puntos del reglamento", "Nosotros"],
 ], [58 * mm, ANCHO - 58 * mm - 38 * mm, 38 * mm]))
 
 story.append(PageBreak())
 story.append(p("5. Lista para llevar a la reunión", "h1"))
 story.append(p(
-    "Lo que sigue abierto después de la respuesta del 10 de agosto. Las consultas sobre el documento "
-    "de la huella, los endpoints y el acceso a preproducción ya están resueltas."))
+    "Lo que sigue abierto tras la respuesta del 10 de agosto y la lectura de la documentación "
+    "técnica. Huella, endpoints, acceso a preproducción, códigos de error y estructura del registro "
+    "de eventos ya están resueltos."))
 
 pedidos = [
-    ("Códigos de error",
-     "Listado oficial con descripción, distinguiendo los subsanables por reenvío de los que exigen "
-     "rectificar o anular."),
+    ("¿El registro de eventos se remite o solo se conserva?",
+     "El esquema publicado se titula «para sistemas no VERI*FACTU» y nosotros operamos como "
+     "VERI*FACTU."),
     ("Criterio para un servicio multi-obligado",
      "Certificado por cliente o apoderamiento; número de instalación; cómputo del resumen de eventos "
      "cada seis horas; y forma de acceso de la Administración."),

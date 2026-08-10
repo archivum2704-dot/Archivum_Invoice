@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { huellaAltaFromParts, huellaAnulacionFromParts } from '@/lib/verifactu'
-import { recordEvent, computeEventHuella, EVENT_TYPES } from '@/lib/verifactu-events'
+import {
+  recordEvent, computeEventHuella, computeEventHuellaLegacy, EVENT_TYPES,
+} from '@/lib/verifactu-events'
 
 /**
  * Detección de anomalías (art. 9.1.c-f Orden HAC/1177/2024).
@@ -139,18 +141,41 @@ async function verifyEventChain(db: any, orgId: string): Promise<{ count: number
       })
     }
 
+    // Two shapes live in this table. Events written before the AEAT's huella
+    // document arrived carry the old field names at the top level; the ones
+    // after it are nested under `Evento` and follow EventosSIF.xsd. Each is
+    // verified with the formula it was written with — re-hashing an old event
+    // with the new formula would report tampering that never happened, and
+    // dropping the check would lose tamper detection on the ones we have.
     const r = list[i].registro_evento ?? {}
-    const sis = r.SistemaInformatico ?? {}
-    const recomputed = computeEventHuella({
-      producerNif: sis.NIF ?? '',
-      systemId: sis.IdSistemaInformatico ?? '',
-      systemVersion: sis.Version ?? '',
-      installationId: sis.NumeroInstalacion ?? '',
-      obligadoNif: r.NIFObligado ?? '',
-      eventType: r.TipoEvento ?? '',
-      occurredAt: r.FechaHoraHusoEvento ?? '',
-      previousHuella: r.EventoAnterior?.Huella ?? '',
-    })
+    const ev = r.Evento
+    let recomputed: string
+    if (ev) {
+      const sis = ev.SistemaInformatico ?? {}
+      recomputed = computeEventHuella({
+        producerNif: sis.NIF ?? '',
+        producerOtroId: sis.IDOtro?.ID ?? '',
+        systemId: sis.IdSistemaInformatico ?? '',
+        systemVersion: sis.Version ?? '',
+        installationId: sis.NumeroInstalacion ?? '',
+        obligadoNif: ev.ObligadoEmision?.NIF ?? '',
+        eventType: ev.TipoEvento ?? '',
+        occurredAt: ev.FechaHoraHusoGenEvento ?? '',
+        previousHuella: ev.Encadenamiento?.EventoAnterior?.HuellaEvento ?? '',
+      })
+    } else {
+      const sis = r.SistemaInformatico ?? {}
+      recomputed = computeEventHuellaLegacy({
+        producerNif: sis.NIF ?? '',
+        systemId: sis.IdSistemaInformatico ?? '',
+        systemVersion: sis.Version ?? '',
+        installationId: sis.NumeroInstalacion ?? '',
+        obligadoNif: r.NIFObligado ?? '',
+        eventType: r.TipoEvento ?? '',
+        occurredAt: r.FechaHoraHusoEvento ?? '',
+        previousHuella: r.EventoAnterior?.Huella ?? '',
+      })
+    }
     if (recomputed !== list[i].huella) {
       anomalies.push({
         kind: 'integrity',
