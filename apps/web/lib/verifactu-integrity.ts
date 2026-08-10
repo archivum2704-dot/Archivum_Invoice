@@ -230,9 +230,20 @@ export async function runIntegrityCheck(
 /**
  * Registro resumen de eventos (art. 9.2).
  *
- * One per six hours the system has been operating, summarising what happened
- * since the previous summary — and generated even when nothing did, because
- * "nothing happened" is itself the thing being attested.
+ * The article asks for one per six hours of operation, summarising what
+ * happened since the previous summary — generated even when nothing did,
+ * because "nothing happened" is itself the thing being attested.
+ *
+ * It does not bind Archivum. The AEAT's developer FAQ (4 December 2025) states
+ * that a system able to operate only as VERI*FACTU — which is what Archivum
+ * declares in section 1.e of its declaración responsable — is not obliged to
+ * implement an event register at all, and the summary is part of that
+ * register. We keep it because a log of anomalies nobody attests to is weak
+ * evidence, but it runs once a day, which is what the hosting plan allows and
+ * is entirely sufficient for something voluntary.
+ *
+ * If Archivum ever gains a NO VERI*FACTU mode, this stops being optional and
+ * the six-hour cadence becomes mandatory.
  */
 export async function recordEventSummary(supabase: SupabaseClient, orgId: string): Promise<boolean> {
   const db = supabase as any

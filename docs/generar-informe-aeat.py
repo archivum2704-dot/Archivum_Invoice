@@ -304,9 +304,6 @@ story.append(KeepTogether([
                ROJOC, ROJO),
     Spacer(1, 7),
     tabla(["Qué falta", "Norma", "Por qué bloquea"], [
-    ["Si el registro de eventos debe remitirse o solo conservarse", "Orden art. 9.4",
-     "El esquema de eventos que publica la AEAT se titula «para sistemas no VERI*FACTU». Archivum "
-     "opera como VERI*FACTU, así que no sabemos si además de conservarlo hay que enviarlo."],
     ["Descripciones de las claves de régimen (listas L8A y L8B)", "Orden L8A / L8B",
      "El esquema publica los códigos válidos pero no qué significa cada uno. El sistema ya los "
      "admite todos; sin las descripciones no podemos presentar al usuario una lista de la que "
@@ -331,9 +328,10 @@ story.append(KeepTogether([
     ["Decisión sobre el modelo de servicio: apoderamiento o certificado por cliente",
      "Cambia el producto y el modelo de negocio. Conviene decidirlo antes de seguir programando "
      "sobre la remisión (ver pregunta 6)."],
-    ["Ampliación del plan de alojamiento",
-     "El plan actual solo permite una tarea programada diaria. El resumen de eventos cada seis "
-     "horas del artículo 9.2 no se puede cumplir con esa limitación."],
+    ["Ampliación del plan de alojamiento (opcional)",
+     "Ya no es una cuestión de cumplimiento: el resumen de eventos cada seis horas no nos vincula "
+     "(ver consulta 9). Ampliar el plan solo serviría para que los registros lleguen antes a la "
+     "AEAT en caso de fallo en el envío inmediato."],
 ], [62 * mm, ANCHO - 62 * mm]),
 ]))
 
@@ -371,10 +369,10 @@ story.append(KeepTogether([
 story.append(PageBreak())
 story.append(p("3. Preguntas concretas para la Agencia Tributaria", "h1"))
 story.append(p(
-    "Esta es la parte operativa del documento. Las <b>cinco primeras ya están resueltas</b> —tres por "
-    "respuesta directa de la AEAT y dos con la documentación técnica— y se conservan con su "
-    "respuesta, porque la respuesta es justamente lo que había que llevarse. Las seis restantes "
-    "siguen abiertas."))
+    "Esta es la parte operativa del documento. <b>Ocho de las once están resueltas</b> —tres por "
+    "respuesta directa de la AEAT y cinco leyendo su documentación técnica y sus preguntas "
+    "frecuentes— y se conservan con su respuesta, porque la respuesta es justamente lo que había que "
+    "llevarse. Quedan tres abiertas."))
 
 preguntas = [
     ("Documento técnico del formato de la huella",
@@ -436,11 +434,10 @@ preguntas = [
      "Confirmación de la estructura del anexo 5 y, sobre todo, si el registro de eventos debe "
      "<b>remitirse</b> a la AEAT como los de facturación, o basta con conservarlo y ponerlo a "
      "disposición cuando se requiera.",
-     "La estructura está en el esquema «EventosSIF.xsd». De ahí salieron dos correcciones: "
-     "<b>TipoEvento es un código</b> (01 a 10, y 90 para los voluntarios), no texto libre, y los "
-     "nombres de los elementos del registro. Ya aplicadas. <b>Sigue abierto</b> si el registro de "
-     "eventos debe remitirse o basta con conservarlo: el esquema se titula «para sistemas no "
-     "VERI*FACTU» y Archivum opera como VERI*FACTU."),
+     "La estructura está en el esquema «EventosSIF.xsd», ya aplicada. Y la pregunta de fondo tiene "
+     "respuesta en las FAQ de desarrolladores de la AEAT (4-12-2025, apartado 15, NOTA 1): <b>un SIF "
+     "que solo puede actuar como VERI*FACTU no está obligado a implementar registro de eventos</b>, "
+     "aunque puede hacerlo voluntariamente. Archivum lo es, y lo mantiene por decisión propia."),
 
     ("Modelo de servicio para un SaaS multi-obligado: certificado propio o apoderamiento",
      "Archivum da servicio a varios obligados tributarios distintos desde una misma plataforma. Hoy "
@@ -522,16 +519,18 @@ story.append(PageBreak())
 story.append(p("5. Lista para llevar a la reunión", "h1"))
 story.append(p(
     "Lo que sigue abierto tras la respuesta del 10 de agosto y la lectura de la documentación "
-    "técnica. Huella, endpoints, acceso a preproducción, códigos de error y estructura del registro "
-    "de eventos ya están resueltos."))
+    "técnica y las preguntas frecuentes. Ninguna de las tres impide seguir: son precisiones."))
 
 pedidos = [
-    ("¿El registro de eventos se remite o solo se conserva?",
-     "El esquema publicado se titula «para sistemas no VERI*FACTU» y nosotros operamos como "
-     "VERI*FACTU."),
-    ("Criterio para un servicio multi-obligado",
-     "Certificado por cliente o apoderamiento; número de instalación; cómputo del resumen de eventos "
-     "cada seis horas; y forma de acceso de la Administración."),
+    ("Descripciones de las claves de régimen",
+     "Listas L8A (IVA) y L8B (IGIC). Tenemos los códigos válidos del esquema, pero no qué significa "
+     "cada uno, y no queremos etiquetar mal el régimen de un contribuyente."),
+    ("Número de instalación en un servicio en la nube",
+     "Confirmar que usar el identificador de cada organización como número de instalación es "
+     "correcto, y cuándo un cambio del servicio obliga a considerarlo una versión nueva."),
+    ("Acceso de la Administración",
+     "Su ejemplo de declaración responsable describe una casilla que limita la sesión a la "
+     "información con trascendencia tributaria. Confirmar que basta con eso."),
 ]
 filas_p = []
 for i, (a, b) in enumerate(pedidos, start=1):

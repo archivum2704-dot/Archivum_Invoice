@@ -43,8 +43,10 @@ estar en 6/7, ocultando los `Error`). Ahí aparecen los builds fallidos con el
 mensaje real.
 
 Si algún día se sube a Pro: `maxDuration` hasta 300 s, crons ilimitados y con
-la frecuencia que se quiera. Entonces conviene volver a separar el cron de
-Verifactu (envío horario) del de integridad (cada 6 h).
+la frecuencia que se quiera. Entonces conviene separar el cron de Verifactu
+(envío más frecuente) del de integridad. **Nada de esto es obligatorio**: el
+único motivo para subir a Pro sería que las facturas lleguen antes a la AEAT,
+no cumplir el art. 9.2 (ver más abajo por qué no nos vincula).
 
 ### Trabajo diario
 
@@ -66,11 +68,11 @@ Rama de trabajo: `claude/user-client-creation-kk6p58` → merge a `main`.
 
 | Qué | Quién | Por qué bloquea |
 |---|---|---|
-| **Certificado digital** — 0 subidos | Cliente | Sin él no se puede enviar nada a la AEAT |
+| **Certificado digital** — 0 subidos | Cliente | ⏳ **Solicitado el 10 de agosto**, pendiente de recibir. Sin él no se puede enviar nada a la AEAT |
 | `VERIFACTU_PRODUCER_NAME` / `_NIF` | Cliente | Sin ellos el registro está incompleto |
 | **Declaración responsable** | Abogado | Sin ella no se puede distribuir legalmente |
-| **Decisión: apoderamiento vs certificado por cliente** | Cliente + gestor | Cambia el modelo de servicio; decidirlo antes de programar más |
-| **Plan Hobby de Vercel** | Cliente | El resumen de eventos cada 6 h (art. 9.2) no se puede cumplir con 1 cron diario. Requiere Pro |
+| **Decisión: apoderamiento vs certificado por cliente** | Cliente + gestor | Cambia el modelo de servicio. La AEAT admite las dos vías (ver abajo); es decisión de negocio, ya no técnica |
+
 
 ---
 
@@ -101,8 +103,8 @@ actualiza solo y un informe desfasado en manos de un tercero es peor que ninguno
 | QR (ISO 18004, nivel M, 31,75 mm) + leyenda | Orden art. 21 | `lib/invoice-pdf.ts` |
 | Clientes extranjeros por `IDOtro` | Orden L7 | `lib/tax-id-types.ts` |
 | **Declaración responsable visible en el sistema** | RD art. 13.2 | `/declaracion-responsable` (pública) |
-| **Detección de anomalías** (traza + integridad) | Orden art. 9.1.c-f | `lib/verifactu-integrity.ts`, cron cada 6 h |
-| **Registro resumen de eventos** | Orden art. 9.2 | ⚠️ Se genera **una vez al día**, no cada 6 h: el plan Hobby no permite más. **Incumple el art. 9.2 hasta que se suba a Pro** |
+| **Detección de anomalías** (traza + integridad) | Orden art. 9.1.c-f | `lib/verifactu-integrity.ts`, cron diario |
+| **Registro resumen de eventos** | Orden art. 9.2 | Una vez al día. **No incumple**: el registro de eventos es voluntario para un SIF «SOLO VERI\*FACTU» (ver abajo) |
 | **Causas de exención E1-E6 por línea** | Orden L10 | `lib/exemption-causes.ts`; el desglose agrupa por causa, no solo por tipo |
 | **Huella contrastada con los vectores oficiales** | Doc. AEAT v0.1.2 | `scripts/verifactu-vectors.ts` |
 | **Códigos de error traducidos** (247) | — | `lib/verifactu-error-codes.ts`; distingue rechazo de envío, de registro y subsanable |
@@ -119,7 +121,43 @@ actualiza solo y un informe desfasado en manos de un tercero es peor que ninguno
 | **Disociación de accesos para la Administración** | RD art. 8.4 / 14 | Ya sabemos qué espera la AEAT: su propio ejemplo de declaración responsable (apartado 2.c) lo resuelve con una casilla en el acceso que limita la sesión a la información con trascendencia tributaria. **Falta implementarlo** |
 | **Prueba real contra preproducción de la AEAT** | | Nunca ejecutada. Solo falta el certificado |
 | Etiquetas de las claves de régimen | Orden L8A / L8B | El código admite ya cualquier clave válida, pero las descripciones están en las listas L8A y L8B, que no vienen en `docs/aeat/`. Hasta tenerlas, la interfaz muestra el código y no una descripción inventada |
-| Firma `ds:Signature` en el registro de evento | Anexo 5 | El esquema la exige; en VERI\*FACTU no hay firma expresa que serializar. Ligado a la consulta de si el registro de eventos nos aplica |
+| Firma `ds:Signature` en el registro de evento | Anexo 5 | **Resuelto: no aplica.** El registro de eventos es voluntario en SOLO VERI\*FACTU y no hay firma expresa que serializar |
+
+### ⚠️ El registro de eventos es VOLUNTARIO para nosotros
+
+**Antes de tocar nada del registro de eventos, lee esto.** Las FAQ de
+desarrolladores de la AEAT (4 de diciembre de 2025, `docs/aeat/FAQs-Desarrolladores.pdf`,
+apartado 15, NOTA 1) dicen literalmente:
+
+> El productor de un SIF que solo puede actuar exclusivamente en modo
+> VERI\*FACTU («SOLO VERI\*FACTU»), **no está obligado a implementar en él un
+> registro de eventos**, pero puede hacerlo voluntariamente, si así lo desea.
+
+Lo mismo vale para las funcionalidades de detección de anomalías. Archivum es
+SOLO VERI\*FACTU (así se declara en el apartado 1.e de la declaración
+responsable), luego:
+
+- El **registro de eventos** no es obligatorio. Lo mantenemos por decisión propia.
+- El **resumen cada 6 horas** del art. 9.2 tampoco: forma parte de ese registro.
+  Se genera **una vez al día** y eso es suficiente.
+- La **detección de anomalías** no tiene que estar ejecutándose constantemente;
+  basta con que se pueda lanzar. La nuestra corre a diario, que es más de lo exigido.
+- La firma `ds:Signature` del anexo 5 tampoco aplica.
+
+**Esto deja de ser cierto si algún día se añade un modo NO VERI\*FACTU.** Ahí
+todo lo anterior pasa a ser obligatorio, incluida la cadencia de 6 horas.
+
+### Multi-obligado: las dos vías que admite la AEAT
+
+De las mismas FAQ (apartado 16). Remitir en nombre de terceros se puede:
+
+| Vía | Qué exige |
+|---|---|
+| **Colaboración social** | Convenio con la AEAT. Se solicita a `comunicacion.sepri@correo.aeat.es` o a la Delegación del domicilio fiscal, con estatutos, representante y datos de contacto. Para VERI\*FACTU valen los convenios 001, 002 (intermediarios) y **017** (empresas de software) |
+| **Apoderamiento** | El obligado otorga la representación con el **Anexo II** de la Resolución de 18 de diciembre de 2024 (BOE 31-12-2024), modelo no obligatorio |
+
+Hoy el sistema usa el certificado de cada obligado, que es una tercera vía y no
+necesita ninguno de los dos trámites. Elegir entre ellas es decisión de negocio.
 
 ### Respuesta de la AEAT — 10 de agosto de 2026
 
