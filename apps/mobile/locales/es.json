@@ -87,7 +87,10 @@
     "clientTaxIdType": "Tipo de identificación",
     "clientTaxIdTypeHint": "Obligatorio fuera de España: la AEAT necesita saber qué documento es.",
     "exemptionCausePrompt": "¿Por qué está exenta? (obligatorio)",
-    "errExemptionCause": "Indica el motivo de exención de las líneas exentas."
+    "errExemptionCause": "Indica el motivo de exención de las líneas exentas.",
+    "aeatSent": "Registro aceptado por la AEAT",
+    "aeatPending": "Registro pendiente de envío a la AEAT",
+    "aeatError": "La AEAT rechazó el registro"
   },
   "common": {
     "save": "Guardar",

@@ -22,6 +22,10 @@ interface Invoice {
   tax_amount: number; retention_pct: number | null; retention_amount: number; total: number;
   huella: string | null; qr_url: string | null;
   rectifies_invoice_id: string | null;
+  // Si el registro llegó o no a la AEAT. Sin esto la leyenda VERI*FACTU
+  // afirmaba que la factura era verificable allí sin saber si lo era.
+  verifactu_status: string | null; aeat_csv: string | null;
+  aeat_error: string | null; submitted_at: string | null;
 }
 interface Line { id: string; description: string; quantity: number; unit_price: number; tax_rate: number; line_total: number; }
 
@@ -161,6 +165,22 @@ export default function FacturaDetailScreen() {
               <ShieldCheck size={16} color={C.green} /><Text style={{ fontWeight: "800", color: C.text, letterSpacing: 0.5 }}>VERI*FACTU</Text>
             </View>
             <Text style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>{t("invoicing.verifactuFooter")}</Text>
+            {/* La leyenda de arriba dice que la factura es verificable en la
+                AEAT, y hasta que el registro se acepta no lo es. Se dice sin
+                rodeos, igual que en la web: quien factura desde el móvil no
+                debería ser el último en enterarse de un rechazo. */}
+            <Text style={{
+              fontSize: 10, fontWeight: "600", marginTop: 4,
+              color: invoice.verifactu_status === "sent" ? C.green
+                : invoice.verifactu_status === "error" ? C.red
+                : C.yellow,
+            }}>
+              {invoice.verifactu_status === "sent"
+                ? `${t("invoicing.aeatSent")}${invoice.aeat_csv ? ` · CSV ${invoice.aeat_csv}` : ""}`
+                : invoice.verifactu_status === "error"
+                  ? `${t("invoicing.aeatError")}${invoice.aeat_error ? `: ${invoice.aeat_error}` : ""}`
+                  : t("invoicing.aeatPending")}
+            </Text>
             {!!invoice.huella && (
               <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 6, marginTop: 4 }}>
                 <Text style={{ flex: 1, fontSize: 9, color: C.muted, fontFamily: "monospace" }}>{t("invoicing.fingerprint")}: {invoice.huella}</Text>

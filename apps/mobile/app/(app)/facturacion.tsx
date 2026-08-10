@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { Plus, Receipt, X, Trash2, Lock, ArrowLeft, ShieldCheck, ChevronRight, Search as SearchIcon } from "lucide-react-native";
+import { Plus, Receipt, X, Trash2, Lock, ArrowLeft, ShieldCheck, ChevronRight, Search as SearchIcon, AlertTriangle } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
@@ -26,6 +26,7 @@ interface Invoice {
   id: string; full_number: string | null; client_name: string | null;
   total: number; state: string; issue_date: string | null;
   kind: string; rectifies_invoice_id: string | null;
+  verifactu_status: string | null;
 }
 interface Company { id: string; name: string; cif: string | null; }
 interface Product { id: string; name: string; unit_price: number; tax_rate: number; }
@@ -76,7 +77,7 @@ function FacturacionScreenContent() {
   const load = useCallback(async () => {
     if (!orgId) return;
     const [{ data: inv }, { data: co }, { data: pr }] = await Promise.all([
-      supabase.from("invoices").select("id, full_number, client_name, total, state, issue_date, kind, rectifies_invoice_id").eq("organization_id", orgId).order("created_at", { ascending: false }),
+      supabase.from("invoices").select("id, full_number, client_name, total, state, issue_date, kind, rectifies_invoice_id, verifactu_status").eq("organization_id", orgId).order("created_at", { ascending: false }),
       supabase.from("companies").select("id, name, cif").eq("organization_id", orgId).eq("is_active", true).order("name"),
       supabase.from("products").select("id, name, unit_price, tax_rate").eq("organization_id", orgId).eq("is_active", true).order("name"),
     ]);
@@ -212,6 +213,14 @@ function FacturacionScreenContent() {
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 15, fontWeight: "700", color: C.text }}>{item.full_number ?? "—"}</Text>
                 <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{item.client_name ?? "—"} · {item.issue_date ?? ""}</Text>
+                {/* Un rechazo de la AEAT no puede quedarse solo en el detalle:
+                    quien mira la lista tiene que ver que algo va mal. */}
+                {item.verifactu_status === "error" && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 }}>
+                    <AlertTriangle size={12} color={C.red} />
+                    <Text style={{ fontSize: 11, fontWeight: "600", color: C.red }}>{t("invoicing.aeatError")}</Text>
+                  </View>
+                )}
               </View>
               <View style={{ alignItems: "flex-end" }}>
                 <Text style={{ fontSize: 14, fontWeight: "700", color: C.text }}>{fmtEur(item.total)}</Text>
