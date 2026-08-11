@@ -10,6 +10,7 @@ import {
 } from '@/lib/verifactu-error-codes'
 import { registroEventoXml } from '@/lib/verifactu-events-xml'
 import { buildInvoicePdf } from '@/lib/invoice-pdf'
+import { walkChain } from '@/lib/verifactu-integrity'
 
 let fails = 0
 const check = (name: string, cond: boolean, extra = '') => {
@@ -333,6 +334,31 @@ check('orden de elementos del evento según el esquema',
     'SistemaInformatico', 'ObligadoEmision', 'FechaHoraHusoGenEvento', 'TipoEvento',
     'OtrosDatosEvento', 'Encadenamiento', 'TipoHuella', 'HuellaEvento',
   ]), evtOrden.join(' > '))
+
+// ── Recorrido de la cadena ──
+// El fallo real: cuatro eventos escritos en el mismo segundo. Ordenados por
+// hora salen en orden arbitrario y el comprobador anterior los denunciaba como
+// cadena rota. Siguiendo los enlaces, el orden de la lista da igual.
+const cadenaSana: { huella: string; huella_anterior: string | null }[] = [
+  { huella: 'AAA', huella_anterior: null },
+  { huella: 'BBB', huella_anterior: 'AAA' },
+  { huella: 'CCC', huella_anterior: 'BBB' },
+  { huella: 'DDD', huella_anterior: 'CCC' },
+]
+check('una cadena intacta no da anomalías', walkChain(cadenaSana, (r) => r.huella).length === 0)
+// Barajada a propósito: es lo que hace Postgres con timestamps empatados.
+const barajada = [cadenaSana[2], cadenaSana[0], cadenaSana[3], cadenaSana[1]]
+check('el orden de la lista no importa', walkChain(barajada, (r) => r.huella).length === 0)
+
+check('detecta una bifurcación',
+  walkChain([...cadenaSana, { huella: 'EEE', huella_anterior: 'BBB' }], (r) => r.huella)
+    .some(a => a.detail.includes('bifurca')))
+check('detecta un predecesor inexistente',
+  walkChain([...cadenaSana, { huella: 'EEE', huella_anterior: 'ZZZ' }], (r) => r.huella)
+    .some(a => a.detail.includes('no existe')))
+check('detecta que nadie abre la cadena',
+  walkChain([{ huella: 'AAA', huella_anterior: 'XXX' as string | null }], (r) => r.huella).length > 0)
+check('una cadena vacía no da anomalías', walkChain([] as { huella: string; huella_anterior: string | null }[], () => '').length === 0)
 
 async function comprobarPdf() {
   // ── Factura sin obligación en España ──

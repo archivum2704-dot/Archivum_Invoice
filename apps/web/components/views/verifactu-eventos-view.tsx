@@ -1,5 +1,6 @@
 "use client"
 
+import { Fragment } from "react"
 import useSWR from "swr"
 import Link from "next/link"
 import { ArrowLeft, ScrollText, Download, Loader2, AlertTriangle } from "lucide-react"
@@ -58,6 +59,52 @@ const TONE: Record<string, string> = {
   anomalia_eventos_detectada: "text-[var(--status-overdue)]",
   exportacion_registros_facturacion: "text-[var(--status-pending)]",
   exportacion_registros_evento: "text-[var(--status-pending)]",
+}
+
+/** Nombres legibles para las claves del detalle. Una clave sin traducir se
+ *  muestra tal cual: es mejor que ocultarla. */
+const DETAIL_LABELS: Record<string, string> = {
+  total: "Total",
+  totalEventos: "Eventos",
+  anomalias: "Anomalías",
+  desde: "Desde",
+  hasta: "Hasta",
+  porTipo: "Por tipo",
+  sinEventos: "Sin actividad",
+  fullNumber: "Factura",
+  clientCif: "NIF del cliente",
+  registrosDeAlta: "Registros de alta",
+  registrosDeAnulacion: "Registros de anulación",
+  cadenaIntegra: "Cadena íntegra",
+  eventos: "Eventos",
+  deteccion: "Detección",
+  rupturas: "Rupturas",
+  enviadas: "Enviadas",
+  rechazadas: "Rechazadas",
+}
+
+/**
+ * Un valor del detalle, en algo que se pueda leer.
+ *
+ * Antes se volcaba el objeto entero con JSON.stringify, lo que llenaba la
+ * pantalla de llaves y comillas justo en los eventos que más importa entender
+ * —los de anomalías—.
+ */
+function formatDetail(v: unknown): string {
+  if (v === null || v === undefined) return "—"
+  if (typeof v === "boolean") return v ? "Sí" : "No"
+  if (typeof v === "number" || typeof v === "string") return String(v)
+  if (Array.isArray(v)) {
+    if (v.length === 0) return "ninguna"
+    return v.map(x =>
+      x && typeof x === "object"
+        ? [(x as any).record, (x as any).detail].filter(Boolean).join(" — ")
+        : String(x),
+    ).join(" · ")
+  }
+  return Object.entries(v as Record<string, unknown>)
+    .map(([k, val]) => `${DETAIL_LABELS[k] ?? k}: ${val}`)
+    .join(" · ")
 }
 
 async function fetchEvents(orgId: string): Promise<EventRow[]> {
@@ -142,9 +189,14 @@ export function EventosView() {
               </div>
               {e.actor_email && <p className="text-xs text-muted-foreground mt-0.5">{e.actor_email}</p>}
               {Object.keys(e.detail ?? {}).length > 0 && (
-                <p className="text-xs text-muted-foreground mt-1 break-all font-mono">
-                  {JSON.stringify(e.detail)}
-                </p>
+                <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+                  {Object.entries(e.detail).map(([k, v]) => (
+                    <Fragment key={k}>
+                      <dt className="text-xs text-muted-foreground/70 whitespace-nowrap">{DETAIL_LABELS[k] ?? k}</dt>
+                      <dd className="text-xs text-foreground min-w-0 break-words">{formatDetail(v)}</dd>
+                    </Fragment>
+                  ))}
+                </dl>
               )}
               <p className="text-[10px] text-muted-foreground/50 mt-1 font-mono break-all">
                 {e.huella.slice(0, 32)}…

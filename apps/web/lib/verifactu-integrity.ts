@@ -39,7 +39,96 @@ export interface IntegrityReport {
   eventAnomalies: Anomaly[]
 }
 
-/** Verify an organization's billing chain: order, links and stored huellas. */
+
+/**
+ * Walk a chain by its own links instead of sorting it by time.
+ *
+ * The AEAT's timestamp format has one-second resolution (art. 13 fixes it, so
+ * it cannot be widened), and a daily sweep writes four events inside the same
+ * second. Ordering by that timestamp puts them in arbitrary order, and a
+ * verifier walking that order sees a chain that does not join up — which is
+ * how this reported anomalies on records that were perfectly intact, and then
+ * wrote that false accusation into an immutable log.
+ *
+ * Following the links has no such ambiguity, and it detects more: a fork
+ * (two records claiming one predecessor), a missing predecessor, and records
+ * left unreachable — none of which sorting by time can tell apart.
+ */
+export function walkChain<T extends { huella: string; huella_anterior: string | null }>(
+  records: T[],
+  describe: (r: T) => string,
+): Anomaly[] {
+  const anomalies: Anomaly[] = []
+  if (records.length === 0) return anomalies
+
+  const byHuella = new Map<string, T>()
+  for (const r of records) byHuella.set(r.huella, r)
+
+  const roots = records.filter(r => !r.huella_anterior)
+  if (roots.length === 0) {
+    anomalies.push({
+      kind: 'traceability',
+      record: describe(records[0]),
+      detail: 'Ningún registro abre la cadena: todos declaran un predecesor',
+    })
+    return anomalies
+  }
+  if (roots.length > 1) {
+    for (const r of roots.slice(1)) {
+      anomalies.push({
+        kind: 'traceability',
+        record: describe(r),
+        detail: 'Un segundo registro declara ser el primero de la cadena',
+      })
+    }
+  }
+
+  // Successors, to spot two records claiming the same predecessor.
+  const successors = new Map<string, T[]>()
+  for (const r of records) {
+    if (!r.huella_anterior) continue
+    const list = successors.get(r.huella_anterior) ?? []
+    list.push(r)
+    successors.set(r.huella_anterior, list)
+    if (!byHuella.has(r.huella_anterior)) {
+      anomalies.push({
+        kind: 'traceability',
+        record: describe(r),
+        detail: 'Declara como anterior una huella que no existe en la cadena',
+      })
+    }
+  }
+  for (const [anterior, list] of successors) {
+    if (list.length > 1) {
+      anomalies.push({
+        kind: 'traceability',
+        record: list.map(describe).join(' · '),
+        detail: `La cadena se bifurca: ${list.length} registros declaran el mismo predecesor`,
+      })
+    }
+  }
+
+  // Everything must be reachable from the first record.
+  const visto = new Set<string>()
+  let actual: T | undefined = roots[0]
+  while (actual && !visto.has(actual.huella)) {
+    visto.add(actual.huella)
+    actual = (successors.get(actual.huella) ?? [])[0]
+  }
+  for (const r of records) {
+    if (!visto.has(r.huella)) {
+      anomalies.push({
+        kind: 'traceability',
+        record: describe(r),
+        detail: 'El registro queda fuera de la cadena: no se llega a él desde el primero',
+      })
+    }
+  }
+
+  return anomalies
+}
+
+/** Verify an organization's billing chain: links and stored huellas. */
 async function verifyBillingChain(db: any, orgId: string): Promise<{ count: number; anomalies: Anomaly[] }> {
   const anomalies: Anomaly[] = []
 
@@ -51,20 +140,7 @@ async function verifyBillingChain(db: any, orgId: string): Promise<{ count: numb
 
   const chain = links ?? []
 
-  // Traceability: every link but the first names its predecessor's huella.
-  for (let i = 0; i < chain.length; i++) {
-    const expected = i === 0 ? '' : chain[i - 1].huella
-    const declared = chain[i].huella_anterior ?? ''
-    if (declared !== expected) {
-      anomalies.push({
-        kind: 'traceability',
-        record: chain[i].full_number ?? chain[i].huella.slice(0, 16),
-        detail: i === 0
-          ? 'El primer registro de la cadena declara un predecesor'
-          : `Declara como anterior una huella que no es la de ${chain[i - 1].full_number ?? 'el registro previo'}`,
-      })
-    }
-  }
+  anomalies.push(...walkChain(chain, (r: any) => r.full_number ?? r.huella.slice(0, 16)))
 
   // Integrity: re-hash each record from what is stored and compare.
   const { data: invoices } = await db
@@ -131,16 +207,9 @@ async function verifyEventChain(db: any, orgId: string): Promise<{ count: number
 
   const list = events ?? []
 
-  for (let i = 0; i < list.length; i++) {
-    const expected = i === 0 ? '' : list[i - 1].huella
-    if ((list[i].huella_anterior ?? '') !== expected) {
-      anomalies.push({
-        kind: 'traceability',
-        record: `${list[i].event_type} · ${list[i].occurred_at}`,
-        detail: 'El evento no encadena con el anterior',
-      })
-    }
+  anomalies.push(...walkChain(list, (r: any) => `${r.event_type} · ${r.occurred_at}`))
 
+  for (let i = 0; i < list.length; i++) {
     // Two shapes live in this table. Events written before the AEAT's huella
     // document arrived carry the old field names at the top level; the ones
     // after it are nested under `Evento` and follow EventosSIF.xsd. Each is

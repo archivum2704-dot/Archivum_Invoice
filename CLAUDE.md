@@ -53,7 +53,7 @@ no cumplir el art. 9.2 (ver más abajo por qué no nos vincula).
 ```bash
 cd apps/web    && npx tsc --noEmit && npm run build
 cd apps/mobile && npx tsc --noEmit && npx expo export --platform android
-cd apps/web    && npm run verifactu:check     # vectores oficiales + 108 comprobaciones
+cd apps/web    && npm run verifactu:check     # vectores oficiales + 114 comprobaciones
 ```
 
 Rama de trabajo: `claude/user-client-creation-kk6p58` → merge a `main`.
@@ -124,6 +124,22 @@ actualiza solo y un informe desfasado en manos de un tercero es peor que ninguno
 | Landing: «Conforme con VeriFactu» | | Sigue afirmándolo sin declaración responsable ni prueba contra la AEAT. **Pendiente de suavizar** |
 | Etiquetas de las claves de régimen | Orden L8A / L8B | El código admite ya cualquier clave válida, pero las descripciones están en las listas L8A y L8B, que no vienen en `docs/aeat/`. Hasta tenerlas, la interfaz muestra el código y no una descripción inventada |
 | Firma `ds:Signature` en el registro de evento | Anexo 5 | **Resuelto: no aplica.** El registro de eventos es voluntario en SOLO VERI\*FACTU y no hay firma expresa que serializar |
+
+### ⚠️ La cadena se verifica siguiendo enlaces, NUNCA ordenando por fecha
+
+`FechaHoraHusoGenRegistro` y `FechaHoraHusoGenEvento` tienen **precisión de un
+segundo** — lo fija el art. 13 y no se puede ampliar. El barrido diario escribe
+cuatro eventos dentro del mismo segundo, así que ordenar por esa hora los
+devuelve en orden arbitrario.
+
+El comprobador de anomalías hacía justo eso hasta el 10 de agosto, y **denunció
+como cadena rota cuatro cadenas que estaban intactas**, dejando el aviso escrito
+en un registro inmutable. `walkChain()` en `lib/verifactu-integrity.ts` recorre
+ahora los enlaces (`huella_anterior` → `huella`), que no depende del reloj y
+además detecta bifurcaciones, predecesores inexistentes y registros huérfanos.
+
+**Si alguna vez ves un `.order('generated_at')` u `.order('occurred_at')`
+alimentando una verificación de cadena, es un fallo.**
 
 ### ⚠️ No todas las organizaciones están obligadas
 
@@ -342,6 +358,7 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 10 ago | **Corregida una falsa alarma**: el detector de anomalías ordenaba la cadena por hora, y con 4 eventos en el mismo segundo la daba por rota. Ahora sigue los enlaces |
 | 10 ago | El móvil ya dice si la AEAT aceptó o rechazó el registro, en el detalle y en la lista. OTA al canal `preview` |
 | 10 ago | Cerrado el bloque «depende de nosotros»: eventos en XML del anexo 5, exportación de eventos propia, causa de exención en presupuestos y claves de régimen. Declaración responsable con la estructura oficial de la AEAT |
 | 10 ago | **Huella validada contra los vectores oficiales de la AEAT.** Alta y anulación eran correctas; la de evento estaba mal y se corrigió. 247 códigos de error, `TipoEvento` como código, documentación de la AEAT guardada en `docs/aeat/` |
