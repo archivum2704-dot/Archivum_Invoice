@@ -48,6 +48,25 @@ la frecuencia que se quiera. Entonces conviene separar el cron de Verifactu
 único motivo para subir a Pro sería que las facturas lleguen antes a la AEAT,
 no cumplir el art. 9.2 (ver más abajo por qué no nos vincula).
 
+### Skills instaladas en el repo
+
+Están en `.claude/skills/` y **van versionadas en git**, así que cualquier sesión
+que clone el repo las tiene. Se gestionan con `npx skills` (`skills-lock.json`).
+
+`find-skills` sirve para descubrir e instalar skills nuevas.
+
+⚠️ **`npx skills find` no funciona desde este entorno**: `skills.sh` está
+bloqueado por el proxy de red y la CLI responde «No skills found» en lugar de
+dar un error. Es decir, **una búsqueda vacía aquí no significa que no exista la
+skill**, significa que no se pudo mirar. Instalar por nombre sí funciona,
+porque eso descarga de GitHub:
+
+```bash
+npx skills add <owner>/<repo>@<skill>
+```
+
+Desde una máquina propia (o Codespaces) la búsqueda sí funciona.
+
 ### Trabajo diario
 
 ```bash

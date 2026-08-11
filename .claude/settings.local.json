@@ -76,7 +76,9 @@
       "PowerShell(New-NetFirewallRule *)",
       "Bash(curl -s --max-time 3 http://192.168.1.5:8081/status)",
       "PowerShell(Remove-NetFirewallRule *)",
-      "mcp__Supabase__list_projects"
+      "mcp__Supabase__list_projects",
+      "Bash(mkdir -p .claude/skills/find-skills)",
+      "Bash(cp \"/root/.claude/uploads/05041d6a-244d-5bfb-8208-3d7257529c54/b2c6b950-SKILL.md\" .claude/skills/find-skills/SKILL.md)"
     ]
   }
 }
