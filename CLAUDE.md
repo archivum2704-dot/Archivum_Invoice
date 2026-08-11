@@ -53,7 +53,7 @@ no cumplir el art. 9.2 (ver más abajo por qué no nos vincula).
 ```bash
 cd apps/web    && npx tsc --noEmit && npm run build
 cd apps/mobile && npx tsc --noEmit && npx expo export --platform android
-cd apps/web    && npm run verifactu:check     # vectores oficiales + 106 comprobaciones
+cd apps/web    && npm run verifactu:check     # vectores oficiales + 108 comprobaciones
 ```
 
 Rama de trabajo: `claude/user-client-creation-kk6p58` → merge a `main`.
@@ -112,6 +112,7 @@ actualiza solo y un informe desfasado en manos de un tercero es peor que ninguno
 | **Exportación de eventos como operación propia** | Orden art. 9.1.i | `api/verifactu/export/eventos` |
 | **Causa de exención en presupuestos** | Orden L10 | Web y móvil; el servidor la exige al cerrar el presupuesto, no al convertirlo |
 | **Régimen distinto del general** | Orden L8A | `lib/regimen-codes.ts`, columna `organizations.verifactu_clave_regimen` |
+| **Organizaciones no obligadas en España** | RD ámbito | `organizations.verifactu_obligado`. Si es `false`: sin registro, sin huella, sin QR y sin envío. Lo marca el propio cliente en Ajustes |
 | **Declaración responsable con la estructura oficial** | RD art. 13.4 | `lib/declaracion-responsable.ts`, apartados 1.a-1.l y anexo |
 
 ### Pendiente
@@ -123,6 +124,27 @@ actualiza solo y un informe desfasado en manos de un tercero es peor que ninguno
 | Landing: «Conforme con VeriFactu» | | Sigue afirmándolo sin declaración responsable ni prueba contra la AEAT. **Pendiente de suavizar** |
 | Etiquetas de las claves de régimen | Orden L8A / L8B | El código admite ya cualquier clave válida, pero las descripciones están en las listas L8A y L8B, que no vienen en `docs/aeat/`. Hasta tenerlas, la interfaz muestra el código y no una descripción inventada |
 | Firma `ds:Signature` en el registro de evento | Anexo 5 | **Resuelto: no aplica.** El registro de eventos es voluntario en SOLO VERI\*FACTU y no hay firma expresa que serializar |
+
+### ⚠️ No todas las organizaciones están obligadas
+
+El RD 1007/2023 obliga a quien está sujeto a las obligaciones de facturación
+**españolas**. Una empresa extranjera sin esas obligaciones no está en el
+ámbito: no es que desactive Verifactu, es que no le aplica.
+
+`organizations.verifactu_obligado` (por defecto `true`) lo decide. En `false`,
+`invoice-issue.ts` no genera registro de alta ni huella ni QR, no encadena, no
+registra el evento y no remite nada; la factura conserva su numeración
+correlativa y su inalterabilidad. `verifactu_status` queda en
+`not_applicable`, que el barrido diario no recoge.
+
+**El criterio no es la nacionalidad** sino si hay obligaciones de facturación
+en España, y eso el código no puede deducirlo. Por eso se pregunta al cliente
+en Ajustes en vez de mirar el país.
+
+⚠️ **Antes de firmar la declaración responsable**: su apartado 1.e declara que
+el sistema opera exclusivamente como VERI\*FACTU. Eso sigue siendo cierto —
+para quien está obligado no hay otro modo— pero conviene que lo confirme el
+abogado ahora que existen organizaciones sin registro.
 
 ### ⚠️ El registro de eventos es VOLUNTARIO para nosotros
 

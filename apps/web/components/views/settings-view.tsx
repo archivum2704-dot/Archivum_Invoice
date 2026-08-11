@@ -223,6 +223,9 @@ export function SettingsView() {
   const [tutorialOpen, setTutorialOpen]         = useState(false)
   const [cancelModalOpen, setCancelModalOpen]   = useState(false)
   const [cancelSuccess, setCancelSuccess]       = useState(false)
+  // Si la organización declara en España. Se lee de la base de datos y no del
+  // contexto porque es una decisión fiscal, no un dato de presentación.
+  const [obligado, setObligado] = useState<boolean | null>(null)
 
   // Billing state
   const [billing, setBilling] = useState<{
@@ -240,7 +243,7 @@ export function SettingsView() {
     const supabase = createClient()
     Promise.all([
       supabase.from("organizations")
-        .select("subscription_plan, subscription_status, doc_quota_pool, document_count, current_period_end")
+        .select("subscription_plan, subscription_status, doc_quota_pool, document_count, current_period_end, verifactu_obligado")
         .eq("id", currentOrg.id)
         .single(),
       supabase.from("organization_members")
@@ -251,6 +254,7 @@ export function SettingsView() {
         .eq("organization_id", currentOrg.id),
     ]).then(([{ data: org }, { count: members }, { count: companies }]) => {
       if (!org) return
+      setObligado((org as any).verifactu_obligado !== false)
       setBilling({
         plan: (org.subscription_plan ?? "free") as PlanId,
         status: org.subscription_status ?? "active",
@@ -293,6 +297,7 @@ export function SettingsView() {
       country: form.country.trim(),
       phone:   form.phone.trim() || null,
       email:   form.email.trim() || null,
+      ...(obligado === null ? {} : { verifactu_obligado: obligado }),
     }).eq("id", currentOrg.id)
     setSaving(false)
     if (err) { setError(err.message); return }
@@ -510,6 +515,41 @@ export function SettingsView() {
             </div>
             <HelpCircle className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </button>
+        </Section>
+
+        {/* El ámbito del RD 1007/2023 no lo decide la nacionalidad de la
+            empresa sino si tiene obligaciones de facturación en España, y eso
+            solo lo sabe el titular. Por eso se pregunta en vez de deducirlo
+            del país. */}
+        <Section
+          title="Obligación fiscal en España"
+          description="Determina si tus facturas se registran y se envían a la Agencia Tributaria."
+        >
+          <label className="flex items-start gap-3 bg-card border border-border rounded-xl p-4 cursor-pointer hover:bg-muted/40 transition-colors">
+            <input
+              type="checkbox"
+              checked={obligado ?? true}
+              onChange={e => setObligado(e.target.checked)}
+              className="w-4 h-4 mt-0.5 rounded accent-primary shrink-0"
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">
+                Mi empresa debe declarar sus facturas en España
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Actívalo si estás sujeto a las obligaciones de facturación españolas. Tus facturas
+                llevarán el registro VERI*FACTU, su huella encadenada y el código QR de cotejo, y se
+                remitirán a la AEAT.
+              </p>
+              {obligado === false && (
+                <p className="text-xs text-[var(--status-pending)] mt-2 leading-relaxed">
+                  Desactivado: tus facturas <strong>no</strong> llevarán registro, huella ni código QR,
+                  y no se enviará nada a la AEAT. Se seguirán numerando de forma correlativa. Las
+                  facturas ya emitidas no cambian.
+                </p>
+              )}
+            </div>
+          </label>
         </Section>
 
         {/* Danger zone — cancel subscription */}

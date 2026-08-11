@@ -1,5 +1,5 @@
 import {
-  computeHuella, buildRegistroAlta, buildQrUrl,
+  computeHuella, buildRegistroAlta, buildQrUrl, nowWithOffset,
   type InvoiceKind,
 } from '@/lib/verifactu'
 import { buildInvoicePdf } from '@/lib/invoice-pdf'
@@ -65,7 +65,7 @@ export async function issueInvoice(
 
   const { data: org } = await supabase
     .from('organizations')
-    .select('name, cif, address, city, postal_code, province, logo_url, verifactu_clave_regimen')
+    .select('name, cif, address, city, postal_code, province, logo_url, verifactu_clave_regimen, verifactu_obligado')
     .eq('id', orgId).single()
   if (!org) throw new IssueError('org_not_found', 404)
 
@@ -127,14 +127,37 @@ export async function issueInvoice(
   if (numErr || number == null) throw new IssueError('numbering_failed', 403, numErr?.message)
   const fullNumber = `${series}-${year}-${String(number).padStart(4, '0')}`
 
+  // Campos comunes a la factura, con y sin Verifactu.
+  const baseRow = {
+    organization_id: orgId, client_company_id: clientCompanyId,
+    series, number, full_number: fullNumber,
+    kind, state: 'draft',
+    issue_date: issueDate, operation_date: operationDate || issueDate, due_date: dueDate || null,
+    subtotal, discount_pct: discPct || null, discount_amount: discountAmount,
+    tax_amount: taxAmount, total,
+    retention_pct: retPct || null, retention_amount: retentionAmount,
+    issuer_name: org.name, issuer_cif: org.cif, issuer_address: org.address,
+    issuer_city: org.city, issuer_postal_code: org.postal_code, issuer_province: org.province,
+    issuer_logo_url: org.logo_url,
+    client_name: client.name, client_cif: client.cif, client_address: client.address,
+    client_city: client.city, client_postal_code: client.postal_code, client_province: client.province,
+    client_country_code: client.country_code, client_tax_id_type: client.tax_id_type,
+    notes: notes?.trim() || null,
+    payment_status: 'pending', created_by: userId,
+  }
+
   // ── Verifactu huella chain ──
-  // The link is claimed by the insert itself: insertChainedInvoice retries
-  // against a fresh head if another invoice takes the same predecessor, so the
-  // huella is recomputed per attempt while the number stays as taken above.
-  const qrUrl = buildQrUrl(org.cif!.trim(), fullNumber, issueDate, total)
+  // Solo para quien declara en España. Una organización que no está sujeta a
+  // las obligaciones de facturación españolas queda fuera del ámbito del RD
+  // 1007/2023: no lleva registro de alta, ni huella, ni QR de cotejo, ni se
+  // remite nada a la AEAT. La factura sigue siendo una factura, con su
+  // numeración correlativa y su misma inalterabilidad.
+  const obligado = org.verifactu_obligado !== false
+  const qrUrl = obligado ? buildQrUrl(org.cif!.trim(), fullNumber, issueDate, total) : null
   let huella = ''
 
-  const chained = await insertChainedInvoice(supabase, orgId, ({ previousHuella, generatedAt }) => {
+  const chained = obligado
+    ? await insertChainedInvoice(supabase, orgId, ({ previousHuella, generatedAt }) => {
     const registroInput = {
       issuerNif: org.cif!.trim(), fullNumber, issueDate, kind: kind as InvoiceKind,
       cuotaTotal: taxAmount, importeTotal: total, previousHuella, generatedAt,
@@ -156,26 +179,22 @@ export async function issueInvoice(
       })),
     })
     return {
-      organization_id: orgId, client_company_id: clientCompanyId,
-      series, number, full_number: fullNumber,
-      kind, state: 'draft',
-      issue_date: issueDate, operation_date: operationDate || issueDate, due_date: dueDate || null,
-      subtotal, discount_pct: discPct || null, discount_amount: discountAmount,
-      tax_amount: taxAmount, total,
-      retention_pct: retPct || null, retention_amount: retentionAmount,
-      issuer_name: org.name, issuer_cif: org.cif, issuer_address: org.address,
-      issuer_city: org.city, issuer_postal_code: org.postal_code, issuer_province: org.province,
-      issuer_logo_url: org.logo_url,
-      client_name: client.name, client_cif: client.cif, client_address: client.address,
-      client_city: client.city, client_postal_code: client.postal_code, client_province: client.province,
-      client_country_code: client.country_code, client_tax_id_type: client.tax_id_type,
-      notes: notes?.trim() || null,
+      ...baseRow,
       huella, huella_anterior: previousHuella || null,
       qr_url: qrUrl, registro_alta: registroAlta,
       verifactu_status: 'generated', issued_at: generatedAt,
-      payment_status: 'pending', created_by: userId,
     }
   })
+    : await (async () => {
+      // Sin cadena que reclamar: nada de huella, nada de eslabón, y el estado
+      // dice «no aplica» en lugar de quedarse en «pendiente de enviar», que
+      // haría que el barrido diario lo intentase para siempre.
+      const { data, error } = await (supabase as any).from('invoices')
+        .insert({ ...baseRow, verifactu_status: 'not_applicable', issued_at: nowWithOffset() })
+        .select('id, full_number').single()
+      return error || !data ? { error: error?.message ?? 'insert_failed' } : data
+    })()
+
   if ('error' in chained) throw new IssueError('insert_failed', 400, chained.error)
   const invoice = chained
 
@@ -219,7 +238,8 @@ export async function issueInvoice(
       client: { name: client.name, cif: client.cif, address: client.address, postalCode: client.postal_code, city: client.city, province: client.province },
       lines: computedLines.map(l => ({ description: l.description, quantity: l.quantity, unit_price: l.unit_price, tax_rate: l.tax_rate, line_total: l.line_total })),
       subtotal, discountPct: discPct, discountAmount, taxAmount, retentionPct: retPct, retentionAmount, total,
-      notes: notes?.trim() || null, huella, qrUrl,
+      notes: notes?.trim() || null,
+      huella: obligado ? huella : null, qrUrl: obligado ? qrUrl : null,
     })
     const storagePath = `${orgId}/invoices/${invoice.id}.pdf`
     const { error: upErr } = await archiver.storage
@@ -241,8 +261,9 @@ export async function issueInvoice(
     console.error('[issueInvoice] archival to Biblioteca failed:', pdfErr)
   }
 
-  // The record was generated: art. 8.3 wants that logged as it happens.
-  try {
+  // The record was generated: art. 8.3 wants that logged as it happens. No
+  // record, nothing to log — and an event claiming one would be false.
+  if (obligado) try {
     const { recordEvent, EVENT_TYPES } = await import('@/lib/verifactu-events')
     await recordEvent(supabase, {
       orgId, type: EVENT_TYPES.ALTA,
@@ -258,7 +279,7 @@ export async function issueInvoice(
   // PDF: the invoice is already issued and immutable, and failing the call
   // here would tell the caller a legally-existing invoice did not happen. The
   // sweep picks up whatever does not get through.
-  try {
+  if (obligado) try {
     const { submitPendingForOrg } = await import('@/lib/verifactu-submit')
     const outcome = await submitPendingForOrg(orgId, { invoiceId: invoice.id })
     if (outcome.error || outcome.skipped) {

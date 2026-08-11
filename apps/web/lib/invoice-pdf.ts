@@ -24,8 +24,11 @@ export interface InvoicePdfData {
   retentionAmount?: number
   total: number
   notes?: string | null
-  huella: string
-  qrUrl: string
+  /** Ausentes cuando la organización no declara en España: la factura no
+   *  lleva entonces ni huella ni QR de cotejo, y afirmar lo contrario sería
+   *  decir que es verificable en una sede donde no consta. */
+  huella: string | null
+  qrUrl: string | null
 }
 
 const eur = (n: number) => `${n.toFixed(2).replace('.', ',')} €`
@@ -145,19 +148,23 @@ export async function buildInvoicePdf(data: InvoicePdfData): Promise<Uint8Array>
   if (data.notes) { text(data.notes.slice(0, 120), M, y, 8, font, GREY); y -= 20 }
 
   // ── Verifactu block (bottom) ──
-  // Lift the footer off the page edge so the QR isn't clipped when printed.
-  const FOOT = M + 48
-  // Art. 21.1 Orden HAC/1177/2024: ISO/IEC 18004, error correction level M,
-  // and between 30x30 and 40x40 mm. 90pt is 31.75 mm, inside that range.
-  const qrPng = await QRCode.toBuffer(data.qrUrl, { width: 120, margin: 1, errorCorrectionLevel: 'M' })
-  const qrImg = await pdf.embedPng(qrPng)
-  const qrSize = 90
-  // Vertically center the QR against the text block (text spans FOOT..FOOT+70).
-  page.drawImage(qrImg, { x: width - M - qrSize, y: FOOT + 2, width: qrSize, height: qrSize })
-  text('VERI*FACTU', M, FOOT + 70, 11, bold, NAVY)
-  text('Factura verificable en la Sede electrónica de la AEAT', M, FOOT + 56, 8, font, GREY)
-  text('Huella:', M, FOOT + 38, 7, bold, GREY)
-  text(data.huella.slice(0, 64), M, FOOT + 28, 6, font, GREY)
+  // Solo si la factura lleva registro. Sin él no hay nada que cotejar, y la
+  // leyenda y el QR afirmarían que la AEAT puede verificarla.
+  if (data.huella && data.qrUrl) {
+    // Lift the footer off the page edge so the QR isn't clipped when printed.
+    const FOOT = M + 48
+    // Art. 21.1 Orden HAC/1177/2024: ISO/IEC 18004, error correction level M,
+    // and between 30x30 and 40x40 mm. 90pt is 31.75 mm, inside that range.
+    const qrPng = await QRCode.toBuffer(data.qrUrl, { width: 120, margin: 1, errorCorrectionLevel: 'M' })
+    const qrImg = await pdf.embedPng(qrPng)
+    const qrSize = 90
+    // Vertically center the QR against the text block (text spans FOOT..FOOT+70).
+    page.drawImage(qrImg, { x: width - M - qrSize, y: FOOT + 2, width: qrSize, height: qrSize })
+    text('VERI*FACTU', M, FOOT + 70, 11, bold, NAVY)
+    text('Factura verificable en la Sede electrónica de la AEAT', M, FOOT + 56, 8, font, GREY)
+    text('Huella:', M, FOOT + 38, 7, bold, GREY)
+    text(data.huella.slice(0, 64), M, FOOT + 28, 6, font, GREY)
+  }
 
   return await pdf.save()
 }

@@ -9,6 +9,7 @@ import {
   describeAeatError, isSubsanable, rejectsWholeSubmission, AEAT_ERROR_COUNT,
 } from '@/lib/verifactu-error-codes'
 import { registroEventoXml } from '@/lib/verifactu-events-xml'
+import { buildInvoicePdf } from '@/lib/invoice-pdf'
 
 let fails = 0
 const check = (name: string, cond: boolean, extra = '') => {
@@ -333,5 +334,40 @@ check('orden de elementos del evento según el esquema',
     'OtrosDatosEvento', 'Encadenamiento', 'TipoHuella', 'HuellaEvento',
   ]), evtOrden.join(' > '))
 
-console.log(`\n${fails === 0 ? 'TODO CORRECTO' : fails + ' COMPROBACIONES FALLIDAS'}\n`)
-process.exit(fails === 0 ? 0 : 1)
+async function comprobarPdf() {
+  // ── Factura sin obligación en España ──
+  // El PDF no debe llevar bloque Verifactu si no hay registro. Se comprueba que
+  // el tipo lo admite y que el generador no revienta: imprimir una leyenda de
+  // cotejo en una factura sin registro seria afirmar algo falso.
+  const sinRegistro = await buildInvoicePdf({
+    fullNumber: 'FAC-2026-0001', issueDate: '2026-08-10', dueDate: null,
+    issuer: { name: 'Acme Lda', cif: 'PT999999990', address: null, postalCode: null, city: null, province: null, logoUrl: null },
+    client: { name: 'Cliente', cif: 'PT123456789', address: null, postalCode: null, city: null, province: null },
+    lines: [{ description: 'Servicio', quantity: 1, unit_price: 100, tax_rate: 21, line_total: 121 }],
+    subtotal: 100, discountPct: 0, discountAmount: 0, taxAmount: 21,
+    retentionPct: 0, retentionAmount: 0, total: 121, notes: null,
+    huella: null, qrUrl: null,
+  })
+  check('una factura sin registro genera PDF', sinRegistro.length > 0)
+  // El texto del PDF va comprimido, pero la leyenda entra como cadena literal en
+  // el flujo de contenido; comprobamos que el PDF con registro sí es mayor por
+  // llevar el QR embebido.
+  const conRegistro = await buildInvoicePdf({
+    fullNumber: 'FAC-2026-0002', issueDate: '2026-08-10', dueDate: null,
+    issuer: { name: 'Lumen S.A', cif: 'B12345678', address: null, postalCode: null, city: null, province: null, logoUrl: null },
+    client: { name: 'Cliente', cif: 'A87654321', address: null, postalCode: null, city: null, province: null },
+    lines: [{ description: 'Servicio', quantity: 1, unit_price: 100, tax_rate: 21, line_total: 121 }],
+    subtotal: 100, discountPct: 0, discountAmount: 0, taxAmount: 21,
+    retentionPct: 0, retentionAmount: 0, total: 121, notes: null,
+    huella: 'A'.repeat(64), qrUrl: 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=B12345678',
+  })
+  check('el PDF con registro pesa más (lleva el QR embebido)',
+    conRegistro.length > sinRegistro.length,
+    `${sinRegistro.length} vs ${conRegistro.length} bytes`)
+}
+
+comprobarPdf().then(() => {
+
+  console.log(`\n${fails === 0 ? 'TODO CORRECTO' : fails + ' COMPROBACIONES FALLIDAS'}\n`)
+  process.exit(fails === 0 ? 0 : 1)
+})

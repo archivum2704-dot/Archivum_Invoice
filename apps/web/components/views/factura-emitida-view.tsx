@@ -209,7 +209,9 @@ export function FacturaEmitidaView({ id }: { id: string }) {
 
         {invoice.notes && <p className="text-xs text-muted-foreground mb-8 whitespace-pre-wrap">{invoice.notes}</p>}
 
-        {/* Verifactu block */}
+        {/* Verifactu block. Solo si la factura lleva registro: sin huella no
+            hay nada que cotejar y la leyenda sería falsa. */}
+        {invoice.huella && (
         <div className="flex items-end justify-between gap-4 border-t border-border pt-5">
           <div className="flex items-start gap-1.5 min-w-0">
             <ShieldCheck className="w-4 h-4 text-[var(--status-paid)] shrink-0 mt-0.5" />
@@ -249,6 +251,7 @@ export function FacturaEmitidaView({ id }: { id: string }) {
           </div>
           {qrSrc && <img src={qrSrc} alt="QR Verifactu" className="w-24 h-24 shrink-0" />}
         </div>
+        )}
       </div>
     </div>
   )

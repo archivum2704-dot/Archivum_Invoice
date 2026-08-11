@@ -158,7 +158,9 @@ export default function FacturaDetailScreen() {
           <Row label={t("invoicing.total")} value={fmtEur(invoice.total)} C={C} bold />
         </View>
 
-        {/* Verifactu block */}
+        {/* Verifactu block. Igual que en web: sin huella no hay registro que
+            cotejar, y la leyenda afirmaria algo que no existe. */}
+        {!!invoice.huella && (
         <View style={{ backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 16, flexDirection: "row", alignItems: "center", gap: 14 }}>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -196,6 +198,7 @@ export default function FacturaDetailScreen() {
             </View>
           )}
         </View>
+        )}
 
         <SendEmailButton kind="invoice" id={id} defaultTo={clientEmail} />
 
