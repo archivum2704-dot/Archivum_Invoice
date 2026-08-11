@@ -120,7 +120,7 @@ export function AlbaranesView() {
           Albaranes
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Se abre uno por cada presupuesto. Desde aquí se emite su factura.
+          Se abre uno por cada pedido. Desde aquí se emite su factura.
         </p>
         {isOrgAdmin && sinArchivar > 0 && (
           <button
@@ -144,7 +144,7 @@ export function AlbaranesView() {
           <div className="flex flex-col items-center justify-center py-16 text-center px-6">
             <FileText className="w-10 h-10 text-muted-foreground/30 mb-3" />
             <p className="text-sm font-medium text-foreground mb-1">No hay albaranes abiertos</p>
-            <p className="text-xs text-muted-foreground">Se crean solos al guardar un presupuesto.</p>
+            <p className="text-xs text-muted-foreground">Se crean solos al guardar un pedido.</p>
           </div>
         ) : (
           <div className="divide-y divide-border">{open.map(row)}</div>

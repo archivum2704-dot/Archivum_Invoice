@@ -116,7 +116,7 @@
     "users": "Users",
     "settings": "Settings",
     "signOut": "Sign out",
-    "quotes": "Quotes",
+    "quotes": "Orders",
     "deliveryNotes": "Delivery notes"
   },
   "inventory": {
@@ -279,7 +279,7 @@
     "rectifiedBanner": "Cancelled by credit note {number}",
     "clientEmail": "Email",
     "clientPhone": "Phone",
-    "clientEmailHint": "Needed to email them the invoice or quote.",
+    "clientEmailHint": "Needed to email them the invoice or order.",
     "createClientError": "The client could not be created.",
     "aeatSent": "Record accepted by the AEAT",
     "aeatPending": "Record pending submission to the AEAT",
@@ -370,7 +370,7 @@
       "delivery_note": "Delivery Note",
       "invoice_issued": "Invoice (Issued)",
       "invoice_received": "Invoice (Received)",
-      "quote": "Quote",
+      "quote": "Order",
       "contract": "Contract",
       "payroll": "Payroll",
       "tax": "Tax Document",

@@ -106,7 +106,7 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
           buttons ("Enviar / por / correo") and the row looked broken. */}
       <div className="flex items-start justify-between gap-4 mb-6 print:hidden">
         <Link href={isNote ? "/albaranes" : "/presupuestos"} className="flex items-center gap-1.5 shrink-0 mt-2 text-sm text-muted-foreground hover:text-foreground whitespace-nowrap transition-colors">
-          <ArrowLeft className="w-4 h-4" /> {isNote ? "Albaranes" : "Presupuestos"}
+          <ArrowLeft className="w-4 h-4" /> {isNote ? "Albaranes" : "Pedidos"}
         </Link>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <a href={`/api/quotes/pdf?id=${quote.id}`} className={SECONDARY}>
@@ -163,7 +163,7 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground">{isNote ? "ALBARÁN" : "PRESUPUESTO"}</p>
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground">{isNote ? "ALBARÁN" : "PEDIDO"}</p>
             <p className="text-lg font-bold text-foreground">{quote.full_number ?? "—"}</p>
             <p className="text-xs text-muted-foreground mt-1">Fecha: {quote.issue_date ?? "—"}</p>
             {quote.valid_until && <p className="text-xs text-muted-foreground">Válido hasta: {quote.valid_until}</p>}
@@ -172,7 +172,7 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
         </div>
 
         <div className="mb-6">
-          <p className="text-xs font-semibold tracking-wide text-muted-foreground mb-1">{isNote ? "ALBARÁN PARA" : "PRESUPUESTO PARA"}</p>
+          <p className="text-xs font-semibold tracking-wide text-muted-foreground mb-1">{isNote ? "ALBARÁN PARA" : "PEDIDO PARA"}</p>
           <p className="font-semibold text-foreground">{quote.client_name ?? quote.client?.name ?? "—"}</p>
           <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
             {quote.client_cif && <p>CIF: {quote.client_cif}</p>}
@@ -218,7 +218,7 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
         <p className="text-[10px] text-muted-foreground/70 mt-4">
           {isNote
             ? "Este documento es un albarán de entrega y no tiene validez como factura."
-            : "Este documento es un presupuesto y no tiene validez como factura."}
+            : "Este documento es un pedido y no tiene validez como factura."}
         </p>
       </div>
     </div>

@@ -170,14 +170,14 @@ export function PresupuestosView() {
         }),
       })
       const json = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(json.detail ?? json.error ?? "No se pudo guardar el presupuesto."); setSaving(false); return }
+      if (!res.ok) { setError(json.detail ?? json.error ?? "No se pudo guardar el pedido."); setSaving(false); return }
       await mutate(); setOpen(false); resetForm()
     } catch (e) { setError(String(e)) }
     setSaving(false)
   }
 
   const handleDelete = async (q: Quote) => {
-    if (!confirm("¿Eliminar este presupuesto? Esta acción no se puede deshacer.")) return
+    if (!confirm("¿Eliminar este pedido? Esta acción no se puede deshacer.")) return
     setBusyId(q.id)
     const supabase: any = createClient()
     await supabase.from("quotes").delete().eq("id", q.id)
@@ -189,14 +189,14 @@ export function PresupuestosView() {
       <div className="p-6 sm:p-8 max-w-2xl mx-auto">
         <div className="flex items-center gap-2.5 mb-8">
           <ClipboardList className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-semibold text-foreground">Presupuestos</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Pedidos</h1>
         </div>
         <div className="bg-card border border-border rounded-2xl p-8 text-center">
           <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
             <Lock className="w-6 h-6 text-primary" />
           </div>
           <h2 className="text-lg font-semibold text-foreground mb-1">Función de plan de pago</h2>
-          <p className="text-sm text-muted-foreground mb-6">Crea y envía presupuestos con tu logo, y conviértelos en factura con un clic.</p>
+          <p className="text-sm text-muted-foreground mb-6">Crea y envía pedidos con tu logo, y conviértelos en factura con un clic.</p>
           <Link href="/configuracion/billing" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors">
             Ver planes
           </Link>
@@ -211,13 +211,13 @@ export function PresupuestosView() {
         <div className="flex items-center gap-2.5">
           <ClipboardList className="w-6 h-6 text-primary" />
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Presupuestos</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Crea presupuestos, compártelos y conviértelos en factura.</p>
+            <h1 className="text-2xl font-semibold text-foreground">Pedidos</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Crea pedidos, compártelos y conviértelos en factura.</p>
           </div>
         </div>
         {isOrgAdmin && (
           <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors">
-            <Plus className="w-4 h-4" /> Nuevo presupuesto
+            <Plus className="w-4 h-4" /> Nuevo pedido
           </button>
         )}
       </div>
@@ -229,7 +229,7 @@ export function PresupuestosView() {
         ) : visibleQuotes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center px-6">
             <FileText className="w-10 h-10 text-muted-foreground/30 mb-3" />
-            <p className="text-sm font-medium text-foreground mb-1">Aún no hay presupuestos</p>
+            <p className="text-sm font-medium text-foreground mb-1">Aún no hay pedidos</p>
             <p className="text-xs text-muted-foreground">Crea el primero con el botón de arriba.</p>
           </div>
         ) : (
@@ -269,7 +269,7 @@ export function PresupuestosView() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !saving && setOpen(false)} />
           <div className="relative bg-card border border-border rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-semibold text-foreground">{editId ? "Editar presupuesto" : "Nuevo presupuesto"}</h2>
+              <h2 className="text-lg font-semibold text-foreground">{editId ? "Editar pedido" : "Nuevo pedido"}</h2>
               <button onClick={() => !saving && setOpen(false)} className="p-1.5 rounded-lg hover:bg-muted"><X className="w-4 h-4 text-muted-foreground" /></button>
             </div>
 
@@ -389,7 +389,7 @@ export function PresupuestosView() {
               <button onClick={() => !saving && setOpen(false)} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">Cancelar</button>
               <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardList className="w-4 h-4" />}
-                {editId ? "Guardar cambios" : "Crear presupuesto"}
+                {editId ? "Guardar cambios" : "Crear pedido"}
               </button>
             </div>
           </div>

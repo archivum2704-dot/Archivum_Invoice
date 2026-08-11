@@ -116,7 +116,7 @@
     "users": "Usuarios",
     "settings": "Ajustes",
     "signOut": "Cerrar sesión",
-    "quotes": "Presupuestos",
+    "quotes": "Pedidos",
     "deliveryNotes": "Albaranes"
   },
   "inventory": {
@@ -279,7 +279,7 @@
     "rectifiedBanner": "Factura anulada por la rectificativa {number}",
     "clientEmail": "Correo",
     "clientPhone": "Teléfono",
-    "clientEmailHint": "Necesario para poder enviarle la factura o el presupuesto por correo.",
+    "clientEmailHint": "Necesario para poder enviarle la factura o el pedido por correo.",
     "createClientError": "No se pudo crear el cliente.",
     "aeatSent": "Registro aceptado por la AEAT",
     "aeatPending": "Registro pendiente de envío a la AEAT",
@@ -370,7 +370,7 @@
       "delivery_note": "Albarán",
       "invoice_issued": "Factura Emitida",
       "invoice_received": "Factura Recibida",
-      "quote": "Presupuesto",
+      "quote": "Pedido",
       "contract": "Contrato",
       "payroll": "Nómina",
       "tax": "Documento Fiscal",

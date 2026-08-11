@@ -83,7 +83,7 @@ export async function renderDocument(
   const isNote = q.kind === 'delivery_note'
   const bytes = await buildQuotePdf({
     kind: isNote ? 'delivery_note' : 'quote',
-    fullNumber: q.full_number ?? (isNote ? 'ALBARÁN' : 'PRESUPUESTO'),
+    fullNumber: q.full_number ?? (isNote ? 'ALBARÁN' : 'PEDIDO'),
     issueDate: q.issue_date ?? '',
     validUntil: q.valid_until,
     issuer: { name: q.issuer_name ?? '', cif: q.issuer_cif, address: q.issuer_address, postalCode: q.issuer_postal_code, city: q.issuer_city, province: q.issuer_province, logoUrl: q.issuer_logo_url },
@@ -100,8 +100,8 @@ export async function renderDocument(
   const clientEmail = await lookupClientEmail(db, q.client_company_id)
   return {
     bytes,
-    filename: `${q.full_number ?? (isNote ? 'albaran' : 'presupuesto')}.pdf`,
-    label: isNote ? 'albarán' : 'presupuesto',
+    filename: `${q.full_number ?? (isNote ? 'albaran' : 'pedido')}.pdf`,
+    label: isNote ? 'albarán' : 'pedido',
     fullNumber: q.full_number ?? '',
     total: Number(q.total),
     issueDate: q.issue_date,

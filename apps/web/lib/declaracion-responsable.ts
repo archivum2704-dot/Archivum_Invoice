@@ -125,7 +125,7 @@ export function declaracionResponsable(): DeclaracionResponsable {
         'cotejo y leyenda VERI*FACTU; y remisión a la AEAT con reintento automático y ' +
         'control de flujo.',
         'El sistema incluye además funcionalidades de gestión no reguladas por el ' +
-        'Reglamento: presupuestos, albaranes, inventario y archivo documental.',
+        'Reglamento: pedidos, albaranes, inventario y archivo documental.',
         'Este sistema permite gestionar de forma independiente varias facturaciones dentro ' +
         'de él, cumpliendo separadamente con la normativa mencionada en el apartado 1.k) ' +
         'para cada una de ellas, como si, en la práctica, se tratara de sistemas ' +

@@ -22,10 +22,10 @@ import { Input } from "@/components/ui/input"
 const DOC_TYPE_LABELS: Record<string, string> = {
   invoice_issued:   'Factura emitida',
   invoice_received: 'Factura recibida',
-  order:            'Pedido',
+  order:            'Orden',
   receipt:          'Recibo',
   delivery_note:    'Albarán',
-  quote:            'Presupuesto',
+  quote:            'Pedido',
   contract:         'Contrato',
   payroll:          'Nómina',
   tax:              'Impuesto',
@@ -65,7 +65,7 @@ export function CompanyDashboardView() {
   const stats = [
     { label: "Documentos", value: filteredDocuments.length, icon: FolderOpen, color: "text-primary" },
     { label: "Facturas", value: filteredDocuments.filter(d => d.document_type === 'invoice_issued' || d.document_type === 'invoice_received').length, icon: FileText, color: "text-blue-500" },
-    { label: "Pedidos", value: filteredDocuments.filter(d => d.document_type === 'order').length, icon: Package, color: "text-orange-500" },
+    { label: "Órdenes", value: filteredDocuments.filter(d => d.document_type === 'order').length, icon: Package, color: "text-orange-500" },
     { label: "Recibos", value: filteredDocuments.filter(d => d.document_type === 'receipt').length, icon: Receipt, color: "text-green-500" },
   ]
 
@@ -107,10 +107,10 @@ export function CompanyDashboardView() {
               <option value="all">Todos los tipos</option>
               <option value="invoice_issued">Facturas emitidas</option>
               <option value="invoice_received">Facturas recibidas</option>
-              <option value="order">Pedidos</option>
+              <option value="order">Órdenes</option>
               <option value="receipt">Recibos</option>
               <option value="delivery_note">Albaranes</option>
-              <option value="quote">Presupuestos</option>
+              <option value="quote">Pedidos</option>
               <option value="contract">Contratos</option>
               <option value="payroll">Nóminas</option>
               <option value="other">Otros</option>

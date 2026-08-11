@@ -35,8 +35,8 @@ const LINE = rgb(0.85, 0.86, 0.88)
 /** Builds an A4 PDF of a quote (presupuesto) — same look as an invoice, no Verifactu. */
 export async function buildQuotePdf(data: QuotePdfData): Promise<Uint8Array> {
   // Delivery notes reuse this layout; only the wording changes.
-  const DOC = data.kind === 'delivery_note' ? 'ALBARÁN' : 'PRESUPUESTO'
-  const FOR = data.kind === 'delivery_note' ? 'ALBARÁN PARA' : 'PRESUPUESTO PARA'
+  const DOC = data.kind === 'delivery_note' ? 'ALBARÁN' : 'PEDIDO'
+  const FOR = data.kind === 'delivery_note' ? 'ALBARÁN PARA' : 'PEDIDO PARA'
   const pdf = await PDFDocument.create()
   const page = pdf.addPage([595.28, 841.89])
   const font = await pdf.embedFont(StandardFonts.Helvetica)
@@ -146,7 +146,7 @@ export async function buildQuotePdf(data: QuotePdfData): Promise<Uint8Array> {
 
   // Footer disclaimer (this is a quote, not an invoice)
   text(DOC, M, M + 24, 10, bold, NAVY)
-  text('Este documento es un presupuesto y no tiene validez como factura.', M, M + 12, 8, font, GREY)
+  text('Este documento es un pedido y no tiene validez como factura.', M, M + 12, 8, font, GREY)
 
   return await pdf.save()
 }
