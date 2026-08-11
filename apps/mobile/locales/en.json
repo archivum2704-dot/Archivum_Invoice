@@ -90,7 +90,8 @@
     "errExemptionCause": "Give the exemption reason for the exempt lines.",
     "aeatSent": "Record accepted by the AEAT",
     "aeatPending": "Record pending submission to the AEAT",
-    "aeatError": "The AEAT rejected the record"
+    "aeatError": "The AEAT rejected the record",
+    "aeatRejected": "AEAT · rejected"
   },
   "common": {
     "save": "Save",

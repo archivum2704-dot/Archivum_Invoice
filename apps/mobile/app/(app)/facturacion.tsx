@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, type ReactNode } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   RefreshControl, ActivityIndicator, ScrollView, Alert,
@@ -40,6 +40,18 @@ const qtyOf   = (v: string) => (v.trim() === "" ? 1 : (Number(v) || 0));
 const priceOf = (v: string) => (Number(v) || 0);
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/** El estado va codificado en la forma —franja de color y píldora—, no solo en
+ *  el texto: así un rechazo de la AEAT o una anulación se ven sin leer, y la
+ *  lista sigue siendo legible para quien no distingue bien los colores.
+ *  Definida a nivel de módulo: dentro del componente se remontaría en cada
+ *  render. */
+const Pill = ({ label, color, bg, icon }: { label: string; color: string; bg: string; icon?: ReactNode }) => (
+  <View style={{ backgroundColor: bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, flexDirection: "row", alignItems: "center", gap: 4 }}>
+    {icon}
+    <Text style={{ fontSize: 11, fontWeight: "700", color }}>{label}</Text>
+  </View>
+);
 
 function FacturacionScreenContent() {
   const { t } = useTranslation();
@@ -147,7 +159,10 @@ function FacturacionScreenContent() {
     setIssuing(false);
   };
 
-  const stateColor = (s: string) => s === "issued" ? C.green : s === "cancelled" ? C.red : C.muted;
+  const stateTone = (s: string) =>
+    s === "issued"    ? { color: C.green,  bg: C.greenL }
+    : s === "cancelled" ? { color: C.red,   bg: C.redL }
+    : { color: C.muted, bg: C.segmentBg };
 
   // An issued invoice that has been annulled must not keep reading "Emitida",
   // and its credit note should say what it is. Both are derived from the list
@@ -157,10 +172,14 @@ function FacturacionScreenContent() {
     [invoices],
   );
   const statusOf = (inv: Invoice) => {
-    if (inv.kind === "rectifying") return { label: t("invoicing.states.rectificative"), color: C.yellow };
-    if (rectifiedIds.has(inv.id))  return { label: t("invoicing.states.rectified"),     color: C.red };
-    return { label: t(`invoicing.states.${inv.state}`), color: stateColor(inv.state) };
+    if (inv.kind === "rectifying") return { label: t("invoicing.states.rectificative"), color: C.yellow, bg: C.yellowL };
+    if (rectifiedIds.has(inv.id))  return { label: t("invoicing.states.rectified"),     color: C.red,    bg: C.redL };
+    return { label: t(`invoicing.states.${inv.state}`), ...stateTone(inv.state) };
   };
+  /** La franja lateral resume la fila entera. Un rechazo de la AEAT manda
+   *  sobre el estado: es lo único que exige actuar. */
+  const stripeOf = (inv: Invoice) =>
+    inv.verifactu_status === "error" ? C.red : statusOf(inv).color;
 
   const Header = (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 }}>
@@ -208,27 +227,42 @@ function FacturacionScreenContent() {
           contentContainerStyle={{ padding: 16, gap: 10 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={C.blue} />}
           ListEmptyComponent={<View style={{ alignItems: "center", paddingVertical: 60 }}><Receipt size={40} color={C.muted} /><Text style={{ color: C.muted, marginTop: 12 }}>{t("invoicing.empty")}</Text></View>}
-          renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => router.push(`/(app)/factura/${item.id}`)} style={{ backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: "700", color: C.text }}>{item.full_number ?? "—"}</Text>
-                <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{item.client_name ?? "—"} · {item.issue_date ?? ""}</Text>
-                {/* Un rechazo de la AEAT no puede quedarse solo en el detalle:
-                    quien mira la lista tiene que ver que algo va mal. */}
-                {item.verifactu_status === "error" && (
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 }}>
-                    <AlertTriangle size={12} color={C.red} />
-                    <Text style={{ fontSize: 11, fontWeight: "600", color: C.red }}>{t("invoicing.aeatError")}</Text>
+          renderItem={({ item }) => {
+            const st = statusOf(item);
+            return (
+              <TouchableOpacity
+                onPress={() => router.push(`/(app)/factura/${item.id}`)}
+                style={{ backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, flexDirection: "row", alignItems: "stretch", overflow: "hidden" }}
+              >
+                {/* La franja dice de un vistazo cómo está la factura. El color
+                    nunca es el único indicio: debajo va la misma información
+                    escrita en la píldora. */}
+                <View style={{ width: 4, backgroundColor: stripeOf(item) }} />
+                <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10, padding: 13 }}>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={{ fontSize: 15, fontWeight: "700", color: C.text }}>{item.full_number ?? "—"}</Text>
+                    <Text style={{ fontSize: 12, color: C.muted }}>{item.client_name ?? "—"} · {item.issue_date ?? ""}</Text>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                      <Pill label={st.label} color={st.color} bg={st.bg} />
+                      {/* Un rechazo de la AEAT no puede quedarse solo en el
+                          detalle: quien mira la lista tiene que ver que algo
+                          va mal. */}
+                      {item.verifactu_status === "error" && (
+                        <Pill
+                          label={t("invoicing.aeatRejected")}
+                          color={C.red}
+                          bg={C.redL}
+                          icon={<AlertTriangle size={11} color={C.red} />}
+                        />
+                      )}
+                    </View>
                   </View>
-                )}
-              </View>
-              <View style={{ alignItems: "flex-end" }}>
-                <Text style={{ fontSize: 14, fontWeight: "700", color: C.text }}>{fmtEur(item.total)}</Text>
-                <Text style={{ fontSize: 11, fontWeight: "600", color: statusOf(item).color }}>{statusOf(item).label}</Text>
-              </View>
-              <ChevronRight size={18} color={C.muted} />
-            </TouchableOpacity>
-          )}
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: C.text }}>{fmtEur(item.total)}</Text>
+                  <ChevronRight size={18} color={C.muted} />
+                </View>
+              </TouchableOpacity>
+            );
+          }}
         />
       )}
 

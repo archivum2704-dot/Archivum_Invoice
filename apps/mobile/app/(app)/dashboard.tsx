@@ -240,49 +240,30 @@ export default function DashboardScreen() {
           ))}
         </View>
 
-        {/* Quick access — paid features */}
+        {/* Acceso rápido — funciones de pago.
+            El orden es el mismo que el del panel lateral de la web, que a su
+            vez sigue el flujo real: inventario → pedido → albarán → factura.
+            Si cambia en un sitio, tiene que cambiar en el otro. */}
         {paidFeatures && (
           <View style={{ paddingHorizontal: 16, marginTop: 14, gap: 10 }}>
-            <TouchableOpacity
-              onPress={() => router.push("/(app)/inventario")}
-              style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14 }}
-            >
-              <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
-                <Package size={18} color={C.blue} />
-              </View>
-              <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: C.text }}>{t("inventory.title")}</Text>
-              <ChevronRight size={18} color={C.muted} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push("/(app)/facturacion")}
-              style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14 }}
-            >
-              <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
-                <Receipt size={18} color={C.blue} />
-              </View>
-              <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: C.text }}>{t("invoicing.title")}</Text>
-              <ChevronRight size={18} color={C.muted} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push("/(app)/presupuestos")}
-              style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14 }}
-            >
-              <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
-                <ClipboardList size={18} color={C.blue} />
-              </View>
-              <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: C.text }}>{t("quoting.title")}</Text>
-              <ChevronRight size={18} color={C.muted} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push("/(app)/albaranes")}
-              style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14 }}
-            >
-              <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
-                <Truck size={18} color={C.blue} />
-              </View>
-              <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: C.text }}>{t("delivery.title")}</Text>
-              <ChevronRight size={18} color={C.muted} />
-            </TouchableOpacity>
+            {([
+              { href: "/(app)/inventario",   icon: Package,       label: t("inventory.title") },
+              { href: "/(app)/presupuestos", icon: ClipboardList, label: t("quoting.title") },
+              { href: "/(app)/albaranes",    icon: Truck,         label: t("delivery.title") },
+              { href: "/(app)/facturacion",  icon: Receipt,       label: t("invoicing.title") },
+            ] as const).map(({ href, icon: Icon, label }) => (
+              <TouchableOpacity
+                key={href}
+                onPress={() => router.push(href as never)}
+                style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14 }}
+              >
+                <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
+                  <Icon size={18} color={C.blue} />
+                </View>
+                <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: C.text }}>{label}</Text>
+                <ChevronRight size={18} color={C.muted} />
+              </TouchableOpacity>
+            ))}
           </View>
         )}
 

@@ -90,7 +90,8 @@
     "errExemptionCause": "Indica el motivo de exención de las líneas exentas.",
     "aeatSent": "Registro aceptado por la AEAT",
     "aeatPending": "Registro pendiente de envío a la AEAT",
-    "aeatError": "La AEAT rechazó el registro"
+    "aeatError": "La AEAT rechazó el registro",
+    "aeatRejected": "AEAT · rechazada"
   },
   "common": {
     "save": "Guardar",

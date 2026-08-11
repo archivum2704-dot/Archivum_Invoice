@@ -82,18 +82,21 @@ export default function AppLayout() {
           tabBarIcon: tabIcon("dashboard", Home),
         }}
       />
-      <Tabs.Screen
-        name="biblioteca"
-        options={{
-          title: t("tabs.library"),
-          tabBarIcon: tabIcon("biblioteca", BookOpen),
-        }}
-      />
+      {/* El orden es el del panel lateral de la web (inicio · buscar ·
+          biblioteca · empresas · … · equipo · ajustes). Quien usa las dos
+          no debería tener que reaprender dónde está cada cosa. */}
       <Tabs.Screen
         name="buscar"
         options={{
           title: t("tabs.search"),
           tabBarIcon: tabIcon("buscar", Search),
+        }}
+      />
+      <Tabs.Screen
+        name="biblioteca"
+        options={{
+          title: t("tabs.library"),
+          tabBarIcon: tabIcon("biblioteca", BookOpen),
         }}
       />
       <Tabs.Screen
