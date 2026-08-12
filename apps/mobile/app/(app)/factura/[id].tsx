@@ -16,6 +16,7 @@ import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
 import { Card, Button } from "@/components/ui";
+import { formatMoney, needsExchangeRate, toEur } from "@/lib/currency";
 
 
 interface Invoice {
@@ -24,6 +25,7 @@ interface Invoice {
   client_name: string | null; client_cif: string | null;
   subtotal: number; discount_pct: number | null; discount_amount: number;
   tax_amount: number; retention_pct: number | null; retention_amount: number; total: number;
+  currency: string; exchange_rate: number | null;
   huella: string | null; qr_url: string | null;
   rectifies_invoice_id: string | null;
   // Si el registro llegó o no a la AEAT. Sin esto la leyenda VERI*FACTU
@@ -57,7 +59,7 @@ export default function FacturaDetailScreen() {
     setTimeout(() => setHuellaCopied(false), 1800);
   };
 
-  const fmtEur = (n: number) => `${Number(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+  const fmtEur = (n: number) => formatMoney(Number(n) || 0, invoice?.currency ?? "EUR");
 
   const load = async () => {
     const { data: inv } = await supabase.from("invoices").select("*").eq("id", id).single();
@@ -160,6 +162,11 @@ export default function FacturaDetailScreen() {
           <Row label={t("invoicing.iva")} value={fmtEur(invoice.tax_amount)} C={C} />
           {Number(invoice.retention_amount) !== 0 && <Row label={`${t("invoicing.retention")} (${Number(invoice.retention_pct) || 0}%)`} value={`−${fmtEur(invoice.retention_amount)}`} C={C} />}
           <Row label={t("invoicing.total")} value={fmtEur(invoice.total)} C={C} bold />
+          {needsExchangeRate(invoice.currency) && invoice.exchange_rate != null && (
+            <Text style={{ fontFamily: fonts.regular, fontSize: 10, color: C.muted, textAlign: "right" }}>
+              1 {invoice.currency} = {Number(invoice.exchange_rate).toFixed(4).replace(".", ",")} € · {formatMoney(toEur(Number(invoice.total), invoice.currency, invoice.exchange_rate), "EUR")}
+            </Text>
+          )}
         </Card>
 
         {/* Verifactu block. Igual que en web: sin huella no hay registro que

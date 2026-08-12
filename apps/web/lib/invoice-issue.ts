@@ -6,6 +6,7 @@ import { buildInvoicePdf } from '@/lib/invoice-pdf'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { insertChainedInvoice } from '@/lib/invoice-chain'
+import { DEFAULT_CURRENCY, isValidCurrency, needsExchangeRate, toEur } from '@/lib/currency'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
@@ -32,6 +33,10 @@ export interface IssueInvoiceInput {
   retentionPct?: number
   discountPct?: number
   lines: IssueLineInput[]
+  /** ISO 4217. Por defecto EUR. */
+  currency?: string | null
+  /** Euros por 1 unidad de `currency`. Obligatorio cuando currency ≠ EUR. */
+  exchangeRate?: number | null
 }
 
 export class IssueError extends Error {
@@ -62,6 +67,14 @@ export async function issueInvoice(
 
   if (!orgId) throw new IssueError('missing_org', 400)
   if (!Array.isArray(lines) || lines.length === 0) throw new IssueError('no_lines', 400)
+
+  const currency = (input.currency || DEFAULT_CURRENCY).toUpperCase()
+  if (!isValidCurrency(currency)) throw new IssueError('unsupported_currency', 422)
+  const exchangeRate = needsExchangeRate(currency) ? Number(input.exchangeRate) || 0 : null
+  if (needsExchangeRate(currency) && !(exchangeRate! > 0)) {
+    throw new IssueError('exchange_rate_required', 422,
+      `Falta el tipo de cambio a euros para facturar en ${currency}.`)
+  }
 
   const { data: org } = await supabase
     .from('organizations')
@@ -133,6 +146,7 @@ export async function issueInvoice(
     series, number, full_number: fullNumber,
     kind, state: 'draft',
     issue_date: issueDate, operation_date: operationDate || issueDate, due_date: dueDate || null,
+    currency, exchange_rate: exchangeRate,
     subtotal, discount_pct: discPct || null, discount_amount: discountAmount,
     tax_amount: taxAmount, total,
     retention_pct: retPct || null, retention_amount: retentionAmount,
@@ -153,14 +167,19 @@ export async function issueInvoice(
   // remite nada a la AEAT. La factura sigue siendo una factura, con su
   // numeración correlativa y su misma inalterabilidad.
   const obligado = org.verifactu_obligado !== false
-  const qrUrl = obligado ? buildQrUrl(org.cif!.trim(), fullNumber, issueDate, total) : null
+  // El registro de alta, la huella y el QR de cotejo van siempre en euros: el
+  // esquema de VeriFactu no tiene campo de moneda. La factura en sí (fila,
+  // líneas, PDF) se queda en la moneda elegida; solo esto se convierte.
+  const eurTaxAmount = toEur(taxAmount, currency, exchangeRate)
+  const eurTotal = toEur(total, currency, exchangeRate)
+  const qrUrl = obligado ? buildQrUrl(org.cif!.trim(), fullNumber, issueDate, eurTotal) : null
   let huella = ''
 
   const chained = obligado
     ? await insertChainedInvoice(supabase, orgId, ({ previousHuella, generatedAt }) => {
     const registroInput = {
       issuerNif: org.cif!.trim(), fullNumber, issueDate, kind: kind as InvoiceKind,
-      cuotaTotal: taxAmount, importeTotal: total, previousHuella, generatedAt,
+      cuotaTotal: eurTaxAmount, importeTotal: eurTotal, previousHuella, generatedAt,
     }
     huella = computeHuella(registroInput)
     const registroAlta = buildRegistroAlta({
@@ -174,7 +193,7 @@ export async function issueInvoice(
       claveRegimen: org.verifactu_clave_regimen,
       lines: computedLines.map(l => ({
         description: l.description, taxRate: l.tax_rate,
-        base: l.line_subtotal, cuota: l.line_tax,
+        base: toEur(l.line_subtotal, currency, exchangeRate), cuota: toEur(l.line_tax, currency, exchangeRate),
         exemptionCause: l.exemption_cause,
       })),
     })
@@ -238,6 +257,7 @@ export async function issueInvoice(
       client: { name: client.name, cif: client.cif, address: client.address, postalCode: client.postal_code, city: client.city, province: client.province },
       lines: computedLines.map(l => ({ description: l.description, quantity: l.quantity, unit_price: l.unit_price, tax_rate: l.tax_rate, line_total: l.line_total })),
       subtotal, discountPct: discPct, discountAmount, taxAmount, retentionPct: retPct, retentionAmount, total,
+      currency, exchangeRate,
       notes: notes?.trim() || null,
       huella: obligado ? huella : null, qrUrl: obligado ? qrUrl : null,
     })
@@ -246,10 +266,15 @@ export async function issueInvoice(
       .from('documents').upload(storagePath, pdfBytes, { contentType: 'application/pdf', upsert: true })
     if (upErr) throw new Error(`storage upload failed: ${upErr.message}`)
     {
+      // La Biblioteca y el dashboard suman `documents.total` entre facturas de
+      // distinta moneda como si todas fueran euros, así que aquí se guarda
+      // siempre el equivalente en euros — no lo que ve el cliente — para que
+      // esas sumas sigan siendo correctas. El importe en la moneda original
+      // vive en `invoices.total` y es lo que se ve en el PDF.
       const { data: doc, error: docErr } = await archiver.from('documents').insert({
         organization_id: orgId, company_id: clientCompanyId, uploaded_by: userId,
         document_number: fullNumber, document_type: 'invoice_issued', status: 'pending',
-        total, currency: 'EUR', issue_date: issueDate,
+        total: eurTotal, currency: 'EUR', issue_date: issueDate,
         file_url: storagePath, file_name: `${fullNumber}.pdf`, file_size: pdfBytes.length, file_type: 'application/pdf',
       }).select('id').single()
       if (docErr) throw new Error(`library entry failed: ${docErr.message}`)

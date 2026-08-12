@@ -13,6 +13,7 @@ import { isPaidPlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { SendEmailButton } from "@/components/send-email-button"
 import type { Database } from "@/lib/supabase/types"
+import { formatMoney, needsExchangeRate, toEur } from "@/lib/currency"
 
 type Invoice = Database["public"]["Tables"]["invoices"]["Row"]
 type Line = Database["public"]["Tables"]["invoice_lines"]["Row"]
@@ -87,7 +88,7 @@ export function FacturaEmitidaView({ id }: { id: string }) {
     }
   }, [invoice?.qr_url])
 
-  const fmtEur = (n: number) => `${Number(n).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+  const fmtEur = (n: number) => formatMoney(Number(n) || 0, invoice?.currency ?? "EUR")
 
   if (isLoading) return <div className="p-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
   if (!invoice) return <div className="p-8 text-sm text-muted-foreground">{t("notFound")}</div>
@@ -204,6 +205,11 @@ export function FacturaEmitidaView({ id }: { id: string }) {
               <div className="flex justify-between text-muted-foreground"><span>{t("retention")} ({Number(invoice.retention_pct) || 0}%)</span><span>−{fmtEur(invoice.retention_amount)}</span></div>
             )}
             <div className="flex justify-between font-bold text-foreground text-base border-t border-border pt-1"><span>{t("total")}</span><span>{fmtEur(invoice.total)}</span></div>
+            {needsExchangeRate(invoice.currency) && (invoice as any).exchange_rate != null && (
+              <p className="text-[11px] text-muted-foreground pt-1 text-right">
+                1 {invoice.currency} = {Number((invoice as any).exchange_rate).toFixed(4).replace(".", ",")} € · {formatMoney(toEur(Number(invoice.total), invoice.currency, (invoice as any).exchange_rate), "EUR")}
+              </p>
+            )}
           </div>
         </div>
 

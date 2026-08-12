@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { renderDocument } from '@/lib/document-render'
+import { toEur } from '@/lib/currency'
 
 /**
  * Archive a quote or a delivery note in the Biblioteca.
@@ -25,7 +26,7 @@ export async function archiveQuoteToLibrary(
   const db = archiver as any
   try {
     const { data: q } = await db.from('quotes')
-      .select('id, kind, full_number, issue_date, total, client_company_id')
+      .select('id, kind, full_number, issue_date, total, client_company_id, currency, exchange_rate')
       .eq('id', args.quoteId).single()
     if (!q) return false
 
@@ -52,7 +53,10 @@ export async function archiveQuoteToLibrary(
       company_id: q.client_company_id || null,
       document_number: q.full_number,
       document_type: isNote ? 'delivery_note' : 'quote',
-      total: q.total,
+      // Equivalente en euros, no el importe en la moneda del pedido: la
+      // Biblioteca y el dashboard suman `documents.total` entre distintas
+      // monedas como si todas fueran la misma.
+      total: toEur(q.total, q.currency ?? 'EUR', q.exchange_rate),
       currency: 'EUR',
       issue_date: q.issue_date || null,
       file_url: storagePath,

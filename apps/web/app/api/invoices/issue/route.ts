@@ -21,6 +21,8 @@ export async function POST(req: NextRequest) {
       retentionPct: body.retentionPct,
       discountPct: body.discountPct,
       lines: body.lines,
+      currency: body.currency,
+      exchangeRate: body.exchangeRate,
     })
 
     return NextResponse.json({ success: true, id, fullNumber })

@@ -17,6 +17,7 @@ import { useProducts, type Product } from "@/lib/hooks/use-products"
 import { isPaidPlan } from "@/lib/plan"
 import { NewClientModal } from "@/components/new-client-modal"
 import { EXEMPTION_CAUSES } from "@/lib/exemption-causes"
+import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/lib/currency"
 
 type Line = {
   productId: string | null
@@ -99,6 +100,8 @@ export function FacturacionView() {
   const [notes, setNotes] = useState("")
   const [retentionPct, setRetentionPct] = useState("")
   const [discountPct, setDiscountPct] = useState("")
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY)
+  const [exchangeRate, setExchangeRate] = useState("")
   const [lines, setLines] = useState<Line[]>([emptyLine()])
   const [issuing, setIssuing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -112,7 +115,6 @@ export function FacturacionView() {
     setClientId(id)
   }
 
-  const fmtEur = (n: number) => `${n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
   const canManage = isOrgAdmin && paid
 
   const selectedClient = companies.find(c => c.id === clientId)
@@ -208,13 +210,18 @@ export function FacturacionView() {
     if (lines.some(l => l.taxRate === "" && l.description.trim() && !l.exemptionCause)) {
       return t("errors.exemptionCause")
     }
+    if (needsExchangeRate(currency) && !(Number(exchangeRate) > 0)) {
+      return t("errors.exchangeRateRequired", { currency })
+    }
     return null
-  }, [issuerHasCif, clientId, selectedClient, issueDate, lines, t])
+  }, [issuerHasCif, clientId, selectedClient, issueDate, lines, currency, exchangeRate, t])
 
   const resetForm = () => {
     setClientId(""); setClientQuery(""); setClientListOpen(false)
     setSeries("FAC"); setIssueDate(new Date().toISOString().slice(0, 10))
-    setKind("ordinary"); setNotes(""); setRetentionPct(""); setDiscountPct(""); setLines([emptyLine()]); setError(null)
+    setKind("ordinary"); setNotes(""); setRetentionPct(""); setDiscountPct("")
+    setCurrency(DEFAULT_CURRENCY); setExchangeRate("")
+    setLines([emptyLine()]); setError(null)
   }
 
   const setLine = (i: number, patch: Partial<Line>) =>
@@ -244,6 +251,7 @@ export function FacturacionView() {
           series, kind, issueDate, notes,
           retentionPct: Number(retentionPct) || 0,
           discountPct: Number(discountPct) || 0,
+          currency, exchangeRate: needsExchangeRate(currency) ? Number(exchangeRate) || null : null,
           lines: lines.filter(l => l.description.trim()).map(l => ({
             productId: l.productId,
             description: l.description,
@@ -287,6 +295,7 @@ export function FacturacionView() {
         series, kind, issueDate, notes,
         retentionPct: Number(retentionPct) || 0,
         discountPct: Number(discountPct) || 0,
+        currency, exchangeRate: needsExchangeRate(currency) ? Number(exchangeRate) || null : null,
         lines: lines.filter(l => l.description.trim()).map(l => ({
           productId: l.productId,
           description: l.description,
@@ -531,7 +540,7 @@ export function FacturacionView() {
                           const st = invoiceStatus(inv, rectifiedIds)
                           return <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium hidden sm:block", st.style)}>{t(`states.${st.key}`)}</span>
                         })()}
-                        <span className="text-sm font-semibold text-foreground text-right w-28">{fmtEur(Number(inv.total))}</span>
+                        <span className="text-sm font-semibold text-foreground text-right w-28">{formatMoney(Number(inv.total), inv.currency)}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0 group-hover:translate-x-0.5 transition-transform" />
                       </Link>
                     ))}
@@ -640,6 +649,18 @@ export function FacturacionView() {
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">%</span>
                 </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">{t("currency")}</label>
+                <select value={currency} onChange={e => { setCurrency(e.target.value); setExchangeRate("") }} className={inputCls}>
+                  {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.label}</option>)}
+                </select>
+              </div>
+              {needsExchangeRate(currency) && (
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">{t("exchangeRate", { currency })}</label>
+                  <input type="number" min={0} step="0.0001" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} placeholder="0,93" className={inputCls} />
+                </div>
+              )}
             </div>
 
             {/* Lines */}
@@ -708,15 +729,15 @@ export function FacturacionView() {
 
             {/* Totals */}
             <div className="border-t border-border pt-3 space-y-1 text-sm">
-              <div className="flex justify-between text-muted-foreground"><span>{t("subtotal")}</span><span>{fmtEur(totals.subtotal)}</span></div>
+              <div className="flex justify-between text-muted-foreground"><span>{t("subtotal")}</span><span>{formatMoney(totals.subtotal, currency)}</span></div>
               {totals.discount > 0 && (
-                <div className="flex justify-between text-muted-foreground"><span>{t("discount")} ({discountPct}%)</span><span>−{fmtEur(totals.discount)}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>{t("discount")} ({discountPct}%)</span><span>−{formatMoney(totals.discount, currency)}</span></div>
               )}
-              <div className="flex justify-between text-muted-foreground"><span>{t("tax")}</span><span>{fmtEur(totals.tax)}</span></div>
+              <div className="flex justify-between text-muted-foreground"><span>{t("tax")}</span><span>{formatMoney(totals.tax, currency)}</span></div>
               {totals.retention > 0 && (
-                <div className="flex justify-between text-muted-foreground"><span>{t("retention")} ({retentionPct}%)</span><span>−{fmtEur(totals.retention)}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>{t("retention")} ({retentionPct}%)</span><span>−{formatMoney(totals.retention, currency)}</span></div>
               )}
-              <div className="flex justify-between font-bold text-foreground text-base"><span>{t("total")}</span><span>{fmtEur(totals.total)}</span></div>
+              <div className="flex justify-between font-bold text-foreground text-base"><span>{t("total")}</span><span>{formatMoney(totals.total, currency)}</span></div>
             </div>
 
             {(error || validationError) && (

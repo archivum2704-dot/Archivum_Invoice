@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     const { data: quote } = await supabase
       .from('quotes')
-      .select('id, organization_id, client_company_id, notes, retention_pct, discount_pct, status, kind, source_quote_id, converted_invoice_id')
+      .select('id, organization_id, client_company_id, notes, retention_pct, discount_pct, status, kind, source_quote_id, converted_invoice_id, currency, exchange_rate')
       .eq('id', quoteId).single()
     if (!quote) return NextResponse.json({ error: 'quote_not_found' }, { status: 404 })
     if (quote.status === 'converted' && quote.converted_invoice_id) {
@@ -45,6 +45,8 @@ export async function POST(req: NextRequest) {
       notes: quote.notes,
       retentionPct: Number(quote.retention_pct) || 0,
       discountPct: Number(quote.discount_pct) || 0,
+      currency: quote.currency,
+      exchangeRate: quote.exchange_rate,
       lines: lines.map((l: any) => ({
         productId: l.product_id,
         description: l.description,

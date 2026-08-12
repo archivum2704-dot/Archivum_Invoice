@@ -13,6 +13,7 @@ import { SendEmailButton } from "@/components/SendEmailButton";
 import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
 import { Card, Button, Badge, type BadgeTone } from "@/components/ui";
+import { formatMoney, needsExchangeRate, toEur } from "@/lib/currency";
 
 interface Quote {
   id: string; full_number: string | null; issue_date: string | null; valid_until: string | null; status: string;
@@ -22,6 +23,7 @@ interface Quote {
   tax_amount: number; retention_pct: number | null; retention_amount: number; total: number;
   notes: string | null; converted_invoice_id: string | null;
   kind: string; source_quote_id: string | null;
+  currency: string; exchange_rate: number | null;
 }
 interface Line { id: string; description: string; quantity: number; unit_price: number; line_total: number; }
 
@@ -43,7 +45,7 @@ export default function PresupuestoDetailScreen() {
   const [clientEmail, setClientEmail] = useState<string | null>(null);
   const isNote = quote?.kind === "delivery_note";
 
-  const fmtEur = (n: number) => `${Number(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+  const fmtEur = (n: number) => formatMoney(Number(n) || 0, quote?.currency ?? "EUR");
 
   useEffect(() => {
     (async () => {
@@ -161,6 +163,11 @@ export default function PresupuestoDetailScreen() {
           <Row label={t("invoicing.iva")} value={fmtEur(quote.tax_amount)} C={C} />
           {Number(quote.retention_amount) !== 0 && <Row label={`${t("invoicing.retention")} (${Number(quote.retention_pct) || 0}%)`} value={`−${fmtEur(quote.retention_amount)}`} C={C} />}
           <Row label={t("invoicing.total")} value={fmtEur(quote.total)} C={C} bold />
+          {needsExchangeRate(quote.currency) && quote.exchange_rate != null && (
+            <Text style={{ fontFamily: fonts.regular, fontSize: 10, color: C.muted, textAlign: "right" }}>
+              1 {quote.currency} = {Number(quote.exchange_rate).toFixed(4).replace(".", ",")} € · {formatMoney(toEur(Number(quote.total), quote.currency, quote.exchange_rate), "EUR")}
+            </Text>
+          )}
 
           {!!quote.notes && (
             <>

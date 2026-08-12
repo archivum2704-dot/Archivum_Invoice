@@ -16,6 +16,7 @@ import { isPaidPlan } from "@/lib/plan"
 import { NewClientModal } from "@/components/new-client-modal"
 import { EXEMPTION_CAUSES } from "@/lib/exemption-causes"
 import { createClient } from "@/lib/supabase/client"
+import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/lib/currency"
 
 type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string; exemptionCause: string }
 const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1", unitPrice: "0", taxRate: "21", exemptionCause: "" })
@@ -34,8 +35,6 @@ const STATUS_STYLE: Record<string, string> = {
   converted: "bg-accent/10 text-accent",
 }
 
-const fmtEur = (n: number) => `${(n ?? 0).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
-
 export function PresupuestosView() {
   const router = useRouter()
   const { currentOrg, isOrgAdmin, isPlatformAdmin } = useOrganization()
@@ -53,6 +52,8 @@ export function PresupuestosView() {
   const [validUntil, setValidUntil] = useState("")
   const [discountPct, setDiscountPct] = useState("")
   const [retentionPct, setRetentionPct] = useState("")
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY)
+  const [exchangeRate, setExchangeRate] = useState("")
   const [notes, setNotes] = useState("")
   const [lines, setLines] = useState<Line[]>([emptyLine()])
   const [saving, setSaving] = useState(false)
@@ -122,7 +123,9 @@ export function PresupuestosView() {
 
   const resetForm = () => {
     setEditId(null); setClientId(""); setIssueDate(new Date().toISOString().slice(0, 10))
-    setValidUntil(""); setDiscountPct(""); setRetentionPct(""); setNotes(""); setLines([emptyLine()]); setError(null)
+    setValidUntil(""); setDiscountPct(""); setRetentionPct("")
+    setCurrency(DEFAULT_CURRENCY); setExchangeRate("")
+    setNotes(""); setLines([emptyLine()]); setError(null)
   }
 
   const openNew = () => { resetForm(); setOpen(true) }
@@ -137,6 +140,8 @@ export function PresupuestosView() {
     setValidUntil(q.valid_until ?? "")
     setDiscountPct(q.discount_pct != null ? String(q.discount_pct) : "")
     setRetentionPct(q.retention_pct != null ? String(q.retention_pct) : "")
+    setCurrency(q.currency ?? DEFAULT_CURRENCY)
+    setExchangeRate(q.exchange_rate != null ? String(q.exchange_rate) : "")
     setNotes(q.notes ?? "")
     setLines(data.lines.length ? data.lines.map(l => ({
       productId: l.product_id, description: l.description,
@@ -154,6 +159,9 @@ export function PresupuestosView() {
     if (lines.some(l => l.taxRate === "" && l.description.trim() && !l.exemptionCause)) {
       setError("Indica la causa de exención de las líneas exentas."); return
     }
+    if (needsExchangeRate(currency) && !(Number(exchangeRate) > 0)) {
+      setError(`Indica el tipo de cambio a euros para facturar en ${currency}.`); return
+    }
     setSaving(true); setError(null)
     try {
       const res = await fetch("/api/quotes", {
@@ -162,6 +170,7 @@ export function PresupuestosView() {
           id: editId, orgId: currentOrg.id, clientCompanyId: clientId, status: "sent",
           issueDate, validUntil: validUntil || null, notes,
           discountPct: Number(discountPct) || 0, retentionPct: Number(retentionPct) || 0,
+          currency, exchangeRate: needsExchangeRate(currency) ? Number(exchangeRate) || null : null,
           lines: lines.filter(l => l.description.trim()).map(l => ({
             productId: l.productId, description: l.description,
             quantity: Number(l.quantity) || 0, unitPrice: Number(l.unitPrice) || 0, taxRate: Number(l.taxRate) || 0,
@@ -240,7 +249,7 @@ export function PresupuestosView() {
                   <p className="text-sm font-semibold text-foreground truncate hover:text-accent">{q.full_number ?? "—"}</p>
                   <p className="text-xs text-muted-foreground truncate">{q.client?.name ?? q.client_name ?? "—"} · {q.issue_date ?? ""}</p>
                 </Link>
-                <span className="hidden sm:block text-sm font-semibold text-foreground tabular-nums w-28 text-right">{fmtEur(Number(q.total))}</span>
+                <span className="hidden sm:block text-sm font-semibold text-foreground tabular-nums w-28 text-right">{formatMoney(Number(q.total), q.currency)}</span>
                 <span className={cn("text-xs px-2.5 py-1 rounded-full font-medium shrink-0", STATUS_STYLE[q.status])}>{STATUS_LABEL[q.status]}</span>
                 <div className="flex items-center gap-1 shrink-0">
                   <a href={`/api/quotes/pdf?id=${q.id}`} title="Descargar PDF" className="p-1.5 rounded hover:bg-muted transition-colors">
@@ -305,6 +314,18 @@ export function PresupuestosView() {
                   {RETENTION_RATES.map(r => <option key={r} value={r}>{r === "" ? "Sin retención" : `${r}%`}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Moneda</label>
+                <select value={currency} onChange={e => { setCurrency(e.target.value); setExchangeRate("") }} className={inputCls}>
+                  {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.label}</option>)}
+                </select>
+              </div>
+              {needsExchangeRate(currency) && (
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Tipo de cambio (1 {currency} = ? €)</label>
+                  <input type="number" min={0} step="0.0001" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} placeholder="0,93" className={inputCls} />
+                </div>
+              )}
             </div>
 
             {/* Lines */}
@@ -371,11 +392,11 @@ export function PresupuestosView() {
 
             {/* Totals */}
             <div className="border-t border-border pt-3 space-y-1 text-sm">
-              <div className="flex justify-between text-muted-foreground"><span>Base imponible</span><span>{fmtEur(totals.subtotal)}</span></div>
-              {totals.discountAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>Descuento ({discountPct}%)</span><span>−{fmtEur(totals.discountAmount)}</span></div>}
-              <div className="flex justify-between text-muted-foreground"><span>IVA</span><span>{fmtEur(totals.tax)}</span></div>
-              {totals.retention > 0 && <div className="flex justify-between text-muted-foreground"><span>Retención ({retentionPct}%)</span><span>−{fmtEur(totals.retention)}</span></div>}
-              <div className="flex justify-between font-bold text-foreground text-base"><span>Total</span><span>{fmtEur(totals.total)}</span></div>
+              <div className="flex justify-between text-muted-foreground"><span>Base imponible</span><span>{formatMoney(totals.subtotal, currency)}</span></div>
+              {totals.discountAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>Descuento ({discountPct}%)</span><span>−{formatMoney(totals.discountAmount, currency)}</span></div>}
+              <div className="flex justify-between text-muted-foreground"><span>IVA</span><span>{formatMoney(totals.tax, currency)}</span></div>
+              {totals.retention > 0 && <div className="flex justify-between text-muted-foreground"><span>Retención ({retentionPct}%)</span><span>−{formatMoney(totals.retention, currency)}</span></div>}
+              <div className="flex justify-between font-bold text-foreground text-base"><span>Total</span><span>{formatMoney(totals.total, currency)}</span></div>
             </div>
 
             <div className="mt-4">

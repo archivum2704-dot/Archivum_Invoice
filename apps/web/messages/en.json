@@ -242,7 +242,8 @@
       "issue_date_required": "Issue date is required.",
       "client_required": "Select a client.",
       "no_lines": "Add at least one line with a description.",
-      "exemptionCause": "Give the exemption reason for the exempt lines."
+      "exemptionCause": "Give the exemption reason for the exempt lines.",
+      "exchangeRateRequired": "Give the exchange rate to euros to invoice in {currency}."
     },
     "paywallTitle": "Invoicing is a paid feature",
     "paywallBody": "Issue Verifactu-compliant digital invoices by upgrading to a paid plan. The free version does not include invoicing.",
@@ -276,6 +277,8 @@
     "numberTo": "To",
     "discount": "Discount",
     "noDiscount": "No discount",
+    "currency": "Currency",
+    "exchangeRate": "Exchange rate (1 {currency} = ? EUR)",
     "rectifiedBanner": "Cancelled by credit note {number}",
     "clientEmail": "Email",
     "clientPhone": "Phone",

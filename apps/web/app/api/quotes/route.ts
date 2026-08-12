@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getApiClient } from '@/lib/supabase/api-auth'
 import { archiveQuoteToLibrary } from '@/lib/quote-archive'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
+import { DEFAULT_CURRENCY, isValidCurrency, needsExchangeRate } from '@/lib/currency'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
@@ -31,6 +32,13 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authErr } = await supabase.auth.getUser()
     if (authErr || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
     if (!orgId) return NextResponse.json({ error: 'missing_org' }, { status: 400 })
+
+    const currency = (body.currency || DEFAULT_CURRENCY).toUpperCase()
+    if (!isValidCurrency(currency)) return NextResponse.json({ error: 'unsupported_currency' }, { status: 422 })
+    const exchangeRate = needsExchangeRate(currency) ? Number(body.exchangeRate) || 0 : null
+    if (needsExchangeRate(currency) && !(exchangeRate! > 0)) {
+      return NextResponse.json({ error: 'exchange_rate_required' }, { status: 422 })
+    }
 
     const finalize = status === 'sent' || status === 'accepted'
     const validLines = (Array.isArray(lines) ? lines : []).filter(l => l?.description?.trim())
@@ -108,6 +116,7 @@ export async function POST(req: NextRequest) {
       organization_id: orgId, client_company_id: clientCompanyId || null,
       series, number, full_number: fullNumber, status,
       issue_date: issueDate || null, valid_until: validUntil || null,
+      currency, exchange_rate: exchangeRate,
       subtotal, discount_pct: discPct || null, discount_amount: discountAmount,
       tax_amount: taxAmount, retention_pct: retPct || null, retention_amount: retentionAmount, total,
       issuer_name: org?.name ?? null, issuer_cif: org?.cif ?? null, issuer_address: org?.address ?? null,

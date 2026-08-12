@@ -8,8 +8,7 @@ import { cn } from "@/lib/utils"
 import { fetchQuoteWithLines, type Quote, type QuoteLine } from "@/lib/hooks/use-quotes"
 import { createClient } from "@/lib/supabase/client"
 import { SendEmailButton } from "@/components/send-email-button"
-
-const fmtEur = (n: number) => `${(n ?? 0).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+import { formatMoney, needsExchangeRate, toEur } from "@/lib/currency"
 
 // Toolbar buttons. whitespace-nowrap is the point: the row wraps between
 // buttons, never inside a label.
@@ -97,6 +96,8 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
       <Link href="/presupuestos" className="text-sm text-primary hover:underline">Volver</Link>
     </div>
   )
+
+  const fmtEur = (n: number) => formatMoney(Number(n) || 0, quote.currency)
 
   return (
     <div className="p-6 sm:p-8 max-w-3xl mx-auto">
@@ -212,6 +213,11 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
           <div className="flex justify-between text-muted-foreground"><span>IVA</span><span className="tabular-nums">{fmtEur(Number(quote.tax_amount))}</span></div>
           {Number(quote.retention_amount) > 0 && <div className="flex justify-between text-muted-foreground"><span>Retención ({quote.retention_pct}%)</span><span className="tabular-nums">−{fmtEur(Number(quote.retention_amount))}</span></div>}
           <div className="flex justify-between font-bold text-foreground text-base pt-1 border-t border-border"><span>TOTAL</span><span className="tabular-nums">{fmtEur(Number(quote.total))}</span></div>
+          {needsExchangeRate(quote.currency) && quote.exchange_rate != null && (
+            <p className="text-[11px] text-muted-foreground pt-1">
+              Tipo de cambio: 1 {quote.currency} = {quote.exchange_rate.toFixed(4).replace(".", ",")} € · Equivalente: {formatMoney(toEur(Number(quote.total), quote.currency, quote.exchange_rate), "EUR")}
+            </p>
+          )}
         </div>
 
         {quote.notes && <p className="text-xs text-muted-foreground mt-6 pt-4 border-t border-border">{quote.notes}</p>}
