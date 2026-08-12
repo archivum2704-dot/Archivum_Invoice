@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
+import { timingSafeEqual } from "crypto"
 
 /**
  * Inbound email webhook — provider-agnostic.
@@ -20,13 +21,20 @@ import { createClient as createAdminClient } from "@supabase/supabase-js"
  * Security:
  *   - INBOX_WEBHOOK_SECRET (header `x-archivum-webhook-secret`) shields the
  *     endpoint from unauthenticated calls. Configure it on whichever
- *     provider you use as a custom header.
+ *     provider you use as a custom header. Required — if it is not set the
+ *     route refuses every request rather than falling open, because the
+ *     org lookup below only requires knowing an `inbox_token`, which is far
+ *     short of a real credential.
  *   - Idempotency: the (provider, message_id) pair is unique in
  *     email_inbox_log — duplicate deliveries are skipped.
  */
 
 const MAX_ATTACHMENT_SIZE = 25 * 1024 * 1024 // 25 MB
 const ALLOWED_MIME_PREFIXES = ["application/pdf", "image/"]
+// SVG is excluded from the image/ prefix on purpose: it's an XML format that
+// can carry a <script> tag, so accepting it here would let an attachment
+// become stored XSS the moment someone opens it inline instead of downloading.
+const BLOCKED_MIME_EXACT = new Set(["image/svg+xml"])
 // Office / text formats accepted in addition to the prefixes above.
 // Kept in sync with the 'documents' bucket allowed_mime_types (migration 20260623).
 const ALLOWED_MIME_EXACT = new Set([
@@ -42,6 +50,7 @@ const ALLOWED_MIME_EXACT = new Set([
 
 function isAllowedMime(contentType: string): boolean {
   const mime = contentType.split(";")[0].trim().toLowerCase()
+  if (BLOCKED_MIME_EXACT.has(mime)) return false
   return ALLOWED_MIME_PREFIXES.some(p => mime.startsWith(p)) || ALLOWED_MIME_EXACT.has(mime)
 }
 
@@ -165,13 +174,20 @@ function extractToken(toAddress: string): string | null {
 // ── Main handler ───────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  // Optional shared-secret check
+  // Shared-secret check — mandatory. Without it, anyone who learns an org's
+  // inbox_token (a short id, not a secret) could upload arbitrary attachments
+  // into that org's document library. Closed is the safe failure: a webhook
+  // that refuses to fire is visible in the provider's delivery logs, one that
+  // is silently open to the internet is not.
   const requiredSecret = process.env.INBOX_WEBHOOK_SECRET
-  if (requiredSecret) {
-    const got = req.headers.get("x-archivum-webhook-secret")
-    if (got !== requiredSecret) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-    }
+  if (!requiredSecret?.trim()) {
+    console.error("[inbox] INBOX_WEBHOOK_SECRET is not set — refusing every request")
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  }
+  const expected = Buffer.from(requiredSecret)
+  const got = Buffer.from(req.headers.get("x-archivum-webhook-secret") ?? "")
+  if (expected.length !== got.length || !timingSafeEqual(expected, got)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
 
   let parsed: ParsedEmail | null = null

@@ -1,3 +1,5 @@
+import { timingSafeEqual } from 'crypto'
+
 /**
  * Who may run a scheduled job.
  *
@@ -17,5 +19,11 @@ export function cronRequestIsAuthorised(request: Request): boolean {
     console.error('[cron] CRON_SECRET is not set — refusing every scheduled request')
     return false
   }
-  return request.headers.get('authorization') === `Bearer ${secret}`
+  const expected = Buffer.from(`Bearer ${secret}`)
+  const got = Buffer.from(request.headers.get('authorization') ?? '')
+  // Constant-time compare: a length check is unavoidable (timingSafeEqual
+  // throws on mismatched lengths) and leaks only the secret's length, not its
+  // content, which a fixed-format "Bearer <secret>" header already reveals to
+  // anyone who knows CRON_SECRET's configured length.
+  return expected.length === got.length && timingSafeEqual(expected, got)
 }
