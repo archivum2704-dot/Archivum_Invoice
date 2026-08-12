@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getApiClient } from '@/lib/supabase/api-auth'
+import { DEFAULT_CURRENCY, isValidCurrency, needsExchangeRate } from '@/lib/currency'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
@@ -29,6 +30,15 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authErr } = await supabase.auth.getUser()
     if (authErr || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
     if (!orgId) return NextResponse.json({ error: 'missing_org' }, { status: 400 })
+
+    // A draft has no mandatory fields, but a currency choice already made has
+    // to stay consistent: a draft cannot claim a foreign currency with no rate.
+    const currency = (body.currency || DEFAULT_CURRENCY).toUpperCase()
+    if (!isValidCurrency(currency)) return NextResponse.json({ error: 'unsupported_currency' }, { status: 422 })
+    const exchangeRate = needsExchangeRate(currency) ? Number(body.exchangeRate) || 0 : null
+    if (needsExchangeRate(currency) && !(exchangeRate! > 0)) {
+      return NextResponse.json({ error: 'exchange_rate_required' }, { status: 422 })
+    }
 
     // Issuer snapshot (best-effort — draft has no mandatory fields)
     const { data: org } = await supabase
@@ -83,6 +93,7 @@ export async function POST(req: NextRequest) {
         client_company_id: clientCompanyId || null,
         series, kind, state: 'draft',
         issue_date: issueDate || null,
+        currency, exchange_rate: exchangeRate,
         subtotal, discount_pct: discPct || null, discount_amount: discountAmount,
         tax_amount: taxAmount, total,
         retention_pct: retPct || null, retention_amount: retentionAmount,

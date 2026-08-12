@@ -16,6 +16,7 @@ import { RequirePermission } from "@/components/RequirePermission";
 import { Badge, Button, Card, EmptyState, type BadgeTone } from "@/components/ui";
 import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
+import { formatMoney } from "@/lib/currency";
 
 interface Note {
   id: string;
@@ -24,10 +25,8 @@ interface Note {
   total: number;
   status: string;
   issue_date: string | null;
+  currency: string;
 }
-
-const fmtEur = (n: number) =>
-  `${Number(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 
 /**
  * Albaranes — the step between a quote and its invoice.
@@ -49,7 +48,7 @@ function AlbaranesContent() {
     if (!orgId) { setLoading(false); return; }
     const { data } = await supabase
       .from("quotes")
-      .select("id, full_number, client_name, total, status, issue_date")
+      .select("id, full_number, client_name, total, status, issue_date, currency")
       .eq("organization_id", orgId)
       .eq("kind", "delivery_note")
       .order("created_at", { ascending: false });
@@ -136,7 +135,7 @@ function AlbaranesContent() {
                   </Text>
                 </View>
                 <View style={{ alignItems: "flex-end", gap: 4 }}>
-                  <Text style={{ fontFamily: fonts.bold, fontSize: 14, color: C.text }}>{fmtEur(item.total)}</Text>
+                  <Text style={{ fontFamily: fonts.bold, fontSize: 14, color: C.text }}>{formatMoney(item.total, item.currency)}</Text>
                   <Badge label={st.label} tone={st.tone} />
                 </View>
               </View>

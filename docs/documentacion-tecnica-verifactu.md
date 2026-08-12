@@ -99,6 +99,29 @@ identificador del sistema, versión, número de instalación (identificador de l
 organización), y los indicadores de uso: el sistema opera exclusivamente en
 modo VERI\*FACTU y da servicio a varios obligados tributarios.
 
+### 2.3.1 Moneda
+
+El esquema de VeriFactu (`SuministroInformacion.xsd`) **no tiene campo de
+moneda**: `CuotaTotal`, `ImporteTotal`, el desglose y la huella se calculan y
+se remiten siempre en euros.
+
+Presupuestos, albaranes y facturas pueden emitirse en EUR, USD o GBP
+(`quotes.currency` / `invoices.currency`). Al elegir una moneda distinta de
+EUR, el usuario introduce a mano un tipo de cambio (`exchange_rate`,
+`invoices.exchange_rate` / `quotes.exchange_rate`) — euros por 1 unidad de la
+moneda extranjera, tal y como lo escribe — que el Reglamento de Facturación
+(RD 1619/2012, art. 6.1.j) exige indicar en el propio documento cuando no está
+en euros.
+
+`lib/invoice-issue.ts` conserva la factura (fila, líneas, PDF) en la moneda
+elegida, y solo convierte a euros los importes que entran en
+`computeHuella`/`buildRegistroAlta`/`buildQrUrl` — línea por línea, para que el
+desglose por tipo también quede en euros. `app/api/invoices/rectify` hereda la
+moneda y el tipo de cambio de la factura que rectifica. La conversión no es
+automática ni por API externa: el tipo de cambio lo fija el usuario en el
+momento de emitir, y queda guardado junto al registro para que sea
+reproducible.
+
 ### 2.4 Tipos de factura soportados
 
 | Código | Tipo |

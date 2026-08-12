@@ -22,6 +22,8 @@ export type Quote = {
   issue_date: string | null
   valid_until: string | null
   currency: string
+  /** Euros por 1 unidad de `currency`. Nulo cuando currency es EUR. */
+  exchange_rate: number | null
   subtotal: number
   discount_pct: number | null
   discount_amount: number

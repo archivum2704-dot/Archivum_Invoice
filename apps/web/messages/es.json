@@ -242,7 +242,8 @@
       "issue_date_required": "La fecha de emisión es obligatoria.",
       "client_required": "Selecciona un cliente.",
       "no_lines": "Añade al menos una línea con descripción.",
-      "exemptionCause": "Indica el motivo de exención de las líneas exentas."
+      "exemptionCause": "Indica el motivo de exención de las líneas exentas.",
+      "exchangeRateRequired": "Indica el tipo de cambio a euros para facturar en {currency}."
     },
     "paywallTitle": "La facturación es una función de pago",
     "paywallBody": "Emite facturas digitales conformes con Verifactu actualizando a un plan de pago. La versión gratuita no incluye facturación.",
@@ -276,6 +277,8 @@
     "numberTo": "Hasta",
     "discount": "Descuento",
     "noDiscount": "Sin descuento",
+    "currency": "Moneda",
+    "exchangeRate": "Tipo de cambio (1 {currency} = ? €)",
     "rectifiedBanner": "Factura anulada por la rectificativa {number}",
     "clientEmail": "Correo",
     "clientPhone": "Teléfono",

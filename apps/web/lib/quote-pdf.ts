@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import { formatMoney, needsExchangeRate, toEur } from '@/lib/currency'
 
 export interface QuotePdfLine {
   description: string
@@ -25,9 +26,12 @@ export interface QuotePdfData {
   retentionAmount?: number
   total: number
   notes?: string | null
+  /** ISO 4217. Por defecto EUR. */
+  currency?: string | null
+  /** Euros por 1 unidad de `currency`. */
+  exchangeRate?: number | null
 }
 
-const eur = (n: number) => `${n.toFixed(2).replace('.', ',')} €`
 const NAVY = rgb(0.16, 0.22, 0.37)
 const GREY = rgb(0.42, 0.45, 0.5)
 const LINE = rgb(0.85, 0.86, 0.88)
@@ -37,6 +41,8 @@ export async function buildQuotePdf(data: QuotePdfData): Promise<Uint8Array> {
   // Delivery notes reuse this layout; only the wording changes.
   const DOC = data.kind === 'delivery_note' ? 'ALBARÁN' : 'PEDIDO'
   const FOR = data.kind === 'delivery_note' ? 'ALBARÁN PARA' : 'PEDIDO PARA'
+  const currency = data.currency || 'EUR'
+  const eur = (n: number) => formatMoney(n, currency)
   const pdf = await PDFDocument.create()
   const page = pdf.addPage([595.28, 841.89])
   const font = await pdf.embedFont(StandardFonts.Helvetica)
@@ -140,6 +146,14 @@ export async function buildQuotePdf(data: QuotePdfData): Promise<Uint8Array> {
   }
   y -= 2
   text('TOTAL', width - M - 200, y, 11, bold, NAVY); right(eur(data.total), colTotal, y, 11, bold, NAVY)
+
+  if (needsExchangeRate(currency) && data.exchangeRate) {
+    y -= 18
+    text(
+      `Tipo de cambio: 1 ${currency} = ${data.exchangeRate.toFixed(4).replace('.', ',')} € · Equivalente: ${formatMoney(toEur(data.total, currency, data.exchangeRate), 'EUR')}`,
+      M, y, 7, font, GREY,
+    )
+  }
 
   y -= 30
   if (data.notes) { text(data.notes.slice(0, 160), M, y, 8, font, GREY); y -= 20 }

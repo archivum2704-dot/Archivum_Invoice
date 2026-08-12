@@ -1,5 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import QRCode from 'qrcode'
+import { formatMoney, needsExchangeRate, toEur } from '@/lib/currency'
 
 export interface InvoicePdfLine {
   description: string
@@ -24,6 +25,11 @@ export interface InvoicePdfData {
   retentionAmount?: number
   total: number
   notes?: string | null
+  /** ISO 4217. Por defecto EUR. */
+  currency?: string | null
+  /** Euros por 1 unidad de `currency`. Obligatorio (RD 1619/2012 art. 6.1.j)
+   *  para imprimirlo en el documento cuando la moneda no es EUR. */
+  exchangeRate?: number | null
   /** Ausentes cuando la organización no declara en España: la factura no
    *  lleva entonces ni huella ni QR de cotejo, y afirmar lo contrario sería
    *  decir que es verificable en una sede donde no consta. */
@@ -31,13 +37,14 @@ export interface InvoicePdfData {
   qrUrl: string | null
 }
 
-const eur = (n: number) => `${n.toFixed(2).replace('.', ',')} €`
 const NAVY = rgb(0.16, 0.22, 0.37)
 const GREY = rgb(0.42, 0.45, 0.5)
 const LINE = rgb(0.85, 0.86, 0.88)
 
 /** Builds an A4 PDF of the issued invoice with the Verifactu QR + huella. */
 export async function buildInvoicePdf(data: InvoicePdfData): Promise<Uint8Array> {
+  const currency = data.currency || 'EUR'
+  const eur = (n: number) => formatMoney(n, currency)
   const pdf = await PDFDocument.create()
   const page = pdf.addPage([595.28, 841.89]) // A4 portrait
   const font = await pdf.embedFont(StandardFonts.Helvetica)
@@ -143,6 +150,18 @@ export async function buildInvoicePdf(data: InvoicePdfData): Promise<Uint8Array>
   }
   y -= 2
   text('TOTAL', width - M - 200, y, 11, bold, NAVY); right(eur(data.total), colTotal, y, 11, bold, NAVY)
+
+  // Tipo de cambio (RD 1619/2012 art. 6.1.j): obligatorio en el documento
+  // cuando la factura no está en euros. El registro que va a la AEAT ya va
+  // en euros aparte (ver lib/invoice-issue.ts); esto es lo que exige que se
+  // vea en la factura misma.
+  if (needsExchangeRate(currency) && data.exchangeRate) {
+    y -= 18
+    text(
+      `Tipo de cambio: 1 ${currency} = ${data.exchangeRate.toFixed(4).replace('.', ',')} € · Equivalente: ${formatMoney(toEur(data.total, currency, data.exchangeRate), 'EUR')}`,
+      M, y, 7, font, GREY,
+    )
+  }
 
   y -= 30
   if (data.notes) { text(data.notes.slice(0, 120), M, y, 8, font, GREY); y -= 20 }

@@ -21,6 +21,7 @@ import { Badge, Button, Card, EmptyState, Input, type BadgeTone } from "@/compon
 import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
+import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/lib/currency";
 
 const IVA_RATES = ["", "4", "10", "21"];
 const RET_RATES = ["", "7", "15", "19"];
@@ -30,7 +31,7 @@ interface Invoice {
   id: string; full_number: string | null; client_name: string | null;
   total: number; state: string; issue_date: string | null;
   kind: string; rectifies_invoice_id: string | null;
-  verifactu_status: string | null;
+  verifactu_status: string | null; currency: string;
 }
 interface Company { id: string; name: string; cif: string | null; }
 interface Product { id: string; name: string; unit_price: number; tax_rate: number; }
@@ -64,12 +65,13 @@ function FacturacionScreenContent() {
   const [clientId, setClientId] = useState("");
   const [retentionPct, setRetentionPct] = useState("");
   const [discountPct, setDiscountPct] = useState("");
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+  const [exchangeRate, setExchangeRate] = useState("");
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
   const [issuing, setIssuing] = useState(false);
   // Inline new client
   const [newClientOpen, setNewClientOpen] = useState(false);
 
-  const fmtEur = (n: number) => `${Number(n).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
   const selectedClient = companies.find(c => c.id === clientId);
 
   const clientMatches = useMemo(() => {
@@ -81,7 +83,7 @@ function FacturacionScreenContent() {
   const load = useCallback(async () => {
     if (!orgId) return;
     const [{ data: inv }, { data: co }, { data: pr }] = await Promise.all([
-      supabase.from("invoices").select("id, full_number, client_name, total, state, issue_date, kind, rectifies_invoice_id, verifactu_status").eq("organization_id", orgId).order("created_at", { ascending: false }),
+      supabase.from("invoices").select("id, full_number, client_name, total, state, issue_date, kind, rectifies_invoice_id, verifactu_status, currency").eq("organization_id", orgId).order("created_at", { ascending: false }),
       supabase.from("companies").select("id, name, cif").eq("organization_id", orgId).eq("is_active", true).order("name"),
       supabase.from("products").select("id, name, unit_price, tax_rate").eq("organization_id", orgId).eq("is_active", true).order("name"),
     ]);
@@ -105,7 +107,11 @@ function FacturacionScreenContent() {
     return { subtotal: r2(grossBase), discount, tax, ret, total: r2(netBase + tax - ret) };
   }, [lines, retentionPct, discountPct]);
 
-  const resetForm = () => { setClientId(""); setRetentionPct(""); setDiscountPct(""); setLines([emptyLine()]); };
+  const resetForm = () => {
+    setClientId(""); setRetentionPct(""); setDiscountPct("");
+    setCurrency(DEFAULT_CURRENCY); setExchangeRate("");
+    setLines([emptyLine()]);
+  };
 
   const setLine = (i: number, patch: Partial<Line>) => setLines(prev => prev.map((l, idx) => idx === i ? { ...l, ...patch } : l));
   // Numbers come back from Postgres as "21.00"; the VAT chips compare against
@@ -131,6 +137,9 @@ function FacturacionScreenContent() {
     if (lines.some(l => l.taxRate === "" && l.description.trim() && !l.exemptionCause)) {
       Alert.alert(t("common.error"), t("invoicing.errExemptionCause")); return;
     }
+    if (needsExchangeRate(currency) && !(Number(exchangeRate) > 0)) {
+      Alert.alert(t("common.error"), t("invoicing.errExchangeRate", { currency })); return;
+    }
     setIssuing(true);
     try {
       const res = await fetch(`${APP_URL}/api/invoices/issue`, {
@@ -139,6 +148,7 @@ function FacturacionScreenContent() {
         body: JSON.stringify({
           orgId, clientCompanyId: clientId, series: "FAC", kind: "ordinary",
           issueDate: new Date().toISOString().slice(0, 10), retentionPct: Number(retentionPct) || 0, discountPct: Number(discountPct) || 0,
+          currency, exchangeRate: needsExchangeRate(currency) ? Number(exchangeRate) || null : null,
           lines: lines.filter(l => l.description.trim()).map(l => ({ productId: l.productId, description: l.description, quantity: qtyOf(l.quantity), unitPrice: priceOf(l.unitPrice), taxRate: Number(l.taxRate) || 0, discountPct: 0,
             exemptionCause: l.taxRate === "" ? l.exemptionCause : null })),
         }),
@@ -233,7 +243,7 @@ function FacturacionScreenContent() {
                     )}
                   </View>
                   <View style={{ alignItems: "flex-end", gap: 4 }}>
-                    <Text style={{ fontFamily: fonts.bold, fontSize: 14, color: C.text }}>{fmtEur(item.total)}</Text>
+                    <Text style={{ fontFamily: fonts.bold, fontSize: 14, color: C.text }}>{formatMoney(item.total, item.currency)}</Text>
                     <Badge label={status.label} tone={status.tone} />
                   </View>
                   <ChevronRight size={18} color={C.muted} strokeWidth={1.75} />
@@ -344,14 +354,29 @@ function FacturacionScreenContent() {
               </View>
             </View>
 
+            {/* Moneda */}
+            <View>
+              <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.muted, marginBottom: spacing.sm }}>{t("invoicing.currency")}</Text>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                {CURRENCIES.map(c => (
+                  <Chip key={c.code} active={currency === c.code} label={c.code} onPress={() => { setCurrency(c.code); setExchangeRate(""); }} C={C} />
+                ))}
+              </View>
+              {needsExchangeRate(currency) && (
+                <Input placeholder={t("invoicing.exchangeRate", { currency })} keyboardType="decimal-pad"
+                  value={exchangeRate} onChangeText={setExchangeRate}
+                  style={{ marginTop: spacing.sm }} />
+              )}
+            </View>
+
             {/* Totals */}
             <Card style={{ gap: spacing.xs }}>
-              <Row label={t("invoicing.subtotal")} value={fmtEur(totals.subtotal)} C={C} />
-              {totals.discount > 0 && <Row label={`${t("invoicing.discount")} (${discountPct}%)`} value={`−${fmtEur(totals.discount)}`} C={C} />}
-              <Row label={t("invoicing.iva")} value={fmtEur(totals.tax)} C={C} />
-              {totals.ret > 0 && <Row label={`${t("invoicing.retention")} (${retentionPct}%)`} value={`−${fmtEur(totals.ret)}`} C={C} />}
+              <Row label={t("invoicing.subtotal")} value={formatMoney(totals.subtotal, currency)} C={C} />
+              {totals.discount > 0 && <Row label={`${t("invoicing.discount")} (${discountPct}%)`} value={`−${formatMoney(totals.discount, currency)}`} C={C} />}
+              <Row label={t("invoicing.iva")} value={formatMoney(totals.tax, currency)} C={C} />
+              {totals.ret > 0 && <Row label={`${t("invoicing.retention")} (${retentionPct}%)`} value={`−${formatMoney(totals.ret, currency)}`} C={C} />}
               <View style={{ height: 1, backgroundColor: C.border, marginVertical: 4 }} />
-              <Row label={t("invoicing.total")} value={fmtEur(totals.total)} C={C} bold />
+              <Row label={t("invoicing.total")} value={formatMoney(totals.total, currency)} C={C} bold />
             </Card>
           </ScrollView>
 

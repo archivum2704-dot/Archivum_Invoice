@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
       subtotal: Number(q.subtotal), discountPct: q.discount_pct, discountAmount: Number(q.discount_amount),
       taxAmount: Number(q.tax_amount), retentionPct: q.retention_pct, retentionAmount: Number(q.retention_amount),
       total: Number(q.total), notes: q.notes,
+      currency: q.currency, exchangeRate: q.exchange_rate,
     })
 
     const filename = `${q.full_number ?? 'presupuesto'}.pdf`

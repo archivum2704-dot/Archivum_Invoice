@@ -7,6 +7,7 @@ import { ClipboardList, Download, ArrowRight, Loader2, FileText, FolderPlus } fr
 import { cn } from "@/lib/utils"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useQuotes, type Quote } from "@/lib/hooks/use-quotes"
+import { formatMoney } from "@/lib/currency"
 
 const STATUS_LABEL: Record<string, string> = {
   open: "Abierto",
@@ -16,8 +17,6 @@ const STATUS_STYLE: Record<string, string> = {
   open:      "bg-[var(--status-pending)]/10 text-[var(--status-pending)]",
   converted: "bg-accent/10 text-accent",
 }
-
-const fmtEur = (n: number) => `${n.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
 
 /**
  * Albaranes — the step between a quote and its invoice.
@@ -94,7 +93,7 @@ export function AlbaranesView() {
         </p>
       </Link>
       <span className="hidden sm:block text-sm font-semibold text-foreground tabular-nums w-28 text-right">
-        {fmtEur(Number(n.total))}
+        {formatMoney(Number(n.total), n.currency)}
       </span>
       <span className={cn("text-xs px-2.5 py-1 rounded-full font-medium shrink-0", STATUS_STYLE[n.status])}>
         {STATUS_LABEL[n.status] ?? n.status}

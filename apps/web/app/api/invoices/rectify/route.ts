@@ -4,6 +4,7 @@ import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { computeHuella, buildRegistroAlta, buildQrUrl } from '@/lib/verifactu'
 import { insertChainedInvoice } from '@/lib/invoice-chain'
 import { buildInvoicePdf } from '@/lib/invoice-pdf'
+import { toEur } from '@/lib/currency'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
@@ -49,7 +50,14 @@ export async function POST(req: NextRequest) {
     // A rectificativa joins the same chain as an ordinary invoice, so it takes
     // its link the same way: the insert claims it, and a clash with a
     // concurrent issue is retried against the advanced head.
-    const qrUrl = buildQrUrl(orig.issuer_cif!.trim(), fullNumber, issueDate, total)
+    // La rectificativa hereda la moneda de la factura que anula: son el mismo
+    // importe en negativo, así que el mismo tipo de cambio sigue valiendo. El
+    // registro que va a la AEAT, como siempre, se convierte a euros aparte.
+    const currency: string = orig.currency ?? 'EUR'
+    const exchangeRate: number | null = orig.exchange_rate ?? null
+    const eurTaxAmount = toEur(taxAmount, currency, exchangeRate)
+    const eurTotal = toEur(total, currency, exchangeRate)
+    const qrUrl = buildQrUrl(orig.issuer_cif!.trim(), fullNumber, issueDate, eurTotal)
     // Captured from the attempt that succeeded, for the PDF below.
     let huella = ''
 
@@ -57,7 +65,7 @@ export async function POST(req: NextRequest) {
       const registroInput = {
         issuerNif: orig.issuer_cif!.trim(),
         fullNumber, issueDate, kind: 'rectifying' as const,
-        cuotaTotal: taxAmount, importeTotal: total,
+        cuotaTotal: eurTaxAmount, importeTotal: eurTotal,
         previousHuella, generatedAt,
       }
       const registroAlta = buildRegistroAlta({
@@ -74,8 +82,8 @@ export async function POST(req: NextRequest) {
         lines: (origLines ?? []).map((l: any) => ({
           description: l.description,
           taxRate: Number(l.tax_rate),
-          base: round2(-Number(l.line_subtotal)),
-          cuota: round2(-Number(l.line_tax)),
+          base: toEur(round2(-Number(l.line_subtotal)), currency, exchangeRate),
+          cuota: toEur(round2(-Number(l.line_tax)), currency, exchangeRate),
           exemptionCause: l.exemption_cause,
         })),
         rectified: { issuerNif: orig.issuer_cif!.trim(), fullNumber: orig.full_number!, issueDate: orig.issue_date! },
@@ -88,6 +96,7 @@ export async function POST(req: NextRequest) {
         // 'issued' below (line inserts are rejected once the parent is 'issued').
         kind: 'rectifying', state: 'draft',
         issue_date: issueDate, operation_date: issueDate,
+        currency, exchange_rate: exchangeRate,
         subtotal, tax_amount: taxAmount, total,
         retention_pct: orig.retention_pct, retention_amount: retentionAmount,
         issuer_name: orig.issuer_name, issuer_cif: orig.issuer_cif, issuer_address: orig.issuer_address,
@@ -154,6 +163,7 @@ export async function POST(req: NextRequest) {
         client: { name: orig.client_name ?? '', cif: orig.client_cif, address: orig.client_address, postalCode: orig.client_postal_code, city: orig.client_city, province: orig.client_province },
         lines: negLines.map(l => ({ description: l.description, quantity: l.quantity, unit_price: l.unit_price, tax_rate: l.tax_rate, line_total: l.line_total })),
         subtotal, taxAmount, retentionPct: orig.retention_pct, retentionAmount, total, notes: `Rectificativa por anulación de ${orig.full_number}`, huella, qrUrl,
+        currency, exchangeRate,
       })
       const storagePath = `${orgId}/invoices/${rec.id}.pdf`
       const { error: upErr } = await archiver.storage.from('documents').upload(storagePath, pdfBytes, { contentType: 'application/pdf', upsert: true })
@@ -162,7 +172,7 @@ export async function POST(req: NextRequest) {
         const { data: doc, error: docErr } = await archiver.from('documents').insert({
           organization_id: orgId, company_id: orig.client_company_id, uploaded_by: user.id,
           document_number: fullNumber, document_type: 'invoice_issued', status: 'cancelled',
-          total, currency: 'EUR', issue_date: issueDate,
+          total: eurTotal, currency: 'EUR', issue_date: issueDate,
           file_url: storagePath, file_name: `${fullNumber}.pdf`, file_size: pdfBytes.length, file_type: 'application/pdf',
         }).select('id').single()
         if (docErr) throw new Error(`library entry failed: ${docErr.message}`)

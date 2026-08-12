@@ -55,6 +55,7 @@ export async function renderDocument(
       subtotal: Number(inv.subtotal), discountPct: inv.discount_pct, discountAmount: Number(inv.discount_amount ?? 0),
       taxAmount: Number(inv.tax_amount), retentionPct: inv.retention_pct, retentionAmount: Number(inv.retention_amount ?? 0),
       total: Number(inv.total), notes: inv.notes,
+      currency: inv.currency, exchangeRate: inv.exchange_rate,
       // Nulos cuando la factura no lleva registro: el PDF omite el bloque
       // Verifactu en lugar de imprimirlo vacío.
       huella: inv.huella ?? null, qrUrl: inv.qr_url ?? null,
@@ -97,6 +98,7 @@ export async function renderDocument(
     subtotal: Number(q.subtotal), discountPct: q.discount_pct, discountAmount: Number(q.discount_amount ?? 0),
     taxAmount: Number(q.tax_amount), retentionPct: q.retention_pct, retentionAmount: Number(q.retention_amount ?? 0),
     total: Number(q.total), notes: q.notes,
+    currency: q.currency, exchangeRate: q.exchange_rate,
   })
 
   const clientEmail = await lookupClientEmail(db, q.client_company_id)
