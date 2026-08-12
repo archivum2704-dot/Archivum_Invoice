@@ -3,7 +3,7 @@
 > **Léeme primero.** Este fichero es el punto de partida de cada sesión.
 > Cuando cambies algo relevante, actualízalo en el mismo commit.
 >
-> Última actualización: **10 de agosto de 2026**
+> Última actualización: **11 de agosto de 2026**
 
 ---
 
@@ -335,6 +335,12 @@ en varios sitios acaba divergiendo**. Por eso:
 - **Formulario de cliente**: un solo componente por app (`new-client-modal.tsx` /
   `NewClientModal.tsx`). Antes eran cuatro copias y ninguna pedía el correo.
 - **Tipos de identificación fiscal**: `lib/tax-id-types.ts`, copiado a móvil.
+- **Sistema de diseño del móvil**: tokens en `apps/mobile/lib/{typography,spacing,radius,shadows}.ts`
+  y componentes en `apps/mobile/components/ui/` (`Button`, `Card`, `Badge`, `Input`,
+  `EmptyState`, `Skeleton`) más `DocRow`/`UploadFab` en `components/`. Antes cada
+  pantalla reinventaba sus propios `fontSize`/`fontWeight`, radios y sombras, y
+  `DocRow` estaba copiado tal cual en dashboard, biblioteca y buscar. Antes de
+  añadir un botón, tarjeta o fila de documento a mano, mirar aquí primero.
 
 ### Trampas conocidas
 
@@ -377,6 +383,8 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 11 ago | La imagen de perfil de Ajustes (móvil) y la fila de usuario del sidebar (web) muestran el logo de la organización cuando existe, en vez de solo iniciales. Se actualiza en caliente al subir/quitar el logo |
+| 11 ago | **Sistema de diseño para el móvil**: tokens de tipografía (Plus Jakarta Sans)/spacing/radio/sombras y componentes `Button`/`Card`/`Badge`/`Input`/`EmptyState`/`Skeleton` en `components/ui/`. Migradas las ~24 pantallas y componentes del móvil; de paso, `DocRow` dejó de estar copiado en tres sitios y se corrigió el patrón de `Chip`/`ActBtn` definidos dentro del componente en facturación/presupuestos, que remontaban en cada tecleo |
 | 10 ago | **Corregida una falsa alarma**: el detector de anomalías ordenaba la cadena por hora, y con 4 eventos en el mismo segundo la daba por rota. Ahora sigue los enlaces |
 | 10 ago | El móvil ya dice si la AEAT aceptó o rechazó el registro, en el detalle y en la lista. OTA al canal `preview` |
 | 10 ago | Cerrado el bloque «depende de nosotros»: eventos en XML del anexo 5, exportación de eventos propia, causa de exención en presupuestos y claves de régimen. Declaración responsable con la estructura oficial de la AEAT |
