@@ -1,12 +1,16 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { Mail, X, Check } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { useAuth } from "@/context/auth-context";
 import { APP_URL } from "@/lib/config";
 import { readJson } from "@/lib/api";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
+import { radius } from "@/lib/radius";
 import { KeyboardModal } from "@/components/KeyboardModal";
+import { Button, Input } from "@/components/ui";
 
 /**
  * Send an invoice, quote or delivery note to its client with the PDF attached.
@@ -51,76 +55,60 @@ export function SendEmailButton({ kind, id, defaultTo }: {
     }
   };
 
-  const inputStyle = {
-    backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 10, color: C.text, fontSize: 15,
-  };
-
   return (
     <>
-      <TouchableOpacity
+      <Button
+        label={t("email.send")}
         onPress={openSheet}
-        style={{
-          flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-          backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
-          borderRadius: 12, paddingVertical: 14,
-        }}
-      >
-        <Mail size={18} color={C.text} />
-        <Text style={{ color: C.text, fontWeight: "600", fontSize: 15 }}>{t("email.send")}</Text>
-      </TouchableOpacity>
+        variant="secondary"
+        icon={<Mail size={18} color={C.text} strokeWidth={1.75} />}
+      />
 
       <KeyboardModal visible={open} animationType="slide" transparent onRequestClose={() => !sending && setOpen(false)}>
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" }}>
-          <View style={{ backgroundColor: C.bg, borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 16, gap: 12 }}>
+        <View style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: C.bg, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, gap: spacing.md }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>{t("email.title")}</Text>
-              <TouchableOpacity onPress={() => !sending && setOpen(false)}><X size={22} color={C.muted} /></TouchableOpacity>
+              <Text style={{ fontFamily: fonts.bold, fontSize: 17, color: C.text }}>{t("email.title")}</Text>
+              <TouchableOpacity onPress={() => !sending && setOpen(false)}><X size={22} color={C.muted} strokeWidth={1.75} /></TouchableOpacity>
             </View>
 
             {sentTo ? (
-              <View style={{ alignItems: "center", paddingVertical: 18, gap: 10 }}>
+              <View style={{ alignItems: "center", paddingVertical: spacing.lg + 2, gap: spacing.sm + 2 }}>
                 <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: C.greenL, alignItems: "center", justifyContent: "center" }}>
-                  <Check size={22} color={C.green} />
+                  <Check size={22} color={C.green} strokeWidth={1.75} />
                 </View>
-                <Text style={{ color: C.text, fontWeight: "600", fontSize: 15 }}>{t("email.sentTitle")}</Text>
-                <Text style={{ color: C.muted, fontSize: 12 }}>{sentTo}</Text>
-                <TouchableOpacity onPress={() => setOpen(false)} style={{ marginTop: 6, backgroundColor: C.blue, borderRadius: 12, paddingVertical: 13, paddingHorizontal: 26 }}>
-                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("common.close")}</Text>
-                </TouchableOpacity>
+                <Text style={{ fontFamily: fonts.semibold, fontSize: 15, color: C.text }}>{t("email.sentTitle")}</Text>
+                <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>{sentTo}</Text>
+                <Button
+                  label={t("common.close")}
+                  onPress={() => setOpen(false)}
+                  fullWidth={false}
+                  style={{ marginTop: spacing.xs + 2 }}
+                />
               </View>
             ) : (
               <>
-                <View>
-                  <Text style={{ fontSize: 12, color: C.muted, marginBottom: 5 }}>{t("email.to")} *</Text>
-                  <TextInput
-                    value={to} onChangeText={setTo} autoFocus
-                    keyboardType="email-address" autoCapitalize="none" autoCorrect={false}
-                    placeholder="cliente@empresa.com" placeholderTextColor={C.muted}
-                    style={inputStyle}
-                  />
-                  {!defaultTo && <Text style={{ fontSize: 11, color: C.muted, marginTop: 5 }}>{t("email.noStoredEmail")}</Text>}
-                </View>
-                <View>
-                  <Text style={{ fontSize: 12, color: C.muted, marginBottom: 5 }}>{t("email.message")}</Text>
-                  <TextInput
-                    value={message} onChangeText={setMessage} multiline
-                    placeholder={t("email.messagePlaceholder")} placeholderTextColor={C.muted}
-                    style={{ ...inputStyle, minHeight: 76, textAlignVertical: "top" }}
-                  />
-                </View>
-                <Text style={{ fontSize: 11, color: C.muted }}>{t("email.attachmentNote")}</Text>
-                <TouchableOpacity
-                  onPress={send} disabled={sending || !to.trim()}
-                  style={{
-                    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-                    backgroundColor: C.blue, borderRadius: 12, paddingVertical: 14,
-                    opacity: sending || !to.trim() ? 0.5 : 1,
-                  }}
-                >
-                  {sending ? <ActivityIndicator color="#fff" /> : <Mail size={18} color="#fff" />}
-                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("email.send")}</Text>
-                </TouchableOpacity>
+                <Input
+                  label={`${t("email.to")} *`}
+                  value={to} onChangeText={setTo} autoFocus
+                  keyboardType="email-address" autoCapitalize="none" autoCorrect={false}
+                  placeholder="cliente@empresa.com"
+                  hint={!defaultTo ? t("email.noStoredEmail") : undefined}
+                />
+                <Input
+                  label={t("email.message")}
+                  value={message} onChangeText={setMessage} multiline
+                  placeholder={t("email.messagePlaceholder")}
+                  style={{ minHeight: 76, textAlignVertical: "top" }}
+                />
+                <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t("email.attachmentNote")}</Text>
+                <Button
+                  label={t("email.send")}
+                  onPress={send}
+                  disabled={sending || !to.trim()}
+                  loading={sending}
+                  icon={<Mail size={18} color="#fff" strokeWidth={1.75} />}
+                />
               </>
             )}
           </View>

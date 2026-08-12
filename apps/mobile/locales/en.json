@@ -22,7 +22,8 @@
     "minStock": "Minimum stock",
     "minStockPlaceholder": "No alert",
     "minStockHint": "Fill this in and we will warn you when stock falls to that number or below.",
-    "lowStockTitle": "{{count}} product(s) have reached their minimum stock"
+    "lowStockTitle": "{{count}} product(s) have reached their minimum stock",
+    "lowStockBadge": "Low stock"
   },
   "invoicing": {
     "title": "Invoicing",

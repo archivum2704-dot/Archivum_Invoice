@@ -12,6 +12,10 @@ import { useColors } from "@/lib/colors";
 import { APP_URL } from "@/lib/config";
 import { readJson } from "@/lib/api";
 import { SendEmailButton } from "@/components/SendEmailButton";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
+import { radius } from "@/lib/radius";
+import { Card, Button } from "@/components/ui";
 
 
 interface Invoice {
@@ -95,58 +99,58 @@ export default function FacturaDetailScreen() {
   };
 
   if (loading) return <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}><View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><ActivityIndicator color={C.blue} /></View></SafeAreaView>;
-  if (!invoice) return <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}><Text style={{ color: C.muted, padding: 24 }}>{t("invoicing.notFound")}</Text></SafeAreaView>;
+  if (!invoice) return <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}><Text style={{ color: C.muted, padding: spacing.xl }}>{t("invoicing.notFound")}</Text></SafeAreaView>;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top", "bottom"]}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 16 }}>
-        <TouchableOpacity onPress={() => router.back()}><ArrowLeft size={22} color={C.text} /></TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: "700", color: C.text }}>{invoice.full_number}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: spacing.lg }}>
+        <TouchableOpacity onPress={() => router.back()}><ArrowLeft size={22} color={C.text} strokeWidth={1.75} /></TouchableOpacity>
+        <Text style={{ fontFamily: fonts.bold, fontSize: 18, color: C.text }}>{invoice.full_number}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
         {invoice.kind === "rectifying" && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: C.redL, borderRadius: 12, padding: 12 }}>
-            <Ban size={16} color={C.red} /><Text style={{ color: C.text, fontSize: 13, flex: 1 }}>{t("invoicing.rectificativeBanner")}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: C.redL, borderRadius: radius.md, padding: spacing.md }}>
+            <Ban size={16} color={C.red} strokeWidth={1.75} /><Text style={{ fontFamily: fonts.regular, color: C.text, fontSize: 13, flex: 1 }}>{t("invoicing.rectificativeBanner")}</Text>
           </View>
         )}
 
         {!!rectifiedBy && (
           <TouchableOpacity
             onPress={() => router.replace(`/(app)/factura/${rectifiedBy.id}`)}
-            style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: C.redL, borderRadius: 12, padding: 12 }}
+            style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: C.redL, borderRadius: radius.md, padding: spacing.md }}
           >
-            <Ban size={16} color={C.red} />
-            <Text style={{ color: C.text, fontSize: 13, flex: 1 }}>
+            <Ban size={16} color={C.red} strokeWidth={1.75} />
+            <Text style={{ fontFamily: fonts.regular, color: C.text, fontSize: 13, flex: 1 }}>
               {t("invoicing.rectifiedBanner", { number: rectifiedBy.full_number ?? "" })}
             </Text>
-            <ChevronRight size={16} color={C.muted} />
+            <ChevronRight size={16} color={C.muted} strokeWidth={1.75} />
           </TouchableOpacity>
         )}
 
-        <View style={{ backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 16, gap: 12 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <Card style={{ gap: spacing.md }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
             {!!invoice.issuer_logo_url && (
-              <Image source={{ uri: invoice.issuer_logo_url }} style={{ width: 44, height: 44, borderRadius: 10, borderWidth: 1, borderColor: C.border }} resizeMode="contain" />
+              <Image source={{ uri: invoice.issuer_logo_url }} style={{ width: 44, height: 44, borderRadius: radius.sm + 2, borderWidth: 1, borderColor: C.border }} resizeMode="contain" />
             )}
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{invoice.issuer_name}</Text>
-              {!!invoice.issuer_cif && <Text style={{ fontSize: 12, color: C.muted }}>CIF: {invoice.issuer_cif}</Text>}
-              <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{t("invoicing.issueDate")}: {invoice.issue_date}</Text>
+              <Text style={{ fontFamily: fonts.bold, fontSize: 16, color: C.text }}>{invoice.issuer_name}</Text>
+              {!!invoice.issuer_cif && <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>CIF: {invoice.issuer_cif}</Text>}
+              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginTop: 2 }}>{t("invoicing.issueDate")}: {invoice.issue_date}</Text>
             </View>
           </View>
           <View style={{ height: 1, backgroundColor: C.border }} />
           <View>
-            <Text style={{ fontSize: 11, color: C.muted, textTransform: "uppercase" }}>{t("invoicing.billTo")}</Text>
-            <Text style={{ fontSize: 15, fontWeight: "600", color: C.text, marginTop: 2 }}>{invoice.client_name}</Text>
-            {!!invoice.client_cif && <Text style={{ fontSize: 12, color: C.muted }}>CIF: {invoice.client_cif}</Text>}
+            <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted, textTransform: "uppercase" }}>{t("invoicing.billTo")}</Text>
+            <Text style={{ fontFamily: fonts.semibold, fontSize: 15, color: C.text, marginTop: 2 }}>{invoice.client_name}</Text>
+            {!!invoice.client_cif && <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>CIF: {invoice.client_cif}</Text>}
           </View>
 
           <View style={{ height: 1, backgroundColor: C.border }} />
           {lines.map(l => (
             <View key={l.id} style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Text style={{ color: C.text, flex: 1, fontSize: 13 }}>{Number(l.quantity)} × {l.description}</Text>
-              <Text style={{ color: C.text, fontWeight: "600", fontSize: 13 }}>{fmtEur(l.line_total)}</Text>
+              <Text style={{ fontFamily: fonts.regular, color: C.text, flex: 1, fontSize: 13 }}>{Number(l.quantity)} × {l.description}</Text>
+              <Text style={{ fontFamily: fonts.semibold, color: C.text, fontSize: 13 }}>{fmtEur(l.line_total)}</Text>
             </View>
           ))}
 
@@ -156,23 +160,23 @@ export default function FacturaDetailScreen() {
           <Row label={t("invoicing.iva")} value={fmtEur(invoice.tax_amount)} C={C} />
           {Number(invoice.retention_amount) !== 0 && <Row label={`${t("invoicing.retention")} (${Number(invoice.retention_pct) || 0}%)`} value={`−${fmtEur(invoice.retention_amount)}`} C={C} />}
           <Row label={t("invoicing.total")} value={fmtEur(invoice.total)} C={C} bold />
-        </View>
+        </Card>
 
         {/* Verifactu block. Igual que en web: sin huella no hay registro que
             cotejar, y la leyenda afirmaria algo que no existe. */}
         {!!invoice.huella && (
-        <View style={{ backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 16, flexDirection: "row", alignItems: "center", gap: 14 }}>
+        <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md + 2 }}>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <ShieldCheck size={16} color={C.green} /><Text style={{ fontWeight: "800", color: C.text, letterSpacing: 0.5 }}>VERI*FACTU</Text>
+              <ShieldCheck size={16} color={C.green} strokeWidth={1.75} /><Text style={{ fontFamily: fonts.extrabold, color: C.text, letterSpacing: 0.5 }}>VERI*FACTU</Text>
             </View>
-            <Text style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>{t("invoicing.verifactuFooter")}</Text>
+            <Text style={{ fontFamily: fonts.regular, fontSize: 10, color: C.muted, marginTop: 4 }}>{t("invoicing.verifactuFooter")}</Text>
             {/* La leyenda de arriba dice que la factura es verificable en la
                 AEAT, y hasta que el registro se acepta no lo es. Se dice sin
                 rodeos, igual que en la web: quien factura desde el móvil no
                 debería ser el último en enterarse de un rechazo. */}
             <Text style={{
-              fontSize: 10, fontWeight: "600", marginTop: 4,
+              fontFamily: fonts.semibold, fontSize: 10, marginTop: 4,
               color: invoice.verifactu_status === "sent" ? C.green
                 : invoice.verifactu_status === "error" ? C.red
                 : C.yellow,
@@ -185,28 +189,31 @@ export default function FacturaDetailScreen() {
             </Text>
             {!!invoice.huella && (
               <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 6, marginTop: 4 }}>
-                <Text style={{ flex: 1, fontSize: 9, color: C.muted, fontFamily: "monospace" }}>{t("invoicing.fingerprint")}: {invoice.huella}</Text>
+                <Text style={{ flex: 1, fontSize: 9, color: C.muted, fontFamily: fonts.mono }}>{t("invoicing.fingerprint")}: {invoice.huella}</Text>
                 <TouchableOpacity onPress={copyHuella} hitSlop={8}>
-                  {huellaCopied ? <Check size={14} color={C.green} /> : <Copy size={14} color={C.muted} />}
+                  {huellaCopied ? <Check size={14} color={C.green} strokeWidth={1.75} /> : <Copy size={14} color={C.muted} strokeWidth={1.75} />}
                 </TouchableOpacity>
               </View>
             )}
           </View>
           {!!invoice.qr_url && (
-            <View style={{ backgroundColor: "#fff", padding: 6, borderRadius: 8 }}>
+            <View style={{ backgroundColor: "#fff", padding: 6, borderRadius: radius.sm }}>
               <QRCode value={invoice.qr_url} size={84} />
             </View>
           )}
-        </View>
+        </Card>
         )}
 
         <SendEmailButton kind="invoice" id={id} defaultTo={clientEmail} />
 
         {canRectify && (
-          <TouchableOpacity onPress={rectify} disabled={rectifying} style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingVertical: 14, opacity: rectifying ? 0.6 : 1 }}>
-            {rectifying ? <ActivityIndicator color={C.text} /> : <Ban size={18} color={C.text} />}
-            <Text style={{ color: C.text, fontWeight: "600" }}>{t("invoicing.rectify")}</Text>
-          </TouchableOpacity>
+          <Button
+            label={t("invoicing.rectify")}
+            onPress={rectify}
+            loading={rectifying}
+            variant="secondary"
+            icon={<Ban size={18} color={C.text} strokeWidth={1.75} />}
+          />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -216,8 +223,8 @@ export default function FacturaDetailScreen() {
 function Row({ label, value, C, bold }: any) {
   return (
     <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-      <Text style={{ color: bold ? C.text : C.muted, fontWeight: bold ? "700" : "400", fontSize: bold ? 16 : 14 }}>{label}</Text>
-      <Text style={{ color: C.text, fontWeight: bold ? "700" : "400", fontSize: bold ? 16 : 14 }}>{value}</Text>
+      <Text style={{ fontFamily: bold ? fonts.bold : fonts.regular, color: bold ? C.text : C.muted, fontSize: bold ? 16 : 14 }}>{label}</Text>
+      <Text style={{ fontFamily: bold ? fonts.bold : fonts.regular, color: C.text, fontSize: bold ? 16 : 14 }}>{value}</Text>
     </View>
   );
 }

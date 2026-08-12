@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView,
-  Platform, ActivityIndicator, Alert,
+  View, Text, TouchableOpacity, ScrollView,
+  Alert,
 } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,12 +10,18 @@ import { Building2, User, Eye, EyeOff } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useColors } from "@/lib/colors";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
+import { radius } from "@/lib/radius";
+import { useShadows } from "@/lib/shadows";
 import { Logo } from "@/components/Logo";
+import { Input, Button } from "@/components/ui";
 
 type Tab = "empresa" | "usuario";
 
 export default function LoginScreen() {
   const C = useColors();
+  const shadows = useShadows();
   const { signInEmpresa, signInUsuario } = useAuth();
   const [tab,         setTab]         = useState<Tab>("empresa");
   const [email,       setEmail]       = useState("");
@@ -44,9 +50,6 @@ export default function LoginScreen() {
     }
   };
 
-  const labelStyle = { fontSize: 13, fontWeight: "500" as const, color: C.text, marginBottom: 6 };
-  const inputStyle = { borderWidth: 1.5, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: C.text, backgroundColor: C.inputBg };
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <KeyboardAvoidingView
@@ -54,19 +57,19 @@ export default function LoginScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40 }}
+          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl + 8 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           {/* Logo */}
-          <View style={{ alignItems: "center", paddingTop: 48, paddingBottom: 36 }}>
+          <View style={{ alignItems: "center", paddingTop: 48, paddingBottom: spacing.xl + 12 }}>
             <View style={{ marginBottom: 14 }}>
               <Logo size={72} />
             </View>
-            <Text style={{ fontSize: 26, fontWeight: "800", color: C.text, letterSpacing: -0.5 }}>
+            <Text style={{ fontFamily: fonts.extrabold, fontSize: 26, color: C.text, letterSpacing: -0.5 }}>
               archivum
             </Text>
-            <Text style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
+            <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.muted, marginTop: 4 }}>
               Archivo digital fiscal
             </Text>
           </View>
@@ -74,7 +77,7 @@ export default function LoginScreen() {
           {/* Tab switcher */}
           <View style={{
             flexDirection: "row", backgroundColor: C.segmentBg,
-            borderRadius: 12, padding: 3, marginBottom: 24,
+            borderRadius: radius.md, padding: 3, marginBottom: spacing.xl,
           }}>
             {(["empresa", "usuario"] as Tab[]).map((t) => {
               const active = tab === t;
@@ -82,24 +85,22 @@ export default function LoginScreen() {
                 <TouchableOpacity
                   key={t}
                   onPress={() => { setTab(t); setError(null); }}
-                  style={{
-                    flex: 1, flexDirection: "row", alignItems: "center",
-                    justifyContent: "center", gap: 6,
-                    paddingVertical: 10, borderRadius: 9,
-                    backgroundColor: active ? C.surface : "transparent",
-                    shadowColor: active ? "#000" : "transparent",
-                    shadowOpacity: active ? 0.08 : 0,
-                    shadowRadius: active ? 4 : 0,
-                    shadowOffset: { width: 0, height: 1 },
-                    elevation: active ? 2 : 0,
-                  }}
+                  style={[
+                    {
+                      flex: 1, flexDirection: "row", alignItems: "center",
+                      justifyContent: "center", gap: 6,
+                      paddingVertical: 10, borderRadius: radius.md - 3,
+                      backgroundColor: active ? C.surface : "transparent",
+                    },
+                    active ? shadows.sm : null,
+                  ]}
                 >
                   {t === "empresa"
-                    ? <Building2 size={16} color={active ? C.blue : C.muted} />
-                    : <User      size={16} color={active ? C.blue : C.muted} />
+                    ? <Building2 size={16} color={active ? C.blue : C.muted} strokeWidth={1.75} />
+                    : <User      size={16} color={active ? C.blue : C.muted} strokeWidth={1.75} />
                   }
                   <Text style={{
-                    fontSize: 14, fontWeight: active ? "600" : "400",
+                    fontFamily: active ? fonts.semibold : fonts.regular, fontSize: 14,
                     color: active ? C.blue : C.muted,
                   }}>
                     {t === "empresa" ? "Empresa" : "Usuario"}
@@ -110,62 +111,45 @@ export default function LoginScreen() {
           </View>
 
           {/* Fields */}
-          <View style={{ gap: 16 }}>
+          <View style={{ gap: spacing.lg }}>
             {tab === "usuario" && (
-              <View>
-                <Text style={labelStyle}>Código de empresa</Text>
-                <TextInput
-                  style={[inputStyle, { letterSpacing: 4, fontFamily: "monospace", textTransform: "uppercase" }]}
-                  placeholder="AB-1234"
-                  placeholderTextColor={C.muted}
-                  value={code}
-                  onChangeText={(v) => setCode(v.toUpperCase())}
-                  autoCapitalize="characters"
-                  maxLength={7}
-                />
-                <Text style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-                  Código de 6 caracteres proporcionado por tu empresa
-                </Text>
-              </View>
+              <Input
+                label="Código de empresa"
+                style={{ letterSpacing: 4, fontFamily: fonts.mono, textTransform: "uppercase" }}
+                placeholder="AB-1234"
+                value={code}
+                onChangeText={(v) => setCode(v.toUpperCase())}
+                autoCapitalize="characters"
+                maxLength={7}
+                hint="Código de 6 caracteres proporcionado por tu empresa"
+              />
             )}
 
-            <View>
-              <Text style={labelStyle}>Correo electrónico</Text>
-              <TextInput
-                style={inputStyle}
-                placeholder="david@empresa.com"
-                placeholderTextColor={C.muted}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
+            <Input
+              label="Correo electrónico"
+              placeholder="david@empresa.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
 
             <View>
-              <Text style={labelStyle}>Contraseña</Text>
-              <View style={{ position: "relative" }}>
-                <TextInput
-                  style={[inputStyle, { paddingRight: 48 }]}
-                  placeholder="••••••••"
-                  placeholderTextColor={C.muted}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPwd}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPwd(!showPwd)}
-                  style={{
-                    position: "absolute", right: 14, top: 0, bottom: 0,
-                    alignItems: "center", justifyContent: "center",
-                  }}
-                >
-                  {showPwd
-                    ? <EyeOff size={18} color={C.muted} />
-                    : <Eye    size={18} color={C.muted} />
-                  }
-                </TouchableOpacity>
-              </View>
+              <Input
+                label="Contraseña"
+                placeholder="••••••••"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPwd}
+                rightElement={
+                  <TouchableOpacity onPress={() => setShowPwd(!showPwd)} hitSlop={8}>
+                    {showPwd
+                      ? <EyeOff size={18} color={C.muted} strokeWidth={1.75} />
+                      : <Eye    size={18} color={C.muted} strokeWidth={1.75} />
+                    }
+                  </TouchableOpacity>
+                }
+              />
               {tab === "empresa" && (
                 <TouchableOpacity
                   style={{ alignSelf: "flex-end", marginTop: 6 }}
@@ -182,7 +166,7 @@ export default function LoginScreen() {
                     }
                   }}
                 >
-                  <Text style={{ fontSize: 13, color: C.blue, fontWeight: "500" }}>
+                  <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: C.blue }}>
                     ¿Olvidaste tu contraseña?
                   </Text>
                 </TouchableOpacity>
@@ -192,30 +176,22 @@ export default function LoginScreen() {
             {error && (
               <View style={{
                 backgroundColor: C.redL, borderWidth: 1,
-                borderColor: "rgba(220,38,38,.2)", borderRadius: 10,
-                padding: 12,
+                borderColor: "rgba(220,38,38,.2)", borderRadius: radius.md,
+                padding: spacing.md,
               }}>
-                <Text style={{ fontSize: 13, color: C.red }}>{error}</Text>
+                <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.red }}>{error}</Text>
               </View>
             )}
 
-            <TouchableOpacity
+            <Button
+              label="Iniciar sesión"
               onPress={handleLogin}
-              disabled={loading}
-              style={{
-                backgroundColor: C.blue, borderRadius: 10, paddingVertical: 14,
-                alignItems: "center", marginTop: 4,
-                opacity: loading ? 0.7 : 1,
-              }}
-            >
-              {loading
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>Iniciar sesión</Text>
-              }
-            </TouchableOpacity>
+              loading={loading}
+              style={{ marginTop: 4 }}
+            />
 
             {tab === "usuario" && (
-              <Text style={{ fontSize: 12, color: C.muted, textAlign: "center", lineHeight: 18 }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, textAlign: "center", lineHeight: 18 }}>
                 Contacta con el administrador de tu empresa si no tienes credenciales de acceso.
               </Text>
             )}
@@ -226,9 +202,9 @@ export default function LoginScreen() {
               onPress={() => router.push("/(auth)/register")}
               style={{ marginTop: 28, alignItems: "center" }}
             >
-              <Text style={{ fontSize: 14, color: C.muted }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 14, color: C.muted }}>
                 ¿No tienes cuenta?{" "}
-                <Text style={{ color: C.blue, fontWeight: "600" }}>Regístrate</Text>
+                <Text style={{ fontFamily: fonts.semibold, color: C.blue }}>Regístrate</Text>
               </Text>
             </TouchableOpacity>
           )}

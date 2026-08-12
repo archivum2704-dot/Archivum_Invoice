@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, ReactNode } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, RefreshControl,
   ActivityIndicator,
@@ -6,16 +6,22 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
-  Bell, AlertTriangle, FileText, ChevronRight, Plus, Package, Receipt, ClipboardList, Truck,
+  Bell, AlertTriangle, FileText, ChevronRight, Package, Receipt, ClipboardList, Truck,
 } from "lucide-react-native";
 import Svg, { Rect, Text as SvgText } from "react-native-svg";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
-import { useColors } from "@/lib/colors";
+import { useColors, type Colors } from "@/lib/colors";
 import { useTranslation } from "react-i18next";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
+import { radius } from "@/lib/radius";
+import { Card, EmptyState } from "@/components/ui";
+import { DocRow } from "@/components/DocRow";
+import { UploadFab } from "@/components/UploadFab";
 
 /* ── Bar chart (SVG, no external lib needed) ─────────────────────────────── */
-function BarChart({ data, C }: { data: { month: string; count: number }[]; C: any }) {
+function BarChart({ data, C }: { data: { month: string; count: number }[]; C: Colors }) {
   const max = Math.max(...data.map((d) => d.count), 1);
   const W = 320; const H = 100; const BAR_W = 28; const GAP = (W - data.length * BAR_W) / (data.length + 1);
 
@@ -49,49 +55,22 @@ function BarChart({ data, C }: { data: { month: string; count: number }[]; C: an
   );
 }
 
-/* ── Doc row ─────────────────────────────────────────────────────────────── */
-function DocRow({ doc, C, t }: { doc: any; C: any; t: any }) {
-  const STATUS: Record<string, { label: string; bg: string; color: string }> = {
-    paid:      { label: t("status.paid"),      bg: C.greenL, color: C.green },
-    pending:   { label: t("status.pending"),   bg: C.yellowL, color: C.yellow },
-    overdue:   { label: t("status.overdue"),   bg: C.redL, color: C.red },
-    draft:     { label: t("status.draft"),     bg: C.segmentBg, color: C.muted },
-    cancelled: { label: t("status.cancelled"), bg: C.segmentBg, color: C.muted },
-  };
-  const sm = STATUS[doc.status] ?? STATUS.draft;
+/* ── Quick access row ────────────────────────────────────────────────────── */
+function QuickAccessRow({ icon, label, onPress, C }: { icon: ReactNode; label: string; onPress: () => void; C: Colors }) {
   return (
     <TouchableOpacity
-      onPress={() => router.push(`/(app)/documento/${doc.id}`)}
+      onPress={onPress}
       style={{
-        flexDirection: "row", alignItems: "center", gap: 12,
-        padding: 12, borderBottomWidth: 1, borderBottomColor: C.border,
+        flexDirection: "row", alignItems: "center", gap: spacing.md,
+        backgroundColor: C.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: C.border,
+        padding: spacing.md + 2,
       }}
     >
-      <View style={{
-        width: 36, height: 36, borderRadius: 8,
-        backgroundColor: C.blueL, alignItems: "center", justifyContent: "center",
-      }}>
-        <FileText size={16} color={C.blue} />
+      <View style={{ width: 38, height: 38, borderRadius: radius.md - 2, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
+        {icon}
       </View>
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text style={{ fontSize: 13, fontWeight: "600", color: C.text, fontFamily: "monospace" }} numberOfLines={1}>
-            {doc.document_number}
-          </Text>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: C.text }}>
-            {doc.total != null ? `€${Number(doc.total).toLocaleString("es-ES", { minimumFractionDigits: 2 })}` : "—"}
-          </Text>
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 3, alignItems: "center" }}>
-          <Text style={{ fontSize: 12, color: C.muted }} numberOfLines={1}>
-            {doc.companies?.name ?? t("common.noCompany")}
-          </Text>
-          <View style={{ backgroundColor: sm.bg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
-            <Text style={{ fontSize: 11, fontWeight: "600", color: sm.color }}>{sm.label}</Text>
-          </View>
-        </View>
-      </View>
-      <ChevronRight size={16} color={C.muted} />
+      <Text style={{ flex: 1, fontFamily: fonts.semibold, fontSize: 15, color: C.text }}>{label}</Text>
+      <ChevronRight size={18} color={C.muted} strokeWidth={1.75} />
     </TouchableOpacity>
   );
 }
@@ -180,15 +159,15 @@ export default function DashboardScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.blue} />}
       >
         {/* Header */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: spacing.xl - 4, paddingTop: spacing.sm, paddingBottom: spacing.xs }}>
           <View>
-            <Text style={{ fontSize: 13, color: C.muted }}>{getGreeting()}</Text>
-            <Text style={{ fontSize: 22, fontWeight: "800", color: C.text }}>
+            <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.muted }}>{getGreeting()}</Text>
+            <Text style={{ fontFamily: fonts.extrabold, fontSize: 22, color: C.text }}>
               {firstName} 👋
             </Text>
           </View>
           <View>
-            <Bell size={24} color={C.muted} />
+            <Bell size={24} color={C.muted} strokeWidth={1.75} />
             {kpi.overdueN > 0 && (
               <View style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, backgroundColor: C.red, borderRadius: 4 }} />
             )}
@@ -198,148 +177,92 @@ export default function DashboardScreen() {
         {/* Overdue alert */}
         {kpi.overdueN > 0 && (
           <View style={{
-            marginHorizontal: 16, marginTop: 14,
+            marginHorizontal: spacing.lg, marginTop: spacing.md + 2,
             backgroundColor: C.redL, borderWidth: 1, borderColor: "rgba(220,38,38,.2)",
-            borderRadius: 10, padding: 12, flexDirection: "row", gap: 10, alignItems: "center",
+            borderRadius: radius.md, padding: spacing.md, flexDirection: "row", gap: spacing.sm + 2, alignItems: "center",
           }}>
-            <AlertTriangle size={18} color={C.red} />
+            <AlertTriangle size={18} color={C.red} strokeWidth={1.75} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: "600", color: C.red }}>
+              <Text style={{ fontFamily: fonts.semibold, fontSize: 13, color: C.red }}>
                 {t("dashboard.overdueAlert", { count: kpi.overdueN })}
               </Text>
-              <Text style={{ fontSize: 12, color: C.red, marginTop: 1, opacity: 0.8 }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.red, marginTop: 1, opacity: 0.8 }}>
                 €{kpi.overdue.toLocaleString("es-ES", { minimumFractionDigits: 2 })} {t("dashboard.uncollected")}
               </Text>
             </View>
-            <Text style={{ fontSize: 12, fontWeight: "600", color: C.red }}>{t("dashboard.view")} →</Text>
+            <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.red }}>{t("dashboard.view")} →</Text>
           </View>
         )}
 
         {/* KPI cards */}
-        <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, marginTop: 14 }}>
+        <View style={{ flexDirection: "row", gap: spacing.sm, paddingHorizontal: spacing.lg, marginTop: spacing.md + 2 }}>
           {[
             { label: t("dashboard.paid"),    amount: kpi.paid,    count: kpi.paidN,    color: C.green,  borderColor: C.green },
             { label: t("dashboard.pending"), amount: kpi.pending, count: kpi.pendingN, color: C.yellow, borderColor: C.yellow },
             { label: t("dashboard.overdue"), amount: kpi.overdue, count: kpi.overdueN, color: C.red,    borderColor: C.red },
           ].map((k) => (
-            <View
+            <Card
               key={k.label}
-              style={{
-                flex: 1, backgroundColor: C.surface, borderRadius: 12,
-                padding: 12, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4,
-                shadowOffset: { width: 0, height: 1 }, elevation: 2,
-                borderTopWidth: 3, borderTopColor: k.borderColor,
-              }}
+              containerStyle={{ flex: 1 }}
+              style={{ borderTopWidth: 3, borderTopColor: k.borderColor, padding: spacing.md }}
             >
-              <Text style={{ fontSize: 11, color: C.muted, fontWeight: "500", marginBottom: 4 }}>{k.label}</Text>
-              <Text style={{ fontSize: 15, fontWeight: "800", color: k.color }} numberOfLines={1}>
+              <Text style={{ fontFamily: fonts.medium, fontSize: 11, color: C.muted, marginBottom: 4 }}>{k.label}</Text>
+              <Text style={{ fontFamily: fonts.extrabold, fontSize: 15, color: k.color }} numberOfLines={1}>
                 €{k.amount.toLocaleString("es-ES", { minimumFractionDigits: 0 })}
               </Text>
-              <Text style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{k.count} {t("common.docs")}</Text>
-            </View>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted, marginTop: 2 }}>{k.count} {t("common.docs")}</Text>
+            </Card>
           ))}
         </View>
 
         {/* Quick access — paid features */}
         {paidFeatures && (
-          <View style={{ paddingHorizontal: 16, marginTop: 14, gap: 10 }}>
-            <TouchableOpacity
-              onPress={() => router.push("/(app)/inventario")}
-              style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14 }}
-            >
-              <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
-                <Package size={18} color={C.blue} />
-              </View>
-              <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: C.text }}>{t("inventory.title")}</Text>
-              <ChevronRight size={18} color={C.muted} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push("/(app)/facturacion")}
-              style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14 }}
-            >
-              <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
-                <Receipt size={18} color={C.blue} />
-              </View>
-              <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: C.text }}>{t("invoicing.title")}</Text>
-              <ChevronRight size={18} color={C.muted} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push("/(app)/presupuestos")}
-              style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14 }}
-            >
-              <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
-                <ClipboardList size={18} color={C.blue} />
-              </View>
-              <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: C.text }}>{t("quoting.title")}</Text>
-              <ChevronRight size={18} color={C.muted} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push("/(app)/albaranes")}
-              style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14 }}
-            >
-              <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
-                <Truck size={18} color={C.blue} />
-              </View>
-              <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: C.text }}>{t("delivery.title")}</Text>
-              <ChevronRight size={18} color={C.muted} />
-            </TouchableOpacity>
+          <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md + 2, gap: spacing.sm + 2 }}>
+            <QuickAccessRow icon={<Package size={18} color={C.blue} strokeWidth={1.75} />} label={t("inventory.title")} onPress={() => router.push("/(app)/inventario")} C={C} />
+            <QuickAccessRow icon={<Receipt size={18} color={C.blue} strokeWidth={1.75} />} label={t("invoicing.title")} onPress={() => router.push("/(app)/facturacion")} C={C} />
+            <QuickAccessRow icon={<ClipboardList size={18} color={C.blue} strokeWidth={1.75} />} label={t("quoting.title")} onPress={() => router.push("/(app)/presupuestos")} C={C} />
+            <QuickAccessRow icon={<Truck size={18} color={C.blue} strokeWidth={1.75} />} label={t("delivery.title")} onPress={() => router.push("/(app)/albaranes")} C={C} />
           </View>
         )}
 
         {/* Chart */}
-        <View style={{
-          marginHorizontal: 16, marginTop: 14,
-          backgroundColor: C.surface, borderRadius: 14, padding: 14,
-          shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2,
-        }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <View>
-              <Text style={{ fontSize: 14, fontWeight: "700", color: C.text }}>{t("dashboard.monthlyActivity")}</Text>
-              <Text style={{ fontSize: 12, color: C.muted }}>{t("dashboard.docsArchived")}</Text>
+        <View style={{ marginHorizontal: spacing.lg, marginTop: spacing.md + 2 }}>
+          <Card>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.md }}>
+              <View>
+                <Text style={{ fontFamily: fonts.bold, fontSize: 14, color: C.text }}>{t("dashboard.monthlyActivity")}</Text>
+                <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>{t("dashboard.docsArchived")}</Text>
+              </View>
             </View>
-          </View>
-          <BarChart data={chartData} C={C} />
+            <BarChart data={chartData} C={C} />
+          </Card>
         </View>
 
         {/* Recent docs */}
-        <View style={{ marginTop: 14, marginBottom: 16 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, marginBottom: 10 }}>
-            <Text style={{ fontSize: 15, fontWeight: "700", color: C.text }}>{t("dashboard.recentDocs")}</Text>
+        <View style={{ marginTop: spacing.md + 2, marginBottom: spacing.lg }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: spacing.lg, marginBottom: spacing.sm + 2 }}>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: C.text }}>{t("dashboard.recentDocs")}</Text>
             <TouchableOpacity onPress={() => router.push("/(app)/biblioteca")}>
-              <Text style={{ fontSize: 13, color: C.blue, fontWeight: "500" }}>{t("dashboard.viewAll")}</Text>
+              <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: C.blue }}>{t("dashboard.viewAll")}</Text>
             </TouchableOpacity>
           </View>
-          <View style={{
-            backgroundColor: C.surface, borderRadius: 14, marginHorizontal: 16,
-            overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2,
-          }}>
-            {docs.length === 0 ? (
-              <View style={{ padding: 32, alignItems: "center", gap: 8 }}>
-                <FileText size={36} color={C.muted} />
-                <Text style={{ fontSize: 15, fontWeight: "600", color: C.text }}>{t("dashboard.noDocs")}</Text>
-                <Text style={{ fontSize: 13, color: C.muted, textAlign: "center" }}>
-                  {t("dashboard.uploadFirst")}
-                </Text>
-              </View>
-            ) : (
-              docs.map((doc) => <DocRow key={doc.id} doc={doc} C={C} t={t} />)
-            )}
+          <View style={{ marginHorizontal: spacing.lg }}>
+            <Card padded={false}>
+              {docs.length === 0 ? (
+                <EmptyState
+                  icon={<FileText size={28} color={C.muted} strokeWidth={1.5} />}
+                  title={t("dashboard.noDocs")}
+                  subtitle={t("dashboard.uploadFirst")}
+                />
+              ) : (
+                docs.map((doc) => <DocRow key={doc.id} doc={doc} />)
+              )}
+            </Card>
           </View>
         </View>
       </ScrollView>
 
-      {/* FAB */}
-      <TouchableOpacity
-        onPress={() => router.push("/(app)/subir")}
-        style={{
-          position: "absolute", bottom: 20, right: 20,
-          width: 52, height: 52, borderRadius: 26,
-          backgroundColor: C.blue, alignItems: "center", justifyContent: "center",
-          shadowColor: C.blue, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 8,
-        }}
-      >
-        <Plus size={22} color="#fff" />
-      </TouchableOpacity>
+      <UploadFab />
     </SafeAreaView>
   );
 }

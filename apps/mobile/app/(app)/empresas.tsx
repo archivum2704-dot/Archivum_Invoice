@@ -16,10 +16,14 @@ import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
+import { radius } from "@/lib/radius";
 import { BillingNotice } from "@/components/BillingNotice";
 import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
 import { resolveEntitlements } from "@/lib/pricing";
+import { Badge, Button, Card, EmptyState, Input } from "@/components/ui";
 
 
 
@@ -46,30 +50,30 @@ function UpgradeModal({ visible, maxCompanies, onClose, C, t }: { visible: boole
   return (
     <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
-      <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 28 }}>
-        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 16 }} />
-        <View style={{ alignItems: "center", marginBottom: 12 }}>
+      <View style={{ backgroundColor: C.surface, borderRadius: radius.xl, paddingBottom: spacing.xl + 4 }}>
+        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: spacing.md, marginBottom: spacing.lg }} />
+        <View style={{ alignItems: "center", marginBottom: spacing.md }}>
           <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
-            <Lock size={26} color={C.blue} />
+            <Lock size={26} color={C.blue} strokeWidth={1.75} />
           </View>
         </View>
-        <Text style={{ fontSize: 18, fontWeight: "800", color: C.text, textAlign: "center", paddingHorizontal: 24, marginBottom: 8 }}>
+        <Text style={{ fontFamily: fonts.extrabold, fontSize: 18, color: C.text, textAlign: "center", paddingHorizontal: spacing.xl, marginBottom: spacing.sm }}>
           {t("empresas.limitTitle")}
         </Text>
-        <Text style={{ fontSize: 14, color: C.muted, textAlign: "center", paddingHorizontal: 24, lineHeight: 20, marginBottom: 20 }}>
+        <Text style={{ fontFamily: fonts.regular, fontSize: 14, color: C.muted, textAlign: "center", paddingHorizontal: spacing.xl, lineHeight: 20, marginBottom: spacing.xl - 4 }}>
           {t("empresas.limitDesc", { max: maxCompanies })}
         </Text>
-        <View style={{ marginHorizontal: 24, marginBottom: 20, gap: 8 }}>
+        <View style={{ marginHorizontal: spacing.xl, marginBottom: spacing.xl - 4, gap: spacing.sm }}>
           {[t("empresas.limitBullet1"), t("empresas.limitBullet2"), t("empresas.limitBullet3")].map((line) => (
-            <View key={line} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View key={line} style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.blue }} />
-              <Text style={{ fontSize: 13, color: C.text }}>{line}</Text>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.text }}>{line}</Text>
             </View>
           ))}
         </View>
-        <BillingNotice style={{ marginHorizontal: 24 }} />
-        <TouchableOpacity onPress={onClose} style={{ marginTop: 10, alignItems: "center", paddingVertical: 10 }}>
-          <Text style={{ fontSize: 14, color: C.muted }}>{t("common.notNow")}</Text>
+        <BillingNotice style={{ marginHorizontal: spacing.xl }} />
+        <TouchableOpacity onPress={onClose} style={{ marginTop: spacing.sm + 2, alignItems: "center", paddingVertical: spacing.sm + 2 }}>
+          <Text style={{ fontFamily: fonts.regular, fontSize: 14, color: C.muted }}>{t("common.notNow")}</Text>
         </TouchableOpacity>
       </View>
     </KeyboardModal>
@@ -118,37 +122,31 @@ function CompanyModal({
   return (
     <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
-      <View style={{ backgroundColor: C.surface, borderRadius: 20, maxHeight: "75%", overflow: "hidden" }}>
-        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12 }} />
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: C.border }}>
-          <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>{isEdit ? t("empresas.editCompany") : t("empresas.newCompany")}</Text>
-          <TouchableOpacity onPress={onClose} style={{ backgroundColor: C.segmentBg, borderRadius: 8, padding: 6 }}>
-            <X size={16} color={C.muted} />
+      <View style={{ backgroundColor: C.surface, borderRadius: radius.xl, maxHeight: "75%", overflow: "hidden" }}>
+        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: spacing.md }} />
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: C.border }}>
+          <Text style={{ fontFamily: fonts.bold, fontSize: 17, color: C.text }}>{isEdit ? t("empresas.editCompany") : t("empresas.newCompany")}</Text>
+          <TouchableOpacity onPress={onClose} style={{ backgroundColor: C.segmentBg, borderRadius: radius.sm, padding: 6 }}>
+            <X size={16} color={C.muted} strokeWidth={1.75} />
           </TouchableOpacity>
         </View>
-        <ScrollView style={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+        <ScrollView style={{ padding: spacing.lg }} keyboardShouldPersistTaps="handled">
           {[
             { label: t("empresas.nameLabel"), value: name, setter: setName, placeholder: "Iberdrola SA" },
             { label: t("empresas.cifLabel"),  value: cif,  setter: setCif,  placeholder: "A-95075578" },
             { label: t("empresas.sectorLabel"), value: sector, setter: setSector, placeholder: "Energía" },
           ].map((f) => (
-            <View key={f.label} style={{ marginBottom: 12 }}>
-              <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 5 }}>{f.label}</Text>
-              <TextInput
-                style={{ borderWidth: 1.5, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: C.text, backgroundColor: C.inputBg }}
-                placeholder={f.placeholder} placeholderTextColor={C.muted}
-                value={f.value} onChangeText={f.setter}
-              />
+            <View key={f.label} style={{ marginBottom: spacing.md }}>
+              <Input label={f.label} placeholder={f.placeholder} value={f.value} onChangeText={f.setter} />
             </View>
           ))}
-          <TouchableOpacity
-            onPress={handleSave} disabled={saving || !name.trim()}
-            style={{ backgroundColor: C.blue, borderRadius: 10, paddingVertical: 14, alignItems: "center", marginBottom: 16, opacity: (saving || !name.trim()) ? 0.6 : 1 }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>
-              {saving ? t("common.saving") : (isEdit ? t("empresas.saveChanges") : t("empresas.createCompany"))}
-            </Text>
-          </TouchableOpacity>
+          <Button
+            label={isEdit ? t("empresas.saveChanges") : t("empresas.createCompany")}
+            onPress={handleSave}
+            disabled={saving || !name.trim()}
+            loading={saving}
+            style={{ marginBottom: spacing.lg }}
+          />
         </ScrollView>
       </View>
     </KeyboardModal>
@@ -166,28 +164,28 @@ function ActionMenu({
   return (
     <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
-      <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 24 }}>
-        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 8 }} />
-        <Text style={{ fontSize: 15, fontWeight: "700", color: C.text, paddingHorizontal: 20, paddingBottom: 8 }} numberOfLines={1}>
+      <View style={{ backgroundColor: C.surface, borderRadius: radius.xl, paddingBottom: spacing.xl }}>
+        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: spacing.md, marginBottom: spacing.sm }} />
+        <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: C.text, paddingHorizontal: spacing.xl - 4, paddingBottom: spacing.sm }} numberOfLines={1}>
           {company.name}
         </Text>
         {[
-          { icon: <FileText size={18} color={C.blue} />,   label: t("empresas.viewDocs"),   action: () => { onClose(); router.push(`/(app)/biblioteca?empresa=${company.id}`); } },
-          { icon: <Pencil size={18} color={C.text} />,     label: t("common.edit"),         action: () => { onClose(); onEdit(); } },
+          { icon: <FileText size={18} color={C.blue} strokeWidth={1.75} />,   label: t("empresas.viewDocs"),   action: () => { onClose(); router.push(`/(app)/biblioteca?empresa=${company.id}`); } },
+          { icon: <Pencil size={18} color={C.text} strokeWidth={1.75} />,     label: t("common.edit"),         action: () => { onClose(); onEdit(); } },
           { icon: company.is_active
-              ? <PauseCircle size={18} color={C.yellow} />
-              : <PlayCircle  size={18} color={C.green}  />,
+              ? <PauseCircle size={18} color={C.yellow} strokeWidth={1.75} />
+              : <PlayCircle  size={18} color={C.green}  strokeWidth={1.75} />,
             label: company.is_active ? t("empresas.suspend") : t("empresas.reactivate"),
             action: () => { onClose(); onToggle(); }
           },
-          { icon: <Trash2 size={18} color={C.red} />, label: t("common.delete"), action: () => { onClose(); onDelete(); }, danger: true },
+          { icon: <Trash2 size={18} color={C.red} strokeWidth={1.75} />, label: t("common.delete"), action: () => { onClose(); onDelete(); }, danger: true },
         ].map((item) => (
           <TouchableOpacity
             key={item.label} onPress={item.action}
-            style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: C.border }}
+            style={{ flexDirection: "row", alignItems: "center", gap: spacing.md + 2, padding: spacing.md + 2, paddingHorizontal: spacing.xl - 4, borderBottomWidth: 1, borderBottomColor: C.border }}
           >
             {item.icon}
-            <Text style={{ fontSize: 15, color: item.danger ? C.red : C.text }}>{item.label}</Text>
+            <Text style={{ fontFamily: fonts.regular, fontSize: 15, color: item.danger ? C.red : C.text }}>{item.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -201,11 +199,11 @@ function Chip({ label, active, onPress, C }: { label: string; active: boolean; o
     <TouchableOpacity
       onPress={onPress}
       style={{
-        paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, borderWidth: 1,
+        paddingHorizontal: spacing.md + 2, paddingVertical: 7, borderRadius: radius.pill, borderWidth: 1,
         backgroundColor: active ? C.blue : C.surface, borderColor: active ? C.blue : C.border,
       }}
     >
-      <Text style={{ fontSize: 12, fontWeight: "600", color: active ? "#fff" : C.muted }}>{label}</Text>
+      <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: active ? "#fff" : C.muted }}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -213,50 +211,46 @@ function Chip({ label, active, onPress, C }: { label: string; active: boolean; o
 /* ── Company card ────────────────────────────────────────────────────────── */
 function CompanyCard({ company, onMenu, C, t }: { company: Company; onMenu: () => void; C: any; t: any }) {
   return (
-    <View style={{
-      backgroundColor: C.surface, borderRadius: 14, marginHorizontal: 16, marginBottom: 10,
-      overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2,
-    }}>
+    <Card
+      padded={false}
+      containerStyle={{ marginHorizontal: spacing.lg, marginBottom: spacing.sm + 2 }}
+    >
       {!company.is_active && <View style={{ height: 3, backgroundColor: C.yellow }} />}
-      <View style={{ padding: 14 }}>
+      <View style={{ padding: spacing.md + 2 }}>
         <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
-          <View style={{ flexDirection: "row", gap: 10, alignItems: "center", flex: 1 }}>
-            <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontSize: 18, fontWeight: "700", color: C.blue }}>{company.name[0].toUpperCase()}</Text>
+          <View style={{ flexDirection: "row", gap: spacing.sm + 2, alignItems: "center", flex: 1 }}>
+            <View style={{ width: 40, height: 40, borderRadius: radius.md - 2, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ fontFamily: fonts.bold, fontSize: 18, color: C.blue }}>{company.name[0].toUpperCase()}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
-                <Text style={{ fontSize: 15, fontWeight: "700", color: C.text }} numberOfLines={1}>{company.name}</Text>
-                {!company.is_active && (
-                  <View style={{ backgroundColor: C.yellowL, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 1 }}>
-                    <Text style={{ fontSize: 10, fontWeight: "600", color: C.yellow }}>{t("empresas.suspended")}</Text>
-                  </View>
-                )}
+              <View style={{ flexDirection: "row", gap: spacing.xs + 2, alignItems: "center" }}>
+                <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: C.text }} numberOfLines={1}>{company.name}</Text>
+                {!company.is_active && <Badge label={t("empresas.suspended")} tone="yellow" />}
               </View>
               {company.cif && (
-                <Text style={{ fontSize: 12, color: C.muted, fontFamily: "monospace" }}>{company.cif}</Text>
+                <Text style={{ fontFamily: fonts.mono, fontSize: 12, color: C.muted }}>{company.cif}</Text>
               )}
             </View>
           </View>
           <TouchableOpacity onPress={onMenu} style={{ padding: 4 }}>
-            <MoreVertical size={20} color={C.muted} />
+            <MoreVertical size={20} color={C.muted} strokeWidth={1.75} />
           </TouchableOpacity>
         </View>
 
-        <View style={{ flexDirection: "row", gap: 16, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border }}>
+        <View style={{ flexDirection: "row", gap: spacing.lg, marginTop: spacing.sm + 2, paddingTop: spacing.sm + 2, borderTopWidth: 1, borderTopColor: C.border }}>
           {company.sector && (
             <View>
-              <Text style={{ fontSize: 11, color: C.muted }}>{t("empresas.sector")}</Text>
-              <Text style={{ fontSize: 12, fontWeight: "600", color: C.text }}>{company.sector}</Text>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t("empresas.sector")}</Text>
+              <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.text }}>{company.sector}</Text>
             </View>
           )}
           <View>
-            <Text style={{ fontSize: 11, color: C.muted }}>{t("empresas.documents")}</Text>
-            <Text style={{ fontSize: 12, fontWeight: "600", color: C.text }}>{company.doc_count ?? 0}</Text>
+            <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t("empresas.documents")}</Text>
+            <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.text }}>{company.doc_count ?? 0}</Text>
           </View>
         </View>
       </View>
-    </View>
+    </Card>
   );
 }
 
@@ -367,38 +361,38 @@ function EmpresasScreenContent() {
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: C.bg }}>
       {/* Header */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.sm }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.md }}>
           <View>
-            <Text style={{ fontSize: 22, fontWeight: "800", color: C.text }}>{t("empresas.title")}</Text>
+            <Text style={{ fontFamily: fonts.extrabold, fontSize: 22, color: C.text }}>{t("empresas.title")}</Text>
             {plan && (
-              <Text style={{ fontSize: 12, color: atLimit ? C.red : C.muted, marginTop: 1 }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: atLimit ? C.red : C.muted, marginTop: 1 }}>
                 {t("empresas.companiesCount", { current: companies.length, max: maxCompanies })}
               </Text>
             )}
           </View>
           <TouchableOpacity
             onPress={handleAddPress}
-            style={{ width: 36, height: 36, backgroundColor: C.blue, borderRadius: 10, alignItems: "center", justifyContent: "center" }}
+            style={{ width: 36, height: 36, backgroundColor: C.blue, borderRadius: radius.md - 2, alignItems: "center", justifyContent: "center" }}
           >
-            <Plus size={18} color="#fff" />
+            <Plus size={18} color="#fff" strokeWidth={1.75} />
           </TouchableOpacity>
         </View>
 
         <View style={{
-          flexDirection: "row", alignItems: "center", gap: 8,
-          backgroundColor: C.inputBg, borderWidth: 1.5, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12,
+          flexDirection: "row", alignItems: "center", gap: spacing.sm,
+          backgroundColor: C.inputBg, borderWidth: 1.5, borderColor: C.border, borderRadius: radius.md, paddingHorizontal: spacing.md,
         }}>
-          <Search size={16} color={C.muted} />
+          <Search size={16} color={C.muted} strokeWidth={1.75} />
           <TextInput
-            style={{ flex: 1, fontSize: 14, color: C.text, paddingVertical: 10 }}
+            style={{ flex: 1, fontFamily: fonts.regular, fontSize: 14, color: C.text, paddingVertical: spacing.sm + 2 }}
             placeholder={t("empresas.searchPlaceholder")}
             placeholderTextColor={C.muted}
             value={query}
             onChangeText={setQuery}
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery("")} hitSlop={8}><X size={16} color={C.muted} /></TouchableOpacity>
+            <TouchableOpacity onPress={() => setQuery("")} hitSlop={8}><X size={16} color={C.muted} strokeWidth={1.75} /></TouchableOpacity>
           )}
         </View>
 
@@ -407,8 +401,8 @@ function EmpresasScreenContent() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={{ marginHorizontal: -16, marginTop: 10 }}
-            contentContainerStyle={{ paddingHorizontal: 16, gap: 6 }}
+            style={{ marginHorizontal: -spacing.lg, marginTop: spacing.sm + 2 }}
+            contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 6 }}
           >
             <Chip label={t("empresas.allSectors")} active={selectedSector === null} onPress={() => setSelectedSector(null)} C={C} />
             {sectors.map((s) => (
@@ -423,22 +417,15 @@ function EmpresasScreenContent() {
 
       {/* List */}
       {filtered.length === 0 ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 12 }}>
-          <Building2 size={56} color={C.muted} />
-          <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>
-            {(query || selectedSector) ? t("empresas.noResults") : t("empresas.noCompanies")}
-          </Text>
-          <Text style={{ fontSize: 13, color: C.muted, textAlign: "center" }}>
-            {(query || selectedSector) ? t("empresas.tryOther") : t("empresas.addFirst")}
-          </Text>
-          {!query && !selectedSector && (
-            <TouchableOpacity
-              onPress={handleAddPress}
-              style={{ backgroundColor: C.blue, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 8, marginTop: 4 }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>{t("empresas.addCompany")}</Text>
-            </TouchableOpacity>
-          )}
+        <View style={{ flex: 1, justifyContent: "center" }}>
+          <EmptyState
+            icon={<Building2 size={28} color={C.muted} strokeWidth={1.5} />}
+            title={(query || selectedSector) ? t("empresas.noResults") : t("empresas.noCompanies")}
+            subtitle={(query || selectedSector) ? t("empresas.tryOther") : t("empresas.addFirst")}
+            action={!query && !selectedSector ? (
+              <Button label={t("empresas.addCompany")} onPress={handleAddPress} size="md" fullWidth={false} />
+            ) : undefined}
+          />
         </View>
       ) : (
         <FlatList
@@ -449,7 +436,7 @@ function EmpresasScreenContent() {
             <CompanyCard company={item} onMenu={() => setMenuTarget(item)} C={C} t={t} />
           )}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.blue} />}
-          contentContainerStyle={{ paddingTop: 4, paddingBottom: 24 }}
+          contentContainerStyle={{ paddingTop: spacing.xs, paddingBottom: spacing.xl }}
           showsVerticalScrollIndicator={false}
         />
       )}

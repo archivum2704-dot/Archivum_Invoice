@@ -13,9 +13,13 @@ import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
+import { radius } from "@/lib/radius";
 import { BillingNotice } from "@/components/BillingNotice";
 import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
+import { Badge, Button, Card, EmptyState, Input } from "@/components/ui";
 
 
 
@@ -171,23 +175,26 @@ function InventarioScreenContent() {
   };
 
   const Header = (
-    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <TouchableOpacity onPress={() => router.back()}><ArrowLeft size={22} color={C.text} /></TouchableOpacity>
-        <Text style={{ fontSize: 22, fontWeight: "700", color: C.text }}>{t("inventory.title")}</Text>
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.lg, paddingVertical: spacing.md }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+        <TouchableOpacity onPress={() => router.back()}><ArrowLeft size={22} color={C.text} strokeWidth={1.75} /></TouchableOpacity>
+        <Text style={{ fontFamily: fonts.extrabold, fontSize: 22, color: C.text }}>{t("inventory.title")}</Text>
       </View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
         {paid && products.length > 0 && (
           <TouchableOpacity onPress={exportExcel} disabled={exporting}
-            style={{ borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, padding: 9, borderRadius: 12, opacity: exporting ? 0.5 : 1 }}>
-            {exporting ? <ActivityIndicator size="small" color={C.blue} /> : <FileSpreadsheet size={16} color={C.text} />}
+            style={{ borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, padding: spacing.sm + 1, borderRadius: radius.md, opacity: exporting ? 0.5 : 1 }}>
+            {exporting ? <ActivityIndicator size="small" color={C.blue} /> : <FileSpreadsheet size={16} color={C.text} strokeWidth={1.75} />}
           </TouchableOpacity>
         )}
         {canManage && (
-          <TouchableOpacity onPress={() => { setDraft(EMPTY); setModal(true); }}
-            style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.blue, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 }}>
-            <Plus size={16} color="#fff" /><Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>{t("inventory.new")}</Text>
-          </TouchableOpacity>
+          <Button
+            label={t("inventory.new")}
+            onPress={() => { setDraft(EMPTY); setModal(true); }}
+            size="md"
+            fullWidth={false}
+            icon={<Plus size={16} color="#fff" strokeWidth={1.75} />}
+          />
         )}
       </View>
     </View>
@@ -197,13 +204,13 @@ function InventarioScreenContent() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
         {Header}
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-            <Lock size={26} color={C.blue} />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.xl }}>
+          <View style={{ width: 56, height: 56, borderRadius: radius.lg, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center", marginBottom: spacing.lg }}>
+            <Lock size={26} color={C.blue} strokeWidth={1.75} />
           </View>
-          <Text style={{ fontSize: 17, fontWeight: "600", color: C.text, textAlign: "center" }}>{t("inventory.paywallTitle")}</Text>
-          <Text style={{ fontSize: 14, color: C.muted, textAlign: "center", marginTop: 8 }}>{t("inventory.paywallBody")}</Text>
-          <BillingNotice style={{ marginTop: 20 }} />
+          <Text style={{ fontFamily: fonts.semibold, fontSize: 17, color: C.text, textAlign: "center" }}>{t("inventory.paywallTitle")}</Text>
+          <Text style={{ fontFamily: fonts.regular, fontSize: 14, color: C.muted, textAlign: "center", marginTop: spacing.sm }}>{t("inventory.paywallBody")}</Text>
+          <BillingNotice style={{ marginTop: spacing.xl - 4 }} />
         </View>
       </SafeAreaView>
     );
@@ -214,26 +221,26 @@ function InventarioScreenContent() {
       {Header}
 
       {/* Search */}
-      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 12 }}>
-          <Search size={16} color={C.muted} />
+      <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: C.inputBg, borderWidth: 1.5, borderColor: C.border, borderRadius: radius.md, paddingHorizontal: spacing.md }}>
+          <Search size={16} color={C.muted} strokeWidth={1.75} />
           <TextInput
             value={search}
             onChangeText={setSearch}
             placeholder={t("common.search")}
             placeholderTextColor={C.muted}
-            style={{ flex: 1, paddingVertical: 10, color: C.text, fontSize: 15 }}
+            style={{ flex: 1, paddingVertical: spacing.sm + 2, color: C.text, fontFamily: fonts.regular, fontSize: 15 }}
           />
           {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch("")} hitSlop={8}><X size={16} color={C.muted} /></TouchableOpacity>
+            <TouchableOpacity onPress={() => setSearch("")} hitSlop={8}><X size={16} color={C.muted} strokeWidth={1.75} /></TouchableOpacity>
           )}
         </View>
       </View>
 
       {/* Category filter chips */}
       {categories.length > 0 && (
-        <View style={{ paddingBottom: 8 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 6 }}>
+        <View style={{ paddingBottom: spacing.sm }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: 6 }}>
             <Chip label={t("inventory.allCategories")} active={selectedCategory === null} onPress={() => setSelectedCategory(null)} C={C} />
             {categories.map((c) => (
               <Chip key={c} label={c} active={selectedCategory === c} onPress={() => setSelectedCategory(c)} C={C} />
@@ -250,17 +257,17 @@ function InventarioScreenContent() {
           without going looking. */}
       {lowStock.length > 0 && (
         <View style={{
-          flexDirection: "row", alignItems: "flex-start", gap: 8,
+          flexDirection: "row", alignItems: "flex-start", gap: spacing.sm,
           backgroundColor: C.yellowL, borderWidth: 1, borderColor: C.yellow,
-          borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
-          marginHorizontal: 16, marginBottom: 12,
+          borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
+          marginHorizontal: spacing.lg, marginBottom: spacing.md,
         }}>
-          <AlertTriangle size={16} color={C.yellow} style={{ marginTop: 1 }} />
+          <AlertTriangle size={16} color={C.yellow} strokeWidth={1.75} style={{ marginTop: 1 }} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: C.yellow }}>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 13, color: C.yellow }}>
               {t("inventory.lowStockTitle", { count: lowStock.length })}
             </Text>
-            <Text numberOfLines={2} style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+            <Text numberOfLines={2} style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted, marginTop: 2 }}>
               {lowStock.slice(0, 4).map((p) => `${p.name} (${Number(p.stock_qty)}/${Number(p.min_stock)})`).join(" · ")}
               {lowStock.length > 4 ? ` · +${lowStock.length - 4}` : ""}
             </Text>
@@ -275,79 +282,104 @@ function InventarioScreenContent() {
           keyboardShouldPersistTaps="handled"
           data={filtered}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={{ padding: 16, gap: 10 }}
+          contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm + 2 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={C.blue} />}
           ListEmptyComponent={
-            <View style={{ alignItems: "center", paddingVertical: 60 }}>
-              <Package size={40} color={C.muted} />
-              <Text style={{ color: C.muted, marginTop: 12 }}>{products.length === 0 ? t("inventory.empty") : t("inventory.noResults")}</Text>
+            <View style={{ paddingTop: spacing.xxl }}>
+              <EmptyState
+                icon={<Package size={28} color={C.muted} strokeWidth={1.5} />}
+                title={products.length === 0 ? t("inventory.empty") : t("inventory.noResults")}
+              />
             </View>
           }
-          renderItem={({ item }) => (
-            <View style={{ backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: "600", color: C.text }}>{item.name}</Text>
-                <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
-                  {fmtEur(item.unit_price)} · {Number(item.tax_rate)}% {t("inventory.iva")}
-                  {item.track_stock
-                    ? ` · ${t("inventory.stock")}: ${Number(item.stock_qty)}${item.min_stock != null ? `/${Number(item.min_stock)}` : ""}`
-                    : ""}
-                </Text>
-                {item.category ? (
-                  <View style={{ alignSelf: "flex-start", marginTop: 4, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                    <Text style={{ fontSize: 10, fontWeight: "500", color: C.muted }}>{item.category}</Text>
+          renderItem={({ item }) => {
+            const lowStockItem = isLowStock(item);
+            return (
+              <Card
+                style={{
+                  flexDirection: "row", alignItems: "center", gap: spacing.md,
+                  borderLeftWidth: lowStockItem ? 3 : 0,
+                  borderLeftColor: lowStockItem ? C.yellow : "transparent",
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+                    <Text style={{ fontFamily: fonts.semibold, fontSize: 15, color: C.text }}>{item.name}</Text>
+                    {lowStockItem && <Badge label={t("inventory.lowStockBadge")} tone="yellow" />}
                   </View>
-                ) : null}
-              </View>
-              {canManage && (
-                <View style={{ flexDirection: "row", gap: 4 }}>
-                  <TouchableOpacity onPress={() => { setDraft({ id: item.id, name: item.name, sku: item.sku ?? "", category: item.category ?? "", unit: item.unit, unit_price: String(item.unit_price), tax_rate: String(item.tax_rate), track_stock: item.track_stock, stock_qty: String(item.stock_qty), min_stock: item.min_stock == null ? "" : String(item.min_stock) }); setModal(true); }} style={{ padding: 6 }}>
-                    <Pencil size={16} color={C.muted} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => remove(item)} style={{ padding: 6 }}><Trash2 size={16} color={C.red} /></TouchableOpacity>
+                  <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginTop: 2 }}>
+                    {fmtEur(item.unit_price)} · {Number(item.tax_rate)}% {t("inventory.iva")}
+                    {item.track_stock
+                      ? ` · ${t("inventory.stock")}: ${Number(item.stock_qty)}${item.min_stock != null ? `/${Number(item.min_stock)}` : ""}`
+                      : ""}
+                  </Text>
+                  {item.category ? (
+                    <View style={{ alignSelf: "flex-start", marginTop: spacing.xs, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                      <Text style={{ fontFamily: fonts.medium, fontSize: 10, color: C.muted }}>{item.category}</Text>
+                    </View>
+                  ) : null}
                 </View>
-              )}
-            </View>
-          )}
+                {canManage && (
+                  <View style={{ flexDirection: "row", gap: spacing.xs }}>
+                    <TouchableOpacity onPress={() => { setDraft({ id: item.id, name: item.name, sku: item.sku ?? "", category: item.category ?? "", unit: item.unit, unit_price: String(item.unit_price), tax_rate: String(item.tax_rate), track_stock: item.track_stock, stock_qty: String(item.stock_qty), min_stock: item.min_stock == null ? "" : String(item.min_stock) }); setModal(true); }} style={{ padding: 6 }}>
+                      <Pencil size={16} color={C.muted} strokeWidth={1.75} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => remove(item)} style={{ padding: 6 }}><Trash2 size={16} color={C.red} strokeWidth={1.75} /></TouchableOpacity>
+                  </View>
+                )}
+              </Card>
+            );
+          }}
         />
       )}
 
       {/* Create / edit modal */}
       <KeyboardModal visible={modal} animationType="slide" transparent onRequestClose={() => setModal(false)}>
         <View style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
-          <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "88%" }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>{draft.id ? t("inventory.edit") : t("inventory.new")}</Text>
-              <TouchableOpacity onPress={() => setModal(false)}><X size={22} color={C.muted} /></TouchableOpacity>
+          <View style={{ backgroundColor: C.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.xl - 4, maxHeight: "88%" }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.lg }}>
+              <Text style={{ fontFamily: fonts.bold, fontSize: 17, color: C.text }}>{draft.id ? t("inventory.edit") : t("inventory.new")}</Text>
+              <TouchableOpacity onPress={() => setModal(false)}><X size={22} color={C.muted} strokeWidth={1.75} /></TouchableOpacity>
             </View>
             <ScrollView keyboardShouldPersistTaps="handled">
-              <Field label={t("inventory.name")} C={C}><Input value={draft.name} onChangeText={(v: string) => setDraft({ ...draft, name: v })} C={C} /></Field>
-              <Field label="Referencia" C={C}><Input value={draft.sku} onChangeText={(v: string) => setDraft({ ...draft, sku: v })} C={C} /></Field>
-              <Field label={t("inventory.category")} C={C}><Input value={draft.category} onChangeText={(v: string) => setDraft({ ...draft, category: v })} placeholder={t("inventory.categoryPlaceholder")} C={C} /></Field>
-              <View style={{ flexDirection: "row", gap: 12 }}>
-                <View style={{ flex: 1 }}><Field label={`${t("inventory.price")} (€)`} C={C}><Input value={draft.unit_price} onChangeText={(v: string) => setDraft({ ...draft, unit_price: v })} keyboardType="decimal-pad" C={C} /></Field></View>
-                <View style={{ flex: 1 }}><Field label={`${t("inventory.iva")} (%)`} C={C}><Input value={draft.tax_rate} onChangeText={(v: string) => setDraft({ ...draft, tax_rate: v })} keyboardType="decimal-pad" C={C} /></Field></View>
+              <View style={{ gap: spacing.md }}>
+                <Input label={t("inventory.name")} value={draft.name} onChangeText={(v) => setDraft({ ...draft, name: v })} />
+                <Input label="Referencia" value={draft.sku} onChangeText={(v) => setDraft({ ...draft, sku: v })} />
+                <Input label={t("inventory.category")} value={draft.category} onChangeText={(v) => setDraft({ ...draft, category: v })} placeholder={t("inventory.categoryPlaceholder")} />
+                <View style={{ flexDirection: "row", gap: spacing.md }}>
+                  <View style={{ flex: 1 }}>
+                    <Input label={`${t("inventory.price")} (€)`} value={draft.unit_price} onChangeText={(v) => setDraft({ ...draft, unit_price: v })} keyboardType="decimal-pad" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Input label={`${t("inventory.iva")} (%)`} value={draft.tax_rate} onChangeText={(v) => setDraft({ ...draft, tax_rate: v })} keyboardType="decimal-pad" />
+                  </View>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <Text style={{ fontFamily: fonts.medium, fontSize: 14, color: C.text }}>{t("inventory.trackStock")}</Text>
+                  <Switch value={draft.track_stock} onValueChange={(v) => setDraft({ ...draft, track_stock: v })} trackColor={{ false: C.border, true: C.blueMed }} thumbColor={C.surface} />
+                </View>
+                {draft.track_stock && (
+                  <>
+                    <Input label={t("inventory.stock")} value={draft.stock_qty} onChangeText={(v) => setDraft({ ...draft, stock_qty: v })} keyboardType="number-pad" />
+                    <Input
+                      label={t("inventory.minStock")}
+                      value={draft.min_stock}
+                      onChangeText={(v) => setDraft({ ...draft, min_stock: v })}
+                      keyboardType="number-pad"
+                      placeholder={t("inventory.minStockPlaceholder")}
+                      hint={t("inventory.minStockHint")}
+                    />
+                  </>
+                )}
               </View>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginVertical: 10 }}>
-                <Text style={{ color: C.text, fontSize: 14 }}>{t("inventory.trackStock")}</Text>
-                <Switch value={draft.track_stock} onValueChange={(v: boolean) => setDraft({ ...draft, track_stock: v })} />
-              </View>
-              {draft.track_stock && (
-                <>
-                  <Field label={t("inventory.stock")} C={C}>
-                    <Input value={draft.stock_qty} onChangeText={(v: string) => setDraft({ ...draft, stock_qty: v })} keyboardType="number-pad" C={C} />
-                  </Field>
-                  <Field label={t("inventory.minStock")} C={C}>
-                    <Input value={draft.min_stock} onChangeText={(v: string) => setDraft({ ...draft, min_stock: v })} keyboardType="number-pad" placeholder={t("inventory.minStockPlaceholder")} C={C} />
-                  </Field>
-                  <Text style={{ fontSize: 11, color: C.muted, marginTop: -6 }}>{t("inventory.minStockHint")}</Text>
-                </>
-              )}
             </ScrollView>
-            <TouchableOpacity onPress={save} disabled={saving || !draft.name.trim()}
-              style={{ backgroundColor: C.blue, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 12, opacity: saving || !draft.name.trim() ? 0.5 : 1 }}>
-              {saving ? <ActivityIndicator color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "600" }}>{t("common.save")}</Text>}
-            </TouchableOpacity>
+            <Button
+              label={t("common.save")}
+              onPress={save}
+              disabled={saving || !draft.name.trim()}
+              loading={saving}
+              style={{ marginTop: spacing.md }}
+            />
           </View>
         </View>
       </KeyboardModal>
@@ -360,26 +392,13 @@ function Chip({ label, active, onPress, C }: any) {
     <TouchableOpacity
       onPress={onPress}
       style={{
-        paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, borderWidth: 1,
+        paddingHorizontal: spacing.md + 2, paddingVertical: 7, borderRadius: radius.pill, borderWidth: 1,
         backgroundColor: active ? C.blue : C.surface, borderColor: active ? C.blue : C.border,
       }}
     >
-      <Text style={{ fontSize: 12, fontWeight: "600", color: active ? "#fff" : C.muted }}>{label}</Text>
+      <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: active ? "#fff" : C.muted }}>{label}</Text>
     </TouchableOpacity>
   );
-}
-
-function Field({ label, children, C }: any) {
-  return (
-    <View style={{ marginBottom: 12 }}>
-      <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 6 }}>{label}</Text>
-      {children}
-    </View>
-  );
-}
-function Input({ C, ...props }: any) {
-  return <TextInput {...props} placeholderTextColor={C.muted}
-    style={{ backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, color: C.text, fontSize: 15 }} />;
 }
 
 export default function InventarioScreen() {

@@ -5,7 +5,11 @@ import { Calendar, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { useTheme } from "@/context/theme-context";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
+import { radius } from "@/lib/radius";
 import { KeyboardModal } from "@/components/KeyboardModal";
+import { Button } from "@/components/ui";
 
 /** ISO (YYYY-MM-DD) is what every API and the database expect. */
 function toISO(d: Date) {
@@ -69,18 +73,18 @@ export function DateField({
         onPress={() => setOpen(true)}
         activeOpacity={0.7}
         style={[{
-          flexDirection: "row", alignItems: "center", gap: 8,
+          flexDirection: "row", alignItems: "center", gap: spacing.sm,
           backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border,
-          borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11,
+          borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 11,
         }, style]}
       >
-        <Calendar size={15} color={C.muted} />
-        <Text style={{ flex: 1, fontSize: 15, color: shown ? C.text : C.muted }}>
+        <Calendar size={15} color={C.muted} strokeWidth={1.75} />
+        <Text style={{ flex: 1, fontFamily: fonts.regular, fontSize: 15, color: shown ? C.text : C.muted }}>
           {shown ?? placeholder ?? t("common.selectDate")}
         </Text>
         {clearable && !!shown && (
           <TouchableOpacity onPress={() => onChange(null)} hitSlop={10}>
-            <X size={15} color={C.muted} />
+            <X size={15} color={C.muted} strokeWidth={1.75} />
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -102,8 +106,8 @@ export function DateField({
       {Platform.OS === "ios" && (
         <KeyboardModal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
           <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={() => setOpen(false)} />
-          <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 12 }}>
-            <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12 }} />
+          <View style={{ backgroundColor: C.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, paddingBottom: spacing.md }}>
+            <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: spacing.md }} />
             <DateTimePicker
               value={fromISO(value) ?? new Date()}
               mode="date"
@@ -113,12 +117,9 @@ export function DateField({
               themeVariant={isDark ? "dark" : "light"}
               style={{ height: 360 }}
             />
-            <TouchableOpacity
-              onPress={() => setOpen(false)}
-              style={{ marginHorizontal: 20, borderRadius: 12, paddingVertical: 13, alignItems: "center", backgroundColor: C.blue }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("common.done")}</Text>
-            </TouchableOpacity>
+            <View style={{ paddingHorizontal: spacing.xl - 4 }}>
+              <Button label={t("common.done")} onPress={() => setOpen(false)} />
+            </View>
           </View>
         </KeyboardModal>
       )}

@@ -1,10 +1,14 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from "react-native";
-import { X, Plus } from "lucide-react-native";
+import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { Plus, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { supabase } from "@/lib/supabase";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
+import { radius } from "@/lib/radius";
 import { KeyboardModal } from "@/components/KeyboardModal";
+import { Button, Input } from "@/components/ui";
 import { TAX_ID_TYPES, isForeignClient } from "@/lib/tax-id-types";
 
 export interface CreatedClient { id: string; name: string; cif: string | null }
@@ -104,36 +108,26 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
   };
 
   const field = (label: string, key: keyof typeof EMPTY, extra?: object) => (
-    <View style={{ flex: 1 }}>
-      <Text style={{ fontSize: 12, color: C.muted, marginBottom: 5 }}>{label}</Text>
-      <TextInput
-        value={nc[key]}
-        onChangeText={set(key)}
-        placeholderTextColor={C.muted}
-        style={{
-          backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 8,
-          paddingHorizontal: 10, paddingVertical: 9, color: C.text, fontSize: 15,
-        }}
-        {...extra}
-      />
-    </View>
+    <Input label={label} value={nc[key]} onChangeText={set(key)} {...extra} />
   );
+
+  const disabled = saving || !nc.name.trim() || (foreign && !!nc.cif.trim() && !nc.tax_id_type);
 
   return (
     <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={close}>
-      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" }}>
-        <View style={{ backgroundColor: C.bg, borderTopLeftRadius: 18, borderTopRightRadius: 18, maxHeight: "92%" }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 }}>
-            <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>{t("invoicing.newClient")}</Text>
-            <TouchableOpacity onPress={close}><X size={22} color={C.muted} /></TouchableOpacity>
+      <View style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
+        <View style={{ backgroundColor: C.bg, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, maxHeight: "92%" }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: spacing.lg }}>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 17, color: C.text }}>{t("invoicing.newClient")}</Text>
+            <TouchableOpacity onPress={close}><X size={22} color={C.muted} strokeWidth={1.75} /></TouchableOpacity>
           </View>
 
           <ScrollView
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 12 }}
+            contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.md }}
           >
             {field(`${t("invoicing.clientName")} *`, "name", { autoFocus: true })}
-            <View style={{ flexDirection: "row", gap: 10 }}>
+            <View style={{ flexDirection: "row", gap: spacing.sm + 2 }}>
               <View style={{ flex: 2 }}>
                 {field(foreign ? t("invoicing.clientTaxId") : "CIF", "cif",
                   { autoCapitalize: "characters", placeholder: foreign ? "DE123456789" : "B12345678" })}
@@ -144,48 +138,44 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
             </View>
             {foreign && (
               <View>
-                <Text style={{ fontSize: 12, color: C.muted, marginBottom: 5 }}>
+                <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: C.text, marginBottom: 6 }}>
                   {t("invoicing.clientTaxIdType")} *
                 </Text>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs + 2 }}>
                   {TAX_ID_TYPES.map(o => (
                     <TouchableOpacity key={o.code} onPress={() => setNc(p => ({ ...p, tax_id_type: o.code }))}
                       style={{
-                        paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1,
+                        paddingHorizontal: spacing.sm + 2, paddingVertical: 7, borderRadius: radius.sm, borderWidth: 1,
                         borderColor: nc.tax_id_type === o.code ? C.blue : C.border,
                         backgroundColor: nc.tax_id_type === o.code ? C.blueL : "transparent",
                       }}>
-                      <Text style={{ fontSize: 12, color: nc.tax_id_type === o.code ? C.blue : C.text }}>{o.es}</Text>
+                      <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: nc.tax_id_type === o.code ? C.blue : C.text }}>{o.es}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
-                <Text style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>{t("invoicing.clientTaxIdTypeHint")}</Text>
+                <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted, marginTop: 6 }}>{t("invoicing.clientTaxIdTypeHint")}</Text>
               </View>
             )}
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              {field(t("invoicing.clientEmail"), "email", { keyboardType: "email-address", autoCapitalize: "none", placeholder: "cliente@empresa.com" })}
-              {field(t("invoicing.clientPhone"), "phone", { keyboardType: "phone-pad" })}
+            <View style={{ flexDirection: "row", gap: spacing.sm + 2 }}>
+              <View style={{ flex: 1 }}>{field(t("invoicing.clientEmail"), "email", { keyboardType: "email-address", autoCapitalize: "none", placeholder: "cliente@empresa.com" })}</View>
+              <View style={{ flex: 1 }}>{field(t("invoicing.clientPhone"), "phone", { keyboardType: "phone-pad" })}</View>
             </View>
-            <Text style={{ fontSize: 11, color: C.muted, marginTop: -6 }}>{t("invoicing.clientEmailHint")}</Text>
+            <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted, marginTop: -spacing.sm }}>{t("invoicing.clientEmailHint")}</Text>
             {field(t("invoicing.clientAddress"), "address")}
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              {field(t("invoicing.clientPostalCode"), "postal_code")}
-              {field(t("invoicing.clientCity"), "city")}
+            <View style={{ flexDirection: "row", gap: spacing.sm + 2 }}>
+              <View style={{ flex: 1 }}>{field(t("invoicing.clientPostalCode"), "postal_code")}</View>
+              <View style={{ flex: 1 }}>{field(t("invoicing.clientCity"), "city")}</View>
             </View>
             {field(t("invoicing.clientProvince"), "province")}
 
-            <TouchableOpacity
+            <Button
+              label={t("invoicing.createClient")}
               onPress={create}
-              disabled={saving || !nc.name.trim() || (foreign && !!nc.cif.trim() && !nc.tax_id_type)}
-              style={{
-                flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-                backgroundColor: C.blue, borderRadius: 12, paddingVertical: 14, marginTop: 4,
-                opacity: saving || !nc.name.trim() || (foreign && !!nc.cif.trim() && !nc.tax_id_type) ? 0.5 : 1,
-              }}
-            >
-              {saving ? <ActivityIndicator color="#fff" /> : <Plus size={18} color="#fff" />}
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("invoicing.createClient")}</Text>
-            </TouchableOpacity>
+              disabled={disabled}
+              loading={saving}
+              icon={<Plus size={18} color="#fff" strokeWidth={1.75} />}
+              style={{ marginTop: spacing.xs }}
+            />
           </ScrollView>
         </View>
       </View>

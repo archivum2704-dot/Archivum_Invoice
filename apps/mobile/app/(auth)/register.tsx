@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView,
-  Platform, ActivityIndicator,
+  View, Text, TouchableOpacity, ScrollView,
 } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,6 +9,10 @@ import { ChevronLeft, Eye, EyeOff } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { useColors } from "@/lib/colors";
 import { useTranslation } from "react-i18next";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
+import { radius } from "@/lib/radius";
+import { Input, Button } from "@/components/ui";
 
 export default function RegisterScreen() {
   const C = useColors();
@@ -39,12 +42,6 @@ export default function RegisterScreen() {
     }
   };
 
-  const labelStyle = { fontSize: 13, fontWeight: "500" as const, color: C.text, marginBottom: 6 };
-  const inputStyle = {
-    borderWidth: 1.5, borderColor: C.border, borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: C.text, backgroundColor: C.inputBg,
-  };
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <KeyboardAvoidingView
@@ -52,103 +49,107 @@ export default function RegisterScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
+          contentContainerStyle={{ paddingHorizontal: spacing.xl, paddingBottom: spacing.xxxl }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           {/* Header */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingTop: 16, marginBottom: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingTop: spacing.lg, marginBottom: spacing.sm }}>
             <TouchableOpacity onPress={() => router.back()}>
-              <ChevronLeft size={24} color={C.blue} />
+              <ChevronLeft size={24} color={C.blue} strokeWidth={1.75} />
             </TouchableOpacity>
-            <Text style={{ fontSize: 22, fontWeight: "800", color: C.text, letterSpacing: -0.5 }}>
+            <Text style={{ fontFamily: fonts.extrabold, fontSize: 22, color: C.text, letterSpacing: -0.5 }}>
               {t("register.title")}
             </Text>
           </View>
-          <Text style={{ fontSize: 14, color: C.muted, marginBottom: 28 }}>
+          <Text style={{ fontFamily: fonts.regular, fontSize: 14, color: C.muted, marginBottom: spacing.xl + 4 }}>
             {t("register.subtitle")}
           </Text>
 
-          <View style={{ gap: 16 }}>
+          <View style={{ gap: spacing.lg }}>
             {/* Name row */}
-            <View style={{ flexDirection: "row", gap: 12 }}>
+            <View style={{ flexDirection: "row", gap: spacing.md }}>
               <View style={{ flex: 1 }}>
-                <Text style={labelStyle}>{t("register.firstName")}</Text>
-                <TextInput style={inputStyle} placeholder="David" placeholderTextColor={C.muted} value={firstName} onChangeText={setFirstName} />
+                <Input
+                  label={t("register.firstName")}
+                  placeholder="David"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={labelStyle}>{t("register.lastName")}</Text>
-                <TextInput style={inputStyle} placeholder="Martínez" placeholderTextColor={C.muted} value={lastName} onChangeText={setLastName} />
-              </View>
-            </View>
-
-            <View>
-              <Text style={labelStyle}>{t("register.email")}</Text>
-              <TextInput
-                style={inputStyle} placeholder="david@empresa.com"
-                placeholderTextColor={C.muted} value={email} onChangeText={setEmail}
-                keyboardType="email-address" autoCapitalize="none"
-              />
-            </View>
-
-            <View>
-              <Text style={labelStyle}>{t("register.password")}</Text>
-              <View>
-                <TextInput
-                  style={[inputStyle, { paddingRight: 48 }]}
-                  placeholder={t("register.passwordHint")} placeholderTextColor={C.muted}
-                  value={password} onChangeText={setPassword}
-                  secureTextEntry={!showPwd}
+                <Input
+                  label={t("register.lastName")}
+                  placeholder="Martínez"
+                  value={lastName}
+                  onChangeText={setLastName}
                 />
-                <TouchableOpacity
-                  onPress={() => setShowPwd(!showPwd)}
-                  style={{ position: "absolute", right: 14, top: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}
-                >
-                  {showPwd ? <EyeOff size={18} color={C.muted} /> : <Eye size={18} color={C.muted} />}
-                </TouchableOpacity>
               </View>
             </View>
 
-            <View>
-              <Text style={labelStyle}>{t("register.confirmPassword")}</Text>
-              <View>
-                <TextInput
-                  style={[inputStyle, { paddingRight: 48 }]}
-                  placeholder="••••••••" placeholderTextColor={C.muted}
-                  value={confirm} onChangeText={setConfirm}
-                  secureTextEntry={!showConfirm}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowConfirm(!showConfirm)}
-                  style={{ position: "absolute", right: 14, top: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}
-                >
-                  {showConfirm ? <EyeOff size={18} color={C.muted} /> : <Eye size={18} color={C.muted} />}
+            <Input
+              label={t("register.email")}
+              placeholder="david@empresa.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <Input
+              label={t("register.password")}
+              placeholder={t("register.passwordHint")}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPwd}
+              rightElement={
+                <TouchableOpacity onPress={() => setShowPwd(!showPwd)} hitSlop={8}>
+                  {showPwd
+                    ? <EyeOff size={18} color={C.muted} strokeWidth={1.75} />
+                    : <Eye    size={18} color={C.muted} strokeWidth={1.75} />
+                  }
                 </TouchableOpacity>
-              </View>
-            </View>
+              }
+            />
+
+            <Input
+              label={t("register.confirmPassword")}
+              placeholder="••••••••"
+              value={confirm}
+              onChangeText={setConfirm}
+              secureTextEntry={!showConfirm}
+              rightElement={
+                <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)} hitSlop={8}>
+                  {showConfirm
+                    ? <EyeOff size={18} color={C.muted} strokeWidth={1.75} />
+                    : <Eye    size={18} color={C.muted} strokeWidth={1.75} />
+                  }
+                </TouchableOpacity>
+              }
+            />
 
             {error && (
-              <View style={{ backgroundColor: C.redL, borderWidth: 1, borderColor: "rgba(220,38,38,.2)", borderRadius: 10, padding: 12 }}>
-                <Text style={{ fontSize: 13, color: C.red }}>{error}</Text>
+              <View style={{
+                backgroundColor: C.redL, borderWidth: 1,
+                borderColor: "rgba(220,38,38,.2)", borderRadius: radius.md,
+                padding: spacing.md,
+              }}>
+                <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.red }}>{error}</Text>
               </View>
             )}
 
-            <TouchableOpacity
+            <Button
+              label={t("register.submit")}
               onPress={handleRegister}
-              disabled={loading}
-              style={{ backgroundColor: C.blue, borderRadius: 10, paddingVertical: 14, alignItems: "center", marginTop: 4, opacity: loading ? 0.7 : 1 }}
-            >
-              {loading
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>{t("register.submit")}</Text>
-              }
-            </TouchableOpacity>
+              loading={loading}
+              style={{ marginTop: 4 }}
+            />
           </View>
 
-          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 24, alignItems: "center" }}>
-            <Text style={{ fontSize: 14, color: C.muted }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: spacing.xl, alignItems: "center" }}>
+            <Text style={{ fontFamily: fonts.regular, fontSize: 14, color: C.muted }}>
               {t("register.hasAccount")}{" "}
-              <Text style={{ color: C.blue, fontWeight: "600" }}>{t("register.signIn")}</Text>
+              <Text style={{ fontFamily: fonts.semibold, color: C.blue }}>{t("register.signIn")}</Text>
             </Text>
           </TouchableOpacity>
         </ScrollView>

@@ -4,17 +4,22 @@ import {
   RefreshControl, ActivityIndicator, ScrollView, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
 import {
-  Search, SlidersHorizontal, FileText, ChevronRight,
-  BookOpen, X, Plus, Folder as FolderIcon, FolderPlus,
+  Search, SlidersHorizontal,
+  BookOpen, X, FolderPlus, Folder as FolderIcon,
 } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
 import { useTranslation } from "react-i18next";
-import { useColors } from "@/lib/colors";
+import { useColors, type Colors } from "@/lib/colors";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
+import { radius } from "@/lib/radius";
 import { KeyboardModal } from "@/components/KeyboardModal";
+import { DocRow } from "@/components/DocRow";
+import { UploadFab } from "@/components/UploadFab";
+import { Button, EmptyState, Input } from "@/components/ui";
 
 interface Folder { id: string; name: string }
 
@@ -25,7 +30,7 @@ interface Folder { id: string; name: string }
  * declaring it inside the screen would drop focus and dismiss the keyboard.
  */
 function NewFolderModal({ visible, orgId, onClose, onCreated, C, t }: {
-  visible: boolean; orgId: string; onClose: () => void; onCreated: () => void; C: any; t: any;
+  visible: boolean; orgId: string; onClose: () => void; onCreated: () => void; C: Colors; t: any;
 }) {
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -46,81 +51,30 @@ function NewFolderModal({ visible, orgId, onClose, onCreated, C, t }: {
   return (
     <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
-      <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 28 }}>
-        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 16 }} />
-        <Text style={{ fontSize: 17, fontWeight: "700", color: C.text, paddingHorizontal: 20, marginBottom: 14 }}>
+      <View style={{ backgroundColor: C.surface, borderRadius: radius.xl, paddingBottom: spacing.xl + 4 }}>
+        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: spacing.md, marginBottom: spacing.lg }} />
+        <Text style={{ fontFamily: fonts.bold, fontSize: 17, color: C.text, paddingHorizontal: spacing.xl - 4, marginBottom: spacing.md + 2 }}>
           {t("biblioteca.newFolder")}
         </Text>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          autoFocus
-          placeholder={t("biblioteca.folderNamePlaceholder")}
-          placeholderTextColor={C.muted}
-          onSubmitEditing={create}
-          returnKeyType="done"
-          style={{
-            marginHorizontal: 20, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border,
-            borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, color: C.text, fontSize: 15,
-          }}
-        />
-        <TouchableOpacity
-          onPress={create}
-          disabled={!name.trim() || saving}
-          style={{
-            marginHorizontal: 20, marginTop: 16, borderRadius: 12, paddingVertical: 13,
-            alignItems: "center", backgroundColor: C.blue, opacity: !name.trim() || saving ? 0.5 : 1,
-          }}
-        >
-          {saving
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("common.create")}</Text>}
-        </TouchableOpacity>
+        <View style={{ paddingHorizontal: spacing.xl - 4 }}>
+          <Input
+            value={name}
+            onChangeText={setName}
+            autoFocus
+            placeholder={t("biblioteca.folderNamePlaceholder")}
+            onSubmitEditing={create}
+            returnKeyType="done"
+          />
+          <Button
+            label={t("common.create")}
+            onPress={create}
+            disabled={!name.trim()}
+            loading={saving}
+            style={{ marginTop: spacing.md }}
+          />
+        </View>
       </View>
     </KeyboardModal>
-  );
-}
-
-function DocRow({ doc, C, t }: { doc: any; C: any; t: any }) {
-  const STATUS: Record<string, { label: string; bg: string; color: string }> = {
-    paid:      { label: t("status.paid"),      bg: C.greenL, color: C.green },
-    pending:   { label: t("status.pending"),   bg: C.yellowL, color: C.yellow },
-    overdue:   { label: t("status.overdue"),   bg: C.redL, color: C.red },
-    draft:     { label: t("status.draft"),     bg: C.segmentBg, color: C.muted },
-    cancelled: { label: t("status.cancelled"), bg: C.segmentBg, color: C.muted },
-  };
-  const sm = STATUS[doc.status] ?? STATUS.draft;
-  return (
-    <TouchableOpacity
-      onPress={() => router.push(`/(app)/documento/${doc.id}`)}
-      style={{
-        flexDirection: "row", alignItems: "center", gap: 12,
-        padding: 12, borderBottomWidth: 1, borderBottomColor: C.border,
-      }}
-    >
-      <View style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
-        <FileText size={16} color={C.blue} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text style={{ fontSize: 13, fontWeight: "600", color: C.text, fontFamily: "monospace" }} numberOfLines={1}>
-            {doc.document_number}
-          </Text>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: C.text }}>
-            {doc.total != null ? `€${Number(doc.total).toLocaleString("es-ES", { minimumFractionDigits: 2 })}` : "—"}
-          </Text>
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 3, alignItems: "center" }}>
-          <Text style={{ fontSize: 12, color: C.muted }} numberOfLines={1}>
-            {doc.companies?.name ?? t("common.noCompany")} · {t(`docTypesPlural.${doc.document_type}`, { defaultValue: doc.document_type })}
-          </Text>
-          <View style={{ backgroundColor: sm.bg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
-            <Text style={{ fontSize: 11, fontWeight: "600", color: sm.color }}>{sm.label}</Text>
-          </View>
-        </View>
-      </View>
-      <ChevronRight size={16} color={C.muted} />
-    </TouchableOpacity>
   );
 }
 
@@ -151,14 +105,6 @@ export default function BibliotecaScreen() {
     contract:         t("docTypesPlural.contract"),
     quote:            t("docTypesPlural.quote"),
     other:            t("docTypesPlural.other"),
-  };
-
-  const STATUS: Record<string, { label: string; bg: string; color: string }> = {
-    paid:      { label: t("status.paid"),      bg: C.greenL, color: C.green },
-    pending:   { label: t("status.pending"),   bg: C.yellowL, color: C.yellow },
-    overdue:   { label: t("status.overdue"),   bg: C.redL, color: C.red },
-    draft:     { label: t("status.draft"),     bg: C.segmentBg, color: C.muted },
-    cancelled: { label: t("status.cancelled"), bg: C.segmentBg, color: C.muted },
   };
 
   const load = useCallback(async () => {
@@ -215,61 +161,64 @@ export default function BibliotecaScreen() {
 
   const hasFilters = activeType !== "all" || statusFilter !== "all" || activeFolder !== null;
 
+  const docSubtitle = (doc: any) =>
+    `${doc.companies?.name ?? t("common.noCompany")} · ${t(`docTypesPlural.${doc.document_type}`, { defaultValue: doc.document_type })}`;
+
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: C.bg }}>
       {/* Sticky header */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 8, backgroundColor: C.bg }}>
-        <Text style={{ fontSize: 22, fontWeight: "800", color: C.text, marginBottom: 10 }}>{t("biblioteca.title")}</Text>
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, backgroundColor: C.bg }}>
+        <Text style={{ fontFamily: fonts.extrabold, fontSize: 22, color: C.text, marginBottom: spacing.sm + 2 }}>{t("biblioteca.title")}</Text>
 
         {/* Search + filter */}
-        <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+        <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: spacing.sm + 2 }}>
           <View style={{
-            flex: 1, flexDirection: "row", alignItems: "center", gap: 8,
+            flex: 1, flexDirection: "row", alignItems: "center", gap: spacing.sm,
             backgroundColor: C.inputBg, borderWidth: 1.5, borderColor: C.border,
-            borderRadius: 10, paddingHorizontal: 12,
+            borderRadius: radius.md, paddingHorizontal: spacing.md,
           }}>
-            <Search size={16} color={C.muted} />
+            <Search size={16} color={C.muted} strokeWidth={1.75} />
             <TextInput
-              style={{ flex: 1, fontSize: 14, color: C.text, paddingVertical: 10 }}
+              style={{ flex: 1, fontFamily: fonts.regular, fontSize: 14, color: C.text, paddingVertical: 10 }}
               placeholder={t("biblioteca.searchPlaceholder")}
               placeholderTextColor={C.muted}
               value={query}
               onChangeText={setQuery}
             />
             {query.length > 0 && (
-              <TouchableOpacity onPress={() => setQuery("")}>
-                <X size={16} color={C.muted} />
+              <TouchableOpacity onPress={() => setQuery("")} hitSlop={8}>
+                <X size={16} color={C.muted} strokeWidth={1.75} />
               </TouchableOpacity>
             )}
           </View>
           <TouchableOpacity
             onPress={() => setFilterModal(true)}
             style={{
-              paddingHorizontal: 14, borderRadius: 10,
+              paddingHorizontal: spacing.md + 2, borderRadius: radius.md,
               backgroundColor: hasFilters ? C.blue : C.blueL,
               flexDirection: "row", alignItems: "center", gap: 4,
             }}
           >
-            <SlidersHorizontal size={16} color={hasFilters ? "#fff" : C.blue} />
-            {hasFilters && <Text style={{ fontSize: 13, fontWeight: "600", color: "#fff" }}>•</Text>}
+            <SlidersHorizontal size={16} color={hasFilters ? "#fff" : C.blue} strokeWidth={1.75} />
+            {hasFilters && <Text style={{ fontFamily: fonts.semibold, fontSize: 13, color: "#fff" }}>•</Text>}
           </TouchableOpacity>
         </View>
 
         {/* Folders — only admins may create them, everyone sees the ones they can reach */}
         {(folders.length > 0 || isAdmin) && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
             <View style={{ flexDirection: "row", gap: 6, paddingBottom: 4, alignItems: "center" }}>
               {isAdmin && (
                 <TouchableOpacity
                   onPress={() => setNewFolder(true)}
                   style={{
                     flexDirection: "row", alignItems: "center", gap: 5,
-                    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
+                    paddingHorizontal: spacing.md, paddingVertical: 7, borderRadius: radius.pill,
                     borderWidth: 1, borderStyle: "dashed", borderColor: C.blue, backgroundColor: C.blueL,
                   }}
                 >
-                  <FolderPlus size={13} color={C.blue} />
-                  <Text style={{ fontSize: 12, fontWeight: "600", color: C.blue }}>{t("biblioteca.newFolder")}</Text>
+                  <FolderPlus size={13} color={C.blue} strokeWidth={1.75} />
+                  <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.blue }}>{t("biblioteca.newFolder")}</Text>
                 </TouchableOpacity>
               )}
               {folders.map((f) => {
@@ -280,13 +229,13 @@ export default function BibliotecaScreen() {
                     onPress={() => setActiveFolder(active ? null : f.id)}
                     style={{
                       flexDirection: "row", alignItems: "center", gap: 5,
-                      paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
+                      paddingHorizontal: spacing.md, paddingVertical: 7, borderRadius: radius.pill,
                       backgroundColor: active ? C.blue : C.surface,
                       borderWidth: 1, borderColor: active ? C.blue : C.border,
                     }}
                   >
-                    <FolderIcon size={13} color={active ? "#fff" : C.muted} />
-                    <Text style={{ fontSize: 12, fontWeight: "500", color: active ? "#fff" : C.muted }}>{f.name}</Text>
+                    <FolderIcon size={13} color={active ? "#fff" : C.muted} strokeWidth={1.75} />
+                    <Text style={{ fontFamily: fonts.medium, fontSize: 12, color: active ? "#fff" : C.muted }}>{f.name}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -295,7 +244,7 @@ export default function BibliotecaScreen() {
         )}
 
         {/* Type chips */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
           <View style={{ flexDirection: "row", gap: 6, paddingBottom: 4 }}>
             {chips.map((type) => {
               const active = activeType === type;
@@ -304,12 +253,12 @@ export default function BibliotecaScreen() {
                   key={type}
                   onPress={() => setActiveType(active && type !== "all" ? "all" : type)}
                   style={{
-                    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999,
+                    paddingHorizontal: spacing.md + 2, paddingVertical: 6, borderRadius: radius.pill,
                     backgroundColor: active ? C.blue : C.surface,
                     borderWidth: 1, borderColor: active ? C.blue : C.border,
                   }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: "500", color: active ? "#fff" : C.muted }}>
+                  <Text style={{ fontFamily: fonts.medium, fontSize: 12, color: active ? "#fff" : C.muted }}>
                     {DOC_TYPES[type]}
                   </Text>
                 </TouchableOpacity>
@@ -318,87 +267,74 @@ export default function BibliotecaScreen() {
           </View>
         </ScrollView>
 
-        <Text style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>
+        <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginBottom: spacing.sm }}>
           {t("biblioteca.docsFound", { count: filtered.length })}
         </Text>
       </View>
 
       {/* List */}
       {filtered.length === 0 ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 12 }}>
-          <BookOpen size={56} color={C.muted} />
-          <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{t("biblioteca.noResults")}</Text>
-          <Text style={{ fontSize: 13, color: C.muted, textAlign: "center" }}>
-            {t("biblioteca.noResultsDesc")}
-          </Text>
-          {hasFilters && (
-            <TouchableOpacity
-              onPress={() => { setActiveType("all"); setStatusFilter("all"); setQuery(""); }}
-              style={{ backgroundColor: C.blue, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 8, marginTop: 4 }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>{t("biblioteca.clearFilters")}</Text>
-            </TouchableOpacity>
-          )}
+        <View style={{ flex: 1, justifyContent: "center" }}>
+          <EmptyState
+            icon={<BookOpen size={28} color={C.muted} strokeWidth={1.5} />}
+            title={t("biblioteca.noResults")}
+            subtitle={t("biblioteca.noResultsDesc")}
+            action={hasFilters ? (
+              <Button
+                label={t("biblioteca.clearFilters")}
+                onPress={() => { setActiveType("all"); setStatusFilter("all"); setQuery(""); }}
+                size="md"
+                fullWidth={false}
+              />
+            ) : undefined}
+          />
         </View>
       ) : (
         <FlatList
           keyboardShouldPersistTaps="handled"
           data={filtered}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <DocRow doc={item} C={C} t={t} />}
+          renderItem={({ item }) => <DocRow doc={item} subtitle={docSubtitle(item)} />}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.blue} />}
           contentContainerStyle={{ backgroundColor: C.surface }}
           showsVerticalScrollIndicator={false}
         />
       )}
 
-      {/* FAB */}
-      <TouchableOpacity
-        onPress={() => router.push("/(app)/subir")}
-        style={{
-          position: "absolute", bottom: 20, right: 20,
-          width: 52, height: 52, borderRadius: 26,
-          backgroundColor: C.blue, alignItems: "center", justifyContent: "center",
-          shadowColor: C.blue, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 8,
-        }}
-      >
-        <Plus size={22} color="#fff" />
-      </TouchableOpacity>
+      <UploadFab />
 
       {/* Filter modal */}
       <KeyboardModal visible={filterModal} animationType="slide" transparent onRequestClose={() => setFilterModal(false)}>
         <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={() => setFilterModal(false)} />
-        <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 24 }}>
+        <View style={{ backgroundColor: C.surface, borderRadius: radius.xl, paddingBottom: spacing.xl }}>
           {/* Handle */}
-          <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 4 }} />
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 }}>
-            <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>{t("biblioteca.advancedFilters")}</Text>
+          <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: spacing.md, marginBottom: spacing.xs }} />
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: spacing.lg }}>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 17, color: C.text }}>{t("biblioteca.advancedFilters")}</Text>
             <TouchableOpacity onPress={() => { setActiveType("all"); setStatusFilter("all"); }}>
-              <Text style={{ fontSize: 13, color: C.muted }}>{t("biblioteca.clear")}</Text>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.muted }}>{t("biblioteca.clear")}</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={{ fontSize: 12, fontWeight: "600", color: C.muted, paddingHorizontal: 16, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>{t("biblioteca.statusLabel")}</Text>
+          <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.muted, paddingHorizontal: spacing.lg, marginBottom: spacing.sm, textTransform: "uppercase", letterSpacing: 0.8 }}>{t("biblioteca.statusLabel")}</Text>
           {["all", "pending", "paid", "overdue", "draft", "cancelled"].map((s) => (
             <TouchableOpacity
               key={s}
               onPress={() => setStatusFilter(s)}
-              style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border }}
+              style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: spacing.md + 2, paddingHorizontal: spacing.lg, borderBottomWidth: 1, borderBottomColor: C.border }}
             >
-              <Text style={{ fontSize: 14, color: s === statusFilter ? C.blue : C.text, fontWeight: s === statusFilter ? "600" : "400" }}>
-                {s === "all" ? t("common.all") : STATUS[s]?.label ?? s}
+              <Text style={{
+                fontFamily: s === statusFilter ? fonts.semibold : fonts.regular, fontSize: 14,
+                color: s === statusFilter ? C.blue : C.text,
+              }}>
+                {s === "all" ? t("common.all") : t(`status.${s}`, { defaultValue: s })}
               </Text>
               {s === statusFilter && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.blue }} />}
             </TouchableOpacity>
           ))}
 
-          <View style={{ padding: 16, marginTop: 8 }}>
-            <TouchableOpacity
-              onPress={() => setFilterModal(false)}
-              style={{ backgroundColor: C.blue, borderRadius: 10, paddingVertical: 14, alignItems: "center" }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>{t("biblioteca.applyFilters")}</Text>
-            </TouchableOpacity>
+          <View style={{ padding: spacing.lg, marginTop: spacing.xs }}>
+            <Button label={t("biblioteca.applyFilters")} onPress={() => setFilterModal(false)} />
           </View>
         </View>
       </KeyboardModal>

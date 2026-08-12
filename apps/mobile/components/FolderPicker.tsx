@@ -4,6 +4,9 @@ import { Folder as FolderIcon, Check, FolderMinus } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { supabase } from "@/lib/supabase";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
+import { radius } from "@/lib/radius";
 import { KeyboardModal } from "@/components/KeyboardModal";
 
 export interface Folder { id: string; name: string }
@@ -55,38 +58,38 @@ export function FolderPickerModal({
       key={key}
       onPress={onPress}
       style={{
-        flexDirection: "row", alignItems: "center", gap: 12,
-        paddingHorizontal: 20, paddingVertical: 14,
+        flexDirection: "row", alignItems: "center", gap: spacing.md,
+        paddingHorizontal: spacing.xl - 4, paddingVertical: spacing.md + 2,
         borderBottomWidth: 1, borderBottomColor: C.border,
       }}
     >
       {icon}
-      <Text style={{ flex: 1, fontSize: 15, color: C.text }} numberOfLines={1}>{label}</Text>
-      {selected && <Check size={18} color={C.blue} />}
+      <Text style={{ flex: 1, fontFamily: fonts.regular, fontSize: 15, color: C.text }} numberOfLines={1}>{label}</Text>
+      {selected && <Check size={18} color={C.blue} strokeWidth={1.75} />}
     </TouchableOpacity>
   );
 
   return (
     <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
-      <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "70%", paddingBottom: 12 }}>
-        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 8 }} />
-        <Text style={{ fontSize: 16, fontWeight: "700", color: C.text, paddingHorizontal: 20, paddingBottom: 12 }}>
+      <View style={{ backgroundColor: C.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, maxHeight: "70%", paddingBottom: spacing.md }}>
+        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: spacing.md, marginBottom: spacing.sm }} />
+        <Text style={{ fontFamily: fonts.bold, fontSize: 16, color: C.text, paddingHorizontal: spacing.xl - 4, paddingBottom: spacing.md }}>
           {t("biblioteca.moveToFolder")}
         </Text>
 
         {loading ? (
-          <View style={{ paddingVertical: 30, alignItems: "center" }}>
+          <View style={{ paddingVertical: spacing.xxl - 2, alignItems: "center" }}>
             <ActivityIndicator color={C.blue} />
           </View>
         ) : (
           <ScrollView keyboardShouldPersistTaps="handled">
-            {row("none", t("biblioteca.noFolder"), <FolderMinus size={17} color={C.muted} />, current == null, () => { onSelect(null); onClose(); })}
+            {row("none", t("biblioteca.noFolder"), <FolderMinus size={17} color={C.muted} strokeWidth={1.75} />, current == null, () => { onSelect(null); onClose(); })}
             {folders.map(f =>
-              row(f.id, f.name, <FolderIcon size={17} color={C.muted} />, current === f.id, () => { onSelect(f.id); onClose(); }),
+              row(f.id, f.name, <FolderIcon size={17} color={C.muted} strokeWidth={1.75} />, current === f.id, () => { onSelect(f.id); onClose(); }),
             )}
             {folders.length === 0 && (
-              <Text style={{ fontSize: 13, color: C.muted, textAlign: "center", paddingVertical: 24, paddingHorizontal: 24 }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.muted, textAlign: "center", paddingVertical: spacing.xl, paddingHorizontal: spacing.xl }}>
                 {t("biblioteca.noFoldersYet")}
               </Text>
             )}
@@ -118,13 +121,13 @@ export function FolderField({
         onPress={() => setOpen(true)}
         activeOpacity={0.7}
         style={[{
-          flexDirection: "row", alignItems: "center", gap: 8,
+          flexDirection: "row", alignItems: "center", gap: spacing.sm,
           backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border,
-          borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11,
+          borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 11,
         }, style]}
       >
-        <FolderIcon size={15} color={C.muted} />
-        <Text style={{ flex: 1, fontSize: 15, color: name ? C.text : C.muted }} numberOfLines={1}>
+        <FolderIcon size={15} color={C.muted} strokeWidth={1.75} />
+        <Text style={{ flex: 1, fontFamily: fonts.regular, fontSize: 15, color: name ? C.text : C.muted }} numberOfLines={1}>
           {name ?? t("biblioteca.noFolder")}
         </Text>
       </TouchableOpacity>

@@ -12,17 +12,21 @@ import {
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { supabase } from "@/lib/supabase";
-import { useColors } from "@/lib/colors";
+import { useColors, type Colors } from "@/lib/colors";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/auth-context";
 import { FolderPickerModal, useFolders } from "@/components/FolderPicker";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
+import { radius } from "@/lib/radius";
+import { Button, Card, Badge, EmptyState, type BadgeTone } from "@/components/ui";
 
-function Field({ label, value, C }: { label: string; value: string | null | undefined; C: any }) {
+function Field({ label, value, C }: { label: string; value: string | null | undefined; C: Colors }) {
   if (value == null || value === "") return null;
   return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", padding: 11, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border }}>
-      <Text style={{ fontSize: 13, color: C.muted }}>{label}</Text>
-      <Text style={{ fontSize: 13, fontWeight: "500", color: C.text, textAlign: "right", maxWidth: "55%" }}>{value}</Text>
+    <View style={{ flexDirection: "row", justifyContent: "space-between", padding: spacing.md, paddingHorizontal: spacing.lg, borderBottomWidth: 1, borderBottomColor: C.border }}>
+      <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.muted }}>{label}</Text>
+      <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: C.text, textAlign: "right", maxWidth: "55%" }}>{value}</Text>
     </View>
   );
 }
@@ -38,12 +42,15 @@ export default function DocumentoDetailScreen() {
   const C = useColors();
   const { t } = useTranslation();
 
-  const STATUS: Record<string, { label: string; bg: string; color: string }> = {
-    paid:      { label: t("status.paid"),      bg: C.greenL, color: C.green },
-    pending:   { label: t("status.pending"),   bg: C.yellowL, color: C.yellow },
-    overdue:   { label: t("status.overdue"),   bg: C.redL, color: C.red },
-    draft:     { label: t("status.draft"),     bg: C.segmentBg, color: C.muted },
-    cancelled: { label: t("status.cancelled"), bg: C.segmentBg, color: C.muted },
+  const STATUS_LABEL: Record<string, string> = {
+    paid:      t("status.paid"),
+    pending:   t("status.pending"),
+    overdue:   t("status.overdue"),
+    draft:     t("status.draft"),
+    cancelled: t("status.cancelled"),
+  };
+  const STATUS_TONE: Record<string, BadgeTone> = {
+    paid: "green", pending: "yellow", overdue: "red", draft: "neutral", cancelled: "neutral",
   };
 
   useEffect(() => {
@@ -129,17 +136,20 @@ export default function DocumentoDetailScreen() {
 
   if (!doc) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center", gap: 12 }}>
-        <FileText size={48} color={C.muted} />
-        <Text style={{ fontSize: 16, fontWeight: "600", color: C.text }}>{t("documento.notFound")}</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ color: C.blue }}>{t("common.back")}</Text>
-        </TouchableOpacity>
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+        <View style={{ flex: 1, justifyContent: "center" }}>
+          <EmptyState
+            icon={<FileText size={28} color={C.muted} strokeWidth={1.5} />}
+            title={t("documento.notFound")}
+            action={<Button label={t("common.back")} onPress={() => router.back()} size="md" fullWidth={false} />}
+          />
+        </View>
       </SafeAreaView>
     );
   }
 
-  const sm = STATUS[doc.status] ?? STATUS.draft;
+  const label = STATUS_LABEL[doc.status] ?? STATUS_LABEL.draft;
+  const tone = STATUS_TONE[doc.status] ?? "neutral";
   const fmt = (n: number | null | undefined) =>
     n != null ? `€${n.toLocaleString("es-ES", { minimumFractionDigits: 2 })}` : "—";
   const fmtDate = (s: string | null) =>
@@ -148,69 +158,65 @@ export default function DocumentoDetailScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       {/* Nav */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingVertical: 10 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm + 2, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm + 2 }}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ChevronLeft size={24} color={C.blue} />
+          <ChevronLeft size={24} color={C.blue} strokeWidth={1.75} />
         </TouchableOpacity>
-        <Text style={{ flex: 1, fontSize: 16, fontWeight: "700", color: C.text }}>{t("documento.detail")}</Text>
+        <Text style={{ flex: 1, fontFamily: fonts.bold, fontSize: 16, color: C.text }}>{t("documento.detail")}</Text>
         <TouchableOpacity onPress={handleDelete}>
-          <Trash2 size={20} color={C.red} />
+          <Trash2 size={20} color={C.red} strokeWidth={1.75} />
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* PDF preview area */}
-        <TouchableOpacity
-          onPress={handleDownload}
-          style={{
-            height: 160, marginHorizontal: 16, marginBottom: 14,
-            backgroundColor: C.segmentBg, borderRadius: 14, borderWidth: 1, borderColor: C.border,
-            alignItems: "center", justifyContent: "center", gap: 8,
-          }}
-          disabled={!doc.file_url}
-        >
-          <FileText size={48} color={C.muted} />
-          <Text style={{ fontSize: 12, color: C.muted }}>
-            {doc.file_url ? t("documento.openFile") : t("documento.noFile")}
-          </Text>
-        </TouchableOpacity>
+        <Card padded={false} containerStyle={{ marginHorizontal: spacing.lg, marginBottom: spacing.md + 2 }}>
+          <TouchableOpacity
+            onPress={handleDownload}
+            style={{ height: 160, alignItems: "center", justifyContent: "center", gap: spacing.sm }}
+            disabled={!doc.file_url}
+          >
+            <FileText size={48} color={C.muted} strokeWidth={1.75} />
+            <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>
+              {doc.file_url ? t("documento.openFile") : t("documento.noFile")}
+            </Text>
+          </TouchableOpacity>
+        </Card>
 
         {/* Amount + status */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, marginBottom: 12 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
           <View>
-            <Text style={{ fontSize: 13, color: C.muted, fontFamily: "monospace" }}>{doc.document_number}</Text>
-            <Text style={{ fontSize: 24, fontWeight: "800", color: C.text }}>{fmt(doc.total)}</Text>
+            <Text style={{ fontFamily: fonts.mono, fontSize: 13, color: C.muted }}>{doc.document_number}</Text>
+            <Text style={{ fontFamily: fonts.extrabold, fontSize: 24, color: C.text }}>{fmt(doc.total)}</Text>
           </View>
-          <View style={{ backgroundColor: sm.bg, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6 }}>
-            <Text style={{ fontSize: 14, fontWeight: "600", color: sm.color }}>{sm.label}</Text>
-          </View>
+          <Badge label={label} tone={tone} />
         </View>
 
         {/* Action buttons */}
-        <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, marginBottom: 16 }}>
+        <View style={{ flexDirection: "row", gap: spacing.sm, paddingHorizontal: spacing.lg, marginBottom: spacing.lg }}>
           {[
-            { icon: downloading ? <ActivityIndicator size={18} color={C.blue} /> : <Download size={18} color={C.blue} />, label: t("documento.download"), onPress: handleDownload, disabled: !doc.file_url || downloading },
-            { icon: <Pencil  size={18} color={C.blue} />, label: t("common.edit"),     onPress: () => router.push(`/(app)/editar/${id}`) },
-            { icon: moving ? <ActivityIndicator size={18} color={C.blue} /> : <FolderInput size={18} color={C.blue} />, label: t("biblioteca.moveShort"), onPress: () => setFolderOpen(true), disabled: moving },
+            { icon: downloading ? <ActivityIndicator size={18} color={C.blue} /> : <Download size={18} color={C.blue} strokeWidth={1.75} />, label: t("documento.download"), onPress: handleDownload, disabled: !doc.file_url || downloading },
+            { icon: <Pencil  size={18} color={C.blue} strokeWidth={1.75} />, label: t("common.edit"),     onPress: () => router.push(`/(app)/editar/${id}`) },
+            { icon: moving ? <ActivityIndicator size={18} color={C.blue} /> : <FolderInput size={18} color={C.blue} strokeWidth={1.75} />, label: t("biblioteca.moveShort"), onPress: () => setFolderOpen(true), disabled: moving },
           ].map((btn) => (
             <TouchableOpacity
               key={btn.label}
               onPress={btn.onPress}
               disabled={btn.disabled}
               style={{
-                flex: 1, padding: 10, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
-                borderRadius: 10, alignItems: "center", gap: 4, opacity: btn.disabled ? 0.4 : 1,
+                flex: 1, padding: spacing.sm + 2, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
+                borderRadius: radius.md, alignItems: "center", gap: spacing.xs, opacity: btn.disabled ? 0.4 : 1,
               }}
             >
               {btn.icon}
-              <Text style={{ fontSize: 11, fontWeight: "500", color: C.text }}>{btn.label}</Text>
+              <Text style={{ fontFamily: fonts.medium, fontSize: 11, color: C.text }}>{btn.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Data fields */}
-        <View style={{ backgroundColor: C.surface, borderRadius: 14, marginHorizontal: 16, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 }}>
-          <Text style={{ fontSize: 11, fontWeight: "700", color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, padding: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border }}>
+        <Card padded={false} containerStyle={{ marginHorizontal: spacing.lg }}>
+          <Text style={{ fontFamily: fonts.bold, fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, padding: spacing.md, paddingHorizontal: spacing.lg, borderBottomWidth: 1, borderBottomColor: C.border }}>
             {t("documento.info")}
           </Text>
           <Field C={C} label={t("documento.type")} value={t(`docTypes.${doc.document_type}`, { defaultValue: doc.document_type })} />
@@ -230,9 +236,9 @@ export default function DocumentoDetailScreen() {
           <Field C={C} label={t("documento.total")} value={fmt(doc.total)} />
           <Field C={C} label={t("documento.notes")} value={doc.notes} />
           <Field C={C} label={t("documento.description")} value={doc.description} />
-        </View>
+        </Card>
 
-        <View style={{ height: 24 }} />
+        <View style={{ height: spacing.xl }} />
       </ScrollView>
       <FolderPickerModal
         visible={folderOpen}

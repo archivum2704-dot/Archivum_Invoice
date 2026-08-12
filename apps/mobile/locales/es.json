@@ -22,7 +22,8 @@
     "minStock": "Stock mínimo",
     "minStockPlaceholder": "Sin aviso",
     "minStockHint": "Si lo rellenas, te avisamos cuando el stock baje a ese número o menos.",
-    "lowStockTitle": "{{count}} producto(s) han llegado a su stock mínimo"
+    "lowStockTitle": "{{count}} producto(s) han llegado a su stock mínimo",
+    "lowStockBadge": "Stock bajo"
   },
   "invoicing": {
     "title": "Facturación",

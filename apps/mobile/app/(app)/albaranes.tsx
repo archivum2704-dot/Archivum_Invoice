@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { ArrowLeft, Truck, Download, ArrowRight, FileText } from "lucide-react-native";
+import { ArrowLeft, Truck, Download, ArrowRight } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
@@ -13,6 +13,9 @@ import { useColors } from "@/lib/colors";
 import { APP_URL } from "@/lib/config";
 import { readJson } from "@/lib/api";
 import { RequirePermission } from "@/components/RequirePermission";
+import { Badge, Button, Card, EmptyState, type BadgeTone } from "@/components/ui";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
 
 interface Note {
   id: string;
@@ -84,10 +87,10 @@ function AlbaranesContent() {
     ]);
   };
 
-  const statusOf = (s: string) =>
+  const statusOf = (s: string): { label: string; tone: BadgeTone } =>
     s === "converted"
-      ? { label: t("delivery.states.converted"), color: C.blue }
-      : { label: t("delivery.states.open"), color: C.yellow };
+      ? { label: t("delivery.states.converted"), tone: "blue" }
+      : { label: t("delivery.states.open"), tone: "yellow" };
 
   if (loading) {
     return (
@@ -99,11 +102,11 @@ function AlbaranesContent() {
 
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: C.bg }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 }}>
-        <TouchableOpacity onPress={() => router.back()}><ArrowLeft size={22} color={C.text} /></TouchableOpacity>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm + 2, paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.md }}>
+        <TouchableOpacity onPress={() => router.back()}><ArrowLeft size={22} color={C.text} strokeWidth={1.75} /></TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 22, fontWeight: "800", color: C.text }}>{t("delivery.title")}</Text>
-          <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{t("delivery.subtitle")}</Text>
+          <Text style={{ fontFamily: fonts.extrabold, fontSize: 22, color: C.text }}>{t("delivery.title")}</Text>
+          <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginTop: 2 }}>{t("delivery.subtitle")}</Text>
         </View>
       </View>
 
@@ -111,59 +114,58 @@ function AlbaranesContent() {
         data={notes}
         keyExtractor={(i) => i.id}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: 16, paddingTop: 4, gap: 10 }}
+        contentContainerStyle={{ padding: spacing.lg, paddingTop: spacing.xs, gap: spacing.sm + 2 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={C.blue} />}
         ListEmptyComponent={
-          <View style={{ alignItems: "center", paddingVertical: 60, gap: 10 }}>
-            <FileText size={38} color={C.muted} />
-            <Text style={{ fontSize: 14, fontWeight: "600", color: C.text }}>{t("delivery.emptyTitle")}</Text>
-            <Text style={{ fontSize: 12, color: C.muted, textAlign: "center", paddingHorizontal: 30 }}>
-              {t("delivery.emptyBody")}
-            </Text>
-          </View>
+          <EmptyState
+            icon={<Truck size={28} color={C.muted} strokeWidth={1.5} />}
+            title={t("delivery.emptyTitle")}
+            subtitle={t("delivery.emptyBody")}
+          />
         }
         renderItem={({ item }) => {
           const st = statusOf(item.status);
           const busy = busyId === item.id;
           return (
-            <View style={{
-              backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.border,
-              padding: 14, gap: 10, opacity: busy ? 0.5 : 1,
-            }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Card containerStyle={{ opacity: busy ? 0.5 : 1 }} style={{ gap: spacing.sm + 2 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm + 2 }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: "700", color: C.text }}>{item.full_number ?? "—"}</Text>
-                  <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+                  <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: C.text }}>{item.full_number ?? "—"}</Text>
+                  <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginTop: 2 }}>
                     {item.client_name ?? "—"} · {item.issue_date ?? ""}
                   </Text>
                 </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={{ fontSize: 14, fontWeight: "700", color: C.text }}>{fmtEur(item.total)}</Text>
-                  <Text style={{ fontSize: 11, fontWeight: "600", color: st.color }}>{st.label}</Text>
+                <View style={{ alignItems: "flex-end", gap: 4 }}>
+                  <Text style={{ fontFamily: fonts.bold, fontSize: 14, color: C.text }}>{fmtEur(item.total)}</Text>
+                  <Badge label={st.label} tone={st.tone} />
                 </View>
               </View>
 
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                <TouchableOpacity
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Button
+                  label="PDF"
                   onPress={() => Linking.openURL(`${APP_URL}/api/quotes/pdf?id=${item.id}`)}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}
-                >
-                  <Download size={14} color={C.muted} />
-                  <Text style={{ fontSize: 12, color: C.text }}>PDF</Text>
-                </TouchableOpacity>
+                  variant="secondary"
+                  size="md"
+                  fullWidth={false}
+                  icon={<Download size={14} color={C.muted} strokeWidth={1.75} />}
+                />
 
                 {isAdmin && item.status !== "converted" && (
-                  <TouchableOpacity
+                  <Button
+                    label={t("delivery.bill")}
                     onPress={() => bill(item)}
                     disabled={busy}
-                    style={{ flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: C.blueMed, backgroundColor: C.blueL, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}
-                  >
-                    {busy ? <ActivityIndicator size="small" color={C.blue} /> : <ArrowRight size={14} color={C.blue} />}
-                    <Text style={{ fontSize: 12, fontWeight: "600", color: C.blue }}>{t("delivery.bill")}</Text>
-                  </TouchableOpacity>
+                    loading={busy}
+                    variant="ghost"
+                    size="md"
+                    fullWidth={false}
+                    icon={<ArrowRight size={14} color={C.blue} strokeWidth={1.75} />}
+                    style={{ backgroundColor: C.blueL, borderWidth: 1, borderColor: C.blueMed }}
+                  />
                 )}
               </View>
-            </View>
+            </Card>
           );
         }}
       />

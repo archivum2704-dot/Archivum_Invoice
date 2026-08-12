@@ -7,6 +7,10 @@ import { X, ArrowRight } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
+import { radius } from "@/lib/radius";
+import { Card } from "@/components/ui";
 
 const COACHMARK_PREFIX = "@archivum/coachmark_";
 const { width: SW, height: SH } = Dimensions.get("window");
@@ -112,56 +116,54 @@ export function Coachmark({
 
   return (
     <Modal transparent visible animationType="none" onRequestClose={handleDismiss} statusBarTranslucent>
-      <Animated.View style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0,0,0,0.55)", opacity: fade, justifyContent: justify, paddingTop, paddingBottom, paddingHorizontal: 24 }]}>
+      <Animated.View style={[StyleSheet.absoluteFillObject, { backgroundColor: C.overlay, opacity: fade, justifyContent: justify, paddingTop, paddingBottom, paddingHorizontal: spacing.xl }]}>
         <TouchableOpacity activeOpacity={1} style={StyleSheet.absoluteFillObject} onPress={handleDismiss} />
-        <Animated.View style={{
-          backgroundColor: C.surface, borderRadius: 18, padding: 22, paddingTop: 20,
-          opacity: fade, transform: [{ scale }],
-          shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 30, shadowOffset: { width: 0, height: 12 }, elevation: 12,
-        }}>
-          {/* Close */}
-          <TouchableOpacity
-            onPress={handleDismiss}
-            style={{ position: "absolute", top: 10, right: 10, padding: 6, zIndex: 1 }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <X size={16} color={C.muted} />
-          </TouchableOpacity>
+        <Animated.View style={{ opacity: fade, transform: [{ scale }] }}>
+          <Card style={{ padding: spacing.xl, paddingTop: spacing.lg + 4 }}>
+            {/* Close */}
+            <TouchableOpacity
+              onPress={handleDismiss}
+              style={{ position: "absolute", top: 10, right: 10, padding: spacing.xs + 2, zIndex: 1 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <X size={16} color={C.muted} strokeWidth={1.75} />
+            </TouchableOpacity>
 
-          {/* Icon */}
-          {icon && (
-            <View style={{ alignItems: "center", marginBottom: 14 }}>
-              {icon}
+            {/* Icon */}
+            {icon && (
+              <View style={{ alignItems: "center", marginBottom: spacing.md + 2 }}>
+                {icon}
+              </View>
+            )}
+
+            {/* Tag */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: spacing.sm }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.blue }} />
+              <Text style={{ fontFamily: fonts.semibold, fontSize: 11, lineHeight: 14, letterSpacing: 1.2, color: C.blue }}>{t("coachmarks.tipLabel")}</Text>
             </View>
-          )}
 
-          {/* Tag */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.blue }} />
-            <Text style={{ fontSize: 10, fontWeight: "800", color: C.blue, letterSpacing: 1 }}>{t("coachmarks.tipLabel")}</Text>
-          </View>
+            {/* Title */}
+            <Text style={{ fontFamily: fonts.extrabold, fontSize: 17, color: C.text, marginBottom: spacing.xs + 2, letterSpacing: -0.3 }}>
+              {title}
+            </Text>
 
-          {/* Title */}
-          <Text style={{ fontSize: 17, fontWeight: "800", color: C.text, marginBottom: 6, letterSpacing: -0.3 }}>
-            {title}
-          </Text>
+            {/* Description */}
+            <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.muted, lineHeight: 19, marginBottom: spacing.lg + 2 }}>
+              {description}
+            </Text>
 
-          {/* Description */}
-          <Text style={{ fontSize: 13, color: C.muted, lineHeight: 19, marginBottom: 18 }}>
-            {description}
-          </Text>
-
-          {/* CTA */}
-          <TouchableOpacity
-            onPress={handleDismiss}
-            style={{
-              backgroundColor: C.blue, borderRadius: 10, paddingVertical: 12,
-              flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-            }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>{t("common.gotIt")}</Text>
-            <ArrowRight size={14} color="#fff" />
-          </TouchableOpacity>
+            {/* CTA */}
+            <TouchableOpacity
+              onPress={handleDismiss}
+              style={{
+                backgroundColor: C.blue, borderRadius: radius.pill, paddingVertical: spacing.md + 3,
+                flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm,
+              }}
+            >
+              <Text style={{ fontFamily: fonts.semibold, fontSize: 14, color: "#fff" }}>{t("common.gotIt")}</Text>
+              <ArrowRight size={14} color="#fff" strokeWidth={1.75} />
+            </TouchableOpacity>
+          </Card>
         </Animated.View>
       </Animated.View>
     </Modal>

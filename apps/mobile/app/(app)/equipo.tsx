@@ -7,7 +7,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Users, Plus, X, Lock, Trash2,
-  Shield, ChevronDown, Check, UserPlus,
+  Shield, ChevronDown, Check,
 } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import { useAuth } from "@/context/auth-context";
@@ -15,15 +15,23 @@ import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
+import { fonts } from "@/lib/typography";
+import { spacing } from "@/lib/spacing";
+import { radius } from "@/lib/radius";
 import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
-import { PLANS, resolveEntitlements } from "@/lib/pricing";
+import { resolveEntitlements } from "@/lib/pricing";
 import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
 import { readJson } from "@/lib/api";
+import { Badge, type BadgeTone, Button, Card, EmptyState, Input } from "@/components/ui";
 
 
 type OrgRole = "owner" | "admin" | "member" | "viewer";
+
+const ROLE_TONE: Record<OrgRole, BadgeTone> = {
+  owner: "blue", admin: "green", member: "yellow", viewer: "neutral",
+};
 
 function getRoleColors(C: any): Record<OrgRole, { bg: string; text: string; border: string }> {
   return {
@@ -52,30 +60,30 @@ function UpgradeModal({ visible, maxUsers, onClose, C, t }: { visible: boolean; 
   return (
     <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
-      <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 28 }}>
-        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 16 }} />
-        <View style={{ alignItems: "center", marginBottom: 12 }}>
+      <View style={{ backgroundColor: C.surface, borderRadius: radius.xl, paddingBottom: spacing.xl + 4 }}>
+        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: spacing.md, marginBottom: spacing.lg }} />
+        <View style={{ alignItems: "center", marginBottom: spacing.md }}>
           <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
-            <Lock size={26} color={C.blue} />
+            <Lock size={26} color={C.blue} strokeWidth={1.75} />
           </View>
         </View>
-        <Text style={{ fontSize: 18, fontWeight: "800", color: C.text, textAlign: "center", paddingHorizontal: 24, marginBottom: 8 }}>
+        <Text style={{ fontFamily: fonts.extrabold, fontSize: 18, color: C.text, textAlign: "center", paddingHorizontal: spacing.xl, marginBottom: spacing.sm }}>
           {maxUsers === 1 ? t("equipo.limitFree") : t("equipo.limitReached")}
         </Text>
-        <Text style={{ fontSize: 14, color: C.muted, textAlign: "center", paddingHorizontal: 24, lineHeight: 20, marginBottom: 20 }}>
+        <Text style={{ fontFamily: fonts.regular, fontSize: 14, color: C.muted, textAlign: "center", paddingHorizontal: spacing.xl, lineHeight: 20, marginBottom: spacing.xl - 4 }}>
           {maxUsers === 1 ? t("equipo.limitDescFree") : t("equipo.limitDescPaid", { max: maxUsers })}
         </Text>
-        <View style={{ marginHorizontal: 24, marginBottom: 20, gap: 8 }}>
+        <View style={{ marginHorizontal: spacing.xl, marginBottom: spacing.xl - 4, gap: spacing.sm }}>
           {[t("equipo.limitBullet1"), t("equipo.limitBullet2"), t("equipo.limitBullet3")].map((line) => (
-            <View key={line} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View key={line} style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.blue }} />
-              <Text style={{ fontSize: 13, color: C.text }}>{line}</Text>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.text }}>{line}</Text>
             </View>
           ))}
         </View>
-        <BillingNotice style={{ marginHorizontal: 24 }} />
-        <TouchableOpacity onPress={onClose} style={{ marginTop: 10, alignItems: "center", paddingVertical: 10 }}>
-          <Text style={{ fontSize: 14, color: C.muted }}>{t("common.notNow")}</Text>
+        <BillingNotice style={{ marginHorizontal: spacing.xl }} />
+        <TouchableOpacity onPress={onClose} style={{ marginTop: spacing.sm + 2, alignItems: "center", paddingVertical: spacing.sm + 2 }}>
+          <Text style={{ fontFamily: fonts.regular, fontSize: 14, color: C.muted }}>{t("common.notNow")}</Text>
         </TouchableOpacity>
       </View>
     </KeyboardModal>
@@ -90,28 +98,23 @@ function RolePicker({ visible, current, onSelect, onClose, C, t }: {
   return (
     <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
-      <View style={{ backgroundColor: C.surface, borderRadius: 20, paddingBottom: 28 }}>
-        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 8 }} />
-        <Text style={{ fontSize: 16, fontWeight: "700", color: C.text, paddingHorizontal: 20, paddingBottom: 12 }}>{t("equipo.changeRole")}</Text>
+      <View style={{ backgroundColor: C.surface, borderRadius: radius.xl, paddingBottom: spacing.xl + 4 }}>
+        <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: spacing.md, marginBottom: spacing.sm }} />
+        <Text style={{ fontFamily: fonts.bold, fontSize: 16, color: C.text, paddingHorizontal: spacing.xl - 4, paddingBottom: spacing.md }}>{t("equipo.changeRole")}</Text>
         {roles.map((r) => {
-          const rc = getRoleColors(C)[r];
           const isActive = r === current;
           return (
             <TouchableOpacity
               key={r} onPress={() => { onSelect(r); onClose(); }}
-              style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border }}
+              style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.xl - 4, paddingVertical: spacing.md + 2, borderBottomWidth: 1, borderBottomColor: C.border }}
             >
               <View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <View style={{ backgroundColor: rc.bg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: rc.border }}>
-                    <Text style={{ fontSize: 12, fontWeight: "600", color: rc.text }}>{t(`equipo.roles.${r}`)}</Text>
-                  </View>
-                </View>
-                <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+                <Badge label={t(`equipo.roles.${r}`)} tone={ROLE_TONE[r]} />
+                <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginTop: spacing.xs + 2 }}>
                   {t(`equipo.roleDesc.${r}`)}
                 </Text>
               </View>
-              {isActive && <Check size={18} color={C.blue} />}
+              {isActive && <Check size={18} color={C.blue} strokeWidth={1.75} />}
             </TouchableOpacity>
           );
         })}
@@ -192,126 +195,106 @@ function InviteModal({ visible, orgId, token, onClose, onInvited, C, t }: {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const rc = getRoleColors(C)[role];
-
   return (
     <>
       <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
         <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
-        <View style={{ backgroundColor: C.surface, borderRadius: 20, maxHeight: "85%", overflow: "hidden" }}>
-          <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: 12 }} />
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: C.border }}>
-            <Text style={{ fontSize: 17, fontWeight: "700", color: C.text }}>{t("equipo.invite.title")}</Text>
-            <TouchableOpacity onPress={onClose} style={{ backgroundColor: C.segmentBg, borderRadius: 8, padding: 6 }}>
-              <X size={16} color={C.muted} />
+        <View style={{ backgroundColor: C.surface, borderRadius: radius.xl, maxHeight: "85%", overflow: "hidden" }}>
+          <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: spacing.md }} />
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: C.border }}>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 17, color: C.text }}>{t("equipo.invite.title")}</Text>
+            <TouchableOpacity onPress={onClose} style={{ backgroundColor: C.segmentBg, borderRadius: radius.sm, padding: 6 }}>
+              <X size={16} color={C.muted} strokeWidth={1.75} />
             </TouchableOpacity>
           </View>
-          <ScrollView style={{ padding: 16 }} keyboardShouldPersistTaps="handled">
-            <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
+          <ScrollView style={{ padding: spacing.lg }} keyboardShouldPersistTaps="handled">
+            <View style={{ flexDirection: "row", gap: spacing.sm + 2, marginBottom: spacing.md }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 5 }}>{t("equipo.invite.firstName")}</Text>
-                <TextInput
-                  style={{ borderWidth: 1.5, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: C.text, backgroundColor: C.inputBg }}
-                  placeholder="Ana" placeholderTextColor={C.muted}
-                  value={firstName} onChangeText={setFirstName}
-                />
+                <Input label={t("equipo.invite.firstName")} placeholder="Ana" value={firstName} onChangeText={setFirstName} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 5 }}>{t("equipo.invite.lastName")}</Text>
-                <TextInput
-                  style={{ borderWidth: 1.5, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: C.text, backgroundColor: C.inputBg }}
-                  placeholder="García" placeholderTextColor={C.muted}
-                  value={lastName} onChangeText={setLastName}
-                />
+                <Input label={t("equipo.invite.lastName")} placeholder="García" value={lastName} onChangeText={setLastName} />
               </View>
             </View>
 
-            <View style={{ marginBottom: 12 }}>
-              <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 5 }}>{t("equipo.invite.email")}</Text>
-              <TextInput
-                style={{ borderWidth: 1.5, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: C.text, backgroundColor: C.inputBg }}
-                placeholder="ana@empresa.com" placeholderTextColor={C.muted}
-                keyboardType="email-address" autoCapitalize="none"
-                value={email} onChangeText={setEmail}
+            <View style={{ marginBottom: spacing.md }}>
+              <Input
+                label={t("equipo.invite.email")}
+                placeholder="ana@empresa.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
               />
             </View>
 
-            <View style={{ marginBottom: 20 }}>
-              <Text style={{ fontSize: 12, fontWeight: "500", color: C.muted, marginBottom: 5 }}>{t("equipo.invite.role")}</Text>
+            <View style={{ marginBottom: spacing.xl - 4 }}>
+              <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: C.text, marginBottom: 6 }}>{t("equipo.invite.role")}</Text>
               <TouchableOpacity
                 onPress={() => setRoleOpen(true)}
-                style={{ borderWidth: 1.5, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: C.inputBg }}
+                style={{ borderWidth: 1.5, borderColor: C.border, borderRadius: radius.md, paddingHorizontal: spacing.md + 2, paddingVertical: spacing.md - 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: C.inputBg }}
               >
-                <View style={{ backgroundColor: rc.bg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: rc.border }}>
-                  <Text style={{ fontSize: 13, fontWeight: "600", color: rc.text }}>{t(`equipo.roles.${role}`)}</Text>
-                </View>
-                <ChevronDown size={16} color={C.muted} />
+                <Badge label={t(`equipo.roles.${role}`)} tone={ROLE_TONE[role]} />
+                <ChevronDown size={16} color={C.muted} strokeWidth={1.75} />
               </TouchableOpacity>
             </View>
 
-            {error   && <Text style={{ fontSize: 13, color: C.red, marginBottom: 12 }}>{error}</Text>}
+            {error   && <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.red, marginBottom: spacing.md }}>{error}</Text>}
             {success && (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 12 }}>
-                <Check size={14} color={C.green} />
-                <Text style={{ fontSize: 13, color: C.green, fontWeight: "600" }}>{t("equipo.invite.success")}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs + 2, marginBottom: spacing.md }}>
+                <Check size={14} color={C.green} strokeWidth={1.75} />
+                <Text style={{ fontFamily: fonts.semibold, fontSize: 13, color: C.green }}>{t("equipo.invite.success")}</Text>
               </View>
             )}
 
             {created && (
-              <View style={{ backgroundColor: C.blueL, borderRadius: 12, padding: 14, marginBottom: 14, gap: 10 }}>
-                <Text style={{ fontSize: 13, fontWeight: "700", color: C.text }}>{t("equipo.invite.createdTitle")}</Text>
+              <View style={{ backgroundColor: C.blueL, borderRadius: radius.md, padding: spacing.md + 2, marginBottom: spacing.lg - 2, gap: spacing.sm + 2 }}>
+                <Text style={{ fontFamily: fonts.bold, fontSize: 13, color: C.text }}>{t("equipo.invite.createdTitle")}</Text>
                 <View>
-                  <Text style={{ fontSize: 11, color: C.muted }}>{t("equipo.invite.emailLabel")}</Text>
-                  <Text selectable style={{ fontSize: 14, fontWeight: "600", color: C.text }}>{created.email}</Text>
+                  <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t("equipo.invite.emailLabel")}</Text>
+                  <Text selectable style={{ fontFamily: fonts.semibold, fontSize: 14, color: C.text }}>{created.email}</Text>
                 </View>
                 <View>
-                  <Text style={{ fontSize: 11, color: C.muted }}>{t("equipo.invite.passwordLabel")}</Text>
-                  <Text selectable style={{ fontSize: 15, fontWeight: "700", color: C.text }}>{created.password}</Text>
+                  <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t("equipo.invite.passwordLabel")}</Text>
+                  <Text selectable style={{ fontFamily: fonts.bold, fontSize: 15, color: C.text }}>{created.password}</Text>
                 </View>
                 {!!created.accessCode && (
                   <View>
-                    <Text style={{ fontSize: 11, color: C.muted }}>{t("equipo.invite.accessCodeLabel")}</Text>
-                    <Text selectable style={{ fontSize: 18, fontWeight: "800", color: C.text, letterSpacing: 3 }}>
+                    <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t("equipo.invite.accessCodeLabel")}</Text>
+                    <Text selectable style={{ fontFamily: fonts.extrabold, fontSize: 18, color: C.text, letterSpacing: 3 }}>
                       {created.accessCode}
                     </Text>
-                    <Text style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{t("equipo.invite.accessCodeHint")}</Text>
+                    <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted, marginTop: spacing.xs }}>{t("equipo.invite.accessCodeHint")}</Text>
                   </View>
                 )}
                 {/* Whether the email actually went out. An admin who assumes it
                     did will not pass the credentials on, locking the user out. */}
-                <Text style={{ fontSize: 11, fontWeight: "600", color: created.emailSent ? C.green : C.yellow }}>
+                <Text style={{ fontFamily: fonts.semibold, fontSize: 11, color: created.emailSent ? C.green : C.yellow }}>
                   {created.emailSent
                     ? t("equipo.invite.emailSent", { email: created.email })
                     : t("equipo.invite.emailNotSent")}
                 </Text>
-                <Text style={{ fontSize: 11, color: C.muted }}>{t("equipo.invite.createdHint")}</Text>
+                <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t("equipo.invite.createdHint")}</Text>
               </View>
             )}
 
             {created ? (
-              <View style={{ marginBottom: 16, gap: 8 }}>
-                <TouchableOpacity onPress={copyCreds} style={{ backgroundColor: C.blue, borderRadius: 10, paddingVertical: 14, alignItems: "center" }}>
-                  <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>{copied ? t("common.copied") : t("equipo.invite.copyCreds")}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={onClose} style={{ borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingVertical: 13, alignItems: "center" }}>
-                  <Text style={{ color: C.text, fontWeight: "600", fontSize: 15 }}>{t("common.done")}</Text>
-                </TouchableOpacity>
+              <View style={{ marginBottom: spacing.lg, gap: spacing.sm }}>
+                <Button label={copied ? t("common.copied") : t("equipo.invite.copyCreds")} onPress={copyCreds} />
+                <Button label={t("common.done")} onPress={onClose} variant="secondary" />
               </View>
             ) : (
-            <TouchableOpacity
-              onPress={handleInvite}
-              disabled={loading || !email.trim() || success}
-              style={{ backgroundColor: C.blue, borderRadius: 10, paddingVertical: 14, alignItems: "center", marginBottom: 16, opacity: (loading || !email.trim() || success) ? 0.6 : 1 }}
-            >
-              {loading
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}>{t("equipo.invite.send")}</Text>
-              }
-            </TouchableOpacity>
+              <Button
+                label={t("equipo.invite.send")}
+                onPress={handleInvite}
+                disabled={loading || !email.trim() || success}
+                loading={loading}
+                style={{ marginBottom: spacing.lg }}
+              />
             )}
 
             {!created && (
-            <Text style={{ fontSize: 12, color: C.muted, textAlign: "center", marginBottom: 8 }}>
+            <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, textAlign: "center", marginBottom: spacing.sm }}>
               {t("equipo.invite.emailHint")}
             </Text>
             )}
@@ -333,56 +316,50 @@ function MemberCard({ member, isSelf, canManage, onRoleChange, onRemove, C, t }:
   const lastName  = profile?.last_name  ?? "";
   const fullName  = [firstName, lastName].filter(Boolean).join(" ") || (profile?.email ?? "Usuario");
   const initials  = ([firstName[0], lastName[0]].filter(Boolean).join("") || "U").toUpperCase();
-  const rc = getRoleColors(C)[member.role];
 
   return (
-    <View style={{
-      backgroundColor: C.surface, borderRadius: 14, marginHorizontal: 16, marginBottom: 10,
-      shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2,
-    }}>
-      <View style={{ padding: 14 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.blue, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: "#fff" }}>{initials}</Text>
+    <Card containerStyle={{ marginHorizontal: spacing.lg, marginBottom: spacing.sm + 2 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.blue, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ fontFamily: fonts.bold, fontSize: 16, color: "#fff" }}>{initials}</Text>
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs + 2 }}>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 14, color: C.text }} numberOfLines={1}>{fullName}</Text>
+            {isSelf && <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>({t("common.you")})</Text>}
           </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={{ fontSize: 14, fontWeight: "700", color: C.text }} numberOfLines={1}>{fullName}</Text>
-              {isSelf && <Text style={{ fontSize: 11, color: C.muted }}>({t("common.you")})</Text>}
-            </View>
-            {profile?.email && (
-              <Text style={{ fontSize: 12, color: C.muted }} numberOfLines={1}>{profile.email}</Text>
-            )}
-          </View>
+          {profile?.email && (
+            <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }} numberOfLines={1}>{profile.email}</Text>
+          )}
+        </View>
+        <TouchableOpacity
+          onPress={canManage ? onRoleChange : undefined}
+          style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
+        >
+          <Badge label={t(`equipo.roles.${member.role}`)} tone={ROLE_TONE[member.role]} />
+          {canManage && <ChevronDown size={10} color={C.muted} strokeWidth={1.75} />}
+        </TouchableOpacity>
+      </View>
+
+      {canManage && (
+        <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm + 2, paddingTop: spacing.sm + 2, borderTopWidth: 1, borderTopColor: C.border }}>
           <TouchableOpacity
-            onPress={canManage ? onRoleChange : undefined}
-            style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: rc.bg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: rc.border }}
+            onPress={onRoleChange}
+            style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xs + 2, paddingVertical: 7, borderRadius: radius.sm, borderWidth: 1, borderColor: C.border }}
           >
-            <Text style={{ fontSize: 11, fontWeight: "600", color: rc.text }}>{t(`equipo.roles.${member.role}`)}</Text>
-            {canManage && <ChevronDown size={10} color={rc.text} />}
+            <Shield size={13} color={C.muted} strokeWidth={1.75} />
+            <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.text }}>{t("equipo.changeRole")}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onRemove}
+            style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xs + 2, paddingVertical: 7, borderRadius: radius.sm, borderWidth: 1, borderColor: C.redL, backgroundColor: C.redL }}
+          >
+            <Trash2 size={13} color={C.red} strokeWidth={1.75} />
+            <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.red }}>{t("equipo.removeMember")}</Text>
           </TouchableOpacity>
         </View>
-
-        {canManage && (
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border }}>
-            <TouchableOpacity
-              onPress={onRoleChange}
-              style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: C.border }}
-            >
-              <Shield size={13} color={C.muted} />
-              <Text style={{ fontSize: 12, color: C.text }}>{t("equipo.changeRole")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={onRemove}
-              style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: C.redL, backgroundColor: C.redL }}
-            >
-              <Trash2 size={13} color={C.red} />
-              <Text style={{ fontSize: 12, color: C.red }}>{t("equipo.removeMember")}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    </View>
+      )}
+    </Card>
   );
 }
 
@@ -486,12 +463,12 @@ function EquipoScreenContent() {
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: C.bg }}>
       {/* Header */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 }}>
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.md }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
           <View>
-            <Text style={{ fontSize: 22, fontWeight: "800", color: C.text }}>{t("equipo.title")}</Text>
+            <Text style={{ fontFamily: fonts.extrabold, fontSize: 22, color: C.text }}>{t("equipo.title")}</Text>
             {plan && (
-              <Text style={{ fontSize: 12, color: atLimit ? C.red : C.muted, marginTop: 1 }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: atLimit ? C.red : C.muted, marginTop: 1 }}>
                 {t("equipo.usersCount", { current: members.length, max: maxUsers })}
               </Text>
             )}
@@ -499,9 +476,9 @@ function EquipoScreenContent() {
           {isAdmin && (
             <TouchableOpacity
               onPress={handleAddPress}
-              style={{ width: 36, height: 36, backgroundColor: C.blue, borderRadius: 10, alignItems: "center", justifyContent: "center" }}
+              style={{ width: 36, height: 36, backgroundColor: C.blue, borderRadius: radius.md - 2, alignItems: "center", justifyContent: "center" }}
             >
-              <Plus size={18} color="#fff" />
+              <Plus size={18} color="#fff" strokeWidth={1.75} />
             </TouchableOpacity>
           )}
         </View>
@@ -509,20 +486,15 @@ function EquipoScreenContent() {
 
       {/* List */}
       {members.length === 0 ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 12 }}>
-          <Users size={56} color={C.muted} />
-          <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{t("equipo.noMembers")}</Text>
-          <Text style={{ fontSize: 13, color: C.muted, textAlign: "center" }}>
-            {t("equipo.inviteHint")}
-          </Text>
-          {isAdmin && (
-            <TouchableOpacity
-              onPress={handleAddPress}
-              style={{ backgroundColor: C.blue, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 8, marginTop: 4 }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>{t("equipo.inviteUser")}</Text>
-            </TouchableOpacity>
-          )}
+        <View style={{ flex: 1, justifyContent: "center" }}>
+          <EmptyState
+            icon={<Users size={28} color={C.muted} strokeWidth={1.5} />}
+            title={t("equipo.noMembers")}
+            subtitle={t("equipo.inviteHint")}
+            action={isAdmin ? (
+              <Button label={t("equipo.inviteUser")} onPress={handleAddPress} size="md" fullWidth={false} />
+            ) : undefined}
+          />
         </View>
       ) : (
         <FlatList
@@ -542,24 +514,24 @@ function EquipoScreenContent() {
             );
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={C.blue} />}
-          contentContainerStyle={{ paddingTop: 4, paddingBottom: 32 }}
+          contentContainerStyle={{ paddingTop: spacing.xs, paddingBottom: spacing.xxl }}
           showsVerticalScrollIndicator={false}
         />
       )}
 
       {/* Role legend at bottom */}
       {members.length > 0 && (
-        <View style={{ paddingHorizontal: 16, paddingBottom: 16, paddingTop: 4 }}>
-          <Text style={{ fontSize: 10, fontWeight: "700", color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>
+        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, paddingTop: spacing.xs }}>
+          <Text style={{ fontFamily: fonts.semibold, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: spacing.sm }}>
             {t("equipo.availableRoles")}
           </Text>
-          <View style={{ flexDirection: "row", gap: 6 }}>
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
             {(["admin", "member", "viewer"] as OrgRole[]).map((r) => {
               const rc = getRoleColors(C)[r];
               return (
-                <View key={r} style={{ flex: 1, backgroundColor: rc.bg, borderRadius: 8, padding: 8, borderWidth: 1, borderColor: rc.border }}>
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: rc.text, marginBottom: 2 }}>{t(`equipo.roles.${r}`)}</Text>
-                  <Text style={{ fontSize: 10, color: C.muted, lineHeight: 13 }}>
+                <View key={r} style={{ flex: 1, backgroundColor: rc.bg, borderRadius: radius.sm, padding: spacing.sm, borderWidth: 1, borderColor: rc.border }}>
+                  <Text style={{ fontFamily: fonts.bold, fontSize: 11, color: rc.text, marginBottom: 2 }}>{t(`equipo.roles.${r}`)}</Text>
+                  <Text style={{ fontFamily: fonts.regular, fontSize: 10, color: C.muted, lineHeight: 13 }}>
                     {t(`equipo.roleLegend.${r}`)}
                   </Text>
                 </View>
