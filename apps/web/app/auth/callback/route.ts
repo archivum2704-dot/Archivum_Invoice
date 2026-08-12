@@ -14,6 +14,10 @@ export async function GET(request: Request) {
       // Register single-device session
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
+        // Revoke every other session's refresh token server-side — see the
+        // comment in /api/auth/register-session for why this, and not just
+        // the active_session_id cookie check, is what actually enforces it.
+        await supabase.auth.signOut({ scope: 'others' })
         const sessionId = crypto.randomUUID()
         await supabase.from('profiles').update({ active_session_id: sessionId }).eq('id', user.id)
         const response = NextResponse.redirect(`${origin}${next}`)

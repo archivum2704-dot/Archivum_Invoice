@@ -133,6 +133,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* ── Register single-device session ────────────────────────────────────── */
   const registerDeviceSession = async (userId: string) => {
+    // Revokes every other session's refresh token server-side (web included).
+    // active_session_id below only trips the *other* device's check the next
+    // time it loads a profile — this is what makes a leaked or previously
+    // shared login (e.g. a temporary password) actually stop working there
+    // instead of merely getting redirected next time it happens to be used.
+    await supabase.auth.signOut({ scope: "others" });
     const sessionId = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
     await AsyncStorage.setItem(SESSION_KEY, sessionId).catch(() => {});
     await supabase.from("profiles").update({ active_session_id: sessionId }).eq("id", userId);
