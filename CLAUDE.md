@@ -3,7 +3,7 @@
 > **Léeme primero.** Este fichero es el punto de partida de cada sesión.
 > Cuando cambies algo relevante, actualízalo en el mismo commit.
 >
-> Última actualización: **11 de agosto de 2026**
+> Última actualización: **12 de agosto de 2026**
 
 ---
 
@@ -383,6 +383,7 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 12 ago | **Corregido: no se podía facturar un albarán** (`invoices_verifactu_status_check` rechazaba `not_applicable`). El 10 de agosto se añadió `verifactu_obligado` y el código empezó a escribir `verifactu_status = 'not_applicable'` para quien lo desmarca, pero el CHECK de la tabla `invoices` seguía sin ese valor — migración `20260812_verifactu_status_not_applicable.sql`. **Pendiente de aplicar en el Dashboard de Supabase** (no se aplica sola) |
 | 11 ago | La imagen de perfil de Ajustes (móvil) y la fila de usuario del sidebar (web) muestran el logo de la organización cuando existe, en vez de solo iniciales. Se actualiza en caliente al subir/quitar el logo |
 | 11 ago | **Sistema de diseño para el móvil**: tokens de tipografía (Plus Jakarta Sans)/spacing/radio/sombras y componentes `Button`/`Card`/`Badge`/`Input`/`EmptyState`/`Skeleton` en `components/ui/`. Migradas las ~24 pantallas y componentes del móvil; de paso, `DocRow` dejó de estar copiado en tres sitios y se corrigió el patrón de `Chip`/`ActBtn` definidos dentro del componente en facturación/presupuestos, que remontaban en cada tecleo |
 | 10 ago | **Corregida una falsa alarma**: el detector de anomalías ordenaba la cadena por hora, y con 4 eventos en el mismo segundo la daba por rota. Ahora sigue los enlaces |
