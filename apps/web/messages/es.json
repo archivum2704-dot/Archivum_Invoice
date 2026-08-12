@@ -634,16 +634,16 @@
       "createHint": "El usuario podrá iniciar sesión con su correo y la contraseña generada desde la pestaña Usuario.",
       "firstName": "Nombre",
       "lastName": "Apellido",
-      "inviteTitle": "Añadir un nuevo miembro",
+      "inviteTitle": "Añadir un nuevo colaborador",
       "emailLabel": "Correo electrónico",
       "emailPlaceholder": "colega@empresa.es",
       "roleLabel": "Rol",
-      "sendInvite": "Añadir Miembro",
+      "sendInvite": "Añadir Colaborador",
       "sending": "Creando...",
       "roles": {
         "owner": "Propietario",
         "admin": "Administrador",
-        "member": "Miembro",
+        "member": "Colaborador",
         "viewer": "Visor"
       },
       "roleDescriptions": {
@@ -687,7 +687,7 @@
       "createdHint": "Guarda o comparte la contraseña ahora: por seguridad no volverá a mostrarse. También se ha enviado por correo si el envío está configurado.",
       "copyCredentials": "Copiar credenciales",
       "copied": "Copiado",
-      "viewerReadOnlyNotice": "Este usuario tiene el rol Visor: solo puede consultar y descargar lo que le asignes. No puede subir, editar ni eliminar nada. Para darle permisos de escritura, cambia su rol a Miembro.",
+      "viewerReadOnlyNotice": "Este usuario tiene el rol Visor: solo puede consultar y descargar lo que le asignes. No puede subir, editar ni eliminar nada. Para darle permisos de escritura, cambia su rol a Colaborador.",
       "accessCodeLabel": "Código de empresa",
       "accessCodeHint": "En la app móvil, este usuario entra por «Usuario» e introduce el código de empresa junto con su correo y contraseña. En la web solo necesita correo y contraseña.",
       "emailSent": "Credenciales enviadas a {email}.",

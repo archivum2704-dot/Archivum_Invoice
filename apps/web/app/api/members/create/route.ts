@@ -241,7 +241,7 @@ function buildInviteEmail({ displayName, email, password, role, appUrl, orgName,
   accessCode: string | null
 }) {
   const roleLabel: Record<string, string> = {
-    admin: 'Administrador', member: 'Miembro', viewer: 'Visor',
+    admin: 'Administrador', member: 'Colaborador', viewer: 'Visor',
   }
   const loginUrl = `${appUrl}/auth/login`
   return `<!DOCTYPE html>

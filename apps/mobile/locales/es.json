@@ -313,7 +313,7 @@
     "roles": {
       "owner": "Propietario",
       "admin": "Administrador",
-      "member": "Miembro",
+      "member": "Colaborador",
       "viewer": "Visor"
     },
     "roleDesc": {
@@ -440,7 +440,7 @@
       "team": {
         "title": "Trabaja en equipo",
         "description": "Invita a tu equipo con roles y permisos personalizados por empresa.",
-        "b1": "Roles: Administrador, Miembro, Visor",
+        "b1": "Roles: Administrador, Colaborador, Visor",
         "b2": "Acceso granular por empresa o carpeta",
         "b3": "Plan Gratis: 1 usuario · Pro: 5 + extras"
       },
