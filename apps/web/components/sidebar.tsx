@@ -312,9 +312,18 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
         </Link>
         {/* User row */}
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl">
-          <div className="w-8 h-8 rounded-full bg-sidebar-primary/80 ring-2 ring-sidebar-primary/30 flex items-center justify-center text-sidebar-primary-foreground text-xs font-bold shrink-0">
-            {initials || "?"}
-          </div>
+          {currentOrg?.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={currentOrg.logo_url}
+              alt=""
+              className="w-8 h-8 rounded-full ring-2 ring-sidebar-primary/30 object-cover shrink-0"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-sidebar-primary/80 ring-2 ring-sidebar-primary/30 flex items-center justify-center text-sidebar-primary-foreground text-xs font-bold shrink-0">
+              {initials || "?"}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <p className="text-sidebar-foreground text-xs font-semibold truncate">
               {userProfile?.first_name} {userProfile?.last_name}

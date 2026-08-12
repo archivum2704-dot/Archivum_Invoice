@@ -379,9 +379,17 @@ export default function AjustesScreen() {
         <View style={{ marginHorizontal: spacing.lg, marginBottom: spacing.xs }}>
           <Card>
             <View style={{ flexDirection: "row", gap: spacing.md + 2, alignItems: "center" }}>
-              <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: C.blue, alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontFamily: fonts.extrabold, fontSize: 20, color: "#fff" }}>{initials}</Text>
-              </View>
+              {org?.logo_url ? (
+                <Image
+                  source={{ uri: org.logo_url }}
+                  style={{ width: 52, height: 52, borderRadius: 26, borderWidth: 1, borderColor: C.border }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: C.blue, alignItems: "center", justifyContent: "center" }}>
+                  <Text style={{ fontFamily: fonts.extrabold, fontSize: 20, color: "#fff" }}>{initials}</Text>
+                </View>
+              )}
               <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: fonts.bold, fontSize: 16, color: C.text }}>{fullName}</Text>
                 <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.muted, marginTop: 1 }}>{profile?.id ? "owner" : ""}</Text>

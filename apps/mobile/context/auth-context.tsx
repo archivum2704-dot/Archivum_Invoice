@@ -19,6 +19,7 @@ interface Organization {
   name: string;
   access_code: string | null;
   cif: string | null;
+  logo_url: string | null;
   subscription_plan: string | null;
   subscription_status: string | null;
 }
@@ -87,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (p.current_org_id) {
       const { data: o } = await supabase
         .from("organizations")
-        .select("id, name, access_code, cif, subscription_plan, subscription_status")
+        .select("id, name, access_code, cif, logo_url, subscription_plan, subscription_status")
         .eq("id", p.current_org_id)
         .single();
       setOrg(o ?? null);
@@ -158,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const upperCode = code.trim().toUpperCase();
     const { data: orgData } = await supabase
       .from("organizations")
-      .select("id, name, access_code, cif, subscription_plan, subscription_status")
+      .select("id, name, access_code, cif, logo_url, subscription_plan, subscription_status")
       .eq("access_code", upperCode)
       .single();
 
