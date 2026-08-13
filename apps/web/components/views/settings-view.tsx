@@ -585,26 +585,47 @@ export function SettingsView() {
 
         {/* Art. 13.2: the declaration has to be visible in the system itself,
             and the Verifactu screen it also sits on is admin-only — so it needs
-            a way in that anyone using the app can find. */}
+            a way in that anyone using the app can find.
+            The certificate/status screen (/configuracion/verifactu) existed
+            with no menu entry anywhere — the only way in was a small link
+            buried inside Facturación. Nothing reaches the AEAT without a
+            certificate uploaded there, so it gets a real entry point here. */}
         <Section
-          title="Legal"
-          description="Documentación del sistema informático de facturación."
+          title="VERI*FACTU"
+          description="Certificado digital, registro de eventos y documentación del sistema informático de facturación."
         >
-          <Link
-            href="/declaracion-responsable"
-            className="flex items-center justify-between gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:bg-muted transition-colors"
-          >
-            <span className="flex items-center gap-2.5 min-w-0">
-              <ShieldCheck className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="min-w-0">
-                <span className="block text-sm font-medium text-foreground">Declaración responsable</span>
-                <span className="block text-xs text-muted-foreground mt-0.5">
-                  Conformidad del sistema con el RD 1007/2023 y la Orden HAC/1177/2024
+          <div className="space-y-3">
+            <Link
+              href="/configuracion/verifactu"
+              className="flex items-center justify-between gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:bg-muted transition-colors"
+            >
+              <span className="flex items-center gap-2.5 min-w-0">
+                <ShieldCheck className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-foreground">Certificado y estado de Verifactu</span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">
+                    Sube el certificado digital y consulta el registro de eventos
+                  </span>
                 </span>
               </span>
-            </span>
-            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-          </Link>
+              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            </Link>
+            <Link
+              href="/declaracion-responsable"
+              className="flex items-center justify-between gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:bg-muted transition-colors"
+            >
+              <span className="flex items-center gap-2.5 min-w-0">
+                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-foreground">Declaración responsable</span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">
+                    Conformidad del sistema con el RD 1007/2023 y la Orden HAC/1177/2024
+                  </span>
+                </span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            </Link>
+          </div>
         </Section>
 
         <div className="flex items-center gap-3 pt-6">
