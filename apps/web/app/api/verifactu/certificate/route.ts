@@ -49,7 +49,12 @@ export async function POST(req: NextRequest) {
       const cert = bag?.cert
       if (!cert) throw new Error('no_cert')
       subject = cert.subject.attributes.map((a: any) => `${a.shortName || a.type}=${a.value}`).join(', ')
-      const sn = cert.subject.getField('2.5.4.5')?.value as string | undefined
+      // node-forge's getField(x) treats a bare string as a shortName lookup,
+      // not an OID lookup — {shortName: '2.5.4.5'} never matches a real
+      // attribute, so passing the OID as a plain string here always misses
+      // and silently falls through to whatever fallback follows. The object
+      // form ({ type: oid }) is what actually matches by OID.
+      const sn = cert.subject.getField({ type: '2.5.4.5' })?.value as string | undefined
       const cn = cert.subject.getField('CN')?.value as string | undefined
       nif = (sn ?? cn ?? '').replace(/^IDC[A-Z]{2}-/i, '').trim() || null
       validUntil = cert.validity.notAfter.toISOString()
@@ -61,8 +66,8 @@ export async function POST(req: NextRequest) {
       // difference is what we read; it is not a policy OID lookup, so an
       // unusual issuer could get it wrong. VERIFACTU_ENDPOINT_* overrides exist
       // for that case.
-      const givenName = cert.subject.getField('2.5.4.42')?.value
-      const surname = cert.subject.getField('2.5.4.4')?.value
+      const givenName = cert.subject.getField({ type: '2.5.4.42' })?.value
+      const surname = cert.subject.getField({ type: '2.5.4.4' })?.value
       certKind = (givenName || surname) ? 'representante' : 'sello'
     } catch {
       return NextResponse.json({ error: 'invalid_certificate' }, { status: 422 })

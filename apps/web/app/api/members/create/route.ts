@@ -43,6 +43,11 @@ function getResend() {
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://archivum2704-dot.vercel.app'
 const FROM_EMAIL = process.env.RESEND_FROM ?? 'onboarding@resend.dev'
 
+// Roles assignable through this endpoint. 'owner' is deliberately excluded —
+// see the owner-only check below, which is what actually decides whether it
+// may be granted, not this list.
+const ASSIGNABLE_ROLES = ['owner', 'admin', 'member', 'viewer']
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -50,6 +55,9 @@ export async function POST(req: NextRequest) {
 
     if (!email || !orgId || !role) {
       return NextResponse.json({ error: 'missing_fields' }, { status: 400 })
+    }
+    if (!ASSIGNABLE_ROLES.includes(role)) {
+      return NextResponse.json({ error: 'invalid_role' }, { status: 400 })
     }
 
     const admin = getAdminClient()
@@ -91,6 +99,13 @@ export async function POST(req: NextRequest) {
 
     if (!isSuper && (!callerMember || !['owner', 'admin'].includes(callerMember.role))) {
       return NextResponse.json({ error: 'not_authorized' }, { status: 403 })
+    }
+
+    // Only an owner (or a platform admin) may hand out the owner role — an
+    // org admin inviting a peer with role:'owner' would otherwise let them
+    // mint a co-owner nobody with real authority approved.
+    if (role === 'owner' && !isSuper && callerMember?.role !== 'owner') {
+      return NextResponse.json({ error: 'only_owner_can_grant_owner' }, { status: 403 })
     }
 
     // Enforce dynamic user limit based on subscription
@@ -231,6 +246,9 @@ export async function POST(req: NextRequest) {
 }
 
 // ── Email template ────────────────────────────────────────────────────────────
+const esc = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
 function buildInviteEmail({ displayName, email, password, role, appUrl, orgName, accessCode }: {
   displayName: string
   email: string
@@ -260,19 +278,19 @@ function buildInviteEmail({ displayName, email, password, role, appUrl, orgName,
         <tr><td style="padding:40px;">
           <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#111827;">Tu cuenta está lista</h1>
           <p style="margin:0 0 24px;font-size:15px;color:#6B7280;line-height:1.6;">
-            Hola <strong style="color:#111827;">${displayName}</strong>, has sido añadido a
-            <strong style="color:#111827;">${orgName ?? 'Archivum'}</strong>
-            con el rol de <strong style="color:#2563EB;">${roleLabel[role] ?? role}</strong>.
+            Hola <strong style="color:#111827;">${esc(displayName)}</strong>, has sido añadido a
+            <strong style="color:#111827;">${esc(orgName ?? 'Archivum')}</strong>
+            con el rol de <strong style="color:#2563EB;">${esc(roleLabel[role] ?? role)}</strong>.
             Estas son tus credenciales de acceso:
           </p>
           <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;">
             <tr><td style="padding:16px 20px;">
               <p style="margin:0 0 4px;font-size:12px;color:#9CA3AF;">Correo</p>
-              <p style="margin:0 0 14px;font-size:15px;font-weight:600;color:#111827;">${email}</p>
+              <p style="margin:0 0 14px;font-size:15px;font-weight:600;color:#111827;">${esc(email)}</p>
               <p style="margin:0 0 4px;font-size:12px;color:#9CA3AF;">Contraseña temporal</p>
-              <p style="margin:0 0 14px;font-size:15px;font-weight:600;color:#111827;font-family:monospace;letter-spacing:0.5px;">${password}</p>
+              <p style="margin:0 0 14px;font-size:15px;font-weight:600;color:#111827;font-family:monospace;letter-spacing:0.5px;">${esc(password)}</p>
               ${accessCode ? `<p style="margin:0 0 4px;font-size:12px;color:#9CA3AF;">Código de empresa</p>
-              <p style="margin:0;font-size:19px;font-weight:700;color:#111827;font-family:monospace;letter-spacing:2px;">${accessCode}</p>` : ''}
+              <p style="margin:0;font-size:19px;font-weight:700;color:#111827;font-family:monospace;letter-spacing:2px;">${esc(accessCode)}</p>` : ''}
             </td></tr>
           </table>
           ${accessCode ? `<p style="margin:-8px 0 24px;font-size:13px;color:#6B7280;line-height:1.6;">
