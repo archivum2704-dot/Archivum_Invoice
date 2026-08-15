@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, Inbox, AlertTriangle, Zap, FileText, Users, Building2, TrendingUp, Upload, Trash2, Loader2, ImageOff, ShieldCheck, ChevronRight } from "lucide-react"
+import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, Inbox, AlertTriangle, Zap, FileText, Users, Building2, TrendingUp, Upload, Trash2, Loader2, ImageOff, ShieldCheck, ChevronRight, Lock, Cookie } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
@@ -622,6 +622,47 @@ export function SettingsView() {
                     Conformidad del sistema con el RD 1007/2023 y la Orden HAC/1177/2024
                   </span>
                 </span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            </Link>
+          </div>
+        </Section>
+
+        {/* Pending final legal text (see LegalPlaceholder), but the pages and
+            their entry point exist now rather than after the fact — the same
+            "don't leave it undiscoverable" fix applied to VERI*FACTU above. */}
+        <Section
+          title="Legal"
+          description="Política de privacidad, cookies y términos de servicio."
+        >
+          <div className="space-y-3">
+            <Link
+              href="/privacidad"
+              className="flex items-center justify-between gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:bg-muted transition-colors"
+            >
+              <span className="flex items-center gap-2.5 min-w-0">
+                <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="block text-sm font-medium text-foreground">Política de privacidad</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            </Link>
+            <Link
+              href="/cookies"
+              className="flex items-center justify-between gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:bg-muted transition-colors"
+            >
+              <span className="flex items-center gap-2.5 min-w-0">
+                <Cookie className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="block text-sm font-medium text-foreground">Política de cookies</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            </Link>
+            <Link
+              href="/terminos"
+              className="flex items-center justify-between gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:bg-muted transition-colors"
+            >
+              <span className="flex items-center gap-2.5 min-w-0">
+                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="block text-sm font-medium text-foreground">Términos y condiciones</span>
               </span>
               <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
             </Link>

@@ -37,6 +37,12 @@ export async function updateSession(request: NextRequest) {
     // Art. 13.2 of RD 1007/2023: the declaración responsable must be available
     // to the client when they acquire the product — before they have an account.
     '/declaracion-responsable',
+    // A privacy policy, cookie notice or terms of service that only a logged-in
+    // user could read would defeat their purpose — a visitor deciding whether
+    // to sign up has no account yet.
+    '/privacidad',
+    '/cookies',
+    '/terminos',
   ]
   const isPublicRoute = publicRoutes.some(route =>
     route === '/'

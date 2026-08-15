@@ -87,9 +87,10 @@ Rama de trabajo: `claude/user-client-creation-kk6p58` → merge a `main`.
 
 | Qué | Quién | Por qué bloquea |
 |---|---|---|
-| **Certificado digital** — 0 subidos | Cliente | ⏳ **Solicitado el 10 de agosto**, pendiente de recibir. Sin él no se puede enviar nada a la AEAT |
-| `VERIFACTU_PRODUCER_NAME` / `_NIF` | Cliente | Sin ellos el registro está incompleto |
+| **Certificado digital de producción** — solo hay certificados de pruebas de la AEAT | Cliente | Los de pruebas (`99999910G` / `A39200019`, recibidos el 13 de agosto) ya están subidos y sirven para probar contra preproducción. Para enviar de verdad a la AEAT hace falta el certificado real de la empresa una vez esté constituida |
+| `VERIFACTU_PRODUCER_NAME` / `_NIF` | Cliente | Sin ellos el registro está incompleto — el código se niega a inventarlos. Bloqueado por lo mismo: la empresa aún no está constituida |
 | **Declaración responsable** | Abogado | Sin ella no se puede distribuir legalmente |
+| **Política de privacidad, cookies y términos de servicio** | Abogado | Páginas creadas el 13 de agosto (`/privacidad`, `/cookies`, `/terminos`, enlazadas desde Ajustes → Legal) pero con contenido placeholder — solo un índice de lo que cubrirán, no texto legal vigente. Sin el texto definitivo no cubren nada de verdad |
 | **Decisión: apoderamiento vs certificado por cliente** | Cliente + gestor | Cambia el modelo de servicio. La AEAT admite las dos vías (ver abajo); es decisión de negocio, ya no técnica |
 
 
@@ -383,6 +384,7 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 13 ago | **Páginas legales placeholder**: `/privacidad`, `/cookies`, `/terminos` (públicas, enlazadas desde Ajustes → Legal). No llevan texto legal — son un índice de qué cubrirá cada una cuando el abogado lo redacte, con un aviso visible de que no es texto vigente. Se creó `components/legal-placeholder.tsx` para las tres. Detectado al revisar que la app no tenía ninguna de las tres pese a tratar datos personales reales |
 | 13 ago | **Corregido: `cert_kind` (representante/sello) siempre salía "sello"**. En `/api/verifactu/certificate`, `cert.subject.getField('2.5.4.42')` pasaba el OID como string — node-forge lo interpreta entonces como búsqueda por `shortName`, no por OID, así que nunca encontraba nada y `givenName`/`surname` quedaban siempre vacíos. El mismo fallo hacía que el NIF se guardara con el `CN` completo en vez del campo limpio. Corregido pasando `{ type: oid }`. Detectado al subir el certificado de pruebas de persona física de la AEAT: quedó mal clasificado como sello, lo que habría mandado la remisión SOAP al host equivocado (`prewww10` en vez de `prewww1`) |
 | 13 ago | **Corregido: no se podía emitir ninguna factura** (`new row violates row-level security policy for table "verifactu_chain_links"`). Esa tabla tiene RLS activo desde que se creó el 8 de agosto pero nunca tuvo política de `INSERT` — solo de lectura. `insertChainedInvoice()` inserta ahí con el cliente del propio usuario justo después de insertar en `invoices`, así que necesitaba una política, calcada de la que ya rige `INSERT` en `invoices` (`is_org_admin` + plan de pago). Migración `20260813_verifactu_chain_links_insert_policy.sql`, aplicada directamente en producción vía MCP |
 | 13 ago | **Certificados de pruebas de la AEAT recibidos** (persona física `99999910G` y persona jurídica `A39200019`, formato `.pfx`/`.p12`). Verificados como contenedores PKCS#12 v3 válidos; quedan por subir a través de la app con su contraseña, que no se comparte por chat |
