@@ -161,7 +161,49 @@ export async function POST(req: NextRequest) {
         invited_by: userId,
       })
 
-      return NextResponse.json({ success: true, existing: true })
+      // The account already exists (it may belong to other organizations too,
+      // e.g. a gestoría working with several clients) — same email and
+      // password, only the company code changes per organization. Without
+      // this email nobody is told the new code, and the member has no way to
+      // reach this organization from the mobile app.
+      const { data: existingProfile } = await admin
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', existingUser.id)
+        .single()
+      const existingDisplayName =
+        [existingProfile?.first_name, existingProfile?.last_name].filter(Boolean).join(' ') || normalizedEmail
+
+      let addedEmailSent = false
+      let addedEmailError: string | null = null
+      try {
+        const resend = getResend()
+        const { error: emailErr } = await resend.emails.send({
+          from: FROM_EMAIL,
+          to: normalizedEmail,
+          subject: `Nuevo acceso · ${orgBilling?.name ?? 'Archivum'}`,
+          html: buildAddedToOrgEmail({
+            displayName: existingDisplayName, role, appUrl: APP_URL,
+            orgName: orgBilling?.name ?? null, accessCode: orgBilling?.access_code ?? null,
+          }),
+        })
+        if (emailErr) { console.error('[create-member] Resend error (existing user):', emailErr); addedEmailError = emailErr.message }
+        else addedEmailSent = true
+      } catch (mailErr) {
+        console.error('[create-member] email skipped (existing user):', mailErr)
+        addedEmailError = String(mailErr)
+      }
+
+      return NextResponse.json({
+        success: true,
+        existing: true,
+        email: normalizedEmail,
+        displayName: existingDisplayName,
+        orgName: orgBilling?.name ?? null,
+        accessCode: orgBilling?.access_code ?? null,
+        emailSent: addedEmailSent,
+        emailError: addedEmailError,
+      })
     }
 
     // New user — create account with a generated password and confirm the email
@@ -248,6 +290,72 @@ export async function POST(req: NextRequest) {
 // ── Email template ────────────────────────────────────────────────────────────
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+function buildAddedToOrgEmail({ displayName, role, appUrl, orgName, accessCode }: {
+  displayName: string
+  role: string
+  appUrl: string
+  orgName: string | null
+  accessCode: string | null
+}) {
+  const roleLabel: Record<string, string> = {
+    owner: 'Propietario', admin: 'Administrador', member: 'Colaborador', viewer: 'Visor',
+  }
+  const loginUrl = `${appUrl}/auth/login`
+  return `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F9FAFB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:48px 16px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:480px;background:#FFFFFF;border-radius:16px;border:1px solid #E5E7EB;overflow:hidden;">
+        <!-- Header -->
+        <tr><td style="background:#1E3A5F;padding:32px 40px;">
+          <p style="margin:0;font-size:22px;font-weight:700;color:#FFFFFF;letter-spacing:-0.5px;">Archivum</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#93C5FD;">Gestión documental inteligente</p>
+        </td></tr>
+        <!-- Body -->
+        <tr><td style="padding:40px;">
+          <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#111827;">Nuevo acceso a otra empresa</h1>
+          <p style="margin:0 0 24px;font-size:15px;color:#6B7280;line-height:1.6;">
+            Hola <strong style="color:#111827;">${esc(displayName)}</strong>, has sido añadido a
+            <strong style="color:#111827;">${esc(orgName ?? 'Archivum')}</strong>
+            con el rol de <strong style="color:#2563EB;">${esc(roleLabel[role] ?? role)}</strong>.
+            Tu cuenta ya existía, así que entra con el <strong style="color:#111827;">mismo correo y la misma
+            contraseña</strong> que ya usas — lo único que cambia es el código de empresa.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;">
+            <tr><td style="padding:16px 20px;">
+              ${accessCode ? `<p style="margin:0 0 4px;font-size:12px;color:#9CA3AF;">Código de empresa</p>
+              <p style="margin:0;font-size:19px;font-weight:700;color:#111827;font-family:monospace;letter-spacing:2px;">${esc(accessCode)}</p>` : ''}
+            </td></tr>
+          </table>
+          ${accessCode ? `<p style="margin:-8px 0 24px;font-size:13px;color:#6B7280;line-height:1.6;">
+            En la <strong style="color:#111827;">app móvil</strong>, entra por «Usuario» e introduce este código de
+            empresa junto con tu correo y tu contraseña de siempre. En la web, tras iniciar sesión, cambia de
+            empresa desde el selector de organización.
+          </p>` : ''}
+          <a href="${loginUrl}"
+             style="display:inline-block;background:#2563EB;color:#FFFFFF;font-size:15px;font-weight:600;
+                    padding:14px 32px;border-radius:10px;text-decoration:none;letter-spacing:-0.2px;">
+            Iniciar sesión →
+          </a>
+          <p style="margin:24px 0 0;font-size:12px;color:#9CA3AF;">
+            Si no esperabas este correo, puedes ignorarlo.
+          </p>
+        </td></tr>
+        <!-- Footer -->
+        <tr><td style="padding:20px 40px;border-top:1px solid #F3F4F6;">
+          <p style="margin:0;font-size:12px;color:#9CA3AF;">
+            © ${new Date().getFullYear()} Archivum · <a href="${appUrl}" style="color:#2563EB;text-decoration:none;">Ir a la app</a>
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
 
 function buildInviteEmail({ displayName, email, password, role, appUrl, orgName, accessCode }: {
   displayName: string

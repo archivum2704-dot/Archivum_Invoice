@@ -498,7 +498,9 @@ function UserRow({ member, orgId, currentUserId, isAdmin, onRefresh }: {
 
 // ── Create user form ──────────────────────────────────────────────────────────
 type CreatedCredentials = {
-  displayName: string; email: string; password: string
+  displayName: string; email: string
+  /** Absent when the account already existed — only the org membership is new. */
+  password: string | null
   orgName: string | null; accessCode: string | null
   emailSent: boolean
 }
@@ -548,17 +550,10 @@ function CreateUserForm({ orgId, onRefresh, onClose }: { orgId: string; onRefres
       return
     }
 
-    // Existing account added to the org — no new password generated.
-    if (data.existing || !data.password) {
-      onRefresh()
-      onClose()
-      return
-    }
-
     setCreated({
       displayName: data.displayName || `${firstName} ${lastName}`.trim() || data.email,
       email: data.email,
-      password: data.password,
+      password: data.password ?? null,
       orgName: data.orgName ?? null,
       accessCode: data.accessCode ?? null,
       emailSent: !!data.emailSent,
@@ -573,7 +568,7 @@ function CreateUserForm({ orgId, onRefresh, onClose }: { orgId: string; onRefres
     if (!created) return
     const text = [
       `${t("emailLabel")}: ${created.email}`,
-      `${t("passwordLabel")}: ${created.password}`,
+      created.password ? `${t("passwordLabel")}: ${created.password}` : null,
       created.accessCode ? `${t("accessCodeLabel")}: ${created.accessCode}` : null,
     ].filter(Boolean).join("\n")
     try {
@@ -592,8 +587,10 @@ function CreateUserForm({ orgId, onRefresh, onClose }: { orgId: string; onRefres
             <Check className="w-4 h-4 text-accent" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">{t("createdTitle")}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{t("createdSubtitle", { name: created.displayName })}</p>
+            <p className="text-sm font-semibold text-foreground">{created.password ? t("createdTitle") : t("addedTitle")}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {created.password ? t("createdSubtitle", { name: created.displayName }) : t("addedSubtitle", { name: created.displayName })}
+            </p>
           </div>
         </div>
 
@@ -602,10 +599,12 @@ function CreateUserForm({ orgId, onRefresh, onClose }: { orgId: string; onRefres
             <span className="text-xs text-muted-foreground">{t("emailLabel")}</span>
             <span className="text-sm font-medium text-foreground">{created.email}</span>
           </div>
-          <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-xs text-muted-foreground">{t("passwordLabel")}</span>
-            <span className="text-sm font-semibold text-foreground font-mono tracking-wide select-all">{created.password}</span>
-          </div>
+          {created.password && (
+            <div className="flex items-center justify-between px-4 py-3">
+              <span className="text-xs text-muted-foreground">{t("passwordLabel")}</span>
+              <span className="text-sm font-semibold text-foreground font-mono tracking-wide select-all">{created.password}</span>
+            </div>
+          )}
           {created.accessCode && (
             <div className="flex items-center justify-between px-4 py-3">
               <span className="text-xs text-muted-foreground">{t("accessCodeLabel")}</span>
@@ -625,11 +624,11 @@ function CreateUserForm({ orgId, onRefresh, onClose }: { orgId: string; onRefres
             : "bg-[var(--status-pending)]/10 border-[var(--status-pending)]/20 text-[var(--status-pending)]",
         )}>
           {created.emailSent
-            ? <><Check className="w-3.5 h-3.5 mt-px shrink-0" /><span>{t("emailSent", { email: created.email })}</span></>
-            : <><AlertTriangle className="w-3.5 h-3.5 mt-px shrink-0" /><span>{t("emailNotSent")}</span></>}
+            ? <><Check className="w-3.5 h-3.5 mt-px shrink-0" /><span>{t(created.password ? "emailSent" : "addedEmailSent", { email: created.email })}</span></>
+            : <><AlertTriangle className="w-3.5 h-3.5 mt-px shrink-0" /><span>{t(created.password ? "emailNotSent" : "addedEmailNotSent")}</span></>}
         </div>
 
-        <p className="text-xs text-muted-foreground">{t("createdHint")}</p>
+        <p className="text-xs text-muted-foreground">{created.password ? t("createdHint") : t("addedHint")}</p>
 
         <div className="flex items-center gap-3">
           <button type="button" onClick={copyCredentials}

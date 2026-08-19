@@ -694,7 +694,12 @@
       "accessCodeLabel": "Código de empresa",
       "accessCodeHint": "En la app móvil, este usuario entra por «Usuario» e introduce el código de empresa junto con su correo y contraseña. En la web solo necesita correo y contraseña.",
       "emailSent": "Credenciales enviadas a {email}.",
-      "emailNotSent": "No se pudo enviar el correo. Copia las credenciales y pásaselas tú, o no podrá entrar."
+      "emailNotSent": "No se pudo enviar el correo. Copia las credenciales y pásaselas tú, o no podrá entrar.",
+      "addedTitle": "Usuario añadido",
+      "addedSubtitle": "{name} ya tenía cuenta — se le ha añadido a esta organización.",
+      "addedHint": "Debe entrar con el mismo correo y la misma contraseña que ya usa en sus otras organizaciones — solo cambia el código de empresa.",
+      "addedEmailSent": "Se ha enviado un correo a {email} con el código de esta empresa.",
+      "addedEmailNotSent": "No se pudo enviar el correo. Pásale tú el código de empresa, o no podrá entrar a esta organización."
     },
     "organization": {
       "title": "Datos de la Organización",

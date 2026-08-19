@@ -694,7 +694,12 @@
       "accessCodeLabel": "Company code",
       "accessCodeHint": "In the mobile app this user signs in under “User” and enters the company code along with their email and password. On the web, email and password are enough.",
       "emailSent": "Credentials sent to {email}.",
-      "emailNotSent": "The email could not be sent. Copy the credentials and pass them on yourself, or they will not be able to sign in."
+      "emailNotSent": "The email could not be sent. Copy the credentials and pass them on yourself, or they will not be able to sign in.",
+      "addedTitle": "User added",
+      "addedSubtitle": "{name} already had an account — they've been added to this organization.",
+      "addedHint": "They should sign in with the same email and password they already use for their other organizations — only the company code changes.",
+      "addedEmailSent": "An email was sent to {email} with this organization's company code.",
+      "addedEmailNotSent": "The email could not be sent. Pass on the company code yourself, or they will not be able to sign in to this organization."
     },
     "organization": {
       "title": "Organization Details",

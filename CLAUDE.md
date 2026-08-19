@@ -3,7 +3,7 @@
 > **Léeme primero.** Este fichero es el punto de partida de cada sesión.
 > Cuando cambies algo relevante, actualízalo en el mismo commit.
 >
-> Última actualización: **12 de agosto de 2026**
+> Última actualización: **19 de agosto de 2026**
 
 ---
 
@@ -384,6 +384,7 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 19 ago | **Aviso por correo al añadir una cuenta ya existente a otra organización** (caso típico: una gestoría que trabaja con varios clientes nuestros, mismo correo, distinto rol en cada uno). Antes `/api/members/create` insertaba la membresía y no avisaba a nadie del código de empresa nuevo — ni por correo ni en pantalla. Ahora manda un correo (`buildAddedToOrgEmail`) con el nombre de la organización, el rol y el código de acceso, aclarando que debe entrar con el mismo correo y contraseña de siempre. El panel de "usuario creado" en Ajustes → Usuarios también cubre este caso (sin mostrar contraseña, que no cambia) |
 | 13 ago | **Páginas legales placeholder**: `/privacidad`, `/cookies`, `/terminos` (públicas, enlazadas desde Ajustes → Legal). No llevan texto legal — son un índice de qué cubrirá cada una cuando el abogado lo redacte, con un aviso visible de que no es texto vigente. Se creó `components/legal-placeholder.tsx` para las tres. Detectado al revisar que la app no tenía ninguna de las tres pese a tratar datos personales reales |
 | 13 ago | **Corregido: `cert_kind` (representante/sello) siempre salía "sello"**. En `/api/verifactu/certificate`, `cert.subject.getField('2.5.4.42')` pasaba el OID como string — node-forge lo interpreta entonces como búsqueda por `shortName`, no por OID, así que nunca encontraba nada y `givenName`/`surname` quedaban siempre vacíos. El mismo fallo hacía que el NIF se guardara con el `CN` completo en vez del campo limpio. Corregido pasando `{ type: oid }`. Detectado al subir el certificado de pruebas de persona física de la AEAT: quedó mal clasificado como sello, lo que habría mandado la remisión SOAP al host equivocado (`prewww10` en vez de `prewww1`) |
 | 13 ago | **Corregido: no se podía emitir ninguna factura** (`new row violates row-level security policy for table "verifactu_chain_links"`). Esa tabla tiene RLS activo desde que se creó el 8 de agosto pero nunca tuvo política de `INSERT` — solo de lectura. `insertChainedInvoice()` inserta ahí con el cliente del propio usuario justo después de insertar en `invoices`, así que necesitaba una política, calcada de la que ya rige `INSERT` en `invoices` (`is_org_admin` + plan de pago). Migración `20260813_verifactu_chain_links_insert_policy.sql`, aplicada directamente en producción vía MCP |
