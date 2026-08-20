@@ -3,7 +3,7 @@
 > **Léeme primero.** Este fichero es el punto de partida de cada sesión.
 > Cuando cambies algo relevante, actualízalo en el mismo commit.
 >
-> Última actualización: **19 de agosto de 2026**
+> Última actualización: **19 de agosto de 2026 (Sentry)**
 
 ---
 
@@ -316,6 +316,8 @@ vectores antes de tocar nada.**
 | `VERIFACTU_SYSTEM_ID` | opcional | Por defecto `AR`. **No cambiar una vez en producción** |
 | `VERIFACTU_ENDPOINT_PROD` / `_TEST` | opcional | Sobrescriben las URLs de la AEAT (certificado de representante) |
 | `VERIFACTU_ENDPOINT_TEST_SELLO` / `_PROD_SELLO` | opcional | Certificado de sello: `prewww10` y `www10`. Los cuatro endpoints salen del WSDL |
+| `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` | ❌ | Monitorización de errores (`@sentry/nextjs`). Mismo DSN en las dos; falta configurarlas en Vercel |
+| `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` | opcional | Subida de source maps en el build. Sin `SENTRY_AUTH_TOKEN` el build funciona igual, solo que las trazas en Sentry salen minificadas |
 
 ### Móvil
 
@@ -384,6 +386,7 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 19 ago | **Sentry instalado en la web** (`@sentry/nextjs`, errores + tracing, sin Session Replay/Logging/Profiling todavía). `instrumentation-client.ts`, `sentry.server.config.ts`/`sentry.edge.config.ts` (comparten opciones vía `sentry.options.ts`), `instrumentation.ts` y `app/global-error.tsx`. `next.config.mjs` envuelto con `withSentryConfig` (`tunnelRoute: '/monitoring'`, excluido del matcher del middleware). **Faltan las variables de entorno en Vercel** (`NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN` y, para source maps legibles, `SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_AUTH_TOKEN`) y verificar en real que un error llega al dashboard — no se pudo confirmar en esta sesión por un fallo previo del entorno de pruebas (`tailwindcss` v4 sin resolver con Turbopack, ajeno a Sentry) |
 | 19 ago | **Aviso por correo al añadir una cuenta ya existente a otra organización** (caso típico: una gestoría que trabaja con varios clientes nuestros, mismo correo, distinto rol en cada uno). Antes `/api/members/create` insertaba la membresía y no avisaba a nadie del código de empresa nuevo — ni por correo ni en pantalla. Ahora manda un correo (`buildAddedToOrgEmail`) con el nombre de la organización, el rol y el código de acceso, aclarando que debe entrar con el mismo correo y contraseña de siempre. El panel de "usuario creado" en Ajustes → Usuarios también cubre este caso (sin mostrar contraseña, que no cambia) |
 | 13 ago | **Páginas legales placeholder**: `/privacidad`, `/cookies`, `/terminos` (públicas, enlazadas desde Ajustes → Legal). No llevan texto legal — son un índice de qué cubrirá cada una cuando el abogado lo redacte, con un aviso visible de que no es texto vigente. Se creó `components/legal-placeholder.tsx` para las tres. Detectado al revisar que la app no tenía ninguna de las tres pese a tratar datos personales reales |
 | 13 ago | **Corregido: `cert_kind` (representante/sello) siempre salía "sello"**. En `/api/verifactu/certificate`, `cert.subject.getField('2.5.4.42')` pasaba el OID como string — node-forge lo interpreta entonces como búsqueda por `shortName`, no por OID, así que nunca encontraba nada y `givenName`/`surname` quedaban siempre vacíos. El mismo fallo hacía que el NIF se guardara con el `CN` completo en vez del campo limpio. Corregido pasando `{ type: oid }`. Detectado al subir el certificado de pruebas de persona física de la AEAT: quedó mal clasificado como sello, lo que habría mandado la remisión SOAP al host equivocado (`prewww10` en vez de `prewww1`) |
