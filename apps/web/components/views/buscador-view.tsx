@@ -12,6 +12,7 @@ import { useTranslations, useLocale } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useDocuments } from "@/lib/hooks/use-documents"
 import { downloadCSV, downloadExcel } from "@/lib/utils/export"
+import { TutorialHelpButton } from "@/components/tutorial-help-button"
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
   invoice_issued:   FileText,
@@ -160,7 +161,10 @@ export function BuscadorView() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">{t("title")}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-foreground">{t("title")}</h1>
+            <TutorialHelpButton slide="search" />
+          </div>
           <p className="text-muted-foreground text-sm mt-1">{t("subtitle")}</p>
         </div>
 

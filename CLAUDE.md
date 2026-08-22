@@ -3,7 +3,7 @@
 > **Léeme primero.** Este fichero es el punto de partida de cada sesión.
 > Cuando cambies algo relevante, actualízalo en el mismo commit.
 >
-> Última actualización: **19 de agosto de 2026 (Sentry)**
+> Última actualización: **21 de agosto de 2026 (NIF provisional recibido)**
 
 ---
 
@@ -87,8 +87,7 @@ Rama de trabajo: `claude/user-client-creation-kk6p58` → merge a `main`.
 
 | Qué | Quién | Por qué bloquea |
 |---|---|---|
-| **Certificado digital de producción** — solo hay certificados de pruebas de la AEAT | Cliente | Los de pruebas (`99999910G` / `A39200019`, recibidos el 13 de agosto) ya están subidos y sirven para probar contra preproducción. Para enviar de verdad a la AEAT hace falta el certificado real de la empresa una vez esté constituida |
-| `VERIFACTU_PRODUCER_NAME` / `_NIF` | Cliente | Sin ellos el registro está incompleto — el código se niega a inventarlos. Bloqueado por lo mismo: la empresa aún no está constituida |
+| **Certificado digital de producción** — solo hay certificados de pruebas de la AEAT | Cliente | Los de pruebas (`99999910G` / `A39200019`, recibidos el 13 de agosto) ya están subidos y sirven para probar contra preproducción. El 17 de agosto se recibió el **NIF provisional** de la sociedad (`J93941003`, ver más abajo), pero eso no es el certificado — para enviar de verdad a la AEAT sigue haciendo falta el certificado real de la empresa, que se emite una vez esté constituida del todo (hoy sigue "EN CONSTITUCIÓN") |
 | **Declaración responsable** | Abogado | Sin ella no se puede distribuir legalmente |
 | **Política de privacidad, cookies y términos de servicio** | Abogado | Páginas creadas el 13 de agosto (`/privacidad`, `/cookies`, `/terminos`, enlazadas desde Ajustes → Legal) pero con contenido placeholder — solo un índice de lo que cubrirán, no texto legal vigente. Sin el texto definitivo no cubren nada de verdad |
 | **Decisión: apoderamiento vs certificado por cliente** | Cliente + gestor | Cambia el modelo de servicio. La AEAT admite las dos vías (ver abajo); es decisión de negocio, ya no técnica |
@@ -310,8 +309,10 @@ vectores antes de tocar nada.**
 | `CRON_SECRET` | ✅ | Protege los crons. **Rotarla exige redesplegar** |
 | `VERIFACTU_CERT_KEY` | ✅ | AES-256-GCM de los certificados. **Si se pierde, hay que resubirlos todos** |
 | `VERIFACTU_ENV` | ⚠️ `test` | Ponerla a `prod` antes de producción |
-| `VERIFACTU_PRODUCER_NAME` / `_NIF` | ❌ | Identidad del productor en el registro |
-| `VERIFACTU_PRODUCER_ADDRESS` / `_EMAIL` / `_WEBSITE` | ❌ | Declaración responsable |
+| `VERIFACTU_PRODUCER_NAME` / `_NIF` | ✅ (provisional) | `ARCHIVUM. VV S.C. (EN CONSTITUCIÓN)` / `J93941003` — NIF provisional (tarjeta AEAT del 17 de agosto), cargadas en Vercel y redesplegadas el 21 de agosto. Cambiar cuando llegue el NIF/certificado definitivo |
+| `VERIFACTU_PRODUCER_ADDRESS` | ✅ (provisional) | `Calle Bajada al Molino, 10, Planta 3, Puerta A, 09400 Aranda de Duero (Burgos)` — de la tarjeta de NIF del 17 de agosto |
+| `VERIFACTU_PRODUCER_WEBSITE` | ✅ | `https://archivum.es` |
+| `VERIFACTU_PRODUCER_EMAIL` | ❌ | Declaración responsable, apartado 2.a |
 | `VERIFACTU_DECLARATION_PLACE` / `_DATE` / `_ISSUED` | ❌ | Idem |
 | `VERIFACTU_SYSTEM_ID` | opcional | Por defecto `AR`. **No cambiar una vez en producción** |
 | `VERIFACTU_ENDPOINT_PROD` / `_TEST` | opcional | Sobrescriben las URLs de la AEAT (certificado de representante) |
@@ -386,6 +387,10 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 21 ago | **Tutorial por sección + importación de clientes/inventario desde Excel**. El tutorial de Ajustes (`components/tutorial-modal.tsx`) ahora acepta `initialSlide`, y cada sección (Clientes, Subir, Biblioteca, Inventario, Facturación, Buscador, Usuarios) tiene un botón «?» que lo abre directamente en su diapositiva (`components/tutorial-help-button.tsx`). La diapositiva de bienvenida muestra el logo de Archivum en vez del icono genérico. Nuevo `components/import-excel-button.tsx`: plantilla `.xlsx` descargable con columnas fijas, validación fila a fila (nombre obligatorio, email, país, números) y alta masiva en `companies`/`products`; añadido en Clientes e Inventario. Reutiliza la librería `xlsx` ya instalada (antes solo para exportar) |
+| 21 ago | **`VERIFACTU_PRODUCER_ADDRESS`/`_WEBSITE` cargadas en Vercel y redesplegadas**: dirección fiscal de la tarjeta de NIF (`Calle Bajada al Molino, 10, Planta 3, Puerta A, 09400 Aranda de Duero (Burgos)`) y `https://archivum.es` como sitio web. Sigue faltando `VERIFACTU_PRODUCER_EMAIL` |
+| 21 ago | **`VERIFACTU_PRODUCER_NAME`/`_NIF` cargadas en Vercel y redesplegadas**, con los valores provisionales del NIF recibido el 17 de agosto (ver entrada siguiente). Cambiar cuando llegue el NIF/certificado definitivo |
+| 21 ago | **Recibido el NIF provisional de la sociedad**: tarjeta de identificación fiscal de la AEAT (Delegación de Burgos), fechada el 17 de agosto de 2026. `ARCHIVUM. VV S.C. (EN CONSTITUCIÓN)`, NIF **`J93941003`** (provisional), domicilio fiscal/social en Calle Bajada al Molino 10, planta 3, puerta A, 09400 Aranda de Duero (Burgos). **No es el certificado digital** — es solo la tarjeta de NIF; sigue faltando el certificado real de producción, que se emite cuando la sociedad termine de constituirse. La AEAT puede pedir documentación adicional (escrituras/estatutos) en el plazo de 1 a 6 meses |
 | 19 ago | **Sentry instalado en la web** (`@sentry/nextjs`, errores + tracing, sin Session Replay/Logging/Profiling todavía). `instrumentation-client.ts`, `sentry.server.config.ts`/`sentry.edge.config.ts` (comparten opciones vía `sentry.options.ts`), `instrumentation.ts` y `app/global-error.tsx`. `next.config.mjs` envuelto con `withSentryConfig` (`tunnelRoute: '/monitoring'`, excluido del matcher del middleware). **Faltan las variables de entorno en Vercel** (`NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN` y, para source maps legibles, `SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_AUTH_TOKEN`) y verificar en real que un error llega al dashboard — no se pudo confirmar en esta sesión por un fallo previo del entorno de pruebas (`tailwindcss` v4 sin resolver con Turbopack, ajeno a Sentry) |
 | 19 ago | **Aviso por correo al añadir una cuenta ya existente a otra organización** (caso típico: una gestoría que trabaja con varios clientes nuestros, mismo correo, distinto rol en cada uno). Antes `/api/members/create` insertaba la membresía y no avisaba a nadie del código de empresa nuevo — ni por correo ni en pantalla. Ahora manda un correo (`buildAddedToOrgEmail`) con el nombre de la organización, el rol y el código de acceso, aclarando que debe entrar con el mismo correo y contraseña de siempre. El panel de "usuario creado" en Ajustes → Usuarios también cubre este caso (sin mostrar contraseña, que no cambia) |
 | 13 ago | **Páginas legales placeholder**: `/privacidad`, `/cookies`, `/terminos` (públicas, enlazadas desde Ajustes → Legal). No llevan texto legal — son un índice de qué cubrirá cada una cuando el abogado lo redacte, con un aviso visible de que no es texto vigente. Se creó `components/legal-placeholder.tsx` para las tres. Detectado al revisar que la app no tenía ninguna de las tres pese a tratar datos personales reales |

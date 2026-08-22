@@ -17,6 +17,7 @@ import { useBilling } from "@/lib/hooks/use-billing"
 import { useRouter } from "next/navigation"
 import type { OrgRole } from "@/lib/supabase/types"
 import { Coachmark } from "@/components/coachmark"
+import { TutorialHelpButton } from "@/components/tutorial-help-button"
 
 const ROLE_COLORS: Record<OrgRole, string> = {
   owner:  "bg-accent/10 text-accent border-accent/20",
@@ -778,6 +779,7 @@ export function UsersView() {
           <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
             <Users className="w-6 h-6" />
             {t("title")}
+            <TutorialHelpButton slide="team" />
           </h1>
           <p className="text-muted-foreground text-sm mt-1">{t("subtitle")}</p>
         </div>

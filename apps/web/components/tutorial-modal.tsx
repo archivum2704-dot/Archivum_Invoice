@@ -7,6 +7,7 @@ import {
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
+import { Logo } from "@/components/logo"
 
 // Bump the version when the tutorial content changes so returning users see it again.
 const TUTORIAL_KEY = "archivum_tutorial_completed_v2"
@@ -87,9 +88,11 @@ export function resetTutorial(): void {
 interface TutorialModalProps {
   open: boolean
   onClose: () => void
+  /** Slide to open on, e.g. jumping straight to "inventory" from the Inventario page. Defaults to "welcome". */
+  initialSlide?: SlideStyle["key"]
 }
 
-export function TutorialModal({ open, onClose }: TutorialModalProps) {
+export function TutorialModal({ open, onClose, initialSlide = "welcome" }: TutorialModalProps) {
   const t = useTranslations("tutorial")
   const [page, setPage] = useState(0)
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -99,16 +102,20 @@ export function TutorialModal({ open, onClose }: TutorialModalProps) {
   const isFirst = page === 0
   const slide = SLIDE_STYLES[page]
   const Icon = slide.icon
+  const isWelcome = slide.key === "welcome"
 
   // Step-by-step content pulled as raw arrays/strings from the message catalog
   const steps = (t.raw(`slides.${slide.key}.steps`) as string[] | undefined) ?? []
   const rawSlide = t.raw(`slides.${slide.key}`) as { tip?: string }
   const tip = rawSlide?.tip
 
-  // Reset to first slide each time it opens
+  // Reset to the requested slide each time it opens
   useEffect(() => {
-    if (open) setPage(0)
-  }, [open])
+    if (open) {
+      const idx = SLIDE_STYLES.findIndex((s) => s.key === initialSlide)
+      setPage(idx >= 0 ? idx : 0)
+    }
+  }, [open, initialSlide])
 
   // ESC to close, arrow keys for nav
   useEffect(() => {
@@ -155,9 +162,13 @@ export function TutorialModal({ open, onClose }: TutorialModalProps) {
 
         {/* Slide content */}
         <div className="p-8 pt-10 flex flex-col items-center text-center overflow-y-auto">
-          {/* Icon */}
+          {/* Icon (welcome slide shows the Archivum logo instead) */}
           <div className={cn("w-20 h-20 rounded-2xl flex items-center justify-center mb-5 shrink-0", slide.iconBg)}>
-            <Icon className={cn("w-10 h-10", slide.iconText)} />
+            {isWelcome ? (
+              <Logo size={44} showText={false} />
+            ) : (
+              <Icon className={cn("w-10 h-10", slide.iconText)} />
+            )}
           </div>
 
           {/* Title */}

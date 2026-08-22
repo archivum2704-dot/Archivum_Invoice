@@ -16,6 +16,7 @@ import { useFolders } from "@/lib/hooks/use-folders"
 import { downloadCSV, downloadExcel } from "@/lib/utils/export"
 import { createClient } from "@/lib/supabase/client"
 import { Coachmark } from "@/components/coachmark"
+import { TutorialHelpButton } from "@/components/tutorial-help-button"
 
 const TYPE_STYLES: Record<string, { icon: React.ElementType; className: string }> = {
   invoice_issued:   { icon: FileText,  className: "bg-accent/10 text-accent" },
@@ -530,7 +531,10 @@ export function BibliotecaView() {
       <div className="flex-1 min-w-0 p-8 overflow-y-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground text-balance">{t("title")}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-foreground text-balance">{t("title")}</h1>
+            <TutorialHelpButton slide="library" />
+          </div>
           <p className="text-muted-foreground text-sm mt-1">{t("found", { count: filtered.length })}</p>
         </div>
         <div className="flex items-center gap-2">

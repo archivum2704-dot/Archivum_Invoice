@@ -15,6 +15,8 @@ import { useBilling } from "@/lib/hooks/use-billing"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Coachmark } from "@/components/coachmark"
+import { TutorialHelpButton } from "@/components/tutorial-help-button"
+import { ImportExcelButton } from "@/components/import-excel-button"
 
 const AVATAR_COLORS = ["bg-blue-500", "bg-emerald-600", "bg-violet-600", "bg-orange-500", "bg-rose-600"]
 
@@ -572,10 +574,16 @@ export function EmpresasView() {
 
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground text-balance">{t("title")}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-foreground text-balance">{t("title")}</h1>
+            <TutorialHelpButton slide="companies" />
+          </div>
           <p className="text-muted-foreground text-sm mt-1">{t("subtitle", { count: empresas.length })}</p>
         </div>
         <div className="flex items-center gap-3">
+          {currentOrg && (
+            <ImportExcelButton kind="clients" orgId={currentOrg.id} onImported={() => mutate()} />
+          )}
           <span className={cn(
             "text-xs font-medium px-3 py-1.5 rounded-full border",
             atLimit ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-muted text-muted-foreground border-border"

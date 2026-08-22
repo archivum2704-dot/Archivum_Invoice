@@ -745,6 +745,28 @@
     "dark": "Oscuro",
     "system": "Sistema"
   },
+  "importExcel": {
+    "title": "Importar desde Excel",
+    "intro": "Sube un Excel con tus {kind} para darlos de alta en Archivum de una vez. Usa la plantilla para que las columnas coincidan.",
+    "kindClients": "clientes",
+    "kindProducts": "productos",
+    "downloadTemplate": "Descargar plantilla",
+    "dropHint": "Arrastra el archivo aquí o haz clic para seleccionarlo (.xlsx, .xls, .csv)",
+    "parsing": "Leyendo archivo…",
+    "emptyFile": "El archivo no tiene filas de datos.",
+    "missingHeaders": "El archivo no tiene las columnas esperadas. Descarga la plantilla y no cambies los nombres de las columnas.",
+    "requiredFieldMissing": "El nombre es obligatorio.",
+    "invalidEmail": "El correo electrónico no es válido.",
+    "invalidCountry": "El código de país debe tener 2 letras (por ejemplo, ES).",
+    "invalidNumber": "«{value}» no es un número válido.",
+    "summaryValid": "{valid} de {total} filas correctas.",
+    "rowError": "Fila {row}: {message}",
+    "confirmImport": "Importar {count, plural, one {# fila} other {# filas}}",
+    "back": "Atrás",
+    "errorGeneric": "No se pudo completar la importación. {message}",
+    "importSuccess": "Se han importado {count} {kind} correctamente.",
+    "closeButton": "Cerrar"
+  },
   "tutorial": {
     "skip": "Saltar",
     "next": "Siguiente",
@@ -756,6 +778,7 @@
     "viewTutorialHint": "Repasa cómo funciona Archivum paso a paso.",
     "helpSection": "Ayuda",
     "helpSectionDesc": "Aprende cómo aprovechar Archivum al máximo.",
+    "sectionHelp": "Ver tutorial de esta sección",
     "slides": {
       "welcome": {
         "title": "Bienvenido a Archivum",

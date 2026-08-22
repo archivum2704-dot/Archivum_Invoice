@@ -745,6 +745,28 @@
     "dark": "Dark",
     "system": "System"
   },
+  "importExcel": {
+    "title": "Import from Excel",
+    "intro": "Upload an Excel file with your {kind} to add them to Archivum all at once. Use the template so the columns match.",
+    "kindClients": "clients",
+    "kindProducts": "products",
+    "downloadTemplate": "Download template",
+    "dropHint": "Drag the file here or click to select it (.xlsx, .xls, .csv)",
+    "parsing": "Reading file…",
+    "emptyFile": "The file has no data rows.",
+    "missingHeaders": "The file doesn't have the expected columns. Download the template and don't change the column names.",
+    "requiredFieldMissing": "Name is required.",
+    "invalidEmail": "Email address is not valid.",
+    "invalidCountry": "Country code must be 2 letters (e.g. ES).",
+    "invalidNumber": "\"{value}\" is not a valid number.",
+    "summaryValid": "{valid} of {total} rows are correct.",
+    "rowError": "Row {row}: {message}",
+    "confirmImport": "Import {count, plural, one {# row} other {# rows}}",
+    "back": "Back",
+    "errorGeneric": "Couldn't complete the import. {message}",
+    "importSuccess": "Successfully imported {count} {kind}.",
+    "closeButton": "Close"
+  },
   "tutorial": {
     "skip": "Skip",
     "next": "Next",
@@ -756,6 +778,7 @@
     "viewTutorialHint": "Walk through how Archivum works step by step.",
     "helpSection": "Help",
     "helpSectionDesc": "Learn how to get the most out of Archivum.",
+    "sectionHelp": "View tutorial for this section",
     "slides": {
       "welcome": {
         "title": "Welcome to Archivum",

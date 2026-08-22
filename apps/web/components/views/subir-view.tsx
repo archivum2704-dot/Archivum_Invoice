@@ -16,6 +16,7 @@ import { useCompanies } from "@/lib/hooks/use-companies"
 import { useFolders } from "@/lib/hooks/use-folders"
 import { createClient } from "@/lib/supabase/client"
 import { CoachmarkTour } from "@/components/coachmark"
+import { TutorialHelpButton } from "@/components/tutorial-help-button"
 
 const CURRENCIES = [
   { code: "EUR", label: "€ Euro" },
@@ -401,7 +402,10 @@ export function SubirView() {
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">{t("title")}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-foreground">{t("title")}</h1>
+            <TutorialHelpButton slide="upload" />
+          </div>
           <p className="text-muted-foreground text-sm mt-1">{t("subtitle")}</p>
         </div>
       </div>

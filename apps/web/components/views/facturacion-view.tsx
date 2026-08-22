@@ -16,6 +16,7 @@ import { useCompanies } from "@/lib/hooks/use-companies"
 import { useProducts, type Product } from "@/lib/hooks/use-products"
 import { isPaidPlan } from "@/lib/plan"
 import { NewClientModal } from "@/components/new-client-modal"
+import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { EXEMPTION_CAUSES } from "@/lib/exemption-causes"
 import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/lib/currency"
 
@@ -343,6 +344,7 @@ export function FacturacionView() {
         <div className="flex items-center gap-2.5">
           <Receipt className="w-5 h-5 text-primary" />
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("title")}</h1>
+          <TutorialHelpButton slide="invoicing" />
         </div>
         {canManage && (
           <button onClick={() => { resetForm(); setOpen(true) }} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors">

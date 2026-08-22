@@ -12,6 +12,8 @@ import { useOrganization } from "@/lib/context/organization-context"
 import { useProducts, type Product } from "@/lib/hooks/use-products"
 import { createClient } from "@/lib/supabase/client"
 import { isPaidPlan } from "@/lib/plan"
+import { TutorialHelpButton } from "@/components/tutorial-help-button"
+import { ImportExcelButton } from "@/components/import-excel-button"
 
 type Draft = {
   name: string
@@ -360,8 +362,10 @@ export function InventarioView() {
         <div className="flex items-center gap-2.5">
           <Package className="w-5 h-5 text-primary" />
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("title")}</h1>
+          <TutorialHelpButton slide="inventory" />
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto">
+          <ImportExcelButton kind="products" orgId={currentOrg?.id ?? null} onImported={() => mutate()} />
           <button
             onClick={handleExport}
             disabled={exporting || products.length === 0}
