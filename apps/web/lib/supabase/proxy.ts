@@ -64,7 +64,25 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && request.nextUrl.pathname.startsWith('/auth/')) {
+  // Two-factor gate: a user who enrolled a verified TOTP factor gets a
+  // session capped at aal1 right after password sign-in — currentLevel only
+  // reaches aal2 once they pass the second-factor challenge. API routes are
+  // exempt for the same reason unauthenticated ones are: the mobile app
+  // doesn't do this challenge yet and answers for itself.
+  const isMfaChallengeRoute = request.nextUrl.pathname.startsWith('/auth/mfa')
+  let mfaPending = false
+  if (user && !isApiRoute) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    mfaPending = !!aal && aal.nextLevel === 'aal2' && aal.currentLevel !== aal.nextLevel
+  }
+
+  if (user && mfaPending && !isMfaChallengeRoute && !isApiRoute) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/mfa'
+    return NextResponse.redirect(url)
+  }
+
+  if (user && !mfaPending && request.nextUrl.pathname.startsWith('/auth/')) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)

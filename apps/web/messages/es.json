@@ -745,6 +745,38 @@
     "dark": "Oscuro",
     "system": "Sistema"
   },
+  "mfa": {
+    "challenge": {
+      "title": "Verificación en dos pasos",
+      "subtitle": "Introduce el código de tu app de autenticación para continuar.",
+      "verify": "Verificar",
+      "verifying": "Verificando…",
+      "invalidCode": "Código incorrecto. Inténtalo de nuevo.",
+      "signOutInstead": "Cerrar sesión en su lugar"
+    },
+    "settings": {
+      "back": "Volver a Ajustes",
+      "title": "Verificación en dos pasos",
+      "subtitle": "Protege tu cuenta con un código adicional generado por una app de autenticación (Google Authenticator, Authy, 1Password…), además de tu contraseña.",
+      "enabled": "Activada",
+      "enabledSince": "Activada el {date}",
+      "justEnabledHint": "A partir de ahora te pediremos un código cada vez que inicies sesión, además de tu contraseña.",
+      "disable": "Desactivar verificación en dos pasos",
+      "disabled": "Desactivada",
+      "disabledHint": "Tu cuenta solo está protegida por tu contraseña.",
+      "enable": "Activar verificación en dos pasos",
+      "scanInstructions": "Escanea este código QR con tu app de autenticación (Google Authenticator, Authy, 1Password…).",
+      "manualEntry": "O introduce este código manualmente:",
+      "enterCode": "Código de 6 dígitos de tu app",
+      "confirmEnable": "Confirmar y activar",
+      "cancel": "Cancelar",
+      "confirmRemove": "¿Desactivar la verificación en dos pasos? Volverás a entrar solo con tu contraseña.",
+      "errors": {
+        "enroll": "No se pudo iniciar la activación. Inténtalo de nuevo.",
+        "invalidCode": "Código incorrecto. Inténtalo de nuevo."
+      }
+    }
+  },
   "importExcel": {
     "title": "Importar desde Excel",
     "intro": "Sube un Excel con tus {kind} para darlos de alta en Archivum de una vez. Usa la plantilla para que las columnas coincidan.",

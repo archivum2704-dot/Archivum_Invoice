@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, AlertTriangle, Zap, FileText, Users, Building2, TrendingUp, Upload, Trash2, Loader2, ImageOff, ShieldCheck, ChevronRight, Lock, Cookie } from "lucide-react"
+import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, AlertTriangle, Zap, FileText, Users, Building2, TrendingUp, Upload, Trash2, Loader2, ImageOff, ShieldCheck, ChevronRight, Lock, Cookie, KeyRound } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
@@ -464,6 +464,30 @@ export function SettingsView() {
             </div>
             <HelpCircle className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </button>
+        </Section>
+
+        {/* Two-factor is per-user, not per-org — same as the tutorial above —
+            but it lives here because this is where "Ajustes" already sends
+            people, same as VERI*FACTU/Legal below. */}
+        <Section
+          title="Seguridad"
+          description="Verificación en dos pasos con una app de autenticación (Google Authenticator, Authy, etc.)."
+        >
+          <Link
+            href="/configuracion/seguridad"
+            className="flex items-center justify-between gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:bg-muted transition-colors"
+          >
+            <span className="flex items-center gap-2.5 min-w-0">
+              <KeyRound className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">Verificación en dos pasos</span>
+                <span className="block text-xs text-muted-foreground mt-0.5">
+                  Añade una capa extra de seguridad a tu cuenta al iniciar sesión
+                </span>
+              </span>
+            </span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </Link>
         </Section>
 
         {/* El ámbito del RD 1007/2023 no lo decide la nacionalidad de la
