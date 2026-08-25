@@ -806,7 +806,8 @@
           "Open “Clients” and click “New client”.",
           "Fill in the name and, crucially, the CIF/NIF (tax ID): it is required to issue invoices.",
           "Add address, postal code, city and province so they appear on the invoice.",
-          "Use search and the sector filters to find them quickly once you have many."
+          "Use search and the sector filters to find them quickly once you have many.",
+          "Already have clients in a spreadsheet? Click “Import from Excel”, download the template, fill it in and upload it: each row is checked before anything is created."
         ],
         "tip": "You can also create a client on the fly while issuing an invoice."
       },
@@ -860,7 +861,8 @@
           "In “Inventory” click “New product” and set name, price, VAT and optionally a reference and stock. If you leave the reference empty, it is generated automatically.",
           "Assign a category to keep the catalog organized.",
           "Use the filter panel on the left to narrow by category, price, VAT or stock.",
-          "When creating an invoice you can pick these products and their data fills in automatically."
+          "When creating an invoice you can pick these products and their data fills in automatically.",
+          "To add many products at once, click “Import from Excel”: download the template, fill it in and upload it. Each row is validated before it's imported."
         ],
         "tip": "Enable stock tracking to see the available units of each product."
       },

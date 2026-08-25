@@ -223,7 +223,7 @@ export function PresupuestosView() {
           <div>
             <div className="flex items-center gap-1.5">
               <h1 className="text-2xl font-semibold text-foreground">Pedidos</h1>
-              <TutorialHelpButton slide="quotes" />
+              <TutorialHelpButton slide={["quotes", "deliveryNotes"]} />
             </div>
             <p className="text-sm text-muted-foreground mt-0.5">Crea pedidos, compártelos y conviértelos en factura.</p>
           </div>

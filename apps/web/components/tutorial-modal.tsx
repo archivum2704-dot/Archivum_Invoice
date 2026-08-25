@@ -120,17 +120,30 @@ interface TutorialModalProps {
   onClose: () => void
   /** Slide to open on, e.g. jumping straight to "inventory" from the Inventario page. Defaults to "welcome". */
   initialSlide?: SlideKey
+  /**
+   * Restrict the walkthrough to just these slides, in this order — this is
+   * what makes a section's own help button a *personal* tutorial for that
+   * section instead of a random entry point into the full 12-slide
+   * onboarding tour (paging "next" used to drift into whatever topic came
+   * next in the global order, which had nothing to do with the section the
+   * user actually asked about). Omit for the complete tour — used by
+   * TutorialAutoLauncher and the "Ver tutorial de bienvenida" button.
+   */
+  slideKeys?: SlideKey[]
 }
 
-export function TutorialModal({ open, onClose, initialSlide = "welcome" }: TutorialModalProps) {
+export function TutorialModal({ open, onClose, initialSlide = "welcome", slideKeys }: TutorialModalProps) {
   const t = useTranslations("tutorial")
   const [page, setPage] = useState(0)
   const dialogRef = useRef<HTMLDivElement>(null)
 
-  const total = SLIDE_STYLES.length
+  const slides = slideKeys
+    ? slideKeys.map(k => SLIDE_STYLES.find(s => s.key === k)).filter((s): s is SlideStyle => !!s)
+    : SLIDE_STYLES
+  const total = slides.length
   const isLast = page === total - 1
   const isFirst = page === 0
-  const slide = SLIDE_STYLES[page]
+  const slide = slides[page] ?? slides[0]
   const Icon = slide.icon
   const isWelcome = slide.key === "welcome"
 
@@ -142,7 +155,7 @@ export function TutorialModal({ open, onClose, initialSlide = "welcome" }: Tutor
   // Reset to the requested slide each time it opens
   useEffect(() => {
     if (open) {
-      const idx = SLIDE_STYLES.findIndex((s) => s.key === initialSlide)
+      const idx = slides.findIndex((s) => s.key === initialSlide)
       setPage(idx >= 0 ? idx : 0)
     }
   }, [open, initialSlide])
@@ -159,8 +172,14 @@ export function TutorialModal({ open, onClose, initialSlide = "welcome" }: Tutor
     return () => window.removeEventListener("keydown", onKey)
   }, [open, total])
 
+  const singleSlide = total <= 1
+
   const handleComplete = () => {
-    try { localStorage.setItem(TUTORIAL_KEY, "true") } catch {}
+    // Only the full onboarding sequence marks itself "seen" — a section's own
+    // help button should show its content every time it's clicked, not just once.
+    if (!slideKeys) {
+      try { localStorage.setItem(TUTORIAL_KEY, "true") } catch {}
+    }
     onClose()
   }
 
@@ -240,58 +259,73 @@ export function TutorialModal({ open, onClose, initialSlide = "welcome" }: Tutor
 
         {/* Footer */}
         <div className="border-t border-border px-6 py-5 flex flex-col gap-4 shrink-0 bg-card">
-          {/* Dots */}
-          <div className="flex items-center justify-center gap-1.5">
-            {SLIDE_STYLES.map((_, i) => {
-              const active = i === page
-              return (
-                <button
-                  key={i}
-                  onClick={() => setPage(i)}
-                  className={cn(
-                    "h-1.5 rounded-full transition-all",
-                    active ? cn("w-6", slide.dotActive) : "w-1.5 bg-border hover:bg-muted-foreground/40"
-                  )}
-                  aria-label={`Ir a slide ${i + 1}`}
-                />
-              )
-            })}
-          </div>
+          {/* Dots — pointless with only one slide */}
+          {!singleSlide && (
+            <div className="flex items-center justify-center gap-1.5">
+              {slides.map((_, i) => {
+                const active = i === page
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setPage(i)}
+                    className={cn(
+                      "h-1.5 rounded-full transition-all",
+                      active ? cn("w-6", slide.dotActive) : "w-1.5 bg-border hover:bg-muted-foreground/40"
+                    )}
+                    aria-label={`Ir a slide ${i + 1}`}
+                  />
+                )
+              })}
+            </div>
+          )}
 
-          {/* Buttons */}
-          <div className="flex items-center justify-between gap-3">
-            <button
-              onClick={() => setPage((p) => Math.max(p - 1, 0))}
-              disabled={isFirst}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                isFirst
-                  ? "text-muted-foreground/40 cursor-not-allowed"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              {t("back")}
-            </button>
-
+          {/* Buttons — a lone topic opened from a section's help button just
+              needs one way out, not Back/Skip/Next for a single slide. */}
+          {singleSlide ? (
             <button
               onClick={handleComplete}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-2"
-            >
-              {t("skip")}
-            </button>
-
-            <button
-              onClick={handleNext}
               className={cn(
-                "flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-all hover:shadow-md",
+                "w-full flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-all hover:shadow-md",
                 slide.buttonBg
               )}
             >
-              {isLast ? t("start") : t("next")}
-              <ArrowRight className="w-4 h-4" />
+              {t("gotIt")}
             </button>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between gap-3">
+              <button
+                onClick={() => setPage((p) => Math.max(p - 1, 0))}
+                disabled={isFirst}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                  isFirst
+                    ? "text-muted-foreground/40 cursor-not-allowed"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <ArrowLeft className="w-4 h-4" />
+                {t("back")}
+              </button>
+
+              <button
+                onClick={handleComplete}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-2"
+              >
+                {t("skip")}
+              </button>
+
+              <button
+                onClick={handleNext}
+                className={cn(
+                  "flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-all hover:shadow-md",
+                  slide.buttonBg
+                )}
+              >
+                {isLast ? (slideKeys ? t("gotIt") : t("start")) : t("next")}
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

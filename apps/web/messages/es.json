@@ -806,7 +806,8 @@
           "Entra en «Clientes» y pulsa «Nuevo cliente».",
           "Rellena el nombre y, muy importante, el CIF/NIF: es obligatorio para poder emitir facturas.",
           "Añade dirección, código postal, ciudad y provincia para que aparezcan en la factura.",
-          "Usa el buscador y los filtros por sector para encontrarlos rápido cuando tengas muchos."
+          "Usa el buscador y los filtros por sector para encontrarlos rápido cuando tengas muchos.",
+          "¿Tienes muchos clientes ya en una hoja de cálculo? Pulsa «Importar desde Excel», descarga la plantilla, rellénala y súbela: se revisa fila por fila antes de darlos de alta."
         ],
         "tip": "También puedes crear un cliente al vuelo mientras emites una factura."
       },
@@ -860,7 +861,8 @@
           "En «Inventario» pulsa «Nuevo producto» y define nombre, precio, IVA y, si quieres, referencia y stock. Si no indicas referencia, se genera automáticamente.",
           "Asigna una categoría para mantener el catálogo organizado.",
           "Usa el panel de filtros de la izquierda para acotar por categoría, precio, IVA o stock.",
-          "Al crear una factura podrás elegir estos productos y sus datos se rellenarán solos."
+          "Al crear una factura podrás elegir estos productos y sus datos se rellenarán solos.",
+          "Para dar de alta muchos productos a la vez, pulsa «Importar desde Excel»: descarga la plantilla, complétala y súbela. Cada fila se valida antes de importarla."
         ],
         "tip": "Activa el control de stock para ver las unidades disponibles de cada producto."
       },

@@ -118,7 +118,7 @@ export function AlbaranesView() {
         <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
           <ClipboardList className="w-6 h-6" />
           Albaranes
-          <TutorialHelpButton slide="deliveryNotes" />
+          <TutorialHelpButton slide={["deliveryNotes", "quotes"]} />
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
           Se abre uno por cada pedido. Desde aquí se emite su factura.

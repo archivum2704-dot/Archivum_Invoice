@@ -3,7 +3,7 @@
 > **Léeme primero.** Este fichero es el punto de partida de cada sesión.
 > Cuando cambies algo relevante, actualízalo en el mismo commit.
 >
-> Última actualización: **21 de agosto de 2026 (NIF provisional recibido)**
+> Última actualización: **25 de agosto de 2026 (tutorial por sección, aislado de verdad)**
 
 ---
 
@@ -387,6 +387,7 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 25 ago | **El tutorial por sección deja de ser un salto dentro del carrusel completo y pasa a ser un recorrido aislado**. `TutorialModal` acepta ahora `slideKeys?: SlideKey[]`: si se pasa, el carrusel se restringe a esas diapositivas y solo a ellas — "Siguiente" ya no puede derivar hacia un tema ajeno a la sección, y el botón final dice "Entendido" en vez de "Comenzar". `TutorialHelpButton` construye siempre ese array a partir de su prop `slide` (acepta una clave suelta o una lista). Pedidos y Albaranes, al ser un mismo flujo partido en dos pantallas, ahora abren un tutorial de 2 pasos (`["quotes","deliveryNotes"]` y a la inversa) en vez de cada uno mostrar solo su propia diapositiva suelta. Motivado por que el diseño anterior (heredado de la sesión paralela, ver entrada de abajo) no se sentía "personalizado por pestaña" — corrección directa a petición del cliente. De paso, añadido a las diapositivas de Clientes e Inventario el paso que faltaba: la importación masiva desde Excel (plantilla descargable, validación fila a fila) que ya existía en el código pero no estaba documentada en ningún tutorial |
 | 21 ago | **Completado el tutorial por sección** (empezado en paralelo por otra sesión con `TutorialHelpButton`/`initialSlide`: salta a la diapositiva de esa sección dentro del carrusel completo, no lo aísla — ese diseño se mantuvo tal cual, era el ya en producción). Añadidas las 4 secciones que faltaban: Panel, Pedidos, Albaranes y Ajustes — las tres primeras no tenían tutorial en absoluto, y el circuito Pedido → Albarán → Factura no aparecía en ningún sitio pese a ser el flujo principal. Facturación actualizado con moneda, rectificativas y anulación. De paso, corregido contenido desactualizado: el rol decía "Gestor" en español desde que se renombró a "Colaborador", y "Manager" en inglés cuando la interfaz siempre ha dicho "Member" |
 | 21 ago | **Tutorial por sección + importación de clientes/inventario desde Excel**. El tutorial de Ajustes (`components/tutorial-modal.tsx`) ahora acepta `initialSlide`, y cada sección (Clientes, Subir, Biblioteca, Inventario, Facturación, Buscador, Usuarios) tiene un botón «?» que lo abre directamente en su diapositiva (`components/tutorial-help-button.tsx`). La diapositiva de bienvenida muestra el logo de Archivum en vez del icono genérico. Nuevo `components/import-excel-button.tsx`: plantilla `.xlsx` descargable con columnas fijas, validación fila a fila (nombre obligatorio, email, país, números) y alta masiva en `companies`/`products`; añadido en Clientes e Inventario. Reutiliza la librería `xlsx` ya instalada (antes solo para exportar) |
 | 21 ago | **`VERIFACTU_PRODUCER_ADDRESS`/`_WEBSITE` cargadas en Vercel y redesplegadas**: dirección fiscal de la tarjeta de NIF (`Calle Bajada al Molino, 10, Planta 3, Puerta A, 09400 Aranda de Duero (Burgos)`) y `https://archivum.es` como sitio web. Sigue faltando `VERIFACTU_PRODUCER_EMAIL` |
