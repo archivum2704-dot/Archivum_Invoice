@@ -123,8 +123,21 @@
   to   { background-position:  400% 0; }
 }
 
+/*
+ * fill-mode is "backwards", not "both", on purpose: any element with a
+ * non-`none` transform/filter — even a completed translateY(0)/blur(0) —
+ * becomes a new containing block for its `position: fixed` descendants,
+ * confining them inside its own box instead of the viewport. "both" kept
+ * that computed transform/filter on the element forever after the
+ * animation finished, which broke any fixed-position modal (e.g. the
+ * tutorial dialog) mounted inside an .animate-slide-up-fade ancestor.
+ * "backwards" still shows the pre-animation state during animation-delay
+ * (no flash of the staggered items), but reverts to the stylesheet default
+ * (transform: none, filter: none) once the animation ends — visually
+ * identical to the "to" keyframe, but no longer a containing block.
+ */
 .animate-slide-up-fade {
-  animation: slide-up-fade 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: slide-up-fade 0.65s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 .skeleton {
