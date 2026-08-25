@@ -17,6 +17,7 @@ import { NewClientModal } from "@/components/new-client-modal"
 import { EXEMPTION_CAUSES } from "@/lib/exemption-causes"
 import { createClient } from "@/lib/supabase/client"
 import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/lib/currency"
+import { TutorialHelpButton } from "@/components/tutorial-help-button"
 
 type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string; exemptionCause: string }
 const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1", unitPrice: "0", taxRate: "21", exemptionCause: "" })
@@ -220,7 +221,10 @@ export function PresupuestosView() {
         <div className="flex items-center gap-2.5">
           <ClipboardList className="w-6 h-6 text-primary" />
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Pedidos</h1>
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-2xl font-semibold text-foreground">Pedidos</h1>
+              <TutorialHelpButton slide="quotes" />
+            </div>
             <p className="text-sm text-muted-foreground mt-0.5">Crea pedidos, compártelos y conviértelos en factura.</p>
           </div>
         </div>

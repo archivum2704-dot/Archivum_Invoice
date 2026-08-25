@@ -4,16 +4,21 @@ import { useState, useEffect, useRef } from "react"
 import {
   Sparkles, Upload, Building2, Users, Search, Library,
   Package, Receipt, ArrowRight, ArrowLeft, X, Lightbulb,
+  LayoutDashboard, ClipboardList, Truck, Settings as SettingsIcon,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { Logo } from "@/components/logo"
 
 // Bump the version when the tutorial content changes so returning users see it again.
-const TUTORIAL_KEY = "archivum_tutorial_completed_v2"
+const TUTORIAL_KEY = "archivum_tutorial_completed_v3"
+
+export type SlideKey =
+  | "welcome" | "dashboard" | "companies" | "quotes" | "deliveryNotes"
+  | "upload" | "library" | "inventory" | "invoicing" | "search" | "team" | "settings"
 
 interface SlideStyle {
-  key: "welcome" | "companies" | "upload" | "library" | "inventory" | "invoicing" | "search" | "team"
+  key: SlideKey
   icon: typeof Sparkles
   iconBg: string
   iconText: string
@@ -23,6 +28,7 @@ interface SlideStyle {
   dotActive: string
 }
 
+// Order here is also the order of the full onboarding walkthrough.
 const SLIDE_STYLES: SlideStyle[] = [
   {
     key: "welcome", icon: Sparkles,
@@ -31,10 +37,28 @@ const SLIDE_STYLES: SlideStyle[] = [
     buttonBg: "bg-blue-600 hover:bg-blue-700", dotActive: "bg-blue-600",
   },
   {
+    key: "dashboard", icon: LayoutDashboard,
+    iconBg: "bg-indigo-50 dark:bg-indigo-950/30", iconText: "text-indigo-600 dark:text-indigo-400",
+    stepBg: "bg-indigo-100 dark:bg-indigo-950/40", stepText: "text-indigo-700 dark:text-indigo-300",
+    buttonBg: "bg-indigo-600 hover:bg-indigo-700", dotActive: "bg-indigo-600",
+  },
+  {
     key: "companies", icon: Building2,
     iconBg: "bg-purple-50 dark:bg-purple-950/30", iconText: "text-purple-600 dark:text-purple-400",
     stepBg: "bg-purple-100 dark:bg-purple-950/40", stepText: "text-purple-700 dark:text-purple-300",
     buttonBg: "bg-purple-600 hover:bg-purple-700", dotActive: "bg-purple-600",
+  },
+  {
+    key: "quotes", icon: ClipboardList,
+    iconBg: "bg-teal-50 dark:bg-teal-950/30",     iconText: "text-teal-600 dark:text-teal-400",
+    stepBg: "bg-teal-100 dark:bg-teal-950/40",    stepText: "text-teal-700 dark:text-teal-300",
+    buttonBg: "bg-teal-600 hover:bg-teal-700", dotActive: "bg-teal-600",
+  },
+  {
+    key: "deliveryNotes", icon: Truck,
+    iconBg: "bg-lime-50 dark:bg-lime-950/30",     iconText: "text-lime-600 dark:text-lime-400",
+    stepBg: "bg-lime-100 dark:bg-lime-950/40",    stepText: "text-lime-700 dark:text-lime-300",
+    buttonBg: "bg-lime-600 hover:bg-lime-700", dotActive: "bg-lime-600",
   },
   {
     key: "upload", icon: Upload,
@@ -72,6 +96,12 @@ const SLIDE_STYLES: SlideStyle[] = [
     stepBg: "bg-orange-100 dark:bg-orange-950/40", stepText: "text-orange-700 dark:text-orange-300",
     buttonBg: "bg-orange-600 hover:bg-orange-700", dotActive: "bg-orange-600",
   },
+  {
+    key: "settings", icon: SettingsIcon,
+    iconBg: "bg-slate-50 dark:bg-slate-950/30",   iconText: "text-slate-600 dark:text-slate-400",
+    stepBg: "bg-slate-100 dark:bg-slate-950/40",  stepText: "text-slate-700 dark:text-slate-300",
+    buttonBg: "bg-slate-600 hover:bg-slate-700", dotActive: "bg-slate-600",
+  },
 ]
 
 export function isTutorialCompleted(): boolean {
@@ -89,7 +119,7 @@ interface TutorialModalProps {
   open: boolean
   onClose: () => void
   /** Slide to open on, e.g. jumping straight to "inventory" from the Inventario page. Defaults to "welcome". */
-  initialSlide?: SlideStyle["key"]
+  initialSlide?: SlideKey
 }
 
 export function TutorialModal({ open, onClose, initialSlide = "welcome" }: TutorialModalProps) {

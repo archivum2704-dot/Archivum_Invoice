@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { useOrganization } from "@/lib/context/organization-context"
 import { TutorialModal, resetTutorial } from "@/components/tutorial-modal"
+import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { CancellationModal } from "@/components/cancellation-modal"
 import { PLANS, ADDONS, type PlanId } from "@/lib/pricing"
 
@@ -268,6 +269,7 @@ export function SettingsView() {
         <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
           <Settings className="w-6 h-6" />
           {tRoot("title")}
+          <TutorialHelpButton slide="settings" />
         </h1>
         <p className="text-muted-foreground text-sm mt-1">{tRoot("subtitle")}</p>
       </div>

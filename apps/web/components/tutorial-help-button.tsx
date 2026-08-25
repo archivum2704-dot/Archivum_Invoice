@@ -3,11 +3,11 @@
 import { useState } from "react"
 import { HelpCircle } from "lucide-react"
 import { useTranslations } from "next-intl"
-import { TutorialModal } from "@/components/tutorial-modal"
+import { TutorialModal, type SlideKey } from "@/components/tutorial-modal"
 
 interface TutorialHelpButtonProps {
   /** Which tutorial slide to open on — matches the section this button lives in. */
-  slide: "companies" | "upload" | "library" | "inventory" | "invoicing" | "search" | "team"
+  slide: SlideKey
   className?: string
 }
 

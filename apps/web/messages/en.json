@@ -784,11 +784,20 @@
         "title": "Welcome to Archivum",
         "description": "Your platform to issue invoices and archive all of your business paperwork. This tutorial walks you through every section step by step.",
         "steps": [
-          "The sidebar holds every section: Dashboard, Clients, Library, Search, Inventory, Invoicing, Upload and Users.",
+          "The sidebar holds every section: Dashboard, Clients, Quotes, Delivery notes, Library, Search, Inventory, Invoicing, Upload and Users.",
           "The Dashboard summarizes this month's revenue, pending payments and recent documents.",
-          "You can switch language (ES/EN) and replay this tutorial anytime from Settings."
+          "You can replay this tutorial, or any section's own tutorial, from the help icon (?) next to its title."
         ],
         "tip": "Use the ← → arrow keys to move through the tutorial."
+      },
+      "dashboard": {
+        "title": "Your Dashboard",
+        "description": "The first screen you see on login: a quick snapshot of how your business is doing.",
+        "steps": [
+          "At the top you'll see this month's revenue and pending payments at a glance.",
+          "Your most recent documents and invoices are listed for quick access.",
+          "Alerts for overdue invoices or low stock show up here and in the sidebar, so nothing slips through."
+        ]
       },
       "companies": {
         "title": "1. Create your clients",
@@ -800,6 +809,28 @@
           "Use search and the sector filters to find them quickly once you have many."
         ],
         "tip": "You can also create a client on the fly while issuing an invoice."
+      },
+      "quotes": {
+        "title": "Quotes: before you invoice",
+        "description": "Send a quote to your client for approval before you invoice anything.",
+        "steps": [
+          "In “Quotes” click “New quote”, pick the client and add lines just like an invoice.",
+          "Saving it as sent gives it a number and makes it ready to share with your client.",
+          "The moment you send it, its delivery note opens on its own in “Delivery notes” — that's where it gets invoiced.",
+          "If a line is tax-exempt, give it an exemption reason — the system requires it before saving."
+        ],
+        "tip": "A draft quote has no number and no delivery note yet — only sending it creates those."
+      },
+      "deliveryNotes": {
+        "title": "Delivery notes: the step before invoicing",
+        "description": "Every sent quote opens its delivery note automatically. Only the delivery note can become an invoice.",
+        "steps": [
+          "Open “Delivery notes” to see the ones still open, ready to invoice.",
+          "If the quote changes, its delivery note updates on its own while it's still open — nothing to redo by hand.",
+          "Click “Convert to invoice” once the work is done and you want to get paid.",
+          "Once invoiced, the delivery note is closed and permanently linked to that invoice."
+        ],
+        "tip": "The full flow is Quote → Delivery note → Invoice. A quote is never invoiced directly."
       },
       "upload": {
         "title": "2. Upload and archive documents",
@@ -837,12 +868,12 @@
         "title": "5. Issue invoices with VeriFactu",
         "description": "Create legal invoices compliant with the AEAT VeriFactu system.",
         "steps": [
-          "First upload your digital certificate in Settings → VeriFactu (just once).",
-          "In “Invoicing” click “New invoice” and choose the client (must have a tax ID).",
-          "Add lines manually or from your inventory; VAT and withholding (IRPF) are computed for you.",
+          "First upload your digital certificate in Settings → VERI*FACTU (just once).",
+          "Invoice from a delivery note with “Convert to invoice”, or click “New invoice” directly if you don't use quotes.",
+          "Add lines manually or from your inventory; VAT and withholding (IRPF) are computed for you. Billing in another currency (USD, GBP…)? Pick it when creating the invoice.",
           "Click “Issue”: the invoice gets its chained fingerprint and AEAT verification QR."
         ],
-        "tip": "Use search and filters to find any issued invoice instantly."
+        "tip": "Made a mistake? An issued invoice is never edited or deleted: use “Rectify” to correct amounts, or annul it if it should never have existed."
       },
       "search": {
         "title": "6. Find anything",
@@ -859,11 +890,22 @@
         "description": "Invite your team and control who sees and does what.",
         "steps": [
           "In “Users” (admins only) invite a member by email.",
-          "Assign a role: Admin (full access), Manager or Viewer (read and download only).",
-          "The admin decides which folders each manager can access.",
-          "Manage your plan's extra users from Settings → Billing."
+          "Assign a role: Admin (full access), Member or Viewer (read and download only).",
+          "The admin decides which folders each member can access.",
+          "Manage your plan's extra users from Settings → Billing & plan."
         ],
         "tip": "That's it! You now know Archivum. Start by creating your first client."
+      },
+      "settings": {
+        "title": "Your organization's settings",
+        "description": "Everything you need to set up before invoicing for real lives here.",
+        "steps": [
+          "In “Identity” set your company's name, tax ID and logo — they'll appear on your invoices.",
+          "In “VERI*FACTU” upload your digital certificate and check the status of the event log.",
+          "“Legal” has the declaración responsable, privacy policy, cookie notice and terms of service.",
+          "Manage your plan, extra users and Archivum billing under “Billing & plan”."
+        ],
+        "tip": "If your company has no Spanish invoicing obligations, turn it off here — your invoices will stop carrying a VeriFactu record."
       }
     },
     "stepsLabel": "Step by step"

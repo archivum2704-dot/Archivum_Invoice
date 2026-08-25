@@ -784,11 +784,20 @@
         "title": "Bienvenido a Archivum",
         "description": "Tu plataforma para emitir facturas y archivar toda la documentación de tu negocio. Este tutorial te guía paso a paso por cada sección.",
         "steps": [
-          "En el menú lateral tienes todas las secciones: Panel, Clientes, Biblioteca, Buscador, Inventario, Facturación, Subir y Usuarios.",
+          "En el menú lateral tienes todas las secciones: Panel, Clientes, Pedidos, Albaranes, Biblioteca, Buscador, Inventario, Facturación, Subir y Usuarios.",
           "El Panel Principal resume tus ingresos del mes, cobros pendientes y documentos recientes.",
-          "Puedes cambiar el idioma (ES/EN) y volver a ver este tutorial cuando quieras desde Ajustes."
+          "Puedes volver a ver este tutorial, o el de cualquier sección, desde el icono de ayuda (?) junto a su título."
         ],
         "tip": "Usa las flechas ← → del teclado para moverte por el tutorial."
+      },
+      "dashboard": {
+        "title": "Tu Panel Principal",
+        "description": "La primera pantalla que ves al entrar: un resumen rápido de cómo va tu negocio.",
+        "steps": [
+          "Arriba tienes tus ingresos del mes y los cobros pendientes de un vistazo.",
+          "Los documentos y facturas más recientes aparecen listados para entrar rápido en ellos.",
+          "Los avisos de facturas vencidas o stock mínimo aparecen aquí y en el menú lateral, para que no se te pasen."
+        ]
       },
       "companies": {
         "title": "1. Crea tus clientes",
@@ -800,6 +809,28 @@
           "Usa el buscador y los filtros por sector para encontrarlos rápido cuando tengas muchos."
         ],
         "tip": "También puedes crear un cliente al vuelo mientras emites una factura."
+      },
+      "quotes": {
+        "title": "Pedidos: antes de facturar",
+        "description": "Manda un pedido (presupuesto) a tu cliente para que lo apruebe antes de facturar.",
+        "steps": [
+          "En «Pedidos» pulsa «Nuevo pedido», elige el cliente y añade líneas como en una factura.",
+          "Al guardarlo como enviado, se numera y queda listo para compartir con tu cliente.",
+          "En cuanto lo envías, se abre solo su albarán en «Albaranes» — ahí es donde se factura.",
+          "Si una línea va sin IVA, indica la causa de exención: el sistema la exige antes de guardar."
+        ],
+        "tip": "Un pedido en borrador no genera número ni albarán todavía — solo al enviarlo."
+      },
+      "deliveryNotes": {
+        "title": "Albaranes: el paso antes de facturar",
+        "description": "Cada pedido enviado abre su albarán automáticamente. Solo el albarán se convierte en factura.",
+        "steps": [
+          "Entra en «Albaranes» para ver los que están abiertos, listos para facturar.",
+          "Si el pedido cambia, el albarán se actualiza solo mientras siga abierto — no hay que rehacer nada a mano.",
+          "Pulsa «Convertir en factura» cuando el trabajo esté terminado y quieras cobrar.",
+          "Una vez facturado, el albarán queda cerrado y ligado para siempre a esa factura."
+        ],
+        "tip": "El circuito completo es Pedido → Albarán → Factura. Nunca se factura un pedido directamente."
       },
       "upload": {
         "title": "2. Sube y archiva documentos",
@@ -837,12 +868,12 @@
         "title": "5. Emite facturas con VeriFactu",
         "description": "Crea facturas legales conformes con el sistema VeriFactu de la AEAT.",
         "steps": [
-          "Primero sube tu certificado digital en Ajustes → VeriFactu (solo una vez).",
-          "En «Facturación» pulsa «Nueva factura» y elige el cliente (debe tener CIF).",
-          "Añade líneas manualmente o desde tu inventario; el IVA y el IRPF se calculan solos.",
+          "Primero sube tu certificado digital en Ajustes → VERI*FACTU (solo una vez).",
+          "Factura desde un albarán con «Convertir en factura», o pulsa «Nueva factura» directamente si no usas pedidos.",
+          "Añade líneas manualmente o desde tu inventario; el IVA y el IRPF se calculan solos. Si cobras en otra moneda (USD, GBP…), elígela al crear la factura.",
           "Pulsa «Emitir»: la factura recibe su huella encadenada y su QR de cotejo de la AEAT."
         ],
-        "tip": "Usa el buscador y los filtros para localizar cualquier factura emitida al instante."
+        "tip": "¿Te equivocaste? Nunca se edita ni se borra una factura emitida: usa «Rectificativa» para corregir importes, o anúlala si nunca debió existir."
       },
       "search": {
         "title": "6. Encuentra cualquier cosa",
@@ -859,11 +890,22 @@
         "description": "Invita a tu equipo y controla quién ve y hace qué.",
         "steps": [
           "En «Usuarios» (solo administradores) invita a un miembro por correo.",
-          "Asigna un rol: Administrador (acceso total), Gestor o Visor (solo lectura y descarga).",
-          "El administrador decide a qué carpetas accede cada gestor.",
-          "Gestiona los usuarios extra de tu plan desde Ajustes → Facturación."
+          "Asigna un rol: Administrador (acceso total), Colaborador o Visor (solo lectura y descarga).",
+          "El administrador decide a qué carpetas accede cada colaborador.",
+          "Gestiona los usuarios extra de tu plan desde Ajustes → Plan y facturación."
         ],
         "tip": "¡Listo! Ya conoces Archivum. Empieza creando tu primer cliente."
+      },
+      "settings": {
+        "title": "Ajustes de tu organización",
+        "description": "Todo lo que necesitas configurar antes de facturar de verdad vive aquí.",
+        "steps": [
+          "En «Identidad» pon el nombre, CIF y logo de tu empresa — aparecerán en tus facturas.",
+          "En «VERI*FACTU» sube tu certificado digital y consulta el estado del registro de eventos.",
+          "En «Legal» tienes la declaración responsable, la política de privacidad, cookies y términos de servicio.",
+          "Gestiona tu plan, usuarios extra y facturación de Archivum en «Plan y facturación»."
+        ],
+        "tip": "Si tu empresa no tiene obligaciones de facturación en España, desactívalo aquí abajo: tus facturas dejarán de llevar registro Verifactu."
       }
     },
     "stepsLabel": "Paso a paso"

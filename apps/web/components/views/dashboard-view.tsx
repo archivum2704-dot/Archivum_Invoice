@@ -18,6 +18,7 @@ import { OnboardingChecklist } from "@/components/onboarding-checklist"
 import { createClient } from "@/lib/supabase/client"
 import type { DocumentStatus, DocumentType } from "@/lib/supabase/types"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
+import { TutorialHelpButton } from "@/components/tutorial-help-button"
 
 const STATUS_STYLES: Record<DocumentStatus, string> = {
   paid:      "bg-[var(--status-paid)]/10 text-[var(--status-paid)]",
@@ -184,9 +185,12 @@ export function DashboardView() {
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 mb-1.5">
             {new Date().toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
           </p>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {firstName ? t("welcome", { name: firstName }) : t("title")}
-          </h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              {firstName ? t("welcome", { name: firstName }) : t("title")}
+            </h1>
+            <TutorialHelpButton slide="dashboard" />
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useQuotes, type Quote } from "@/lib/hooks/use-quotes"
 import { formatMoney } from "@/lib/currency"
+import { TutorialHelpButton } from "@/components/tutorial-help-button"
 
 const STATUS_LABEL: Record<string, string> = {
   open: "Abierto",
@@ -117,6 +118,7 @@ export function AlbaranesView() {
         <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
           <ClipboardList className="w-6 h-6" />
           Albaranes
+          <TutorialHelpButton slide="deliveryNotes" />
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
           Se abre uno por cada pedido. Desde aquí se emite su factura.
