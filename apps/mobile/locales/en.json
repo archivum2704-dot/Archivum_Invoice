@@ -638,6 +638,13 @@
     "noteFor": "Delivery note for",
     "disclaimer": "This document is a delivery note and is not valid as an invoice."
   },
+  "stockWarning": {
+    "title": "Stock below minimum",
+    "bodyOne": "Issuing this invoice will take this product below its minimum stock:",
+    "bodyMany": "Issuing this invoice will take these products below their minimum stock:",
+    "line": "{{name}}: {{current}} − {{qty}} {{unit}} = {{after}} {{unit}} (minimum {{min}})",
+    "confirm": "Issue anyway"
+  },
   "email": {
     "title": "Send by email",
     "send": "Send by email",

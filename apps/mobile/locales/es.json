@@ -638,6 +638,13 @@
     "noteFor": "Albarán para",
     "disclaimer": "Este documento es un albarán de entrega y no tiene validez como factura."
   },
+  "stockWarning": {
+    "title": "Stock por debajo del mínimo",
+    "bodyOne": "Al emitir esta factura, este producto quedará por debajo de su stock mínimo:",
+    "bodyMany": "Al emitir esta factura, estos productos quedarán por debajo de su stock mínimo:",
+    "line": "{{name}}: {{current}} − {{qty}} {{unit}} = {{after}} {{unit}} (mínimo {{min}})",
+    "confirm": "Emitir de todas formas"
+  },
   "email": {
     "title": "Enviar por correo",
     "send": "Enviar por correo",

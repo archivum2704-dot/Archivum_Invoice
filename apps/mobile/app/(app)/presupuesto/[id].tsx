@@ -14,6 +14,8 @@ import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
 import { Card, Button, Badge, type BadgeTone } from "@/components/ui";
 import { formatMoney, needsExchangeRate, toEur } from "@/lib/currency";
+import { getStockWarnings } from "@/lib/stock";
+import { confirmStockWarnings } from "@/lib/stock-warning-alert";
 
 interface Quote {
   id: string; full_number: string | null; issue_date: string | null; valid_until: string | null; status: string;
@@ -25,7 +27,11 @@ interface Quote {
   kind: string; source_quote_id: string | null;
   currency: string; exchange_rate: number | null;
 }
-interface Line { id: string; description: string; quantity: number; unit_price: number; line_total: number; }
+interface Line { id: string; product_id: string | null; description: string; quantity: number; unit_price: number; line_total: number; }
+interface StockProduct {
+  id: string; name: string; unit: string;
+  track_stock: boolean; stock_qty: number; min_stock: number | null;
+}
 
 export default function PresupuestoDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,6 +42,7 @@ export default function PresupuestoDetailScreen() {
 
   const [quote, setQuote] = useState<Quote | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
+  const [products, setProducts] = useState<StockProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [converting, setConverting] = useState(false);
   const [opening, setOpening] = useState(false);
@@ -67,27 +74,42 @@ export default function PresupuestoDetailScreen() {
     })();
   }, [id]);
 
+  useEffect(() => {
+    if (!orgId) return;
+    supabase.from("products").select("id, name, unit, track_stock, stock_qty, min_stock").eq("organization_id", orgId)
+      .then(({ data }) => setProducts((data ?? []) as unknown as StockProduct[]));
+  }, [orgId]);
+
   const sharePdf = async () => {
     const { data } = await supabase.storage.from("documents").createSignedUrl(`${orgId}/quotes/${id}.pdf`, 3600);
     if (data?.signedUrl) Linking.openURL(data.signedUrl);
     else Alert.alert(t("common.error"), t("quoting.pdfUnavailable"));
   };
 
+  const doConvert = async () => {
+    setConverting(true);
+    try {
+      const res = await fetch(`${APP_URL}/api/quotes/convert`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ quoteId: id }),
+      });
+      const json = await readJson(res);
+      if (!res.ok) { Alert.alert(t("common.error"), json.detail ?? json.error ?? ""); setConverting(false); return; }
+      router.replace(`/(app)/factura/${json.invoiceId}`);
+    } catch (e) { Alert.alert(t("common.error"), String(e)); setConverting(false); }
+  };
+
   const convert = () => {
     Alert.alert(t("delivery.billTitle"), t("delivery.billBody"), [
       { text: t("common.cancel"), style: "cancel" },
-      { text: t("delivery.bill"), onPress: async () => {
-        setConverting(true);
-        try {
-          const res = await fetch(`${APP_URL}/api/quotes/convert`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
-            body: JSON.stringify({ quoteId: id }),
-          });
-          const json = await readJson(res);
-          if (!res.ok) { Alert.alert(t("common.error"), json.detail ?? json.error ?? ""); setConverting(false); return; }
-          router.replace(`/(app)/factura/${json.invoiceId}`);
-        } catch (e) { Alert.alert(t("common.error"), String(e)); setConverting(false); }
+      { text: t("delivery.bill"), onPress: () => {
+        const warnings = getStockWarnings(
+          lines.map(l => ({ productId: l.product_id, quantity: Number(l.quantity) })),
+          products,
+        );
+        if (warnings.length) { confirmStockWarnings(t, warnings, doConvert); return; }
+        void doConvert();
       } },
     ]);
   };

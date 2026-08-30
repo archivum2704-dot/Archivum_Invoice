@@ -22,6 +22,8 @@ import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
 import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/lib/currency";
+import { getStockWarnings } from "@/lib/stock";
+import { confirmStockWarnings } from "@/lib/stock-warning-alert";
 
 const IVA_RATES = ["", "4", "10", "21"];
 const RET_RATES = ["", "7", "15", "19"];
@@ -34,7 +36,10 @@ interface Invoice {
   verifactu_status: string | null; currency: string;
 }
 interface Company { id: string; name: string; cif: string | null; }
-interface Product { id: string; name: string; unit_price: number; tax_rate: number; }
+interface Product {
+  id: string; name: string; unit_price: number; tax_rate: number;
+  unit: string; track_stock: boolean; stock_qty: number; min_stock: number | null;
+}
 type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string; exemptionCause: string };
 
 const emptyLine = (): Line => ({ productId: null, description: "", quantity: "", unitPrice: "", taxRate: "21", exemptionCause: "" });
@@ -85,7 +90,7 @@ function FacturacionScreenContent() {
     const [{ data: inv }, { data: co }, { data: pr }] = await Promise.all([
       supabase.from("invoices").select("id, full_number, client_name, total, state, issue_date, kind, rectifies_invoice_id, verifactu_status, currency").eq("organization_id", orgId).order("created_at", { ascending: false }),
       supabase.from("companies").select("id, name, cif").eq("organization_id", orgId).eq("is_active", true).order("name"),
-      supabase.from("products").select("id, name, unit_price, tax_rate").eq("organization_id", orgId).eq("is_active", true).order("name"),
+      supabase.from("products").select("id, name, unit_price, tax_rate, unit, track_stock, stock_qty, min_stock").eq("organization_id", orgId).eq("is_active", true).order("name"),
     ]);
     setInvoices((inv as Invoice[]) ?? []); setCompanies((co as Company[]) ?? []); setProducts((pr as Product[]) ?? []);
     setLoading(false); setRefreshing(false);
@@ -129,17 +134,7 @@ function FacturacionScreenContent() {
     setClientPicker(false);
   };
 
-  const issue = async () => {
-    if (!org?.cif?.trim()) { Alert.alert(t("common.error"), t("invoicing.errIssuerCif")); return; }
-    if (!clientId) { Alert.alert(t("common.error"), t("invoicing.errClient")); return; }
-    if (!selectedClient?.cif?.trim()) { Alert.alert(t("common.error"), t("invoicing.errClientCif")); return; }
-    if (!lines.some(l => l.description.trim())) { Alert.alert(t("common.error"), t("invoicing.errLines")); return; }
-    if (lines.some(l => l.taxRate === "" && l.description.trim() && !l.exemptionCause)) {
-      Alert.alert(t("common.error"), t("invoicing.errExemptionCause")); return;
-    }
-    if (needsExchangeRate(currency) && !(Number(exchangeRate) > 0)) {
-      Alert.alert(t("common.error"), t("invoicing.errExchangeRate", { currency })); return;
-    }
+  const doIssue = async () => {
     setIssuing(true);
     try {
       const res = await fetch(`${APP_URL}/api/invoices/issue`, {
@@ -159,6 +154,25 @@ function FacturacionScreenContent() {
       router.push(`/(app)/factura/${json.id}`);
     } catch (e) { Alert.alert(t("common.error"), String(e)); }
     setIssuing(false);
+  };
+
+  const issue = () => {
+    if (!org?.cif?.trim()) { Alert.alert(t("common.error"), t("invoicing.errIssuerCif")); return; }
+    if (!clientId) { Alert.alert(t("common.error"), t("invoicing.errClient")); return; }
+    if (!selectedClient?.cif?.trim()) { Alert.alert(t("common.error"), t("invoicing.errClientCif")); return; }
+    if (!lines.some(l => l.description.trim())) { Alert.alert(t("common.error"), t("invoicing.errLines")); return; }
+    if (lines.some(l => l.taxRate === "" && l.description.trim() && !l.exemptionCause)) {
+      Alert.alert(t("common.error"), t("invoicing.errExemptionCause")); return;
+    }
+    if (needsExchangeRate(currency) && !(Number(exchangeRate) > 0)) {
+      Alert.alert(t("common.error"), t("invoicing.errExchangeRate", { currency })); return;
+    }
+    const warnings = getStockWarnings(
+      lines.filter(l => l.description.trim()).map(l => ({ productId: l.productId, quantity: qtyOf(l.quantity) })),
+      products,
+    );
+    if (warnings.length) { confirmStockWarnings(t, warnings, doIssue); return; }
+    void doIssue();
   };
 
   const stateTone = (s: string): BadgeTone => s === "issued" ? "green" : s === "cancelled" ? "red" : "neutral";

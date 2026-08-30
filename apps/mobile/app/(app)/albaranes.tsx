@@ -17,6 +17,8 @@ import { Badge, Button, Card, EmptyState, type BadgeTone } from "@/components/ui
 import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
 import { formatMoney } from "@/lib/currency";
+import { getStockWarnings, type StockWarning } from "@/lib/stock";
+import { confirmStockWarnings } from "@/lib/stock-warning-alert";
 
 interface Note {
   id: string;
@@ -26,6 +28,10 @@ interface Note {
   status: string;
   issue_date: string | null;
   currency: string;
+}
+interface StockProduct {
+  id: string; name: string; unit: string;
+  track_stock: boolean; stock_qty: number; min_stock: number | null;
 }
 
 /**
@@ -40,24 +46,51 @@ function AlbaranesContent() {
   const C = useColors();
   const { orgId, session, isAdmin } = useAuth();
   const [notes, setNotes] = useState<Note[]>([]);
+  const [products, setProducts] = useState<StockProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!orgId) { setLoading(false); return; }
-    const { data } = await supabase
-      .from("quotes")
-      .select("id, full_number, client_name, total, status, issue_date, currency")
-      .eq("organization_id", orgId)
-      .eq("kind", "delivery_note")
-      .order("created_at", { ascending: false });
+    const [{ data }, { data: pr }] = await Promise.all([
+      supabase
+        .from("quotes")
+        .select("id, full_number, client_name, total, status, issue_date, currency")
+        .eq("organization_id", orgId)
+        .eq("kind", "delivery_note")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("products")
+        .select("id, name, unit, track_stock, stock_qty, min_stock")
+        .eq("organization_id", orgId),
+    ]);
     setNotes((data ?? []) as unknown as Note[]);
+    setProducts((pr ?? []) as unknown as StockProduct[]);
     setLoading(false);
     setRefreshing(false);
   }, [orgId]);
 
   useEffect(() => { load(); }, [load]);
+
+  const doBill = async (n: Note) => {
+    setBusyId(n.id);
+    try {
+      const res = await fetch(`${APP_URL}/api/quotes/convert`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ quoteId: n.id }),
+      });
+      const json = await readJson(res);
+      if (!res.ok) { Alert.alert(t("common.error"), json.detail ?? json.error ?? ""); return; }
+      await load();
+      router.push(`/(app)/factura/${json.invoiceId}`);
+    } catch (e) {
+      Alert.alert(t("common.error"), String(e));
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const bill = (n: Note) => {
     Alert.alert(t("delivery.billTitle"), t("delivery.billBody"), [
@@ -65,22 +98,17 @@ function AlbaranesContent() {
       {
         text: t("delivery.bill"),
         onPress: async () => {
-          setBusyId(n.id);
-          try {
-            const res = await fetch(`${APP_URL}/api/quotes/convert`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-              body: JSON.stringify({ quoteId: n.id }),
-            });
-            const json = await readJson(res);
-            if (!res.ok) { Alert.alert(t("common.error"), json.detail ?? json.error ?? ""); return; }
-            await load();
-            router.push(`/(app)/factura/${json.invoiceId}`);
-          } catch (e) {
-            Alert.alert(t("common.error"), String(e));
-          } finally {
-            setBusyId(null);
+          const { data: quoteLines } = await supabase
+            .from("quote_lines").select("product_id, quantity").eq("quote_id", n.id);
+          const warnings: StockWarning[] = getStockWarnings(
+            (quoteLines ?? []).map(l => ({ productId: l.product_id, quantity: Number(l.quantity) })),
+            products,
+          );
+          if (warnings.length) {
+            confirmStockWarnings(t, warnings, () => doBill(n));
+            return;
           }
+          await doBill(n);
         },
       },
     ]);
