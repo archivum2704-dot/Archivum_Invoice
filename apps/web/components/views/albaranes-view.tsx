@@ -6,9 +6,12 @@ import { useRouter } from "next/navigation"
 import { ClipboardList, Download, ArrowRight, Loader2, FileText, FolderPlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useOrganization } from "@/lib/context/organization-context"
-import { useQuotes, type Quote } from "@/lib/hooks/use-quotes"
+import { useQuotes, fetchQuoteWithLines, type Quote } from "@/lib/hooks/use-quotes"
+import { useProducts } from "@/lib/hooks/use-products"
+import { getStockWarnings, type StockWarning } from "@/lib/stock"
 import { formatMoney } from "@/lib/currency"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
+import { StockWarningModal } from "@/components/stock-warning-modal"
 
 const STATUS_LABEL: Record<string, string> = {
   open: "Abierto",
@@ -30,8 +33,10 @@ export function AlbaranesView() {
   const router = useRouter()
   const { currentOrg, isOrgAdmin } = useOrganization()
   const { quotes: notes, loading, mutate } = useQuotes(currentOrg?.id ?? null, "delivery_note")
+  const { products } = useProducts(currentOrg?.id ?? null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [archiving, setArchiving] = useState(false)
+  const [stockCheck, setStockCheck] = useState<{ note: Quote; warnings: StockWarning[] } | null>(null)
 
   // Los albaranes se archivan solos al abrirse, pero eso es best-effort y los
   // abiertos antes de que existiera el archivado no tienen copia. Esto lo
@@ -62,8 +67,7 @@ export function AlbaranesView() {
   const open = notes.filter(n => n.status !== "converted")
   const billed = notes.filter(n => n.status === "converted")
 
-  const handleBill = async (n: Quote) => {
-    if (!confirm(`¿Emitir la factura del albarán ${n.full_number ?? ""}? Se emitirá con Verifactu y no podrá deshacerse.`)) return
+  const doBill = async (n: Quote) => {
     setBusyId(n.id)
     try {
       const res = await fetch("/api/quotes/convert", {
@@ -80,6 +84,16 @@ export function AlbaranesView() {
     } finally {
       setBusyId(null)
     }
+  }
+
+  const handleBill = async (n: Quote) => {
+    if (!confirm(`¿Emitir la factura del albarán ${n.full_number ?? ""}? Se emitirá con Verifactu y no podrá deshacerse.`)) return
+    const data = await fetchQuoteWithLines(n.id)
+    const warnings = data
+      ? getStockWarnings(data.lines.map(l => ({ productId: l.product_id, quantity: Number(l.quantity) })), products)
+      : []
+    if (warnings.length) { setStockCheck({ note: n, warnings }); return }
+    await doBill(n)
   }
 
   const row = (n: Quote) => (
@@ -159,6 +173,19 @@ export function AlbaranesView() {
             <div className="divide-y divide-border">{billed.map(row)}</div>
           </div>
         </div>
+      )}
+
+      {stockCheck && (
+        <StockWarningModal
+          warnings={stockCheck.warnings}
+          note="La factura se emitirá con Verifactu y no podrá deshacerse."
+          onCancel={() => setStockCheck(null)}
+          onConfirm={async () => {
+            const n = stockCheck.note
+            setStockCheck(null)
+            await doBill(n)
+          }}
+        />
       )}
     </div>
   )

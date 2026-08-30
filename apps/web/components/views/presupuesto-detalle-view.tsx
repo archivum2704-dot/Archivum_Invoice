@@ -6,8 +6,11 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { fetchQuoteWithLines, type Quote, type QuoteLine } from "@/lib/hooks/use-quotes"
+import { useProducts } from "@/lib/hooks/use-products"
+import { getStockWarnings, type StockWarning } from "@/lib/stock"
 import { createClient } from "@/lib/supabase/client"
 import { SendEmailButton } from "@/components/send-email-button"
+import { StockWarningModal } from "@/components/stock-warning-modal"
 import { formatMoney, needsExchangeRate, toEur } from "@/lib/currency"
 
 // Toolbar buttons. whitespace-nowrap is the point: the row wraps between
@@ -40,7 +43,9 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
   // Quotes snapshot the client's name but not their email, so the address to
   // send to comes from the client record.
   const [clientEmail, setClientEmail] = useState<string | null>(null)
+  const [stockWarnings, setStockWarnings] = useState<StockWarning[] | null>(null)
 
+  const { products } = useProducts(quote?.organization_id ?? null)
   const isNote = quote?.kind === "delivery_note"
 
   useEffect(() => {
@@ -62,9 +67,8 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
     })
   }, [id])
 
-  const handleConvert = async () => {
+  const doConvert = async () => {
     if (!quote) return
-    if (!confirm(`¿Emitir la factura del albarán ${quote.full_number ?? ""}? Se emitirá con Verifactu y no podrá deshacerse.`)) return
     setConverting(true)
     const res = await fetch("/api/quotes/convert", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -73,6 +77,14 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
     const json = await res.json().catch(() => ({}))
     if (!res.ok) { alert(json.detail ?? json.error ?? "No se pudo emitir la factura."); setConverting(false); return }
     router.push(`/facturacion/${json.invoiceId}`)
+  }
+
+  const handleConvert = async () => {
+    if (!quote) return
+    if (!confirm(`¿Emitir la factura del albarán ${quote.full_number ?? ""}? Se emitirá con Verifactu y no podrá deshacerse.`)) return
+    const warnings = getStockWarnings(lines.map(l => ({ productId: l.product_id, quantity: Number(l.quantity) })), products)
+    if (warnings.length) { setStockWarnings(warnings); return }
+    await doConvert()
   }
 
   // Quotes finalized before albaranes existed have no note. Opening one here is
@@ -227,6 +239,15 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
             : "Este documento es un pedido y no tiene validez como factura."}
         </p>
       </div>
+
+      {stockWarnings && (
+        <StockWarningModal
+          warnings={stockWarnings}
+          note="La factura se emitirá con Verifactu y no podrá deshacerse."
+          onCancel={() => setStockWarnings(null)}
+          onConfirm={async () => { setStockWarnings(null); await doConvert() }}
+        />
+      )}
     </div>
   )
 }

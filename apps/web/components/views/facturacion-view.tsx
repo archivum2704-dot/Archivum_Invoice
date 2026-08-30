@@ -15,7 +15,9 @@ import { useInvoices } from "@/lib/hooks/use-invoices"
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { useProducts, type Product } from "@/lib/hooks/use-products"
 import { isPaidPlan } from "@/lib/plan"
+import { getStockWarnings, type StockWarning } from "@/lib/stock"
 import { NewClientModal } from "@/components/new-client-modal"
+import { StockWarningModal } from "@/components/stock-warning-modal"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { EXEMPTION_CAUSES } from "@/lib/exemption-causes"
 import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/lib/currency"
@@ -106,6 +108,7 @@ export function FacturacionView() {
   const [lines, setLines] = useState<Line[]>([emptyLine()])
   const [issuing, setIssuing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [stockWarnings, setStockWarnings] = useState<StockWarning[] | null>(null)
 
   // Inline "new client" creation — the form itself lives in NewClientModal,
   // shared with presupuestos so the two cannot drift apart again.
@@ -239,8 +242,8 @@ export function FacturacionView() {
     })
   }
 
-  const handleIssue = async () => {
-    if (validationError || !currentOrg) { setError(validationError); return }
+  const doIssue = async () => {
+    if (!currentOrg) return
     setIssuing(true); setError(null)
     try {
       const res = await fetch("/api/invoices/issue", {
@@ -275,6 +278,16 @@ export function FacturacionView() {
     } catch (e) {
       setError(String(e)); setIssuing(false)
     }
+  }
+
+  const handleIssue = () => {
+    if (validationError || !currentOrg) { setError(validationError); return }
+    const warnings = getStockWarnings(
+      lines.filter(l => l.description.trim()).map(l => ({ productId: l.productId, quantity: Number(l.quantity) || 0 })),
+      products,
+    )
+    if (warnings.length) { setStockWarnings(warnings); return }
+    void doIssue()
   }
 
   // ── Unsaved-changes guard ───────────────────────────────────
@@ -766,6 +779,14 @@ export function FacturacionView() {
           orgId={currentOrg.id}
           onCreated={handleClientCreated}
           onClose={() => setNewClientOpen(false)}
+        />
+      )}
+
+      {stockWarnings && (
+        <StockWarningModal
+          warnings={stockWarnings}
+          onCancel={() => setStockWarnings(null)}
+          onConfirm={async () => { setStockWarnings(null); await doIssue() }}
         />
       )}
     </div>

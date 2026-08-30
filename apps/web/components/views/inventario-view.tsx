@@ -12,6 +12,7 @@ import { useOrganization } from "@/lib/context/organization-context"
 import { useProducts, type Product } from "@/lib/hooks/use-products"
 import { createClient } from "@/lib/supabase/client"
 import { isPaidPlan } from "@/lib/plan"
+import { isLowStock } from "@/lib/stock"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { ImportExcelButton } from "@/components/import-excel-button"
 
@@ -31,16 +32,6 @@ type Draft = {
 const EMPTY: Draft = {
   name: "", sku: "", category: "", description: "", unit: "ud",
   unit_price: "0", tax_rate: "21", track_stock: true, stock_qty: "0", min_stock: "",
-}
-
-/**
- * A tracked product at or below its reorder floor.
- *
- * Only products with a floor set are watched: a null min_stock means nobody
- * asked to be warned, and warning anyway would make the flag noise.
- */
-export function isLowStock(p: { track_stock: boolean; stock_qty: number; min_stock: number | null }) {
-  return p.track_stock && p.min_stock != null && Number(p.stock_qty) <= Number(p.min_stock)
 }
 
 // Sentinel for the "uncategorized" filter option
