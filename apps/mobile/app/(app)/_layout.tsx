@@ -13,7 +13,7 @@ import {
 export default function AppLayout() {
   const { t } = useTranslation();
   const C = useColors();
-  const { session, loading, profile, orgId } = useAuth();
+  const { session, loading, profile, orgId, mfaPending } = useAuth();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const isOnboardingRoute = pathname?.includes("onboarding");
@@ -53,6 +53,7 @@ export default function AppLayout() {
   }
 
   if (!session) return <Redirect href="/(auth)/login" />;
+  if (mfaPending) return <Redirect href="/(auth)/mfa" />;
   // Only users without an organization go through onboarding (its last step
   // creates one). Existing users with an org land on the dashboard directly;
   // they can replay the tutorial from Ajustes.

@@ -24,6 +24,8 @@ interface Organization {
   subscription_status: string | null;
 }
 
+type SignInResult = { error: string | null; mfaRequired: boolean };
+
 interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
@@ -34,21 +36,37 @@ interface AuthContextType {
   isAdmin: boolean;
   isPaid: boolean;
   loading: boolean;
-  signInEmpresa: (email: string, password: string) => Promise<string | null>;
-  signInUsuario: (email: string, password: string, code: string) => Promise<string | null>;
+  /** True once password sign-in succeeds but the account has a verified TOTP
+   * factor still awaiting its challenge — mirrors the web's aal1→aal2 gate. */
+  mfaPending: boolean;
+  signInEmpresa: (email: string, password: string) => Promise<SignInResult>;
+  signInUsuario: (email: string, password: string, code: string) => Promise<SignInResult>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  verifyMfaCode: (code: string) => Promise<string | null>;
+  cancelMfa: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session,  setSession]  = useState<Session | null>(null);
-  const [profile,  setProfile]  = useState<Profile | null>(null);
-  const [org,      setOrg]      = useState<Organization | null>(null);
-  const [role,     setRole]     = useState<string | null>(null);
-  const [loading,  setLoading]  = useState(true);
+  const [session,    setSession]    = useState<Session | null>(null);
+  const [profile,    setProfile]    = useState<Profile | null>(null);
+  const [org,        setOrg]        = useState<Organization | null>(null);
+  const [role,       setRole]       = useState<string | null>(null);
+  const [loading,    setLoading]    = useState(true);
+  const [mfaPending, setMfaPending] = useState(false);
+
+  /** Reads currentLevel/nextLevel off the live session — aal2 is only ever
+   * reached after `mfa.challengeAndVerify`, so a mismatch means a verified
+   * TOTP factor is still owed a challenge. */
+  const checkMfaPending = async () => {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    const pending = !!aal && aal.nextLevel === "aal2" && aal.currentLevel !== aal.nextLevel;
+    setMfaPending(pending);
+    return pending;
+  };
 
   const orgId = profile?.current_org_id ?? null;
   const isPlatformAdmin = profile?.platform_role === "super_admin";
@@ -112,7 +130,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      if (session?.user) await loadProfile(session.user.id);
+      if (session?.user) {
+        await checkMfaPending();
+        await loadProfile(session.user.id);
+      }
       setLoading(false);
     });
 
@@ -120,10 +141,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (_event, session) => {
         setSession(session);
         if (session?.user) {
+          await checkMfaPending();
           await loadProfile(session.user.id);
         } else {
           setProfile(null);
           setOrg(null);
+          setMfaPending(false);
         }
       }
     );
@@ -145,22 +168,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   /* ── Sign in Empresa (owner/admin) ─────────────────────────────────────── */
-  const signInEmpresa = async (email: string, password: string) => {
+  const signInEmpresa = async (email: string, password: string): Promise<SignInResult> => {
     // Drop any stale device-session id BEFORE signing in: the auth listener
     // fires loadProfile immediately, and a leftover id from a previous session
     // would trip the single-device check and kick this fresh login.
     await AsyncStorage.removeItem(SESSION_KEY).catch(() => {});
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return error.message;
+    if (error) return { error: error.message, mfaRequired: false };
     if (data.user) await registerDeviceSession(data.user.id);
-    return null;
+    const mfaRequired = await checkMfaPending();
+    return { error: null, mfaRequired };
   };
 
   /* ── Sign in Usuario (member with company code) ─────────────────────────── */
-  const signInUsuario = async (email: string, password: string, code: string) => {
+  const signInUsuario = async (email: string, password: string, code: string): Promise<SignInResult> => {
     await AsyncStorage.removeItem(SESSION_KEY).catch(() => {});
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return error.message;
+    if (error) return { error: error.message, mfaRequired: false };
 
     const upperCode = code.trim().toUpperCase();
     const { data: orgData } = await supabase
@@ -171,7 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!orgData) {
       await supabase.auth.signOut();
-      return "Código de empresa no encontrado o no eres miembro de esta organización.";
+      return { error: "Código de empresa no encontrado o no eres miembro de esta organización.", mfaRequired: false };
     }
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -180,7 +204,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.user) await registerDeviceSession(user.id);
     }
     setOrg(orgData);
+    const mfaRequired = await checkMfaPending();
+    return { error: null, mfaRequired };
+  };
+
+  /* ── Two-factor challenge (TOTP) ────────────────────────────────────────── */
+  const verifyMfaCode = async (code: string) => {
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    const factor = data?.totp.find(f => f.status === "verified");
+    if (error || !factor) return "No hay ninguna verificación en dos pasos activa en esta cuenta.";
+    const { error: verifyErr } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code });
+    if (verifyErr) return "Código incorrecto. Inténtalo de nuevo.";
+    setMfaPending(false);
     return null;
+  };
+
+  /** Bails out of a pending challenge by signing out entirely — there is no
+   * partial session to fall back to, same as "Cerrar sesión" on the web
+   * challenge screen. */
+  const cancelMfa = async () => {
+    await signOut();
   };
 
   /* ── Sign up ────────────────────────────────────────────────────────────── */
@@ -206,8 +249,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      session, profile, org, orgId, role, isPlatformAdmin, isAdmin, isPaid, loading,
-      signInEmpresa, signInUsuario, signUp, signOut, refreshProfile,
+      session, profile, org, orgId, role, isPlatformAdmin, isAdmin, isPaid, loading, mfaPending,
+      signInEmpresa, signInUsuario, signUp, signOut, refreshProfile, verifyMfaCode, cancelMfa,
     }}>
       {children}
     </AuthContext.Provider>
