@@ -604,7 +604,7 @@ export function InventarioView() {
                   <input value={draft.sku} onChange={e => setDraft({ ...draft, sku: e.target.value })} placeholder={t("skuPlaceholder")} className={inputCls} />
                 </Field>
                 <Field label={t("unit")}>
-                  <input value={draft.unit} onChange={e => setDraft({ ...draft, unit: e.target.value })} className={inputCls} />
+                  <input value={draft.unit} onChange={e => setDraft({ ...draft, unit: e.target.value })} placeholder={t("unitPlaceholder")} className={inputCls} />
                 </Field>
               </div>
               <Field label={t("category")}>

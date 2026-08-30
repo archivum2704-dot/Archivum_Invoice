@@ -131,6 +131,7 @@
     "uncategorized": "Uncategorized",
     "description": "Description",
     "unit": "Unit",
+    "unitPlaceholder": "e.g. pc, kg, h, box…",
     "unitPrice": "Price",
     "tax": "VAT",
     "stock": "Stock",

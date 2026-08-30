@@ -131,6 +131,7 @@
     "uncategorized": "Sin categoría",
     "description": "Descripción",
     "unit": "Unidad",
+    "unitPlaceholder": "Ej. ud, kg, h, caja…",
     "unitPrice": "Precio",
     "tax": "IVA",
     "stock": "Stock",
