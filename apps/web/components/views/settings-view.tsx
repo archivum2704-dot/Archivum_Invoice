@@ -525,37 +525,6 @@ export function SettingsView() {
           </label>
         </Section>
 
-        {/* Danger zone — cancel subscription */}
-        <Section
-          title="Zona de peligro"
-          description="Acciones irreversibles. Léelas con atención antes de proceder."
-        >
-          <div className="border border-destructive/30 rounded-xl p-5 space-y-3 bg-destructive/5">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Cancelar suscripción</p>
-                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                  Al cancelar perderás acceso a la subida, descarga y edición de documentos. Tienes 15 días para descargar todo antes de que la cuenta y sus datos sean eliminados.
-                </p>
-              </div>
-            </div>
-            {cancelSuccess ? (
-              <p className="text-sm text-accent font-medium">
-                ✓ Suscripción cancelada. Recibirás un correo de confirmación.
-              </p>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setCancelModalOpen(true)}
-                className="px-4 py-2 text-sm font-medium text-destructive border border-destructive/40 rounded-lg hover:bg-destructive/10 transition-colors"
-              >
-                Cancelar mi suscripción
-              </button>
-            )}
-          </div>
-        </Section>
-
         {/* Art. 13.2: the declaration has to be visible in the system itself,
             and the Verifactu screen it also sits on is admin-only — so it needs
             a way in that anyone using the app can find.
@@ -639,6 +608,39 @@ export function SettingsView() {
               </span>
               <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
             </Link>
+          </div>
+        </Section>
+
+        {/* Danger zone — cancel subscription. Va al final de todo, después de
+            Legal: es la última acción que alguien debería encontrarse, no una
+            más entre las demás. */}
+        <Section
+          title="Zona de peligro"
+          description="Acciones irreversibles. Léelas con atención antes de proceder."
+        >
+          <div className="border border-destructive/30 rounded-xl p-5 space-y-3 bg-destructive/5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Cancelar suscripción</p>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  Al cancelar perderás acceso a la subida, descarga y edición de documentos. Tienes 15 días para descargar todo antes de que la cuenta y sus datos sean eliminados.
+                </p>
+              </div>
+            </div>
+            {cancelSuccess ? (
+              <p className="text-sm text-accent font-medium">
+                ✓ Suscripción cancelada. Recibirás un correo de confirmación.
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setCancelModalOpen(true)}
+                className="px-4 py-2 text-sm font-medium text-destructive border border-destructive/40 rounded-lg hover:bg-destructive/10 transition-colors"
+              >
+                Cancelar mi suscripción
+              </button>
+            )}
           </div>
         </Section>
 
