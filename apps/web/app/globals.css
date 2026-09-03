@@ -151,3 +151,16 @@
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: 6px;
 }
+
+/*
+ * Chrome/Firefox only omit their own print header/footer (page title, date,
+ * URL) when the page has zero @page margin — a non-zero margin still gets
+ * that text squeezed into it. Views that print (facturas, presupuestos,
+ * albaranes) compensate with their own print:p-* padding so content doesn't
+ * sit at the physical paper edge.
+ */
+@media print {
+  @page {
+    margin: 0;
+  }
+}

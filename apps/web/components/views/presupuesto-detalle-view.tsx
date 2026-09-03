@@ -112,7 +112,7 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
   const fmtEur = (n: number) => formatMoney(Number(n) || 0, quote.currency)
 
   return (
-    <div className="p-6 sm:p-8 max-w-3xl mx-auto">
+    <div className="p-6 sm:p-8 print:p-12 max-w-3xl mx-auto">
       {/* Toolbar (hidden on print).
           Five actions do not fit on one line at this width, so the group wraps
           instead of squeezing: without nowrap the labels broke inside the

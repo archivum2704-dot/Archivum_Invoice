@@ -94,7 +94,7 @@ export function FacturaEmitidaView({ id }: { id: string }) {
   if (!invoice) return <div className="p-8 text-sm text-muted-foreground">{t("notFound")}</div>
 
   return (
-    <div className="p-6 sm:p-8 max-w-3xl mx-auto">
+    <div className="p-6 sm:p-8 print:p-12 max-w-3xl mx-auto">
       {/* Toolbar (hidden on print) */}
       <div className="flex items-start justify-between gap-4 mb-6 print:hidden">
         <Link href="/facturacion" className="flex items-center gap-1.5 shrink-0 mt-2 text-sm text-muted-foreground hover:text-foreground whitespace-nowrap transition-colors">
