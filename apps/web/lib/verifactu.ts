@@ -82,6 +82,10 @@ export interface RegistroAltaInput {
   cuotaTotal: number        // total VAT
   importeTotal: number      // grand total
   previousHuella: string    // '' for the first record in the chain
+  /** full_number of that predecessor. Not hashed — only needed to serialise Encadenamiento. */
+  previousFullNumber?: string
+  /** issue_date (YYYY-MM-DD) of that predecessor. Not hashed — same reason. */
+  previousIssueDate?: string
   generatedAt: string       // FechaHoraHusoGenRegistro, ISO-8601 with offset
 }
 
@@ -288,7 +292,12 @@ export function buildRegistroAlta(args: RegistroAltaInput & {
     CuotaTotal: money(args.cuotaTotal),
     ImporteTotal: money(args.importeTotal),
     Encadenamiento: args.previousHuella
-      ? { RegistroAnterior: { Huella: args.previousHuella } }
+      ? { RegistroAnterior: {
+          IDEmisorFactura: args.issuerNif,
+          NumSerieFactura: args.previousFullNumber,
+          FechaExpedicionFactura: args.previousIssueDate ? fechaExpedicion(args.previousIssueDate) : undefined,
+          Huella: args.previousHuella,
+        } }
       : { PrimerRegistro: 'S' },
     SistemaInformatico: sistemaInformatico(args.installationId),
     FechaHoraHusoGenRegistro: args.generatedAt,
@@ -305,6 +314,10 @@ export interface RegistroAnulacionInput {
   annulledFullNumber: string
   annulledIssueDate: string
   previousHuella: string
+  /** full_number of that predecessor. Not hashed — only needed to serialise Encadenamiento. */
+  previousFullNumber?: string
+  /** issue_date (YYYY-MM-DD) of that predecessor. Not hashed — same reason. */
+  previousIssueDate?: string
   generatedAt: string
 }
 
@@ -366,7 +379,12 @@ export function buildRegistroAnulacion(args: RegistroAnulacionInput & {
     ...(args.sinRegistroPrevio ? { SinRegistroPrevio: 'S' } : {}),
     GeneradoPor: 'E',
     Encadenamiento: args.previousHuella
-      ? { RegistroAnterior: { Huella: args.previousHuella } }
+      ? { RegistroAnterior: {
+          IDEmisorFactura: args.issuerNif,
+          NumSerieFactura: args.previousFullNumber,
+          FechaExpedicionFactura: args.previousIssueDate ? fechaExpedicion(args.previousIssueDate) : undefined,
+          Huella: args.previousHuella,
+        } }
       : { PrimerRegistro: 'S' },
     SistemaInformatico: sistemaInformatico(args.installationId),
     FechaHoraHusoGenRegistro: args.generatedAt,

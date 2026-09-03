@@ -30,7 +30,8 @@ const cuotaTotal = 319, importeTotal = 2219
 const chainInput = {
   issuerNif: 'B12345678', fullNumber: 'FAC-2026-0001', issueDate: '2026-08-08',
   kind: 'ordinary' as const, cuotaTotal, importeTotal,
-  previousHuella: 'ABC123', generatedAt: '2026-08-08T12:00:00+02:00',
+  previousHuella: 'ABC123', previousFullNumber: 'FAC-2026-0000', previousIssueDate: '2026-08-07',
+  generatedAt: '2026-08-08T12:00:00+02:00',
 }
 
 console.log('\n── Desglose ──')
@@ -66,6 +67,18 @@ for (const f of ['NombreRazon','NIF','NombreSistemaInformatico','IdSistemaInform
   check(`SistemaInformatico lleva ${f}`, reg.SistemaInformatico[f] !== undefined)
 }
 
+// RegistroAnterior es un bloque con cuatro campos obligatorios en el esquema
+// de la AEAT — no solo la huella. Enviar solo la huella (como ocurrió en
+// producción el 3 de septiembre) lo rechaza con Codigo[4102], "Falta informar
+// campo obligatorio: NumSerieFactura".
+for (const f of ['IDEmisorFactura','NumSerieFactura','FechaExpedicionFactura','Huella']) {
+  check(`RegistroAnterior lleva ${f}`, reg.Encadenamiento.RegistroAnterior[f] !== undefined)
+}
+check('RegistroAnterior.NumSerieFactura es el de la factura previa, no la actual',
+  reg.Encadenamiento.RegistroAnterior.NumSerieFactura === 'FAC-2026-0000')
+check('RegistroAnterior.FechaExpedicionFactura en formato DD-MM-YYYY',
+  reg.Encadenamiento.RegistroAnterior.FechaExpedicionFactura === '07-08-2026')
+
 console.log('\n── La huella NO puede cambiar (rompería la cadena) ──')
 const expected = computeHuella(chainInput)
 check('la huella del registro es la de la cadena', reg.Huella === expected, expected.slice(0, 16) + '…')
@@ -83,6 +96,8 @@ check('lleva el registro de alta', xml.includes('<sum1:RegistroAlta>'))
 check('lleva el desglose', (xml.match(/<sum1:DetalleDesglose>/g) ?? []).length === 3)
 check('lleva la huella', xml.includes(`<sum1:Huella>${reg.Huella}</sum1:Huella>`))
 check('lleva el encadenamiento anterior', xml.includes('<sum1:RegistroAnterior>') && xml.includes('ABC123'))
+check('el XML del encadenamiento anterior lleva NumSerieFactura y FechaExpedicionFactura',
+  xml.includes('<sum1:NumSerieFactura>FAC-2026-0000<') && xml.includes('<sum1:FechaExpedicionFactura>07-08-2026<'))
 check('lleva SistemaInformatico completo', xml.includes('<sum1:TipoUsoPosibleSoloVerifactu>S<'))
 check('etiquetas equilibradas', (xml.match(/</g) ?? []).length === (xml.match(/>/g) ?? []).length)
 
@@ -168,6 +183,8 @@ const anulInput = {
   annulledFullNumber: 'FAC-2026-0001',
   annulledIssueDate: '2026-08-08',
   previousHuella: reg.Huella,
+  previousFullNumber: reg.IDFactura.NumSerieFactura,
+  previousIssueDate: '2026-08-08',
   generatedAt: '2026-08-08T13:00:00+02:00',
 }
 const anul: any = buildRegistroAnulacion({ ...anulInput, installationId: 'org-abc' })
@@ -177,6 +194,11 @@ check('identifica la factura anulada',
   anul.IDFactura.NumSerieFacturaAnulada === 'FAC-2026-0001' &&
   anul.IDFactura.FechaExpedicionFacturaAnulada === '08-08-2026')
 check('se encadena al registro anterior', anul.Encadenamiento.RegistroAnterior.Huella === reg.Huella)
+for (const f of ['IDEmisorFactura','NumSerieFactura','FechaExpedicionFactura','Huella']) {
+  check(`RegistroAnterior de la anulación lleva ${f}`, anul.Encadenamiento.RegistroAnterior[f] !== undefined)
+}
+check('RegistroAnterior de la anulación referencia el alta que precede',
+  anul.Encadenamiento.RegistroAnterior.NumSerieFactura === 'FAC-2026-0001')
 check('declara quién lo genera', anul.GeneradoPor === 'E')
 check('lleva SistemaInformatico', !!anul.SistemaInformatico.NombreSistemaInformatico)
 check('su huella es la de anulación, no la de alta', anul.Huella === computeHuellaAnulacion(anulInput))

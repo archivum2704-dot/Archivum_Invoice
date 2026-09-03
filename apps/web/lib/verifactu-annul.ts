@@ -59,14 +59,16 @@ export async function annulInvoiceRecord(
   const sinRegistroPrevio = invoice.verifactu_status !== 'sent'
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const previousHuella = await readChainHead(db, args.orgId)
+    const head = await readChainHead(db, args.orgId)
     const generatedAt = nowWithOffset()
 
     const input = {
       issuerNif: invoice.issuer_cif.trim(),
       annulledFullNumber: invoice.full_number,
       annulledIssueDate: invoice.issue_date,
-      previousHuella,
+      previousHuella: head.huella,
+      previousFullNumber: head.fullNumber,
+      previousIssueDate: head.issueDate,
       generatedAt,
     }
     const huella = computeHuellaAnulacion(input)
@@ -80,7 +82,7 @@ export async function annulInvoiceRecord(
       annulled_issue_date: input.annulledIssueDate,
       reason: args.reason?.trim() || null,
       huella,
-      huella_anterior: previousHuella || null,
+      huella_anterior: head.huella || null,
       registro_anulacion: registro,
       generated_at: generatedAt,
       created_by: userId,
@@ -91,7 +93,7 @@ export async function annulInvoiceRecord(
     const { error: linkErr } = await db.from('verifactu_chain_links').insert({
       organization_id: args.orgId, kind: 'anulacion', annulment_id: annulment.id,
       invoice_id: invoice.id, full_number: invoice.full_number, issue_date: invoice.issue_date,
-      huella, huella_anterior: previousHuella || null, generated_at: generatedAt,
+      huella, huella_anterior: head.huella || null, generated_at: generatedAt,
     })
 
     if (!linkErr) {

@@ -5,6 +5,10 @@ import { nowWithOffset } from '@/lib/verifactu'
 export interface ChainLink {
   /** The huella of the organization's last issued invoice; '' for the first. */
   previousHuella: string
+  /** full_number of that same predecessor; '' for the first. */
+  previousFullNumber: string
+  /** issue_date (YYYY-MM-DD) of that same predecessor; '' for the first. */
+  previousIssueDate: string
   /** FechaHoraHusoGenRegistro for this attempt. */
   generatedAt: string
 }
@@ -21,10 +25,16 @@ const MAX_ATTEMPTS = 4
  * Alta and anulación records share one chain, so the head cannot be read from
  * `invoices` alone: an annulment generated after the last invoice is the head.
  */
-export async function readChainHead(db: any, orgId: string): Promise<string> {
+export async function readChainHead(
+  db: any, orgId: string,
+): Promise<{ huella: string; fullNumber: string; issueDate: string }> {
   const { data } = await db.rpc('verifactu_chain_head', { p_org: orgId })
   const head = Array.isArray(data) ? data[0] : data
-  return head?.huella ?? ''
+  return {
+    huella: head?.huella ?? '',
+    fullNumber: head?.full_number ?? '',
+    issueDate: head?.issue_date ?? '',
+  }
 }
 
 /**
@@ -63,9 +73,12 @@ export async function insertChainedInvoice(
   const db = supabase as any
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const previousHuella = await readChainHead(db, orgId)
+    const head = await readChainHead(db, orgId)
     const generatedAt = nowWithOffset()
-    const row = build({ previousHuella, generatedAt })
+    const row = build({
+      previousHuella: head.huella, previousFullNumber: head.fullNumber,
+      previousIssueDate: head.issueDate, generatedAt,
+    })
 
     const { data, error } = await db.from('invoices').insert(row).select('id, full_number').single()
     if (!error && data) {
@@ -76,7 +89,7 @@ export async function insertChainedInvoice(
       const { error: linkErr } = await db.from('verifactu_chain_links').insert({
         organization_id: orgId, kind: 'alta', invoice_id: data.id,
         full_number: data.full_number, issue_date: (row as any).issue_date,
-        huella: (row as any).huella, huella_anterior: previousHuella || null,
+        huella: (row as any).huella, huella_anterior: head.huella || null,
         generated_at: generatedAt,
       })
       if (!linkErr) return { id: data.id, full_number: data.full_number }

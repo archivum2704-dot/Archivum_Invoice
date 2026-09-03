@@ -176,10 +176,11 @@ export async function issueInvoice(
   let huella = ''
 
   const chained = obligado
-    ? await insertChainedInvoice(supabase, orgId, ({ previousHuella, generatedAt }) => {
+    ? await insertChainedInvoice(supabase, orgId, ({ previousHuella, previousFullNumber, previousIssueDate, generatedAt }) => {
     const registroInput = {
       issuerNif: org.cif!.trim(), fullNumber, issueDate, kind: kind as InvoiceKind,
-      cuotaTotal: eurTaxAmount, importeTotal: eurTotal, previousHuella, generatedAt,
+      cuotaTotal: eurTaxAmount, importeTotal: eurTotal, previousHuella,
+      previousFullNumber, previousIssueDate, generatedAt,
     }
     huella = computeHuella(registroInput)
     const registroAlta = buildRegistroAlta({
