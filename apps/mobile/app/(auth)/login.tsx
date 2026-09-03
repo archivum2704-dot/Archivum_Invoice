@@ -34,18 +34,23 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     setLoading(true);
     setError(null);
-    const result = tab === "empresa"
-      ? await signInEmpresa(email.trim(), password)
-      : await signInUsuario(email.trim(), password, code);
-    if (result.error) {
-      setError(result.error === "Invalid login credentials"
-        ? "Email o contraseña incorrectos"
-        : result.error);
+    try {
+      const result = tab === "empresa"
+        ? await signInEmpresa(email.trim(), password)
+        : await signInUsuario(email.trim(), password, code);
+      if (result.error) {
+        setError(result.error === "Invalid login credentials"
+          ? "Email o contraseña incorrectos"
+          : result.error);
+        setLoading(false);
+      } else if (result.mfaRequired) {
+        router.replace("/(auth)/mfa");
+      } else {
+        router.replace("/(app)/dashboard");
+      }
+    } catch {
+      setError("No se pudo iniciar sesión. Comprueba tu conexión e inténtalo de nuevo.");
       setLoading(false);
-    } else if (result.mfaRequired) {
-      router.replace("/(auth)/mfa");
-    } else {
-      router.replace("/(app)/dashboard");
     }
   };
 

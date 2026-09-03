@@ -23,36 +23,50 @@ export default function MfaChallengePage() {
   useEffect(() => {
     const supabase = createClient()
     ;(async () => {
-      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-      if (aal?.currentLevel === 'aal2') { router.replace('/dashboard'); return }
-      const { data, error: err } = await supabase.auth.mfa.listFactors()
-      const factor = data?.totp.find(f => f.status === 'verified')
-      if (err || !factor) {
-        // No verified factor to challenge — nothing to do here.
-        router.replace('/dashboard')
-        return
+      try {
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+        if (aal?.currentLevel === 'aal2') { router.replace('/dashboard'); return }
+        const { data, error: err } = await supabase.auth.mfa.listFactors()
+        const factor = data?.totp.find(f => f.status === 'verified')
+        if (err || !factor) {
+          // No verified factor to challenge — nothing to do here.
+          router.replace('/dashboard')
+          return
+        }
+        setFactorId(factor.id)
+        setLoading(false)
+        setTimeout(() => inputRef.current?.focus(), 50)
+      } catch {
+        // A dropped connection here would otherwise leave the page on its
+        // full-screen spinner forever, with no input to retry from.
+        setError(t('connectionError'))
+        setLoading(false)
       }
-      setFactorId(factor.id)
-      setLoading(false)
-      setTimeout(() => inputRef.current?.focus(), 50)
     })()
-  }, [router])
+  }, [router, t])
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!factorId || code.length !== 6) return
     setVerifying(true); setError(null)
-    const supabase = createClient()
-    const { error: err } = await supabase.auth.mfa.challengeAndVerify({ factorId, code })
-    if (err) {
-      setError(t('invalidCode'))
+    try {
+      const supabase = createClient()
+      const { error: err } = await supabase.auth.mfa.challengeAndVerify({ factorId, code })
+      if (err) {
+        setError(t('invalidCode'))
+        setCode('')
+        setVerifying(false)
+        inputRef.current?.focus()
+        return
+      }
+      router.push('/dashboard')
+      router.refresh()
+    } catch {
+      setError(t('connectionError'))
       setCode('')
       setVerifying(false)
       inputRef.current?.focus()
-      return
     }
-    router.push('/dashboard')
-    router.refresh()
   }
 
   const handleCancel = async () => {

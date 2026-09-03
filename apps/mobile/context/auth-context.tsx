@@ -77,7 +77,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     !INACTIVE.includes(org.subscription_status ?? "");
 
   /* ── Load profile + org + single-device check ──────────────────────────── */
+  // Called after every sign-in and after the MFA challenge, both times right
+  // before the caller clears its own `loading` flag — a thrown network error
+  // here (as opposed to a returned {error}) used to skip that, leaving the
+  // app stuck on its loading screen with no way forward.
   const loadProfile = async (userId: string) => {
+    try {
+      await loadProfileUnsafe(userId);
+    } catch (e) {
+      console.warn("[auth] loadProfile failed:", e);
+    }
+  };
+
+  const loadProfileUnsafe = async (userId: string) => {
     const { data: p } = await supabase
       .from("profiles")
       .select("id, first_name, last_name, current_org_id, platform_role, active_session_id")
@@ -169,54 +181,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* ── Sign in Empresa (owner/admin) ─────────────────────────────────────── */
   const signInEmpresa = async (email: string, password: string): Promise<SignInResult> => {
-    // Drop any stale device-session id BEFORE signing in: the auth listener
-    // fires loadProfile immediately, and a leftover id from a previous session
-    // would trip the single-device check and kick this fresh login.
-    await AsyncStorage.removeItem(SESSION_KEY).catch(() => {});
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message, mfaRequired: false };
-    if (data.user) await registerDeviceSession(data.user.id);
-    const mfaRequired = await checkMfaPending();
-    return { error: null, mfaRequired };
+    try {
+      // Drop any stale device-session id BEFORE signing in: the auth listener
+      // fires loadProfile immediately, and a leftover id from a previous session
+      // would trip the single-device check and kick this fresh login.
+      await AsyncStorage.removeItem(SESSION_KEY).catch(() => {});
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return { error: error.message, mfaRequired: false };
+      if (data.user) await registerDeviceSession(data.user.id);
+      const mfaRequired = await checkMfaPending();
+      return { error: null, mfaRequired };
+    } catch {
+      return { error: "No se pudo iniciar sesión. Comprueba tu conexión e inténtalo de nuevo.", mfaRequired: false };
+    }
   };
 
   /* ── Sign in Usuario (member with company code) ─────────────────────────── */
   const signInUsuario = async (email: string, password: string, code: string): Promise<SignInResult> => {
-    await AsyncStorage.removeItem(SESSION_KEY).catch(() => {});
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message, mfaRequired: false };
+    try {
+      await AsyncStorage.removeItem(SESSION_KEY).catch(() => {});
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return { error: error.message, mfaRequired: false };
 
-    const upperCode = code.trim().toUpperCase();
-    const { data: orgData } = await supabase
-      .from("organizations")
-      .select("id, name, access_code, cif, logo_url, subscription_plan, subscription_status")
-      .eq("access_code", upperCode)
-      .single();
+      const upperCode = code.trim().toUpperCase();
+      const { data: orgData } = await supabase
+        .from("organizations")
+        .select("id, name, access_code, cif, logo_url, subscription_plan, subscription_status")
+        .eq("access_code", upperCode)
+        .single();
 
-    if (!orgData) {
-      await supabase.auth.signOut();
-      return { error: "Código de empresa no encontrado o no eres miembro de esta organización.", mfaRequired: false };
+      if (!orgData) {
+        await supabase.auth.signOut();
+        return { error: "Código de empresa no encontrado o no eres miembro de esta organización.", mfaRequired: false };
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("profiles").update({ current_org_id: orgData.id }).eq("id", user.id);
+        if (data.user) await registerDeviceSession(user.id);
+      }
+      setOrg(orgData);
+      const mfaRequired = await checkMfaPending();
+      return { error: null, mfaRequired };
+    } catch {
+      return { error: "No se pudo iniciar sesión. Comprueba tu conexión e inténtalo de nuevo.", mfaRequired: false };
     }
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from("profiles").update({ current_org_id: orgData.id }).eq("id", user.id);
-      if (data.user) await registerDeviceSession(user.id);
-    }
-    setOrg(orgData);
-    const mfaRequired = await checkMfaPending();
-    return { error: null, mfaRequired };
   };
 
   /* ── Two-factor challenge (TOTP) ────────────────────────────────────────── */
   const verifyMfaCode = async (code: string) => {
-    const { data, error } = await supabase.auth.mfa.listFactors();
-    const factor = data?.totp.find(f => f.status === "verified");
-    if (error || !factor) return "No hay ninguna verificación en dos pasos activa en esta cuenta.";
-    const { error: verifyErr } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code });
-    if (verifyErr) return "Código incorrecto. Inténtalo de nuevo.";
-    setMfaPending(false);
-    return null;
+    // A dropped connection makes these throw instead of resolving with
+    // {error} — without a catch, the caller's `loading` state never clears
+    // and the screen is stuck spinning with no way forward but a force-quit.
+    try {
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      const factor = data?.totp.find(f => f.status === "verified");
+      if (error || !factor) return "No hay ninguna verificación en dos pasos activa en esta cuenta.";
+      const { error: verifyErr } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code });
+      if (verifyErr) return "Código incorrecto. Inténtalo de nuevo.";
+      setMfaPending(false);
+      return null;
+    } catch {
+      return "No se pudo verificar el código. Comprueba tu conexión e inténtalo de nuevo.";
+    }
   };
 
   /** Bails out of a pending challenge by signing out entirely — there is no

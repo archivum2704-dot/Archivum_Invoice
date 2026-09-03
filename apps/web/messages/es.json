@@ -753,6 +753,7 @@
       "verify": "Verificar",
       "verifying": "Verificando…",
       "invalidCode": "Código incorrecto. Inténtalo de nuevo.",
+      "connectionError": "No se pudo verificar el código. Comprueba tu conexión e inténtalo de nuevo.",
       "signOutInstead": "Cerrar sesión en su lugar"
     },
     "settings": {
