@@ -483,7 +483,8 @@
       "preferences": "Preferences",
       "help": "Help",
       "danger": "Danger zone",
-      "legal": "Legal"
+      "legal": "Legal",
+      "verifactu": "VERI*FACTU"
     },
     "organization": {
       "name": "Name",
@@ -549,6 +550,34 @@
     "user": "User",
     "legal": {
       "declaration": "Responsible declaration"
+    },
+    "verifactu": {
+      "certificate": "Digital certificate",
+      "title": "VERI*FACTU certificate",
+      "subtitle": "Required to submit invoicing records to the AEAT.",
+      "currentCert": "Current certificate",
+      "installed": "Installed",
+      "noCert": "No certificate uploaded yet.",
+      "nif": "Tax ID",
+      "subject": "Holder",
+      "validUntil": "Valid until",
+      "remove": "Remove",
+      "removeConfirmTitle": "Remove certificate",
+      "removeConfirmMessage": "Remove the certificate? The organization won't be able to submit records to the AEAT until you upload a new one.",
+      "uploadCert": "Upload certificate",
+      "replaceCert": "Replace certificate",
+      "uploadHint": ".p12 or .pfx file and its password.",
+      "pickFile": "Choose file",
+      "noFileChosen": "No file chosen",
+      "certPassword": "Certificate password",
+      "save": "Save",
+      "uploaded": "Certificate saved successfully.",
+      "notAllowed": "Only an admin can manage the certificate.",
+      "errors": {
+        "invalid": "The file isn't a valid .p12/.pfx certificate, or the password is wrong.",
+        "forbidden": "You don't have permission to manage this organization's certificate.",
+        "generic": "Couldn't save the certificate. Try again."
+      }
     }
   },
   "register": {

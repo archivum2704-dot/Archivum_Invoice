@@ -483,7 +483,8 @@
       "preferences": "Preferencias",
       "help": "Ayuda",
       "danger": "Zona de peligro",
-      "legal": "Legal"
+      "legal": "Legal",
+      "verifactu": "VERI*FACTU"
     },
     "organization": {
       "name": "Nombre",
@@ -549,6 +550,34 @@
     "user": "Usuario",
     "legal": {
       "declaration": "Declaración responsable"
+    },
+    "verifactu": {
+      "certificate": "Certificado digital",
+      "title": "Certificado VERI*FACTU",
+      "subtitle": "Necesario para remitir los registros de facturación a la AEAT.",
+      "currentCert": "Certificado actual",
+      "installed": "Instalado",
+      "noCert": "No hay ningún certificado subido.",
+      "nif": "NIF",
+      "subject": "Titular",
+      "validUntil": "Válido hasta",
+      "remove": "Eliminar",
+      "removeConfirmTitle": "Eliminar certificado",
+      "removeConfirmMessage": "¿Seguro que quieres eliminar el certificado? La organización no podrá remitir registros a la AEAT hasta que subas uno nuevo.",
+      "uploadCert": "Subir certificado",
+      "replaceCert": "Sustituir certificado",
+      "uploadHint": "Archivo .p12 o .pfx y su contraseña.",
+      "pickFile": "Elegir archivo",
+      "noFileChosen": "Ningún archivo seleccionado",
+      "certPassword": "Contraseña del certificado",
+      "save": "Guardar",
+      "uploaded": "Certificado guardado correctamente.",
+      "notAllowed": "Solo un administrador puede gestionar el certificado.",
+      "errors": {
+        "invalid": "El archivo no es un certificado .p12/.pfx válido, o la contraseña es incorrecta.",
+        "forbidden": "No tienes permiso para gestionar el certificado de esta organización.",
+        "generic": "No se pudo guardar el certificado. Inténtalo de nuevo."
+      }
     }
   },
   "register": {

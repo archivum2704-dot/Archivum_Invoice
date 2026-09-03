@@ -10,12 +10,13 @@ import {
   Building2, Copy, Check, Users, Globe, Moon,
   Bell, LogOut, ChevronRight, CreditCard, FileText,
   CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle, Info,
-  ShieldCheck, Pencil, X, ImageOff, Upload, Trash2,
+  ShieldCheck, Pencil, X, ImageOff, Upload, Trash2, FileCheck2,
 } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import Constants from "expo-constants";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
 import { useAuth } from "@/context/auth-context";
 import { useTheme } from "@/context/theme-context";
 import { supabase } from "@/lib/supabase";
@@ -236,6 +237,224 @@ function OrgEditModal({ visible, orgId, token, onClose, onSaved, C }: {
   );
 }
 
+/* ── VERI*FACTU digital certificate (admins only) ──────────────────────────
+ * Uploading was web-only until now: this mirrors
+ * components/views/verifactu-settings-view.tsx against the same
+ * /api/verifactu/certificate endpoint, so an owner who only has their phone
+ * on hand doesn't have to find a computer to get Verifactu working. */
+interface CertStatus {
+  exists: boolean;
+  subject?: string;
+  nif?: string;
+  valid_until?: string;
+}
+
+function VerifactuCertModal({ visible, orgId, token, onClose, C }: {
+  visible: boolean; orgId: string; token: string | undefined;
+  onClose: () => void; C: Colors;
+}) {
+  const { t } = useTranslation();
+  const [status,   setStatus]   = useState<CertStatus | null>(null);
+  const [loading,  setLoading]  = useState(true);
+  const [file,     setFile]     = useState<{ uri: string; name: string } | null>(null);
+  const [password, setPassword] = useState("");
+  const [saving,   setSaving]   = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error,    setError]    = useState<string | null>(null);
+  const [ok,       setOk]       = useState<string | null>(null);
+
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+  const loadStatus = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${APP_URL}/api/verifactu/certificate?orgId=${orgId}`, { headers: authHeaders });
+      const json = parseApiResponse(res.status, await res.text());
+      setStatus(res.ok ? json : { exists: false });
+    } catch {
+      setStatus({ exists: false });
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (!visible) return;
+    setFile(null); setPassword(""); setError(null); setOk(null);
+    loadStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, orgId]);
+
+  const pickFile = async () => {
+    const result = await DocumentPicker.getDocumentAsync({ type: "*/*", copyToCacheDirectory: true });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    setFile({ uri: asset.uri, name: asset.name ?? "certificado" });
+    setError(null);
+  };
+
+  const handleUpload = async () => {
+    if (!file || !password) return;
+    setSaving(true); setError(null); setOk(null);
+    try {
+      const certBase64 = await FileSystem.readAsStringAsync(file.uri, { encoding: "base64" });
+      const res = await fetch(`${APP_URL}/api/verifactu/certificate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders },
+        body: JSON.stringify({ orgId, certBase64, password }),
+      });
+      const json = parseApiResponse(res.status, await res.text());
+      if (!res.ok) {
+        const map: Record<string, string> = {
+          invalid_certificate: t("ajustes.verifactu.errors.invalid"),
+          forbidden: t("ajustes.verifactu.errors.forbidden"),
+        };
+        setError(map[json.error] ?? json.detail ?? t("ajustes.verifactu.errors.generic"));
+      } else {
+        setOk(t("ajustes.verifactu.uploaded"));
+        setFile(null); setPassword("");
+        await loadStatus();
+      }
+    } catch (e) {
+      setError(String(e));
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      t("ajustes.verifactu.removeConfirmTitle"),
+      t("ajustes.verifactu.removeConfirmMessage"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("ajustes.verifactu.remove"), style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await fetch(`${APP_URL}/api/verifactu/certificate?orgId=${orgId}`, { method: "DELETE", headers: authHeaders });
+              await loadStatus();
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  return (
+    <KeyboardModal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: spacing.lg }}>
+          <Text style={{ fontFamily: fonts.bold, fontSize: 18, color: C.text }}>{t("ajustes.verifactu.title")}</Text>
+          <TouchableOpacity onPress={onClose}><X size={24} color={C.muted} strokeWidth={1.75} /></TouchableOpacity>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: spacing.lg }} keyboardShouldPersistTaps="handled">
+          <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.muted, marginBottom: spacing.lg }}>
+            {t("ajustes.verifactu.subtitle")}
+          </Text>
+
+          {/* Current status */}
+          <Text style={{ fontFamily: fonts.semibold, fontSize: 13, color: C.text, marginBottom: spacing.sm }}>
+            {t("ajustes.verifactu.currentCert")}
+          </Text>
+          <Card padded={false}>
+            {loading ? (
+              <View style={{ padding: spacing.md + 2, alignItems: "flex-start" }}>
+                <ActivityIndicator color={C.blue} />
+              </View>
+            ) : status?.exists ? (
+              <View style={{ padding: spacing.md + 2, gap: spacing.xs + 2 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs + 2 }}>
+                  <ShieldCheck size={15} color={C.green} strokeWidth={1.75} />
+                  <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: C.green }}>{t("ajustes.verifactu.installed")}</Text>
+                </View>
+                {status.nif && (
+                  <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>
+                    {t("ajustes.verifactu.nif")}: <Text style={{ color: C.text }}>{status.nif}</Text>
+                  </Text>
+                )}
+                {status.subject && (
+                  <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>
+                    {t("ajustes.verifactu.subject")}: <Text style={{ color: C.text }}>{status.subject}</Text>
+                  </Text>
+                )}
+                {status.valid_until && (
+                  <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>
+                    {t("ajustes.verifactu.validUntil")}: <Text style={{ color: C.text }}>{new Date(status.valid_until).toLocaleDateString()}</Text>
+                  </Text>
+                )}
+                <TouchableOpacity onPress={handleDelete} disabled={deleting} style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs, marginTop: spacing.xs }}>
+                  {deleting ? <ActivityIndicator size="small" color={C.red} /> : <Trash2 size={14} color={C.red} strokeWidth={1.75} />}
+                  <Text style={{ fontFamily: fonts.medium, fontSize: 12, color: C.red }}>{t("ajustes.verifactu.remove")}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.muted, padding: spacing.md + 2 }}>
+                {t("ajustes.verifactu.noCert")}
+              </Text>
+            )}
+          </Card>
+
+          {/* Upload form */}
+          <Text style={{ fontFamily: fonts.semibold, fontSize: 13, color: C.text, marginTop: spacing.xl, marginBottom: 2 }}>
+            {status?.exists ? t("ajustes.verifactu.replaceCert") : t("ajustes.verifactu.uploadCert")}
+          </Text>
+          <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginBottom: spacing.md }}>
+            {t("ajustes.verifactu.uploadHint")}
+          </Text>
+
+          <Button
+            variant="secondary"
+            fullWidth={false}
+            onPress={pickFile}
+            icon={<FileCheck2 size={15} color={C.text} strokeWidth={1.75} />}
+            label={file ? file.name : t("ajustes.verifactu.pickFile")}
+          />
+          {!file && (
+            <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted, marginTop: spacing.xs }}>
+              {t("ajustes.verifactu.noFileChosen")}
+            </Text>
+          )}
+
+          <View style={{ marginTop: spacing.md }}>
+            <Input
+              label={t("ajustes.verifactu.certPassword")}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoCapitalize="none"
+            />
+          </View>
+
+          {error && (
+            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.sm, backgroundColor: C.redL, borderWidth: 1, borderColor: C.red, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md }}>
+              <AlertTriangle size={15} color={C.red} strokeWidth={1.75} style={{ marginTop: 1 }} />
+              <Text style={{ flex: 1, fontFamily: fonts.regular, fontSize: 12, color: C.red }}>{error}</Text>
+            </View>
+          )}
+          {ok && (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: C.greenL, borderWidth: 1, borderColor: C.green, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md }}>
+              <CheckCircle size={15} color={C.green} strokeWidth={1.75} />
+              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.green }}>{ok}</Text>
+            </View>
+          )}
+
+          <View style={{ marginTop: spacing.lg }}>
+            <Button
+              label={t("ajustes.verifactu.save")}
+              onPress={handleUpload}
+              loading={saving}
+              disabled={!file || !password}
+              icon={<Upload size={16} color="#fff" strokeWidth={1.75} />}
+            />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </KeyboardModal>
+  );
+}
+
 interface PlanInfo {
   subscription_plan: PlanId;
   subscription_status: string;
@@ -284,6 +503,7 @@ export default function AjustesScreen() {
   const [signingOut,    setSigningOut]    = useState(false);
   const [plan,          setPlan]          = useState<PlanInfo | null>(null);
   const [orgEditOpen,   setOrgEditOpen]   = useState(false);
+  const [certModalOpen, setCertModalOpen] = useState(false);
 
   // Load notifications preference
   useEffect(() => {
@@ -618,6 +838,25 @@ export default function AjustesScreen() {
           </Card>
         </View>
 
+        {/* VERI*FACTU — the digital certificate the AEAT submission signs with.
+            Admins only, same gate as the fiscal-data edit above. */}
+        {isAdmin && (
+          <>
+            <SectionLabel C={C}>{t("ajustes.sections.verifactu")}</SectionLabel>
+            <View style={{ marginHorizontal: spacing.lg }}>
+              <Card padded={false}>
+                <Row
+                  C={C}
+                  icon={<ShieldCheck size={16} color={C.muted} strokeWidth={1.75} />}
+                  label={t("ajustes.verifactu.certificate")}
+                  onPress={() => setCertModalOpen(true)}
+                  border={false}
+                />
+              </Card>
+            </View>
+          </>
+        )}
+
         {/* Help */}
         <SectionLabel C={C}>{t("ajustes.sections.help")}</SectionLabel>
         <View style={{ marginHorizontal: spacing.lg }}>
@@ -711,6 +950,16 @@ export default function AjustesScreen() {
           token={session?.access_token}
           onClose={() => setOrgEditOpen(false)}
           onSaved={refreshProfile}
+          C={C}
+        />
+      )}
+
+      {org?.id && (
+        <VerifactuCertModal
+          visible={certModalOpen}
+          orgId={org.id}
+          token={session?.access_token}
+          onClose={() => setCertModalOpen(false)}
           C={C}
         />
       )}
