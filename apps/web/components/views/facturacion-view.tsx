@@ -261,6 +261,7 @@ export function FacturacionView() {
             description: l.description,
             quantity: Number(l.quantity) || 0,
             unitPrice: Number(l.unitPrice) || 0,
+            exemptionCause: l.taxRate === "" ? l.exemptionCause : null,
             taxRate: Number(l.taxRate) || 0,
             discountPct: Number(l.discountPct) || 0,
           })),

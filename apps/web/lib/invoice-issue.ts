@@ -76,18 +76,18 @@ export async function issueInvoice(
       `Falta el tipo de cambio a euros para facturar en ${currency}.`)
   }
 
-  const { data: org } = await supabase
+  const { data: org, error: orgErr } = await supabase
     .from('organizations')
     .select('name, cif, address, city, postal_code, province, logo_url, verifactu_clave_regimen, verifactu_obligado')
     .eq('id', orgId).single()
-  if (!org) throw new IssueError('org_not_found', 404)
+  if (!org) throw new IssueError('org_not_found', 404, orgErr?.message)
 
   if (!clientCompanyId) throw new IssueError('client_required', 400)
-  const { data: client } = await supabase
+  const { data: client, error: clientErr } = await supabase
     .from('companies')
     .select('name, cif, address, city, postal_code, province, country_code, tax_id_type')
     .eq('id', clientCompanyId).single()
-  if (!client) throw new IssueError('client_not_found', 404)
+  if (!client) throw new IssueError('client_not_found', 404, clientErr?.message)
 
   if (!org.cif?.trim())    throw new IssueError('issuer_cif_required', 422)
   if (!client.cif?.trim()) throw new IssueError('client_cif_required', 422)
