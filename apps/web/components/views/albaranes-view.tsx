@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ClipboardList, Download, ArrowRight, Loader2, FileText, FolderPlus } from "lucide-react"
+import { ClipboardList, Download, ArrowRight, Loader2, FileText, FolderPlus, ListChecks, Printer, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useQuotes, fetchQuoteWithLines, type Quote } from "@/lib/hooks/use-quotes"
@@ -37,6 +37,50 @@ export function AlbaranesView() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [archiving, setArchiving] = useState(false)
   const [stockCheck, setStockCheck] = useState<{ note: Quote; warnings: StockWarning[] } | null>(null)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [printing, setPrinting] = useState(false)
+
+  const toggleSelectMode = () => {
+    setSelectMode(m => !m)
+    setSelected(new Set())
+  }
+
+  const toggleSelected = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  // A checklist to review by hand before billing — not a change to how
+  // billing itself works. Each albarán still converts one at a time from
+  // this same screen, exactly as before.
+  const handlePrintList = async () => {
+    if (!currentOrg || selected.size === 0) return
+    setPrinting(true)
+    try {
+      const res = await fetch("/api/quotes/print-list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId: currentOrg.id, ids: Array.from(selected) }),
+      })
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        alert(json.detail ?? json.error ?? "No se pudo generar el listado.")
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      window.open(url, "_blank")
+      setTimeout(() => URL.revokeObjectURL(url), 30_000)
+    } catch (e) {
+      alert(String(e))
+    } finally {
+      setPrinting(false)
+    }
+  }
 
   // Los albaranes se archivan solos al abrirse, pero eso es best-effort y los
   // abiertos antes de que existiera el archivado no tienen copia. Esto lo
@@ -96,11 +140,21 @@ export function AlbaranesView() {
     await doBill(n)
   }
 
-  const row = (n: Quote) => (
+  const row = (n: Quote, selectable = false) => (
     <div key={n.id} className={cn(
       "flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-colors",
       busyId === n.id && "opacity-50 pointer-events-none",
     )}>
+      {selectMode && (
+        selectable ? (
+          <input
+            type="checkbox"
+            checked={selected.has(n.id)}
+            onChange={() => toggleSelected(n.id)}
+            className="w-4 h-4 shrink-0 accent-accent"
+          />
+        ) : <span className="w-4 shrink-0" />
+      )}
       <Link href={`/presupuestos/${n.id}`} className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-foreground truncate hover:text-accent">{n.full_number ?? "—"}</p>
         <p className="text-xs text-muted-foreground truncate">
@@ -129,14 +183,30 @@ export function AlbaranesView() {
   return (
     <div className="p-8 max-w-5xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
-          <ClipboardList className="w-6 h-6" />
-          Albaranes
-          <TutorialHelpButton slide={["deliveryNotes", "quotes"]} />
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Se abre uno por cada pedido. Desde aquí se emite su factura.
-        </p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+              <ClipboardList className="w-6 h-6" />
+              Albaranes
+              <TutorialHelpButton slide={["deliveryNotes", "quotes"]} />
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Se abre uno por cada pedido. Desde aquí se emite su factura.
+            </p>
+          </div>
+          {open.length > 0 && (
+            <button
+              onClick={toggleSelectMode}
+              className={cn(
+                "inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl transition-colors shrink-0",
+                selectMode ? "bg-muted text-foreground" : "bg-card border border-border hover:bg-muted",
+              )}
+            >
+              {selectMode ? <X className="w-4 h-4" /> : <ListChecks className="w-4 h-4" />}
+              {selectMode ? "Cancelar selección" : "Seleccionar para imprimir"}
+            </button>
+          )}
+        </div>
         {isOrgAdmin && sinArchivar > 0 && (
           <button
             onClick={handleArchive}
@@ -148,6 +218,22 @@ export function AlbaranesView() {
           </button>
         )}
       </div>
+
+      {selectMode && (
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-accent/10 border border-accent/20 rounded-xl px-4 py-3 mb-4">
+          <p className="text-sm text-foreground">
+            <span className="font-semibold">{selected.size}</span> seleccionado{selected.size === 1 ? "" : "s"}
+          </p>
+          <button
+            onClick={handlePrintList}
+            disabled={selected.size === 0 || printing}
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 disabled:opacity-50 transition-colors"
+          >
+            {printing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
+            Imprimir listado
+          </button>
+        </div>
+      )}
 
       <div className="bg-card border border-border rounded-xl overflow-hidden mb-6">
         {loading ? (
@@ -162,7 +248,7 @@ export function AlbaranesView() {
             <p className="text-xs text-muted-foreground">Se crean solos al guardar un pedido.</p>
           </div>
         ) : (
-          <div className="divide-y divide-border">{open.map(row)}</div>
+          <div className="divide-y divide-border">{open.map(n => row(n, true))}</div>
         )}
       </div>
 
@@ -170,7 +256,7 @@ export function AlbaranesView() {
         <div>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Ya facturados</p>
           <div className="bg-card border border-border rounded-xl overflow-hidden opacity-75">
-            <div className="divide-y divide-border">{billed.map(row)}</div>
+            <div className="divide-y divide-border">{billed.map(n => row(n, false))}</div>
           </div>
         </div>
       )}
