@@ -18,6 +18,7 @@ import { APP_URL } from "@/lib/config";
 import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
 import { NewClientModal, type CreatedClient } from "@/components/NewClientModal";
+import { ProductPickerModal } from "@/components/ProductPickerModal";
 import { DateField } from "@/components/DateField";
 import { readJson } from "@/lib/api";
 import { EXEMPTION_CAUSES, exemptionShort } from "@/lib/exemption-causes";
@@ -64,6 +65,7 @@ function PresupuestosScreenContent() {
   const [clientPicker, setClientPicker] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
   const [clientId, setClientId] = useState("");
+  const [productPickerIndex, setProductPickerIndex] = useState<number | null>(null);
   const [retentionPct, setRetentionPct] = useState("");
   const [discountPct, setDiscountPct] = useState("");
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
@@ -322,9 +324,12 @@ function PresupuestosScreenContent() {
                   <Input placeholder={t("invoicing.description")} value={l.description} onChangeText={(v) => setLine(i, { description: v })}
                     style={{ marginBottom: spacing.sm }} />
                   {products.length > 0 && (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }} contentContainerStyle={{ gap: 6 }}>
-                      {products.map(p => <Chip key={p.id} active={l.productId === p.id} label={p.name} onPress={() => pickProduct(i, p)} C={C} />)}
-                    </ScrollView>
+                    <TouchableOpacity onPress={() => setProductPickerIndex(i)} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: spacing.sm, alignSelf: "flex-start" }}>
+                      <SearchIcon size={13} color={C.blue} strokeWidth={1.75} />
+                      <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.blue }} numberOfLines={1}>
+                        {l.productId ? (products.find(p => p.id === l.productId)?.name ?? t("invoicing.searchInventory")) : t("invoicing.searchInventory")}
+                      </Text>
+                    </TouchableOpacity>
                   )}
                   <View style={{ flexDirection: "row", gap: spacing.sm }}>
                     <Input placeholder={t("invoicing.qty")} keyboardType="decimal-pad" value={l.quantity} onChangeText={(v) => setLine(i, { quantity: v })}
@@ -480,6 +485,13 @@ function PresupuestosScreenContent() {
           </View>
         </View>
       </KeyboardModal>
+
+      <ProductPickerModal
+        visible={productPickerIndex !== null}
+        products={products}
+        onPick={(p) => { if (productPickerIndex !== null) pickProduct(productPickerIndex, p); }}
+        onClose={() => setProductPickerIndex(null)}
+      />
 
       <NewClientModal
         visible={newClientOpen}

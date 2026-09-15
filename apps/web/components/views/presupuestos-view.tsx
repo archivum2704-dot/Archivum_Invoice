@@ -28,6 +28,23 @@ const RETENTION_RATES = ["", "7", "15", "19"]
 const STATUS_LABEL: Record<string, string> = {
   draft: "Borrador", sent: "Enviado", accepted: "Aceptado", rejected: "Rechazado", converted: "Facturado",
 }
+
+// Traduce los códigos que devuelve POST /api/quotes cuando no hay `detail`.
+// Sin esto se mostraba el código en crudo (p.ej. "unauthorized") tal cual.
+const QUOTE_ERROR_MESSAGES: Record<string, string> = {
+  missing_org: "No se ha podido identificar la organización. Recarga la página e inténtalo de nuevo.",
+  unsupported_currency: "Moneda no admitida.",
+  exchange_rate_required: "Indica el tipo de cambio a euros para la moneda elegida.",
+  client_required: "Selecciona un cliente.",
+  no_lines: "Añade al menos una línea.",
+  exemption_cause_required: "Indica la causa de exención de las líneas exentas.",
+  numbering_failed: "No se pudo asignar el número del pedido. Inténtalo de nuevo.",
+  update_failed: "No se pudo actualizar el pedido.",
+  insert_failed: "No se pudo guardar el pedido.",
+  lines_failed: "No se pudieron guardar las líneas del pedido.",
+  delivery_note_failed: "No se pudo abrir el albarán del pedido.",
+  server_error: "Ha ocurrido un error inesperado. Inténtalo de nuevo.",
+}
 const STATUS_STYLE: Record<string, string> = {
   draft:     "bg-muted text-muted-foreground",
   sent:      "bg-primary/10 text-primary",
@@ -164,23 +181,39 @@ export function PresupuestosView() {
       setError(`Indica el tipo de cambio a euros para facturar en ${currency}.`); return
     }
     setSaving(true); setError(null)
+    const body = JSON.stringify({
+      id: editId, orgId: currentOrg.id, clientCompanyId: clientId, status: "sent",
+      issueDate, validUntil: validUntil || null, notes,
+      discountPct: Number(discountPct) || 0, retentionPct: Number(retentionPct) || 0,
+      currency, exchangeRate: needsExchangeRate(currency) ? Number(exchangeRate) || null : null,
+      lines: lines.filter(l => l.description.trim()).map(l => ({
+        productId: l.productId, description: l.description,
+        quantity: Number(l.quantity) || 0, unitPrice: Number(l.unitPrice) || 0, taxRate: Number(l.taxRate) || 0,
+        exemptionCause: l.taxRate === "" ? l.exemptionCause : null,
+      })),
+    })
     try {
-      const res = await fetch("/api/quotes", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: editId, orgId: currentOrg.id, clientCompanyId: clientId, status: "sent",
-          issueDate, validUntil: validUntil || null, notes,
-          discountPct: Number(discountPct) || 0, retentionPct: Number(retentionPct) || 0,
-          currency, exchangeRate: needsExchangeRate(currency) ? Number(exchangeRate) || null : null,
-          lines: lines.filter(l => l.description.trim()).map(l => ({
-            productId: l.productId, description: l.description,
-            quantity: Number(l.quantity) || 0, unitPrice: Number(l.unitPrice) || 0, taxRate: Number(l.taxRate) || 0,
-            exemptionCause: l.taxRate === "" ? l.exemptionCause : null,
-          })),
-        }),
-      })
+      let res = await fetch("/api/quotes", { method: "POST", headers: { "Content-Type": "application/json" }, body })
+      if (res.status === 401) {
+        // La sesión puede haber caducado mientras se rellenaba el formulario
+        // (el middleware, que es quien normalmente la refresca, no toca
+        // /api). Un refresco silencioso y un solo reintento evitan perder
+        // un pedido ya escrito por una caducidad que se puede resolver sola.
+        const supabase: any = createClient()
+        const { data } = await supabase.auth.refreshSession()
+        if (data?.session) {
+          res = await fetch("/api/quotes", { method: "POST", headers: { "Content-Type": "application/json" }, body })
+        }
+      }
       const json = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(json.detail ?? json.error ?? "No se pudo guardar el pedido."); setSaving(false); return }
+      if (!res.ok) {
+        setError(
+          res.status === 401
+            ? "Tu sesión ha caducado. Vuelve a iniciar sesión para guardar este pedido — tus datos no se han perdido."
+            : json.detail ?? QUOTE_ERROR_MESSAGES[json.error] ?? "No se pudo guardar el pedido."
+        )
+        setSaving(false); return
+      }
       await mutate(); setOpen(false); resetForm()
     } catch (e) { setError(String(e)) }
     setSaving(false)
