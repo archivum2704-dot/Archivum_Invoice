@@ -633,7 +633,8 @@
     "requiredToInvoiceHint": "An invoice must show the client's tax ID and address. You can save the client without them, but not invoice them.",
     "optional": "optional",
     "createdToast": "Client “{name}” created",
-    "taxIdFormatHint": "This does not look like a Spanish NIF/NIE/CIF (e.g. B12345678 or 12345678Z). Check it if the client is Spanish."
+    "taxIdFormatHint": "This does not look like a Spanish NIF/NIE/CIF (e.g. B12345678 or 12345678Z). Check it if the client is Spanish.",
+    "cifNowRequired": "This client was created without a tax ID. It is now required: add it to save your changes."
   },
   "admin": {
     "title": "Admin Panel",

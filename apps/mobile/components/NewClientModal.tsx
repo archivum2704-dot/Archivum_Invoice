@@ -11,7 +11,7 @@ import { KeyboardModal } from "@/components/KeyboardModal";
 import { Button, Input } from "@/components/ui";
 import { TAX_ID_TYPES, isForeignClient } from "@/lib/tax-id-types";
 import { randomId } from "@/lib/random-id";
-import { findSimilarClients, duplicateWarnings, looksLikeSpanishTaxId, type ClientLike } from "@/lib/client-checks";
+import { findSimilarClients, duplicateWarnings, cifTakenMessage, looksLikeSpanishTaxId, explainCompanyError, type ClientLike } from "@/lib/client-checks";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 
 export interface CreatedClient { id: string; name: string; cif: string | null; payment_method: string | null; payment_due_days: number | null }
@@ -20,20 +20,6 @@ const EMPTY = {
   name: "", cif: "", email: "", phone: "", address: "", postal_code: "", city: "", province: "",
   country_code: "ES", tax_id_type: "", payment_method: "", payment_due_days: "",
 };
-
-/**
- * Turn a Postgres error into something a user can act on.
- *
- * The plan-limit trigger already raises its own Spanish message, so that one is
- * shown verbatim. A row-level-security refusal is not: it arrives as "new row
- * violates row-level security policy", which tells the reader nothing.
- */
-function explain(err: { code?: string; message?: string }, fallback: string): string {
-  if (err.code === "42501") {
-    return "Tu usuario no tiene permiso para crear clientes. Pídeselo a un administrador de la organización.";
-  }
-  return err.message ?? fallback;
-}
 
 /**
  * Create a client without leaving the invoice or quote being written.
@@ -102,7 +88,7 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
       ...(dueDays != null ? { payment_due_days: dueDays } : {}),
     });
     setSaving(false);
-    if (error) { Alert.alert(t("common.error"), explain(error, t("invoicing.createClientError"))); return; }
+    if (error) { Alert.alert(t("common.error"), explainCompanyError(error, t("invoicing.createClientError"))); return; }
     onCreated({ id, name: nc.name.trim(), cif: nc.cif.trim() || null, payment_method: nc.payment_method || null, payment_due_days: dueDays });
     setNc(EMPTY);
     onClose();
@@ -114,7 +100,9 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
 
   // The CIF/NIF is required: it is what identifies the client on an invoice.
   const disabled = saving || !nc.name.trim() || !nc.cif.trim() || (foreign && !nc.tax_id_type);
-  const warnings = duplicateWarnings(findSimilarClients(existing, { name: nc.name, cif: nc.cif }));
+  const similar = findSimilarClients(existing, { name: nc.name, cif: nc.cif });
+  const warnings = duplicateWarnings(similar);
+  const cifTaken = cifTakenMessage(similar);
   const badFormat = !foreign && !!nc.cif.trim() && !looksLikeSpanishTaxId(nc.cif);
 
   return (
@@ -174,6 +162,11 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
             <PaymentMethodPicker label={t("empresas.paymentMethod")} value={nc.payment_method} onChange={set("payment_method")} />
             {field(t("empresas.paymentDueDays"), "payment_due_days", { keyboardType: "number-pad", placeholder: "30", hint: t("empresas.paymentDueDaysHint") })}
 
+            {!!cifTaken && (
+              <View style={{ backgroundColor: C.redL, borderRadius: radius.md, padding: spacing.sm + 2 }}>
+                <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.red }}>{cifTaken}</Text>
+              </View>
+            )}
             {warnings.map(w => (
               <View key={w} style={{ backgroundColor: C.yellowL, borderRadius: radius.md, padding: spacing.sm + 2 }}>
                 <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.text }}>{w}</Text>
@@ -186,7 +179,7 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
             <Button
               label={t("invoicing.createClient")}
               onPress={create}
-              disabled={disabled}
+              disabled={disabled || !!cifTaken}
               loading={saving}
               icon={<Plus size={18} color="#fff" strokeWidth={1.75} />}
               style={{ marginTop: spacing.xs }}

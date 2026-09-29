@@ -20,6 +20,7 @@ import { formatMoney, needsExchangeRate, toEur } from "@/lib/currency";
 import { isPaymentMethod } from "@/lib/payment-methods";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { DateField } from "@/components/DateField";
+import { DocumentChain } from "@/components/DocumentChain";
 
 
 interface Invoice {
@@ -153,6 +154,8 @@ export default function FacturaDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+        {/* Albarán and pedido this invoice came from, if any (WEB-007) */}
+        <DocumentChain kind="invoice" id={invoice.id} />
         {invoice.kind === "rectifying" && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: C.redL, borderRadius: radius.md, padding: spacing.md }}>
             <Ban size={16} color={C.red} strokeWidth={1.75} /><Text style={{ fontFamily: fonts.regular, color: C.text, fontSize: 13, flex: 1 }}>{t("invoicing.rectificativeBanner")}</Text>

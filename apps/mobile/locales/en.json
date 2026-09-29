@@ -337,7 +337,8 @@
     "paymentDueDaysHint": "Days from the invoice date. Used to suggest the due date when invoicing.",
     "paymentTerms": "Payment terms",
     "daysSuffix": "{{days}} days",
-    "taxIdFormatHint": "This does not look like a Spanish NIF/NIE/CIF (e.g. B12345678 or 12345678Z). Check it if the client is Spanish."
+    "taxIdFormatHint": "This does not look like a Spanish NIF/NIE/CIF (e.g. B12345678 or 12345678Z). Check it if the client is Spanish.",
+    "cifNowRequired": "This client was created without a tax ID. It is now required: add it to save your changes."
   },
   "equipo": {
     "title": "Team",
@@ -747,5 +748,11 @@
     "rejected": "Rejected",
     "billed": "Invoiced",
     "unbilled": "Not invoiced"
+  },
+  "chain": {
+    "quote": "Order",
+    "note": "Delivery note",
+    "invoice": "Invoice",
+    "notInvoiced": "not invoiced"
   }
 }

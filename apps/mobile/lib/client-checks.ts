@@ -10,8 +10,8 @@
  * - Same CIF/NIF as an existing client: almost certainly the same company.
  * - Same name (ignoring case, accents, punctuation and the legal form, so
  *   "García S.L." = "GARCIA, SL"): probably the same, possibly not.
- * Both are warnings, not refusals: branches of one company can share a
- * name, and the user decides. Espejo de `apps/web/lib/client-checks.ts`.
+ * A repeated CIF/NIF is refused; a repeated name only warns, since two
+ * different companies can share one. Espejo de `apps/web/lib/client-checks.ts`.
  */
 
 export type ClientLike = { id: string; name: string; cif: string | null }
@@ -53,10 +53,25 @@ export function looksLikeSpanishTaxId(cif: string): boolean {
   return /^(\d{8}[A-Z]|[XYZ]\d{7}[A-Z]|[ABCDEFGHJKLMNPQRSUVW]\d{7}[0-9A-J])$/.test(v)
 }
 
-/** Warning texts, in Spanish like the rest of the client form's messages. */
+/**
+ * The same CIF/NIF is the same company: that one blocks. The database
+ * enforces it too (uq_companies_org_cif, 20260930_company_cif_unique.sql).
+ */
+export function cifTakenMessage(r: ReturnType<typeof findSimilarClients>): string | null {
+  return r.sameCif ? `Ya existe un cliente con este CIF/NIF: «${r.sameCif.name}». No se puede dar de alta dos veces la misma empresa.` : null
+}
+
+/** A shared name only warns: two different companies can be called alike. */
 export function duplicateWarnings(r: ReturnType<typeof findSimilarClients>): string[] {
-  const out: string[] = []
-  if (r.sameCif) out.push(`Ya existe un cliente con este CIF/NIF: «${r.sameCif.name}». Seguramente sea el mismo; revisa antes de crear otro.`)
-  if (r.sameName) out.push(`Ya existe un cliente llamado «${r.sameName.name}»${r.sameName.cif ? ` (CIF ${r.sameName.cif})` : ""}. Comprueba que no sea el mismo.`)
-  return out
+  return r.sameName
+    ? [`Ya existe un cliente llamado «${r.sameName.name}»${r.sameName.cif ? ` (CIF ${r.sameName.cif})` : ""}. Comprueba que no sea el mismo.`]
+    : []
+}
+
+/** Postgres errors from saving a client, in words (unique CIF / CIF required). */
+export function explainCompanyError(err: { code?: string; message?: string }, fallback: string): string {
+  if (err.code === "23505") return "Ya existe un cliente con este CIF/NIF. No se puede dar de alta dos veces la misma empresa."
+  if (err.code === "23514" || /CIF\/NIF del cliente es obligatorio/.test(err.message ?? "")) return "El CIF/NIF del cliente es obligatorio."
+  if (err.code === "42501") return "Tu usuario no tiene permiso para guardar clientes. Pídeselo a un administrador de la organización."
+  return err.message ?? fallback
 }

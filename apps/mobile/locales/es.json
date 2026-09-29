@@ -337,7 +337,8 @@
     "paymentDueDaysHint": "Días desde la fecha de la factura. Se usa para proponer el vencimiento al facturar.",
     "paymentTerms": "Condiciones de pago",
     "daysSuffix": "{{days}} días",
-    "taxIdFormatHint": "El formato no parece un NIF/NIE/CIF español (p. ej. B12345678 o 12345678Z). Revísalo si el cliente es español."
+    "taxIdFormatHint": "El formato no parece un NIF/NIE/CIF español (p. ej. B12345678 o 12345678Z). Revísalo si el cliente es español.",
+    "cifNowRequired": "Este cliente se creó sin CIF/NIF. Ahora es obligatorio: añádelo para guardar los cambios."
   },
   "equipo": {
     "title": "Equipo",
@@ -747,5 +748,11 @@
     "rejected": "Rechazado",
     "billed": "Facturado",
     "unbilled": "No facturado"
+  },
+  "chain": {
+    "quote": "Pedido",
+    "note": "Albarán",
+    "invoice": "Factura",
+    "notInvoiced": "sin facturar"
   }
 }

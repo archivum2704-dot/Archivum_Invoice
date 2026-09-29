@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, Download, ArrowRight, Receipt, ClipboardList, CheckCircle2, RotateCcw } from "lucide-react-native";
 import { quoteStatusKey, quoteStatusTone, canToggleAccepted } from "@/lib/quote-status";
+import { DocumentChain } from "@/components/DocumentChain";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
@@ -156,6 +157,8 @@ export default function PresupuestoDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+        {/* Pedido → Albarán → Factura, each step linked (WEB-007) */}
+        <DocumentChain kind={isNote ? "delivery_note" : "quote"} id={quote.id} />
         <Card style={{ gap: spacing.md }}>
           {/* Issuer */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>

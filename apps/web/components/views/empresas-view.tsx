@@ -19,7 +19,7 @@ import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { ImportExcelButton } from "@/components/import-excel-button"
 import { PAYMENT_METHODS, isPaymentMethod } from "@/lib/payment-methods"
 import { InvoiceReq, Opt } from "@/components/new-client-modal"
-import { findSimilarClients, duplicateWarnings, looksLikeSpanishTaxId } from "@/lib/client-checks"
+import { findSimilarClients, duplicateWarnings, cifTakenMessage, looksLikeSpanishTaxId, explainCompanyError } from "@/lib/client-checks"
 import { toast } from "sonner"
 
 const AVATAR_COLORS = ["bg-blue-500", "bg-emerald-600", "bg-violet-600", "bg-orange-500", "bg-rose-600"]
@@ -84,16 +84,18 @@ function CompanyModal({
   const set = (k: keyof CompanyForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
-  // CIF/NIF required for a new client; an existing one without it can still
-  // be edited, but a CIF on file cannot be blanked (WEB-004).
-  const cifRequired = !isEdit || !!initial?.cif?.trim()
-  const cifMissing = cifRequired && !form.cif.trim()
-  const warnings = duplicateWarnings(findSimilarClients(existing, { name: form.name, cif: form.cif }, initial?.id))
+  // CIF/NIF required and unique per organization, also when editing a client
+  // created before it was (WEB-004). The database enforces both.
+  const cifRequired = true
+  const cifMissing = !form.cif.trim()
+  const similar = findSimilarClients(existing, { name: form.name, cif: form.cif }, initial?.id)
+  const warnings = duplicateWarnings(similar)
+  const cifTaken = cifTakenMessage(similar)
   const badFormat = !!form.cif.trim() && !looksLikeSpanishTaxId(form.cif)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name.trim() || cifMissing) return
+    if (!form.name.trim() || cifMissing || cifTaken) return
     setSaving(true); setError(null)
     const supabase = createClient()
 
@@ -118,7 +120,7 @@ function CompanyModal({
       : await supabase.from("companies").insert({ ...payload, organization_id: orgId, is_active: true })
 
     setSaving(false)
-    if (err) { setError(err.message); return }
+    if (err) { setError(explainCompanyError(err, t("createCompany"))); return }
     toast.success(isEdit ? tCommon("saved") : t("createdToast", { name: form.name.trim() }))
     onSaved()
     onClose()
@@ -203,6 +205,10 @@ function CompanyModal({
             <p className="col-span-2 -mt-2 text-[11px] text-muted-foreground">{t("paymentDueDaysHint")}</p>
           </div>
 
+          {cifTaken && <p className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-2.5 py-2">{cifTaken}</p>}
+          {isEdit && !initial?.cif?.trim() && (
+            <p className="text-xs text-muted-foreground">{t("cifNowRequired")}</p>
+          )}
           {(warnings.length > 0 || badFormat) && (
             <div className="space-y-1.5">
               {warnings.map(w => (
@@ -215,7 +221,7 @@ function CompanyModal({
           {error && <p className="text-xs text-destructive">{error}</p>}
 
           <div className="flex items-center gap-3 pt-1">
-            <button type="submit" disabled={saving || !form.name.trim() || cifMissing}
+            <button type="submit" disabled={saving || !form.name.trim() || cifMissing || !!cifTaken}
               className="flex-1 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
               {saving ? tCommon("saving") : isEdit ? tCommon("saveChanges") : t("createCompany")}
             </button>

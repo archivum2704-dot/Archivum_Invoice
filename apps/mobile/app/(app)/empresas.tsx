@@ -13,7 +13,7 @@ import {
 } from "lucide-react-native";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { isPaymentMethod } from "@/lib/payment-methods";
-import { findSimilarClients, duplicateWarnings, looksLikeSpanishTaxId } from "@/lib/client-checks";
+import { findSimilarClients, duplicateWarnings, cifTakenMessage, looksLikeSpanishTaxId, explainCompanyError } from "@/lib/client-checks";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
@@ -128,15 +128,17 @@ function CompanyModal({
 
   const set = (k: keyof CompanyForm) => (v: string) => setForm(f => ({ ...f, [k]: v }));
 
-  // CIF/NIF required for a new client; an existing one without it can still
-  // be edited, but a CIF on file cannot be blanked (WEB-004).
-  const cifRequired = !isEdit || !!initial?.cif?.trim();
-  const cifMissing = cifRequired && !form.cif.trim();
-  const warnings = duplicateWarnings(findSimilarClients(existing, { name: form.name, cif: form.cif }, initial?.id));
+  // CIF/NIF required and unique per organization, also when editing a client
+  // created before it was (WEB-004). The database enforces both.
+  const cifRequired = true;
+  const cifMissing = !form.cif.trim();
+  const similar = findSimilarClients(existing, { name: form.name, cif: form.cif }, initial?.id);
+  const warnings = duplicateWarnings(similar);
+  const cifTaken = cifTakenMessage(similar);
   const badFormat = !!form.cif.trim() && !looksLikeSpanishTaxId(form.cif);
 
   const handleSave = async () => {
-    if (!form.name.trim() || cifMissing) return;
+    if (!form.name.trim() || cifMissing || cifTaken) return;
     setSaving(true);
     const dueDays = form.payment_due_days.trim() === ""
       ? null
@@ -167,7 +169,7 @@ function CompanyModal({
     }
     setSaving(false);
     if (error) {
-      Alert.alert(t("common.error"), error.message ?? t("common.unknownError"));
+      Alert.alert(t("common.error"), explainCompanyError(error, t("common.unknownError")));
       return;
     }
     onSaved();
@@ -211,6 +213,14 @@ function CompanyModal({
           <PaymentMethodPicker label={t("empresas.paymentMethod")} value={form.payment_method} onChange={set("payment_method")} />
           <Input label={t("empresas.paymentDueDays")} placeholder="30" value={form.payment_due_days} onChangeText={set("payment_due_days")}
             keyboardType="number-pad" hint={t("empresas.paymentDueDaysHint")} />
+          {!!cifTaken && (
+            <View style={{ backgroundColor: C.redL, borderRadius: radius.md, padding: spacing.sm + 2 }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.red }}>{cifTaken}</Text>
+            </View>
+          )}
+          {isEdit && !initial?.cif?.trim() && (
+            <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>{t("empresas.cifNowRequired")}</Text>
+          )}
           {warnings.map(w => (
             <View key={w} style={{ backgroundColor: C.yellowL, borderRadius: radius.md, padding: spacing.sm + 2 }}>
               <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.text }}>{w}</Text>
@@ -220,7 +230,7 @@ function CompanyModal({
           <Button
             label={isEdit ? t("empresas.saveChanges") : t("empresas.createCompany")}
             onPress={handleSave}
-            disabled={saving || !form.name.trim() || cifMissing}
+            disabled={saving || !form.name.trim() || cifMissing || !!cifTaken}
             loading={saving}
             style={{ marginTop: spacing.xs, marginBottom: spacing.lg }}
           />

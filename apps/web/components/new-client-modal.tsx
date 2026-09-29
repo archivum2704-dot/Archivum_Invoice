@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { TAX_ID_TYPES, isForeignClient } from "@/lib/tax-id-types"
 import { PAYMENT_METHODS } from "@/lib/payment-methods"
 import { useCompanies } from "@/lib/hooks/use-companies"
-import { findSimilarClients, duplicateWarnings, looksLikeSpanishTaxId } from "@/lib/client-checks"
+import { findSimilarClients, duplicateWarnings, cifTakenMessage, looksLikeSpanishTaxId, explainCompanyError } from "@/lib/client-checks"
 import { toast } from "sonner"
 
 const EMPTY = {
@@ -17,21 +17,6 @@ const EMPTY = {
 }
 
 const inputCls = "w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-
-/**
- * Turn a Postgres error into something a user can act on.
- *
- * The plan-limit trigger already raises its own Spanish message, so that one is
- * shown verbatim. A row-level-security refusal is not: it arrives as "new row
- * violates row-level security policy", which tells the reader nothing about
- * what to do.
- */
-function explain(err: { code?: string; message?: string }, fallback: string): string {
-  if (err.code === "42501") {
-    return "Tu usuario no tiene permiso para crear clientes. Pídeselo a un administrador de la organización."
-  }
-  return err.message ?? fallback
-}
 
 /**
  * Field markers (WEB-017). Only the name is needed to save a client, but a
@@ -79,10 +64,11 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
   const { companies } = useCompanies(orgId)
   const similar = findSimilarClients(companies, { name: nc.name, cif: nc.cif })
   const warnings = duplicateWarnings(similar)
+  const cifTaken = cifTakenMessage(similar)
   const badFormat = !foreign && !!nc.cif.trim() && !looksLikeSpanishTaxId(nc.cif)
 
   const handleCreate = async () => {
-    if (!nc.name.trim() || !nc.cif.trim() || !orgId) return
+    if (!nc.name.trim() || !nc.cif.trim() || cifTaken || !orgId) return
     setSaving(true); setError(null)
     const supabase: any = createClient()
     // The id is generated here rather than read back from the insert.
@@ -117,7 +103,7 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
         : {}),
     })
 
-    if (err) { setError(explain(err, t("createClientError"))); setSaving(false); return }
+    if (err) { setError(explainCompanyError(err, t("createClientError"))); setSaving(false); return }
 
     await onCreated(id)
     toast.success(tCompanies("createdToast", { name: nc.name.trim() }))
@@ -212,6 +198,11 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
                 onChange={e => setNc({ ...nc, payment_due_days: e.target.value })} className={inputCls} />
             </div>
           </div>
+          {cifTaken && (
+            <p className="flex items-start gap-1.5 text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-2.5 py-2">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" /> {cifTaken}
+            </p>
+          )}
           {(warnings.length > 0 || badFormat) && (
             <div className="space-y-1.5">
               {warnings.map(w => (
@@ -234,7 +225,7 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
 
         <div className="flex items-center justify-end gap-2 mt-5">
           <button onClick={close} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">{tCommon("cancel")}</button>
-          <button onClick={handleCreate} disabled={saving || !nc.name.trim() || !nc.cif.trim()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
+          <button onClick={handleCreate} disabled={saving || !nc.name.trim() || !nc.cif.trim() || !!cifTaken} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             {t("createClient")}
           </button>
