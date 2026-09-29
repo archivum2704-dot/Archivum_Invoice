@@ -15,6 +15,7 @@ import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
 import { Button, Card, Input } from "@/components/ui";
+import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 
 /** Same label treatment as Input, but the value comes from the calendar. */
 function DateRow({ label, value, onChange, C }: {
@@ -47,6 +48,7 @@ export default function EditarScreen() {
   const [payDate,   setPayDate]   = useState("");
   const [notes,     setNotes]     = useState("");
   const [desc,      setDesc]      = useState("");
+  const [payMethod, setPayMethod] = useState("");
 
   const STATUS_OPTIONS = [
     { key: "draft",     label: t("status.draft") },
@@ -70,6 +72,7 @@ export default function EditarScreen() {
       setPayDate(data.payment_date ?? "");
       setNotes(data.notes ?? "");
       setDesc(data.description ?? "");
+      setPayMethod(data.payment_method ?? "");
       setLoading(false);
     });
   }, [id]);
@@ -91,6 +94,7 @@ export default function EditarScreen() {
       issue_date:   issueDate || null,
       due_date:     dueDate   || null,
       payment_date: payDate   || null,
+      payment_method: payMethod || null,
       notes:        notes.trim()  || null,
       description:  desc.trim()   || null,
       updated_at:   new Date().toISOString(),
@@ -180,6 +184,7 @@ export default function EditarScreen() {
             <DateRow C={C} label={t("editar.issueDate")}   value={issueDate} onChange={setIssueDate} />
             <DateRow C={C} label={t("editar.dueDate")}     value={dueDate}   onChange={setDueDate} />
             <DateRow C={C} label={t("editar.paymentDate")} value={payDate}   onChange={setPayDate} />
+            <PaymentMethodPicker label={t("editar.paymentMethod")} value={payMethod} onChange={setPayMethod} />
           </Card>
 
           {/* Importes */}

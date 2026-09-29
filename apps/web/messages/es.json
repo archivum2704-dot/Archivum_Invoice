@@ -292,7 +292,23 @@
     "clientTaxId": "Identificación fiscal",
     "clientTaxIdType": "Tipo de identificación",
     "clientTaxIdTypeHint": "Obligatorio para clientes de fuera de España: la AEAT necesita saber qué documento es.",
-    "exemptionCausePrompt": "¿Por qué está exenta? (obligatorio)"
+    "exemptionCausePrompt": "¿Por qué está exenta? (obligatorio)",
+    "paymentMethod": "Forma de pago",
+    "notes": "Notas",
+    "notesPlaceholder": "Condiciones, forma de pago, observaciones…",
+    "newProduct": "Crear producto",
+    "inInventory": "✓ En inventario",
+    "dueDateFromClient": "Propuesta según el plazo del cliente ({days} días)",
+    "payment": "Cobro",
+    "paymentDate": "Fecha de cobro",
+    "paymentStatus": "Estado del cobro",
+    "paid": "Cobrada",
+    "unpaid": "Pendiente de cobro",
+    "markPaid": "Marcar como cobrada",
+    "markUnpaid": "Marcar como pendiente",
+    "savePayment": "Guardar",
+    "paymentSaved": "Guardado",
+    "paymentSaveError": "No se pudo guardar el cobro"
   },
   "verifactu": {
     "title": "Certificado Verifactu (AEAT)",
@@ -425,7 +441,9 @@
       "credit_card": "Tarjeta de crédito",
       "cash": "Efectivo",
       "check": "Cheque",
-      "other": "Otro"
+      "other": "Otro",
+      "direct_debit": "Domiciliación bancaria",
+      "promissory_note": "Pagaré"
     },
     "actions": {
       "upload": "Subir Documento",
@@ -575,7 +593,12 @@
     "noCompanies": "Sin clientes todavía. Añade tu primer cliente.",
     "limitCounter": "{current} / {max} clientes",
     "viewGrid": "Vista en cuadrícula",
-    "viewList": "Vista en lista"
+    "viewList": "Vista en lista",
+    "paymentMethod": "Forma de pago",
+    "paymentDueDays": "Vencimiento (días)",
+    "paymentDueDaysHint": "Días desde la fecha de la factura. Se usa para proponer el vencimiento al facturar.",
+    "paymentTerms": "Condiciones de pago",
+    "daysSuffix": "{days} días"
   },
   "admin": {
     "title": "Panel de Administración",
@@ -860,7 +883,7 @@
         "title": "Albaranes: el paso antes de facturar",
         "description": "Cada pedido enviado abre su albarán automáticamente. Solo el albarán se convierte en factura.",
         "steps": [
-          "Entra en «Albaranes» para ver los que están abiertos, listos para facturar.",
+          "Entra en «Albaranes» para ver los que están sin facturar, listos para facturar.",
           "Si el pedido cambia, el albarán se actualiza solo mientras siga abierto — no hay que rehacer nada a mano.",
           "Pulsa «Convertir en factura» cuando el trabajo esté terminado y quieras cobrar.",
           "Una vez facturado, el albarán queda cerrado y ligado para siempre a esa factura."

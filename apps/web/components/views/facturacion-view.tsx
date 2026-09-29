@@ -17,6 +17,8 @@ import { useProducts, type Product } from "@/lib/hooks/use-products"
 import { isPaidPlan } from "@/lib/plan"
 import { getStockWarnings, type StockWarning } from "@/lib/stock"
 import { NewClientModal } from "@/components/new-client-modal"
+import { ProductFormModal } from "@/components/product-form-modal"
+import { PAYMENT_METHODS, dueDateFromTerms } from "@/lib/payment-methods"
 import { StockWarningModal } from "@/components/stock-warning-modal"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { EXEMPTION_CAUSES } from "@/lib/exemption-causes"
@@ -68,6 +70,7 @@ type InvoiceSortKey = "date_desc" | "date_asc" | "amount_desc" | "amount_asc" | 
 export function FacturacionView() {
   const t = useTranslations("invoicing")
   const tCommon = useTranslations("common")
+  const tPayment = useTranslations("documents.paymentMethods")
   const locale = useLocale()
   const router = useRouter()
   const { currentOrg, isOrgAdmin, isPlatformAdmin } = useOrganization()
@@ -79,7 +82,7 @@ export function FacturacionView() {
     [invoices],
   )
   const { companies, mutate: mutateCompanies } = useCompanies(currentOrg?.id ?? null)
-  const { products } = useProducts(currentOrg?.id ?? null)
+  const { products, mutate: mutateProducts } = useProducts(currentOrg?.id ?? null)
 
   // ── List filters (search-menu style) ───────────────────────
   const [search, setSearch] = useState("")
@@ -101,6 +104,8 @@ export function FacturacionView() {
   const [issueDate, setIssueDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [kind, setKind] = useState<"ordinary" | "simplified">("ordinary")
   const [notes, setNotes] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState("")
+  const [dueDate, setDueDate] = useState("")
   const [retentionPct, setRetentionPct] = useState("")
   const [discountPct, setDiscountPct] = useState("")
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY)
@@ -113,10 +118,33 @@ export function FacturacionView() {
   // Inline "new client" creation — the form itself lives in NewClientModal,
   // shared with presupuestos so the two cannot drift apart again.
   const [newClientOpen, setNewClientOpen] = useState(false)
+  // Line index the "create product" modal will link the new product to.
+  const [productModalLine, setProductModalLine] = useState<number | null>(null)
+
+  // Choosing a client proposes its payment method and due date. Both stay
+  // editable: the client record is a default, not a rule.
+  const selectClient = (id: string, list = companies) => {
+    setClientId(id)
+    const c = list.find(co => co.id === id)
+    if (!c) return
+    if (c.payment_method) setPaymentMethod(c.payment_method)
+    const proposed = dueDateFromTerms(issueDate, c.payment_due_days)
+    if (proposed) setDueDate(proposed)
+  }
 
   const handleClientCreated = async (id: string) => {
-    await mutateCompanies()
-    setClientId(id)
+    const fresh = await mutateCompanies()
+    selectClient(id, fresh ?? companies)
+  }
+
+  const handleProductCreated = async (id: string) => {
+    const fresh = await mutateProducts()
+    const p = (fresh ?? products).find(pr => pr.id === id)
+    if (productModalLine == null || !p) return
+    setLine(productModalLine, {
+      productId: p.id, description: p.name,
+      unitPrice: String(p.unit_price), taxRate: String(p.tax_rate),
+    })
   }
 
   const canManage = isOrgAdmin && paid
@@ -224,6 +252,7 @@ export function FacturacionView() {
     setClientId(""); setClientQuery(""); setClientListOpen(false)
     setSeries("FAC"); setIssueDate(new Date().toISOString().slice(0, 10))
     setKind("ordinary"); setNotes(""); setRetentionPct(""); setDiscountPct("")
+    setPaymentMethod(""); setDueDate("")
     setCurrency(DEFAULT_CURRENCY); setExchangeRate("")
     setLines([emptyLine()]); setError(null)
   }
@@ -253,6 +282,7 @@ export function FacturacionView() {
           orgId: currentOrg.id,
           clientCompanyId: clientId,
           series, kind, issueDate, notes,
+          dueDate: dueDate || null, paymentMethod: paymentMethod || null,
           retentionPct: Number(retentionPct) || 0,
           discountPct: Number(discountPct) || 0,
           currency, exchangeRate: needsExchangeRate(currency) ? Number(exchangeRate) || null : null,
@@ -308,6 +338,7 @@ export function FacturacionView() {
         orgId: currentOrg.id,
         clientCompanyId: clientId || null,
         series, kind, issueDate, notes,
+        dueDate: dueDate || null, paymentMethod: paymentMethod || null,
         retentionPct: Number(retentionPct) || 0,
         discountPct: Number(discountPct) || 0,
         currency, exchangeRate: needsExchangeRate(currency) ? Number(exchangeRate) || null : null,
@@ -617,7 +648,7 @@ export function FacturacionView() {
                           key={c.id}
                           type="button"
                           // onMouseDown so it fires before the input's onBlur closes the list
-                          onMouseDown={e => { e.preventDefault(); setClientId(c.id); setClientListOpen(false); setClientQuery("") }}
+                          onMouseDown={e => { e.preventDefault(); selectClient(c.id); setClientListOpen(false); setClientQuery("") }}
                           className={cn(
                             "flex items-center justify-between gap-2 w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors",
                             c.id === clientId && "bg-primary/5 font-medium"
@@ -643,7 +674,25 @@ export function FacturacionView() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">{t("issueDate")} <span className="text-destructive">*</span></label>
-                <input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} className={inputCls} />
+                <input type="date" value={issueDate} onChange={e => {
+                  setIssueDate(e.target.value)
+                  const proposed = dueDateFromTerms(e.target.value, selectedClient?.payment_due_days)
+                  if (proposed) setDueDate(proposed)
+                }} className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">{t("paymentMethod")}</label>
+                <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={inputCls}>
+                  <option value="">{tPayment("none")}</option>
+                  {PAYMENT_METHODS.map(m => <option key={m} value={m}>{tPayment(m)}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">{t("dueDate")}</label>
+                <input type="date" value={dueDate} min={issueDate || undefined} onChange={e => setDueDate(e.target.value)} className={inputCls} />
+                {selectedClient?.payment_due_days != null && (
+                  <p className="text-[11px] text-muted-foreground mt-1">{t("dueDateFromClient", { days: selectedClient.payment_due_days })}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">{t("kind")}</label>
@@ -701,6 +750,14 @@ export function FacturacionView() {
                       {/* Editing the text must NOT unlink the product (the link is what
                           drives the automatic stock deduction); unlink via the select. */}
                       <input placeholder={t("description")} value={l.description} onChange={e => setLine(i, { description: e.target.value })} className={cn(inputCls, "py-1.5")} />
+                      {l.productId ? (
+                        <span className="self-start text-[11px] text-muted-foreground">{t("inInventory")}</span>
+                      ) : (
+                        <button type="button" onClick={() => setProductModalLine(i)}
+                          className="self-start flex items-center gap-1 text-[11px] text-accent hover:underline">
+                          <Plus className="w-3 h-3" /> {t("newProduct")}
+                        </button>
+                      )}
                     </div>
                     <input type="number" step="0.01" title={t("qty")} value={l.quantity} onChange={e => setLine(i, { quantity: e.target.value })} className={cn(inputCls, "py-1.5 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none")} />
                     <input type="number" step="0.01" title={t("unitPrice")} value={l.unitPrice} onChange={e => setLine(i, { unitPrice: e.target.value })} className={cn(inputCls, "py-1.5 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none")} />
@@ -743,6 +800,12 @@ export function FacturacionView() {
               </div>
             </div>
 
+            {/* Notes — printed on the invoice, same as on an order */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-foreground mb-1.5">{t("notes")}</label>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className={inputCls} placeholder={t("notesPlaceholder")} />
+            </div>
+
             {/* Totals */}
             <div className="border-t border-border pt-3 space-y-1 text-sm">
               <div className="flex justify-between text-muted-foreground"><span>{t("subtotal")}</span><span>{formatMoney(totals.subtotal, currency)}</span></div>
@@ -780,6 +843,21 @@ export function FacturacionView() {
           orgId={currentOrg.id}
           onCreated={handleClientCreated}
           onClose={() => setNewClientOpen(false)}
+        />
+      )}
+
+      {/* Quick "new product" modal (over the invoice modal) */}
+      {productModalLine != null && currentOrg && (
+        <ProductFormModal
+          orgId={currentOrg.id}
+          products={products}
+          initial={{
+            name: lines[productModalLine]?.description.trim() ?? "",
+            unit_price: lines[productModalLine]?.unitPrice || "0",
+            tax_rate: lines[productModalLine]?.taxRate || "21",
+          }}
+          onSaved={handleProductCreated}
+          onClose={() => setProductModalLine(null)}
         />
       )}
 

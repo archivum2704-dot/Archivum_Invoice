@@ -14,6 +14,7 @@ import { APP_URL } from "@/lib/config";
 import { readJson } from "@/lib/api";
 import { RequirePermission } from "@/components/RequirePermission";
 import { Badge, Button, Card, EmptyState, type BadgeTone } from "@/components/ui";
+import { quoteStatusKey, quoteStatusTone } from "@/lib/quote-status";
 import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
 import { formatMoney } from "@/lib/currency";
@@ -114,10 +115,10 @@ function AlbaranesContent() {
     ]);
   };
 
-  const statusOf = (s: string): { label: string; tone: BadgeTone } =>
-    s === "converted"
-      ? { label: t("delivery.states.converted"), tone: "blue" }
-      : { label: t("delivery.states.open"), tone: "yellow" };
+  const statusOf = (s: string): { label: string; tone: BadgeTone } => ({
+    label: t(`quoteStatus.${quoteStatusKey("delivery_note", s)}`),
+    tone: quoteStatusTone("delivery_note", s),
+  });
 
   if (loading) {
     return (

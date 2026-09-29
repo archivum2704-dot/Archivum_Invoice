@@ -4,12 +4,13 @@ import { useEffect, useState } from "react"
 import {
   ArrowLeft, Download, FileText, Building2, Calendar,
   Hash, Clock, CheckCircle2, AlertCircle, FileX,
-  ChevronRight, Plus, ArrowRight, Pencil, Printer,
+  ChevronRight, Plus, ArrowRight, Pencil, Printer, Wallet,
 } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
+import { isPaymentMethod } from "@/lib/payment-methods"
 import type { Database, DocumentType } from "@/lib/supabase/types"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -191,6 +192,7 @@ export function FacturaView({ id }: FacturaViewProps) {
   const tFields   = useTranslations("documents.fields")
   const tActions  = useTranslations("documents.actions")
   const tCommon   = useTranslations("common")
+  const tPayment  = useTranslations("documents.paymentMethods")
 
   const [doc,      setDoc]      = useState<DocumentWithCompany | null>(null)
   const [parent,   setParent]   = useState<DocRef | null>(null)
@@ -509,6 +511,9 @@ export function FacturaView({ id }: FacturaViewProps) {
               )}
               {doc.payment_date && (
                 <MetaRow icon={CheckCircle2} label={tFields("paymentDate")} value={formatDate(doc.payment_date)} />
+              )}
+              {isPaymentMethod(doc.payment_method) && (
+                <MetaRow icon={Wallet} label={tFields("paymentMethod")} value={tPayment(doc.payment_method)} />
               )}
             </div>
 

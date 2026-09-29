@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Image, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { ArrowLeft, Download, ArrowRight, Receipt, ClipboardList } from "lucide-react-native";
+import { ArrowLeft, Download, ArrowRight, Receipt, ClipboardList, CheckCircle2, RotateCcw } from "lucide-react-native";
+import { quoteStatusKey, quoteStatusTone, canToggleAccepted } from "@/lib/quote-status";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
@@ -12,7 +13,7 @@ import { readJson } from "@/lib/api";
 import { SendEmailButton } from "@/components/SendEmailButton";
 import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
-import { Card, Button, Badge, type BadgeTone } from "@/components/ui";
+import { Card, Button, Badge } from "@/components/ui";
 import { formatMoney, needsExchangeRate, toEur } from "@/lib/currency";
 import { getStockWarnings } from "@/lib/stock";
 import { confirmStockWarnings } from "@/lib/stock-warning-alert";
@@ -51,6 +52,18 @@ export default function PresupuestoDetailScreen() {
   // Quotes snapshot the client's name but not their email.
   const [clientEmail, setClientEmail] = useState<string | null>(null);
   const isNote = quote?.kind === "delivery_note";
+  const [toggling, setToggling] = useState(false);
+
+  // Pedido pendiente ⇄ aceptado. Also set on its own when the albarán is billed.
+  const toggleAccepted = async () => {
+    if (!quote) return;
+    const next = quote.status === "accepted" ? "sent" : "accepted";
+    setToggling(true);
+    const { error } = await supabase.from("quotes").update({ status: next }).eq("id", quote.id);
+    setToggling(false);
+    if (error) { Alert.alert(t("common.error"), error.message); return; }
+    setQuote({ ...quote, status: next });
+  };
 
   const fmtEur = (n: number) => formatMoney(Number(n) || 0, quote?.currency ?? "EUR");
 
@@ -133,17 +146,13 @@ export default function PresupuestoDetailScreen() {
   if (loading) return <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}><View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><ActivityIndicator color={C.blue} /></View></SafeAreaView>;
   if (!quote) return <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}><Text style={{ color: C.muted, padding: spacing.xl }}>{t("quoting.notFound")}</Text></SafeAreaView>;
 
-  const statusTone: BadgeTone = quote.status === "accepted" ? "green"
-    : quote.status === "rejected" ? "red"
-    : quote.status === "open" ? "yellow"
-    : "blue";
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top", "bottom"]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: spacing.lg }}>
         <TouchableOpacity onPress={() => router.back()}><ArrowLeft size={22} color={C.text} strokeWidth={1.75} /></TouchableOpacity>
         <Text style={{ fontFamily: fonts.bold, fontSize: 18, color: C.text, flex: 1 }}>{quote.full_number ?? t("quoting.title")}</Text>
-        <Badge label={t(`quoting.status.${quote.status}`)} tone={statusTone} />
+        <Badge label={t(`quoteStatus.${quoteStatusKey(quote.kind, quote.status)}`)} tone={quoteStatusTone(quote.kind, quote.status)} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
@@ -210,6 +219,18 @@ export default function PresupuestoDetailScreen() {
           />
 
           <SendEmailButton kind="quote" id={id} defaultTo={clientEmail} />
+
+          {!isNote && canManage && canToggleAccepted(quote.status) && (
+            <Button
+              label={quote.status === "accepted" ? t("quoting.markPending") : t("quoting.markAccepted")}
+              onPress={toggleAccepted}
+              loading={toggling}
+              variant="secondary"
+              icon={quote.status === "accepted"
+                ? <RotateCcw size={18} color={C.text} strokeWidth={1.75} />
+                : <CheckCircle2 size={18} color={C.text} strokeWidth={1.75} />}
+            />
+          )}
 
           {!isNote && !!related && (
             <Button

@@ -20,6 +20,7 @@ import { KeyboardModal } from "@/components/KeyboardModal";
 import { DocRow } from "@/components/DocRow";
 import { UploadFab } from "@/components/UploadFab";
 import { Button, EmptyState, Input } from "@/components/ui";
+import { DateField } from "@/components/DateField";
 
 interface Folder { id: string; name: string }
 
@@ -90,6 +91,9 @@ export default function BibliotecaScreen() {
   const [refreshing,  setRefreshing]  = useState(false);
   const [filterModal, setFilterModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
+  // Same date range as the web library: by issue date, both ends optional.
+  const [dateFrom,     setDateFrom]     = useState("");
+  const [dateTo,       setDateTo]       = useState("");
   const [folders,      setFolders]      = useState<Folder[]>([]);
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [newFolder,    setNewFolder]    = useState(false);
@@ -136,6 +140,9 @@ export default function BibliotecaScreen() {
     if (activeFolder) result = result.filter((d) => d.folder_id === activeFolder);
     if (activeType !== "all") result = result.filter((d) => d.document_type === activeType);
     if (statusFilter !== "all") result = result.filter((d) => d.status === statusFilter);
+    // A document without a date cannot be placed in a range, so a range excludes it.
+    if (dateFrom) result = result.filter((d) => !!d.issue_date && d.issue_date >= dateFrom);
+    if (dateTo)   result = result.filter((d) => !!d.issue_date && d.issue_date <= dateTo);
     if (query.trim()) {
       const q = query.toLowerCase();
       result = result.filter(
@@ -145,7 +152,7 @@ export default function BibliotecaScreen() {
       );
     }
     setFiltered(result);
-  }, [docs, query, activeType, statusFilter, activeFolder]);
+  }, [docs, query, activeType, statusFilter, activeFolder, dateFrom, dateTo]);
 
   const onRefresh = () => { setRefreshing(true); load(); };
 
@@ -159,7 +166,7 @@ export default function BibliotecaScreen() {
     );
   }
 
-  const hasFilters = activeType !== "all" || statusFilter !== "all" || activeFolder !== null;
+  const hasFilters = activeType !== "all" || statusFilter !== "all" || activeFolder !== null || !!dateFrom || !!dateTo;
 
   const docSubtitle = (doc: any) =>
     `${doc.companies?.name ?? t("common.noCompany")} · ${t(`docTypesPlural.${doc.document_type}`, { defaultValue: doc.document_type })}`;
@@ -282,7 +289,7 @@ export default function BibliotecaScreen() {
             action={hasFilters ? (
               <Button
                 label={t("biblioteca.clearFilters")}
-                onPress={() => { setActiveType("all"); setStatusFilter("all"); setQuery(""); }}
+                onPress={() => { setActiveType("all"); setStatusFilter("all"); setQuery(""); setDateFrom(""); setDateTo(""); }}
                 size="md"
                 fullWidth={false}
               />
@@ -311,9 +318,21 @@ export default function BibliotecaScreen() {
           <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: spacing.md, marginBottom: spacing.xs }} />
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: spacing.lg }}>
             <Text style={{ fontFamily: fonts.bold, fontSize: 17, color: C.text }}>{t("biblioteca.advancedFilters")}</Text>
-            <TouchableOpacity onPress={() => { setActiveType("all"); setStatusFilter("all"); }}>
+            <TouchableOpacity onPress={() => { setActiveType("all"); setStatusFilter("all"); setDateFrom(""); setDateTo(""); }}>
               <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.muted }}>{t("biblioteca.clear")}</Text>
             </TouchableOpacity>
+          </View>
+
+          <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.muted, paddingHorizontal: spacing.lg, marginBottom: spacing.sm, textTransform: "uppercase", letterSpacing: 0.8 }}>{t("biblioteca.dateLabel")}</Text>
+          <View style={{ flexDirection: "row", gap: spacing.sm, paddingHorizontal: spacing.lg, marginBottom: spacing.lg }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginBottom: 4 }}>{t("biblioteca.dateFrom")}</Text>
+              <DateField value={dateFrom || null} onChange={(v) => setDateFrom(v ?? "")} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginBottom: 4 }}>{t("biblioteca.dateTo")}</Text>
+              <DateField value={dateTo || null} onChange={(v) => setDateTo(v ?? "")} />
+            </View>
           </View>
 
           <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.muted, paddingHorizontal: spacing.lg, marginBottom: spacing.sm, textTransform: "uppercase", letterSpacing: 0.8 }}>{t("biblioteca.statusLabel")}</Text>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getApiClient } from '@/lib/supabase/api-auth'
 import { DEFAULT_CURRENCY, isValidCurrency, needsExchangeRate } from '@/lib/currency'
+import { isPaymentMethod } from '@/lib/payment-methods'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const {
       orgId, clientCompanyId = null, series = 'FAC', kind = 'ordinary',
-      issueDate = null, notes = null, retentionPct = 0, discountPct = 0, lines = [] as LineInput[],
+      issueDate = null, dueDate = null, paymentMethod = null, notes = null, retentionPct = 0, discountPct = 0, lines = [] as LineInput[],
     } = body
 
     const supabase = await getApiClient(req)
@@ -93,6 +94,7 @@ export async function POST(req: NextRequest) {
         client_company_id: clientCompanyId || null,
         series, kind, state: 'draft',
         issue_date: issueDate || null,
+        due_date: dueDate || null,
         currency, exchange_rate: exchangeRate,
         subtotal, discount_pct: discPct || null, discount_amount: discountAmount,
         tax_amount: taxAmount, total,
@@ -103,6 +105,8 @@ export async function POST(req: NextRequest) {
         client_name: client?.name ?? null, client_cif: client?.cif ?? null, client_address: client?.address ?? null,
         client_city: client?.city ?? null, client_postal_code: client?.postal_code ?? null, client_province: client?.province ?? null,
         notes: notes?.trim?.() || null,
+        // Only when set, so drafts keep saving before 20260929_payment_terms.sql is applied.
+        ...(isPaymentMethod(paymentMethod) ? { payment_method: paymentMethod } : {}),
         verifactu_status: 'pending',
         payment_status: 'pending',
         created_by: user.id,

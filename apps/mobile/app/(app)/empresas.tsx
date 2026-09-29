@@ -9,8 +9,10 @@ import { router } from "expo-router";
 import {
   Plus, Search, MoreVertical, Building2, X,
   FileText, Pencil, PauseCircle, PlayCircle, Trash2,
-  Lock,
+  Lock, Mail, Phone, MapPin,
 } from "lucide-react-native";
+import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
+import { isPaymentMethod } from "@/lib/payment-methods";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
@@ -38,9 +40,31 @@ interface Company {
   name: string;
   cif: string | null;
   sector: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  postal_code?: string | null;
+  city?: string | null;
+  province?: string | null;
+  payment_method?: string | null;
+  payment_due_days?: number | null;
   is_active: boolean;
   doc_count?: number;
 }
+
+type CompanyForm = {
+  name: string; cif: string; sector: string; email: string; phone: string;
+  address: string; postal_code: string; city: string; province: string;
+  payment_method: string; payment_due_days: string;
+};
+
+const toForm = (c?: Company | null): CompanyForm => ({
+  name: c?.name ?? "", cif: c?.cif ?? "", sector: c?.sector ?? "",
+  email: c?.email ?? "", phone: c?.phone ?? "", address: c?.address ?? "",
+  postal_code: c?.postal_code ?? "", city: c?.city ?? "", province: c?.province ?? "",
+  payment_method: c?.payment_method ?? "",
+  payment_due_days: c?.payment_due_days != null ? String(c.payment_due_days) : "",
+});
 
 // Sentinel for the "no sector" filter chip
 const NO_SECTOR = "__no_sector__";
@@ -81,6 +105,12 @@ function UpgradeModal({ visible, maxCompanies, onClose, C, t }: { visible: boole
 }
 
 /* ── Company form modal (create / edit) ─────────────────────────────────── */
+/**
+ * Same fields as the web client form (`empresas-view.tsx`). This one used to
+ * ask only for name, CIF and sector, so a client created from here had no
+ * address, phone or email — while the same client created from an invoice
+ * (NewClientModal) did. Kept at module scope so fields keep focus while typing.
+ */
 function CompanyModal({
   visible, onClose, onSaved, orgId, initial, C, t,
 }: {
@@ -88,27 +118,44 @@ function CompanyModal({
   orgId: string; initial?: Company | null; C: any; t: any;
 }) {
   const isEdit = !!initial;
-  const [name,    setName]    = useState(initial?.name    ?? "");
-  const [cif,     setCif]     = useState(initial?.cif     ?? "");
-  const [sector,  setSector]  = useState(initial?.sector  ?? "");
-  const [saving,  setSaving]  = useState(false);
+  const [form, setForm] = useState<CompanyForm>(toForm(initial));
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (visible) {
-      setName(initial?.name ?? "");
-      setCif(initial?.cif ?? "");
-      setSector(initial?.sector ?? "");
-    }
+    if (visible) setForm(toForm(initial));
   }, [visible, initial]);
 
+  const set = (k: keyof CompanyForm) => (v: string) => setForm(f => ({ ...f, [k]: v }));
+
   const handleSave = async () => {
-    if (!name.trim()) return;
+    if (!form.name.trim()) return;
     setSaving(true);
+    const dueDays = form.payment_due_days.trim() === ""
+      ? null
+      : Math.max(0, Math.min(365, Math.round(Number(form.payment_due_days)) || 0));
+    const hadTerms = !!initial && (initial.payment_method != null || initial.payment_due_days != null);
+    const payload = {
+      name:        form.name.trim(),
+      cif:         form.cif.trim()         || null,
+      sector:      form.sector.trim()      || null,
+      email:       form.email.trim()       || null,
+      phone:       form.phone.trim()       || null,
+      address:     form.address.trim()     || null,
+      postal_code: form.postal_code.trim() || null,
+      city:        form.city.trim()        || null,
+      province:    form.province.trim()    || null,
+      // Payment terms are only written when there is something to write (or
+      // to clear), so the form keeps saving on a database where
+      // 20260929_payment_terms.sql has not been applied yet.
+      ...((form.payment_method || dueDays != null || hadTerms)
+        ? { payment_method: form.payment_method || null, payment_due_days: dueDays }
+        : {}),
+    };
     let error: any;
     if (isEdit && initial) {
-      ({ error } = await supabase.from("companies").update({ name: name.trim(), cif: cif.trim() || null, sector: sector.trim() || null }).eq("id", initial.id));
+      ({ error } = await supabase.from("companies").update(payload).eq("id", initial.id));
     } else {
-      ({ error } = await supabase.from("companies").insert({ organization_id: orgId, name: name.trim(), cif: cif.trim() || null, sector: sector.trim() || null, is_active: true }));
+      ({ error } = await supabase.from("companies").insert({ organization_id: orgId, ...payload, is_active: true }));
     }
     setSaving(false);
     if (error) {
@@ -122,7 +169,7 @@ function CompanyModal({
   return (
     <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
-      <View style={{ backgroundColor: C.surface, borderRadius: radius.xl, maxHeight: "75%", overflow: "hidden" }}>
+      <View style={{ backgroundColor: C.surface, borderRadius: radius.xl, maxHeight: "88%", overflow: "hidden" }}>
         <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: spacing.md }} />
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: C.border }}>
           <Text style={{ fontFamily: fonts.bold, fontSize: 17, color: C.text }}>{isEdit ? t("empresas.editCompany") : t("empresas.newCompany")}</Text>
@@ -130,22 +177,38 @@ function CompanyModal({
             <X size={16} color={C.muted} strokeWidth={1.75} />
           </TouchableOpacity>
         </View>
-        <ScrollView style={{ padding: spacing.lg }} keyboardShouldPersistTaps="handled">
-          {[
-            { label: t("empresas.nameLabel"), value: name, setter: setName, placeholder: "Iberdrola SA" },
-            { label: t("empresas.cifLabel"),  value: cif,  setter: setCif,  placeholder: "A-95075578" },
-            { label: t("empresas.sectorLabel"), value: sector, setter: setSector, placeholder: "Energía" },
-          ].map((f) => (
-            <View key={f.label} style={{ marginBottom: spacing.md }}>
-              <Input label={f.label} placeholder={f.placeholder} value={f.value} onChangeText={f.setter} />
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
+          <Input label={t("empresas.nameLabel")} placeholder="Iberdrola SA" value={form.name} onChangeText={set("name")} />
+          <View style={{ flexDirection: "row", gap: spacing.sm + 2 }}>
+            <View style={{ flex: 1 }}>
+              <Input label={t("empresas.cifLabel")} placeholder="A-95075578" value={form.cif} onChangeText={set("cif")} autoCapitalize="characters" />
             </View>
-          ))}
+            <View style={{ flex: 1 }}>
+              <Input label={t("empresas.sectorLabel")} placeholder="Energía" value={form.sector} onChangeText={set("sector")} />
+            </View>
+          </View>
+          <Input label={t("invoicing.clientEmail")} placeholder="cliente@empresa.com" value={form.email} onChangeText={set("email")}
+            keyboardType="email-address" autoCapitalize="none" />
+          <Input label={t("invoicing.clientPhone")} placeholder="+34 600 000 000" value={form.phone} onChangeText={set("phone")} keyboardType="phone-pad" />
+          <Input label={t("invoicing.clientAddress")} placeholder="Calle Mayor 1" value={form.address} onChangeText={set("address")} />
+          <View style={{ flexDirection: "row", gap: spacing.sm + 2 }}>
+            <View style={{ flex: 1 }}>
+              <Input label={t("invoicing.clientPostalCode")} placeholder="28001" value={form.postal_code} onChangeText={set("postal_code")} keyboardType="number-pad" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Input label={t("invoicing.clientCity")} placeholder="Madrid" value={form.city} onChangeText={set("city")} />
+            </View>
+          </View>
+          <Input label={t("invoicing.clientProvince")} placeholder="Madrid" value={form.province} onChangeText={set("province")} />
+          <PaymentMethodPicker label={t("empresas.paymentMethod")} value={form.payment_method} onChange={set("payment_method")} />
+          <Input label={t("empresas.paymentDueDays")} placeholder="30" value={form.payment_due_days} onChangeText={set("payment_due_days")}
+            keyboardType="number-pad" hint={t("empresas.paymentDueDaysHint")} />
           <Button
             label={isEdit ? t("empresas.saveChanges") : t("empresas.createCompany")}
             onPress={handleSave}
-            disabled={saving || !name.trim()}
+            disabled={saving || !form.name.trim()}
             loading={saving}
-            style={{ marginBottom: spacing.lg }}
+            style={{ marginTop: spacing.xs, marginBottom: spacing.lg }}
           />
         </ScrollView>
       </View>
@@ -237,11 +300,47 @@ function CompanyCard({ company, onMenu, C, t }: { company: Company; onMenu: () =
           </TouchableOpacity>
         </View>
 
+        {(!!company.email || !!company.phone || !!company.city) && (
+          <View style={{ gap: 3, marginTop: spacing.sm + 2 }}>
+            {!!company.email && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Mail size={13} color={C.muted} strokeWidth={1.75} />
+                <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.text, flex: 1 }} numberOfLines={1}>{company.email}</Text>
+              </View>
+            )}
+            {!!company.phone && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Phone size={13} color={C.muted} strokeWidth={1.75} />
+                <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.text }}>{company.phone}</Text>
+              </View>
+            )}
+            {!!(company.address || company.city) && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <MapPin size={13} color={C.muted} strokeWidth={1.75} />
+                <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.text, flex: 1 }} numberOfLines={1}>
+                  {[company.address, [company.postal_code, company.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
         <View style={{ flexDirection: "row", gap: spacing.lg, marginTop: spacing.sm + 2, paddingTop: spacing.sm + 2, borderTopWidth: 1, borderTopColor: C.border }}>
           {company.sector && (
             <View>
               <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t("empresas.sector")}</Text>
               <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.text }}>{company.sector}</Text>
+            </View>
+          )}
+          {(isPaymentMethod(company.payment_method) || company.payment_due_days != null) && (
+            <View style={{ flexShrink: 1 }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t("empresas.paymentTerms")}</Text>
+              <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.text }} numberOfLines={1}>
+                {[
+                  isPaymentMethod(company.payment_method) ? t(`paymentMethods.${company.payment_method}`) : null,
+                  company.payment_due_days != null ? t("empresas.daysSuffix", { days: company.payment_due_days }) : null,
+                ].filter(Boolean).join(" · ")}
+              </Text>
             </View>
           )}
           <View>
@@ -290,7 +389,7 @@ function EmpresasScreenContent() {
   const load = useCallback(async () => {
     if (!orgId) { setLoading(false); return; }
     const [{ data: comps }, { data: counts }, { data: orgData }] = await Promise.all([
-      supabase.from("companies").select("id, name, cif, sector, is_active").eq("organization_id", orgId).order("name"),
+      supabase.from("companies").select("*").eq("organization_id", orgId).order("name"),
       supabase.from("documents").select("company_id").eq("organization_id", orgId).not("company_id", "is", null),
       supabase.from("organizations").select("subscription_plan, subscription_status, extra_companies_quantity").eq("id", orgId).single(),
     ]);

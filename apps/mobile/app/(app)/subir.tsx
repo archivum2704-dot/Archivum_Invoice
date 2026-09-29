@@ -25,6 +25,7 @@ import { radius } from "@/lib/radius";
 import { Button, Card, Input } from "@/components/ui";
 import { RequirePermission } from "@/components/RequirePermission";
 import { DateField } from "@/components/DateField";
+import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { FolderField, useFolders } from "@/components/FolderPicker";
 
 interface Company { id: string; name: string; }
@@ -277,7 +278,7 @@ function CompanyPicker({ companies, companyId, setCompanyId, onCreate, creating,
 }
 
 /* ── Step 2: Metadata ───────────────────────────────────────────────────── */
-function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, companies, companyId, setCompanyId, onCreateCompany, creatingCompany, amount, setAmount, taxable, setTaxable, vatRate, setVatRate, issueDate, setIssueDate, dueDate, setDueDate, status, setStatus, notes, setNotes, folders, folderId, setFolderId, foldersLoading, pickedFile, C, t }: any) {
+function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, companies, companyId, setCompanyId, onCreateCompany, creatingCompany, amount, setAmount, taxable, setTaxable, vatRate, setVatRate, issueDate, setIssueDate, dueDate, setDueDate, status, setStatus, payMethod, setPayMethod, notes, setNotes, folders, folderId, setFolderId, foldersLoading, pickedFile, C, t }: any) {
   const DOC_TYPES = [
     { key: "invoice_received", label: t("docTypes.invoice_received") },
     { key: "invoice_issued",   label: t("docTypes.invoice_issued") },
@@ -370,6 +371,8 @@ function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, c
             ))}
           </View>
         </View>
+
+        <PaymentMethodPicker label={t("subir.paymentMethodLabel")} value={payMethod} onChange={setPayMethod} />
 
         <Input
           label={t("subir.notesLabel")}
@@ -473,6 +476,7 @@ function SubirScreenContent() {
   const { folders, loading: foldersLoading } = useFolders(orgId);
   const [status,      setStatus]      = useState("pending");
   const [notes,       setNotes]       = useState("");
+  const [payMethod,   setPayMethod]   = useState("");
   const [saving,      setSaving]      = useState(false);
 
   const loadCompanies = useCallback(async () => {
@@ -548,6 +552,7 @@ function SubirScreenContent() {
         document_number: docNumber.trim() || null, document_type: docType, status,
         total: totalVal, subtotal: baseAmount, tax_rate: rate, tax_amount: taxAmount,
         issue_date: issueDate || null, due_date: dueDate || null, folder_id: folderId,
+        payment_method: payMethod || null,
         notes: notes.trim() || null, file_url: fileUrl, file_name: fileName, file_size: fileSize, file_type: fileType,
       });
       if (insertErr) throw insertErr;
@@ -555,7 +560,7 @@ function SubirScreenContent() {
       setSaving(false);
       Alert.alert(t("subir.successTitle"), t("subir.successMsg", { name: docNumber || "Documento" }), [
         { text: t("subir.viewLibrary"), onPress: () => router.replace("/(app)/biblioteca") },
-        { text: t("subir.uploadAnother"), onPress: () => { setStep(1); setPickedFile(null); setDocNumber(""); setAmount(""); setCompanyId(null); setNotes(""); setTaxable(""); setVatRate("21"); setIssueDate(""); setDueDate(""); setFolderId(null); } },
+        { text: t("subir.uploadAnother"), onPress: () => { setStep(1); setPickedFile(null); setDocNumber(""); setAmount(""); setCompanyId(null); setNotes(""); setPayMethod(""); setTaxable(""); setVatRate("21"); setIssueDate(""); setDueDate(""); setFolderId(null); } },
       ]);
     } catch (err: any) {
       setSaving(false);
@@ -620,7 +625,7 @@ function SubirScreenContent() {
           <>
             <StepIndicator current={step} C={C} t={t} />
             {step === 1 && <ScrollView keyboardShouldPersistTaps="handled"><Step1 onNext={() => setStep(2)} pickedFile={pickedFile} setPickedFile={setPickedFile} C={C} t={t} /></ScrollView>}
-            {step === 2 && <Step2 onNext={() => setStep(3)} onBack={() => setStep(1)} pickedFile={pickedFile} docType={docType} setDocType={setDocType} docNumber={docNumber} setDocNumber={setDocNumber} companies={companies} companyId={companyId} setCompanyId={setCompanyId} onCreateCompany={handleCreateCompany} creatingCompany={creatingCompany} amount={amount} setAmount={setAmount} taxable={taxable} setTaxable={setTaxable} vatRate={vatRate} setVatRate={setVatRate} issueDate={issueDate} setIssueDate={setIssueDate} dueDate={dueDate} setDueDate={setDueDate} status={status} setStatus={setStatus} notes={notes} setNotes={setNotes} folders={folders} folderId={folderId} setFolderId={setFolderId} foldersLoading={foldersLoading} C={C} t={t} />}
+            {step === 2 && <Step2 onNext={() => setStep(3)} onBack={() => setStep(1)} pickedFile={pickedFile} docType={docType} setDocType={setDocType} docNumber={docNumber} setDocNumber={setDocNumber} companies={companies} companyId={companyId} setCompanyId={setCompanyId} onCreateCompany={handleCreateCompany} creatingCompany={creatingCompany} amount={amount} setAmount={setAmount} taxable={taxable} setTaxable={setTaxable} vatRate={vatRate} setVatRate={setVatRate} issueDate={issueDate} setIssueDate={setIssueDate} dueDate={dueDate} setDueDate={setDueDate} status={status} setStatus={setStatus} payMethod={payMethod} setPayMethod={setPayMethod} notes={notes} setNotes={setNotes} folders={folders} folderId={folderId} setFolderId={setFolderId} foldersLoading={foldersLoading} C={C} t={t} />}
             {step === 3 && <ScrollView keyboardShouldPersistTaps="handled"><Step3 onSubmit={handleSubmit} onBack={() => setStep(2)} saving={saving} pickedFile={pickedFile} docType={docType} docNumber={docNumber} companyName={selectedCompanyName} amount={amount} issueDate={issueDate} dueDate={dueDate} status={status} notes={notes} C={C} t={t} /></ScrollView>}
           </>
         ) : (

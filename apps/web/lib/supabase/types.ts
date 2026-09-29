@@ -149,6 +149,8 @@ export type Database = {
           country: string
           phone: string | null
           email: string | null
+          payment_method: string | null
+          payment_due_days: number | null
           contact_person: string | null
           notes: string | null
           is_active: boolean
@@ -171,6 +173,8 @@ export type Database = {
           tax_id_type?: string | null
           phone?: string | null
           email?: string | null
+          payment_method?: string | null
+          payment_due_days?: number | null
           contact_person?: string | null
           notes?: string | null
           is_active?: boolean
@@ -189,6 +193,8 @@ export type Database = {
           tax_id_type?: string | null
           phone?: string | null
           email?: string | null
+          payment_method?: string | null
+          payment_due_days?: number | null
           contact_person?: string | null
           notes?: string | null
           is_active?: boolean
@@ -531,6 +537,8 @@ export type Database = {
           aeat_response: Record<string, unknown> | null
           submitted_at: string | null
           payment_status: DocumentStatus | null
+          payment_method: string | null
+          payment_date: string | null
           document_id: string | null
           rectifies_invoice_id: string | null
           created_by: string | null
@@ -576,6 +584,8 @@ export type Database = {
           verifactu_status?: 'pending' | 'generated' | 'sent' | 'error' | 'exempt'
           issued_at?: string | null
           payment_status?: DocumentStatus | null
+          payment_method?: string | null
+          payment_date?: string | null
           document_id?: string | null
           rectifies_invoice_id?: string | null
           created_by?: string | null
@@ -616,6 +626,8 @@ export type Database = {
           verifactu_status?: 'pending' | 'generated' | 'sent' | 'error' | 'exempt'
           issued_at?: string | null
           payment_status?: DocumentStatus | null
+          payment_method?: string | null
+          payment_date?: string | null
           document_id?: string | null
           rectifies_invoice_id?: string | null
           updated_at?: string

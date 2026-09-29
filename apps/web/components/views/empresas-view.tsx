@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useMemo } from "react"
 import {
   Building2, Search, Plus, FileText, MoreHorizontal, ChevronRight,
   MapPin, Phone, Mail, X, Pencil, Trash2, PauseCircle, PlayCircle, Eye,
-  LayoutGrid, List,
+  LayoutGrid, List, Wallet,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation"
 import { Coachmark } from "@/components/coachmark"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { ImportExcelButton } from "@/components/import-excel-button"
+import { PAYMENT_METHODS, isPaymentMethod } from "@/lib/payment-methods"
 
 const AVATAR_COLORS = ["bg-blue-500", "bg-emerald-600", "bg-violet-600", "bg-orange-500", "bg-rose-600"]
 
@@ -44,7 +45,15 @@ function SectorChip({ label, count, active, onClick }: { label: string; count?: 
   )
 }
 
-type CompanyForm = { name: string; cif: string; sector: string; address: string; postal_code: string; city: string; province: string; phone: string; email: string }
+type CompanyForm = { name: string; cif: string; sector: string; address: string; postal_code: string; city: string; province: string; phone: string; email: string; payment_method: string; payment_due_days: string }
+
+function paymentTermsPatch(form: CompanyForm, initial?: CompanyForm) {
+  const days = form.payment_due_days.trim() === "" ? null : Math.max(0, Math.min(365, Math.round(Number(form.payment_due_days)) || 0))
+  const method = form.payment_method || null
+  const had = !!initial && (initial.payment_method !== "" || initial.payment_due_days !== "")
+  if (!method && days == null && !had) return {}
+  return { payment_method: method, payment_due_days: days }
+}
 
 // ── Shared company form modal ─────────────────────────────────────────────────
 function CompanyModal({
@@ -58,15 +67,16 @@ function CompanyModal({
 }) {
   const t       = useTranslations("companies")
   const tCommon = useTranslations("common")
+  const tPayment = useTranslations("documents.paymentMethods")
   const isEdit  = !!initial
 
   const [form, setForm] = useState<CompanyForm>(
-    initial ?? { name: "", cif: "", sector: "", address: "", postal_code: "", city: "", province: "", phone: "", email: "" }
+    initial ?? { name: "", cif: "", sector: "", address: "", postal_code: "", city: "", province: "", phone: "", email: "", payment_method: "", payment_due_days: "" }
   )
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState<string | null>(null)
 
-  const set = (k: keyof CompanyForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const set = (k: keyof CompanyForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,6 +95,10 @@ function CompanyModal({
       province:    form.province.trim()    || null,
       phone:       form.phone.trim()       || null,
       email:       form.email.trim()       || null,
+      // Payment terms are only written when there is something to write (or
+      // to clear), so the form keeps saving on a database where
+      // 20260929_payment_terms.sql has not been applied yet.
+      ...paymentTermsPatch(form, initial),
     }
 
     const { error: err } = isEdit
@@ -161,6 +175,21 @@ function CompanyModal({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">{t("paymentMethod")}</label>
+              <select value={form.payment_method} onChange={set("payment_method")} disabled={saving} className={inputCls}>
+                <option value="">{tPayment("none")}</option>
+                {PAYMENT_METHODS.map(m => <option key={m} value={m}>{tPayment(m)}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">{t("paymentDueDays")}</label>
+              <input type="number" min={0} max={365} step={1} placeholder="30" value={form.payment_due_days} onChange={set("payment_due_days")} disabled={saving} className={inputCls} />
+            </div>
+            <p className="col-span-2 -mt-2 text-[11px] text-muted-foreground">{t("paymentDueDaysHint")}</p>
+          </div>
+
           {error && <p className="text-xs text-destructive">{error}</p>}
 
           <div className="flex items-center gap-3 pt-1">
@@ -233,6 +262,7 @@ export function EmpresasView() {
   const t       = useTranslations("companies")
   const tCommon = useTranslations("common")
   const tHints  = useTranslations("coachmarks")
+  const tPayment = useTranslations("documents.paymentMethods")
 
   const [search,       setSearch]       = useState("")
   const [selectedSector, setSelectedSector] = useState<string | null>(null)
@@ -303,6 +333,8 @@ export function EmpresasView() {
     province:    company.province ?? "",
     phone:       company.phone  ?? "",
     email:       company.email  ?? "",
+    payment_method:   company.payment_method ?? "",
+    payment_due_days: company.payment_due_days != null ? String(company.payment_due_days) : "",
     isActive:    company.is_active ?? true,
     docs:      company.doc_count,
     color:     AVATAR_COLORS[index % AVATAR_COLORS.length],
@@ -399,6 +431,8 @@ export function EmpresasView() {
                 province:    empresa.province,
                 phone:       empresa.phone,
                 email:       empresa.email,
+                payment_method:   empresa.payment_method,
+                payment_due_days: empresa.payment_due_days,
               })
             }}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
@@ -484,6 +518,17 @@ export function EmpresasView() {
                     <Mail className="w-3.5 h-3.5 shrink-0" />
                     <span className="truncate">{empresa.email || "—"}</span>
                   </div>
+                  {(isPaymentMethod(empresa.payment_method) || empresa.payment_due_days) && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Wallet className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">
+                        {[
+                          isPaymentMethod(empresa.payment_method) ? tPayment(empresa.payment_method) : null,
+                          empresa.payment_due_days ? t("daysSuffix", { days: empresa.payment_due_days }) : null,
+                        ].filter(Boolean).join(" · ")}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between pt-4 border-t border-border">

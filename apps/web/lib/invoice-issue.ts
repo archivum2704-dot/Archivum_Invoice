@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { insertChainedInvoice } from '@/lib/invoice-chain'
 import { DEFAULT_CURRENCY, isValidCurrency, needsExchangeRate, toEur } from '@/lib/currency'
+import { isPaymentMethod } from '@/lib/payment-methods'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
@@ -30,6 +31,8 @@ export interface IssueInvoiceInput {
   operationDate?: string | null
   dueDate?: string | null
   notes?: string | null
+  /** Código de `lib/payment-methods.ts`; cualquier otro valor se descarta. */
+  paymentMethod?: string | null
   retentionPct?: number
   discountPct?: number
   lines: IssueLineInput[]
@@ -62,10 +65,11 @@ export async function issueInvoice(
 ): Promise<{ id: string; fullNumber: string }> {
   const {
     orgId, clientCompanyId, series = 'FAC', kind = 'ordinary' as InvoiceKind,
-    issueDate, operationDate, dueDate, notes, retentionPct = 0, discountPct = 0, lines = [],
+    issueDate, operationDate, dueDate, notes, paymentMethod: rawPaymentMethod, retentionPct = 0, discountPct = 0, lines = [],
   } = input
 
   if (!orgId) throw new IssueError('missing_org', 400)
+  const paymentMethod = isPaymentMethod(rawPaymentMethod) ? rawPaymentMethod : null
   if (!Array.isArray(lines) || lines.length === 0) throw new IssueError('no_lines', 400)
 
   const currency = (input.currency || DEFAULT_CURRENCY).toUpperCase()
@@ -157,6 +161,9 @@ export async function issueInvoice(
     client_city: client.city, client_postal_code: client.postal_code, client_province: client.province,
     client_country_code: client.country_code, client_tax_id_type: client.tax_id_type,
     notes: notes?.trim() || null,
+    // Solo se escribe cuando hay valor: así emitir sigue funcionando en una
+    // base de datos donde aún no se ha aplicado 20260929_payment_terms.sql.
+    ...(paymentMethod ? { payment_method: paymentMethod } : {}),
     payment_status: 'pending', created_by: userId,
   }
 
@@ -260,6 +267,7 @@ export async function issueInvoice(
       subtotal, discountPct: discPct, discountAmount, taxAmount, retentionPct: retPct, retentionAmount, total,
       currency, exchangeRate,
       notes: notes?.trim() || null,
+      paymentMethod,
       huella: obligado ? huella : null, qrUrl: obligado ? qrUrl : null,
     })
     const storagePath = `${orgId}/invoices/${invoice.id}.pdf`

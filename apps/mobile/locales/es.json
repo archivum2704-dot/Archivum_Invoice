@@ -98,7 +98,21 @@
     "errExemptionCause": "Indica el motivo de exención de las líneas exentas.",
     "aeatSent": "Registro aceptado por la AEAT",
     "aeatPending": "Registro pendiente de envío a la AEAT",
-    "aeatError": "La AEAT rechazó el registro"
+    "aeatError": "La AEAT rechazó el registro",
+    "paymentMethod": "Forma de pago",
+    "dueDate": "Vencimiento",
+    "notes": "Notas",
+    "notesPlaceholder": "Condiciones, forma de pago, observaciones…",
+    "newProduct": "Crear producto",
+    "dueDateFromClient": "Propuesta según el plazo del cliente ({{days}} días)",
+    "payment": "Cobro",
+    "paymentDate": "Fecha de cobro",
+    "paid": "Cobrada",
+    "unpaid": "Pendiente de cobro",
+    "markPaid": "Marcar cobrada",
+    "markUnpaid": "Marcar pendiente",
+    "savePayment": "Guardar",
+    "paymentSaveError": "No se pudo guardar el cobro"
   },
   "common": {
     "save": "Guardar",
@@ -207,7 +221,10 @@
     "moveShort": "Mover",
     "noFolder": "Sin carpeta",
     "noFoldersYet": "Todavía no hay carpetas. Créalas desde la Biblioteca.",
-    "folderLabel": "Carpeta"
+    "folderLabel": "Carpeta",
+    "dateLabel": "Fecha",
+    "dateFrom": "Desde",
+    "dateTo": "Hasta"
   },
   "buscar": {
     "title": "Buscador",
@@ -244,7 +261,8 @@
     "vat": "IVA",
     "total": "Total",
     "notes": "Notas",
-    "description": "Descripción"
+    "description": "Descripción",
+    "paymentMethod": "Forma de pago"
   },
   "editar": {
     "title": "Editar documento",
@@ -272,7 +290,8 @@
     "dangerHint": "Esta acción no se puede deshacer fácilmente.",
     "markCancelled": "Marcar como cancelado",
     "markCancelledTitle": "Marcar como cancelado",
-    "markCancelledConfirm": "¿Estás seguro? El estado cambiará a cancelado."
+    "markCancelledConfirm": "¿Estás seguro? El estado cambiará a cancelado.",
+    "paymentMethod": "Forma de pago"
   },
   "empresas": {
     "title": "Clientes",
@@ -304,7 +323,12 @@
     "limitDesc": "Tu plan actual permite hasta {{max}} cliente(s). Actualiza a Pro o añade clientes adicionales por 2€/cliente/mes.",
     "limitBullet1": "Plan Gratis: 1 cliente",
     "limitBullet2": "Plan Pro: 20 clientes incluidos",
-    "limitBullet3": "+2€/mes por cliente adicional"
+    "limitBullet3": "+2€/mes por cliente adicional",
+    "paymentMethod": "Forma de pago",
+    "paymentDueDays": "Vencimiento (días)",
+    "paymentDueDaysHint": "Días desde la fecha de la factura. Se usa para proponer el vencimiento al facturar.",
+    "paymentTerms": "Condiciones de pago",
+    "daysSuffix": "{{days}} días"
   },
   "equipo": {
     "title": "Equipo",
@@ -415,7 +439,8 @@
     "archiveReminder": "Recuerda pulsar «Archivar» para que tu documento quede correctamente guardado.",
     "leaveTitle": "¿Salir sin archivar?",
     "leaveBody": "Se perderá lo que has rellenado. El documento no quedará guardado.",
-    "leaveConfirm": "Salir"
+    "leaveConfirm": "Salir",
+    "paymentMethodLabel": "Forma de pago"
   },
   "tutorial": {
     "skip": "Saltar",
@@ -646,7 +671,9 @@
     "quoteFor": "Pedido para",
     "notFound": "Pedido no encontrado",
     "viewInvoice": "Ver factura",
-    "disclaimer": "Este documento es un pedido y no tiene validez como factura."
+    "disclaimer": "Este documento es un pedido y no tiene validez como factura.",
+    "markAccepted": "Marcar aceptado",
+    "markPending": "Marcar pendiente"
   },
   "access": {
     "deniedTitle": "No tienes permisos para ver esta pestaña",
@@ -688,5 +715,25 @@
     "noStoredEmail": "Este cliente no tiene correo guardado. Escríbelo aquí o añádelo en su ficha.",
     "sentTitle": "Enviado correctamente",
     "failed": "No se pudo enviar el correo."
+  },
+  "paymentMethods": {
+    "none": "Sin especificar",
+    "transfer": "Transferencia bancaria",
+    "direct_debit": "Domiciliación bancaria",
+    "bizum": "Bizum",
+    "credit_card": "Tarjeta de crédito",
+    "cash": "Efectivo",
+    "promissory_note": "Pagaré",
+    "check": "Cheque",
+    "paypal": "PayPal",
+    "other": "Otro"
+  },
+  "quoteStatus": {
+    "draft": "Borrador",
+    "pending": "Pendiente",
+    "accepted": "Aceptado",
+    "rejected": "Rechazado",
+    "billed": "Facturado",
+    "unbilled": "No facturado"
   }
 }

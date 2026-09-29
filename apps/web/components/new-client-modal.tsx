@@ -6,10 +6,11 @@ import { useTranslations, useLocale } from "next-intl"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { TAX_ID_TYPES, isForeignClient } from "@/lib/tax-id-types"
+import { PAYMENT_METHODS } from "@/lib/payment-methods"
 
 const EMPTY = {
   name: "", cif: "", email: "", phone: "", address: "", postal_code: "", city: "", province: "",
-  country_code: "ES", tax_id_type: "",
+  country_code: "ES", tax_id_type: "", payment_method: "", payment_due_days: "",
 }
 
 const inputCls = "w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
@@ -47,6 +48,8 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
   const t = useTranslations("invoicing")
   const locale = useLocale()
   const tCommon = useTranslations("common")
+  const tCompanies = useTranslations("companies")
+  const tPayment = useTranslations("documents.paymentMethods")
   const [nc, setNc] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -82,6 +85,12 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
       // Only a foreign client carries a document type; a Spanish one is a NIF.
       tax_id_type: isForeignClient(nc.country_code) ? (nc.tax_id_type || null) : null,
       is_active: true,
+      // Only when set, so creating a client keeps working before
+      // 20260929_payment_terms.sql is applied.
+      ...(nc.payment_method ? { payment_method: nc.payment_method } : {}),
+      ...(nc.payment_due_days.trim() !== ""
+        ? { payment_due_days: Math.max(0, Math.min(365, Math.round(Number(nc.payment_due_days)) || 0)) }
+        : {}),
     })
 
     if (err) { setError(explain(err, t("createClientError"))); setSaving(false); return }
@@ -162,6 +171,20 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
             <div>
               <label className="block text-xs font-medium text-foreground mb-1.5">{t("clientProvince")}</label>
               <input value={nc.province} onChange={e => setNc({ ...nc, province: e.target.value })} className={inputCls} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1.5">{tCompanies("paymentMethod")}</label>
+              <select value={nc.payment_method} onChange={e => setNc({ ...nc, payment_method: e.target.value })} className={inputCls}>
+                <option value="">{tPayment("none")}</option>
+                {PAYMENT_METHODS.map(m => <option key={m} value={m}>{tPayment(m)}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1.5">{tCompanies("paymentDueDays")}</label>
+              <input type="number" min={0} max={365} step={1} placeholder="30" value={nc.payment_due_days}
+                onChange={e => setNc({ ...nc, payment_due_days: e.target.value })} className={inputCls} />
             </div>
           </div>
           {error && (

@@ -15,8 +15,11 @@ import { SendEmailButton } from "@/components/SendEmailButton";
 import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
-import { Card, Button } from "@/components/ui";
+import { Card, Button, Badge } from "@/components/ui";
 import { formatMoney, needsExchangeRate, toEur } from "@/lib/currency";
+import { isPaymentMethod } from "@/lib/payment-methods";
+import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
+import { DateField } from "@/components/DateField";
 
 
 interface Invoice {
@@ -32,6 +35,8 @@ interface Invoice {
   // afirmaba que la factura era verificable allí sin saber si lo era.
   verifactu_status: string | null; aeat_csv: string | null;
   aeat_error: string | null; submitted_at: string | null;
+  due_date: string | null; notes: string | null;
+  payment_status: string | null; payment_method: string | null; payment_date: string | null;
 }
 interface Line { id: string; description: string; quantity: number; unit_price: number; tax_rate: number; line_total: number; }
 
@@ -57,6 +62,36 @@ export default function FacturaDetailScreen() {
     await Clipboard.setStringAsync(invoice.huella);
     setHuellaCopied(true);
     setTimeout(() => setHuellaCopied(false), 1800);
+  };
+
+  // ── Cobro ──
+  // Payment method and date are not part of the Verifactu record, and
+  // protect_issued_invoice does not freeze them: recording that an invoice
+  // was paid does not alter it.
+  const [payMethod, setPayMethod] = useState("");
+  const [payDate, setPayDate] = useState("");
+  const [paySaving, setPaySaving] = useState(false);
+  useEffect(() => {
+    if (!invoice) return;
+    setPayMethod(invoice.payment_method ?? "");
+    setPayDate(invoice.payment_date ?? "");
+  }, [invoice?.id, invoice?.payment_method, invoice?.payment_date]);
+
+  const canEditPayment = isAdmin && invoice?.state !== "draft";
+  const payDirty = !!invoice && (payMethod !== (invoice.payment_method ?? "") || payDate !== (invoice.payment_date ?? ""));
+
+  const savePayment = async (dateOverride?: string) => {
+    if (!invoice) return;
+    const date = dateOverride !== undefined ? dateOverride : payDate;
+    setPaySaving(true);
+    const patch: Record<string, unknown> = { payment_method: payMethod || null, payment_date: date || null };
+    // An annulled invoice keeps its 'cancelled' status whatever is recorded.
+    if (invoice.payment_status !== "cancelled") patch.payment_status = date ? "paid" : "pending";
+    const { error } = await supabase.from("invoices").update(patch).eq("id", invoice.id);
+    setPaySaving(false);
+    if (error) { Alert.alert(t("common.error"), `${t("invoicing.paymentSaveError")}: ${error.message}`); return; }
+    setInvoice({ ...invoice, payment_method: payMethod || null, payment_date: date || null,
+      payment_status: (patch.payment_status as string | undefined) ?? invoice.payment_status });
   };
 
   const fmtEur = (n: number) => formatMoney(Number(n) || 0, invoice?.currency ?? "EUR");
@@ -139,6 +174,7 @@ export default function FacturaDetailScreen() {
               <Text style={{ fontFamily: fonts.bold, fontSize: 16, color: C.text }}>{invoice.issuer_name}</Text>
               {!!invoice.issuer_cif && <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>CIF: {invoice.issuer_cif}</Text>}
               <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginTop: 2 }}>{t("invoicing.issueDate")}: {invoice.issue_date}</Text>
+              {!!invoice.due_date && <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>{t("invoicing.dueDate")}: {invoice.due_date}</Text>}
             </View>
           </View>
           <View style={{ height: 1, backgroundColor: C.border }} />
@@ -167,7 +203,47 @@ export default function FacturaDetailScreen() {
               1 {invoice.currency} = {Number(invoice.exchange_rate).toFixed(4).replace(".", ",")} € · {formatMoney(toEur(Number(invoice.total), invoice.currency, invoice.exchange_rate), "EUR")}
             </Text>
           )}
+          {isPaymentMethod(invoice.payment_method) && (
+            <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.text }}>
+              <Text style={{ fontFamily: fonts.semibold }}>{t("invoicing.paymentMethod")}:</Text> {t(`paymentMethods.${invoice.payment_method}`)}
+            </Text>
+          )}
+          {!!invoice.notes && (
+            <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>{invoice.notes}</Text>
+          )}
         </Card>
+
+        {/* Cobro */}
+        {invoice.state !== "draft" && (
+          <Card style={{ gap: spacing.md }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: C.text }}>{t("invoicing.payment")}</Text>
+              <Badge label={invoice.payment_date ? t("invoicing.paid") : t("invoicing.unpaid")} tone={invoice.payment_date ? "green" : "yellow"} />
+            </View>
+            <PaymentMethodPicker label={t("invoicing.paymentMethod")} value={payMethod} onChange={setPayMethod} disabled={!canEditPayment} />
+            <View>
+              <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: C.text, marginBottom: 6 }}>{t("invoicing.paymentDate")}</Text>
+              {canEditPayment
+                ? <DateField value={payDate || null} onChange={(v) => setPayDate(v ?? "")} />
+                : <Text style={{ fontFamily: fonts.regular, fontSize: 14, color: C.text }}>{payDate || "—"}</Text>}
+            </View>
+            {canEditPayment && (
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    label={invoice.payment_date ? t("invoicing.markUnpaid") : t("invoicing.markPaid")}
+                    onPress={() => savePayment(invoice.payment_date ? "" : (payDate || new Date().toISOString().slice(0, 10)))}
+                    disabled={paySaving}
+                    variant="secondary"
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button label={t("invoicing.savePayment")} onPress={() => savePayment()} disabled={paySaving || !payDirty} loading={paySaving} />
+                </View>
+              </View>
+            )}
+          </Card>
+        )}
 
         {/* Verifactu block. Igual que en web: sin huella no hay registro que
             cotejar, y la leyenda afirmaria algo que no existe. */}

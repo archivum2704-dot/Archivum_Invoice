@@ -98,7 +98,21 @@
     "errExemptionCause": "Give the exemption reason for the exempt lines.",
     "aeatSent": "Record accepted by the AEAT",
     "aeatPending": "Record pending submission to the AEAT",
-    "aeatError": "The AEAT rejected the record"
+    "aeatError": "The AEAT rejected the record",
+    "paymentMethod": "Payment method",
+    "dueDate": "Due date",
+    "notes": "Notes",
+    "notesPlaceholder": "Terms, payment details, remarks…",
+    "newProduct": "Create product",
+    "dueDateFromClient": "Suggested from the client's terms ({{days}} days)",
+    "payment": "Payment",
+    "paymentDate": "Payment date",
+    "paid": "Paid",
+    "unpaid": "Awaiting payment",
+    "markPaid": "Mark paid",
+    "markUnpaid": "Mark unpaid",
+    "savePayment": "Save",
+    "paymentSaveError": "Could not save the payment"
   },
   "common": {
     "save": "Save",
@@ -207,7 +221,10 @@
     "moveShort": "Move",
     "noFolder": "No folder",
     "noFoldersYet": "No folders yet. Create them from the Library.",
-    "folderLabel": "Folder"
+    "folderLabel": "Folder",
+    "dateLabel": "Date",
+    "dateFrom": "From",
+    "dateTo": "To"
   },
   "buscar": {
     "title": "Search",
@@ -244,7 +261,8 @@
     "vat": "VAT",
     "total": "Total",
     "notes": "Notes",
-    "description": "Description"
+    "description": "Description",
+    "paymentMethod": "Payment method"
   },
   "editar": {
     "title": "Edit document",
@@ -272,7 +290,8 @@
     "dangerHint": "This action cannot be easily undone.",
     "markCancelled": "Mark as cancelled",
     "markCancelledTitle": "Mark as cancelled",
-    "markCancelledConfirm": "Are you sure? The status will change to cancelled."
+    "markCancelledConfirm": "Are you sure? The status will change to cancelled.",
+    "paymentMethod": "Payment method"
   },
   "empresas": {
     "title": "Clients",
@@ -304,7 +323,12 @@
     "limitDesc": "Your current plan allows up to {{max}} client(s). Upgrade to Pro or add extra clients for €2/client/month.",
     "limitBullet1": "Free plan: 1 client",
     "limitBullet2": "Pro plan: 20 clients included",
-    "limitBullet3": "+€2/month per extra client"
+    "limitBullet3": "+€2/month per extra client",
+    "paymentMethod": "Payment method",
+    "paymentDueDays": "Due (days)",
+    "paymentDueDaysHint": "Days from the invoice date. Used to suggest the due date when invoicing.",
+    "paymentTerms": "Payment terms",
+    "daysSuffix": "{{days}} days"
   },
   "equipo": {
     "title": "Team",
@@ -415,7 +439,8 @@
     "archiveReminder": "Remember to press \"Archive\" so your document is saved correctly.",
     "leaveTitle": "Leave without archiving?",
     "leaveBody": "You'll lose what you filled in. The document won't be saved.",
-    "leaveConfirm": "Leave"
+    "leaveConfirm": "Leave",
+    "paymentMethodLabel": "Payment method"
   },
   "tutorial": {
     "skip": "Skip",
@@ -646,7 +671,9 @@
     "quoteFor": "Order for",
     "notFound": "Order not found",
     "viewInvoice": "View invoice",
-    "disclaimer": "This document is an order and is not valid as an invoice."
+    "disclaimer": "This document is an order and is not valid as an invoice.",
+    "markAccepted": "Mark accepted",
+    "markPending": "Mark pending"
   },
   "access": {
     "deniedTitle": "You don't have permission to view this tab",
@@ -688,5 +715,25 @@
     "noStoredEmail": "This client has no email on file. Type it here or add it to their record.",
     "sentTitle": "Sent successfully",
     "failed": "The email could not be sent."
+  },
+  "paymentMethods": {
+    "none": "Not specified",
+    "transfer": "Bank transfer",
+    "direct_debit": "Direct debit",
+    "bizum": "Bizum",
+    "credit_card": "Credit card",
+    "cash": "Cash",
+    "promissory_note": "Promissory note",
+    "check": "Cheque",
+    "paypal": "PayPal",
+    "other": "Other"
+  },
+  "quoteStatus": {
+    "draft": "Draft",
+    "pending": "Pending",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "billed": "Invoiced",
+    "unbilled": "Not invoiced"
   }
 }

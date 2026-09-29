@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react"
 import {
-  ClipboardList, Plus, X, Trash2, Loader2, Lock, Download, Pencil, ArrowRight, FileText,
+  ClipboardList, Plus, X, Trash2, Loader2, Lock, Download, Pencil, ArrowRight, FileText, CheckCircle2, RotateCcw,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -18,16 +18,13 @@ import { EXEMPTION_CAUSES } from "@/lib/exemption-causes"
 import { createClient } from "@/lib/supabase/client"
 import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/lib/currency"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
+import { quoteStatusLabel, quoteStatusStyle, canToggleAccepted } from "@/lib/quote-status"
 
 type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string; exemptionCause: string }
 const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1", unitPrice: "0", taxRate: "21", exemptionCause: "" })
 
 const IVA_RATES = ["", "4", "10", "21"]
 const RETENTION_RATES = ["", "7", "15", "19"]
-
-const STATUS_LABEL: Record<string, string> = {
-  draft: "Borrador", sent: "Enviado", accepted: "Aceptado", rejected: "Rechazado", converted: "Facturado",
-}
 
 // Traduce los códigos que devuelve POST /api/quotes cuando no hay `detail`.
 // Sin esto se mostraba el código en crudo (p.ej. "unauthorized") tal cual.
@@ -45,14 +42,6 @@ const QUOTE_ERROR_MESSAGES: Record<string, string> = {
   delivery_note_failed: "No se pudo abrir el albarán del pedido.",
   server_error: "Ha ocurrido un error inesperado. Inténtalo de nuevo.",
 }
-const STATUS_STYLE: Record<string, string> = {
-  draft:     "bg-muted text-muted-foreground",
-  sent:      "bg-primary/10 text-primary",
-  accepted:  "bg-[var(--status-paid)]/10 text-[var(--status-paid)]",
-  rejected:  "bg-[var(--status-overdue)]/10 text-[var(--status-overdue)]",
-  converted: "bg-accent/10 text-accent",
-}
-
 export function PresupuestosView() {
   const router = useRouter()
   const { currentOrg, isOrgAdmin, isPlatformAdmin } = useOrganization()
@@ -65,6 +54,7 @@ export function PresupuestosView() {
 
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const [editAccepted, setEditAccepted] = useState(false)
   const [clientId, setClientId] = useState("")
   const [issueDate, setIssueDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [validUntil, setValidUntil] = useState("")
@@ -140,7 +130,7 @@ export function PresupuestosView() {
   }
 
   const resetForm = () => {
-    setEditId(null); setClientId(""); setIssueDate(new Date().toISOString().slice(0, 10))
+    setEditId(null); setEditAccepted(false); setClientId(""); setIssueDate(new Date().toISOString().slice(0, 10))
     setValidUntil(""); setDiscountPct(""); setRetentionPct("")
     setCurrency(DEFAULT_CURRENCY); setExchangeRate("")
     setNotes(""); setLines([emptyLine()]); setError(null)
@@ -153,6 +143,7 @@ export function PresupuestosView() {
     const data = await fetchQuoteWithLines(q.id)
     if (!data) return
     setEditId(q.id)
+    setEditAccepted(q.status === "accepted")
     setClientId(q.client_company_id ?? "")
     setIssueDate(q.issue_date ?? new Date().toISOString().slice(0, 10))
     setValidUntil(q.valid_until ?? "")
@@ -182,7 +173,9 @@ export function PresupuestosView() {
     }
     setSaving(true); setError(null)
     const body = JSON.stringify({
-      id: editId, orgId: currentOrg.id, clientCompanyId: clientId, status: "sent",
+      id: editId, orgId: currentOrg.id, clientCompanyId: clientId,
+      // Editing an accepted order must not quietly send it back to pending.
+      status: editId && editAccepted ? "accepted" : "sent",
       issueDate, validUntil: validUntil || null, notes,
       discountPct: Number(discountPct) || 0, retentionPct: Number(retentionPct) || 0,
       currency, exchangeRate: needsExchangeRate(currency) ? Number(exchangeRate) || null : null,
@@ -217,6 +210,16 @@ export function PresupuestosView() {
       await mutate(); setOpen(false); resetForm()
     } catch (e) { setError(String(e)) }
     setSaving(false)
+  }
+
+  // Pedido pendiente ⇄ aceptado. Also set on its own when the albarán is billed.
+  const handleToggleAccepted = async (q: Quote) => {
+    setBusyId(q.id)
+    const supabase: any = createClient()
+    const { error: err } = await supabase.from("quotes")
+      .update({ status: q.status === "accepted" ? "sent" : "accepted" }).eq("id", q.id)
+    if (err) alert(err.message ?? "No se pudo cambiar el estado del pedido.")
+    await mutate(); setBusyId(null)
   }
 
   const handleDelete = async (q: Quote) => {
@@ -287,11 +290,18 @@ export function PresupuestosView() {
                   <p className="text-xs text-muted-foreground truncate">{q.client?.name ?? q.client_name ?? "—"} · {q.issue_date ?? ""}</p>
                 </Link>
                 <span className="hidden sm:block text-sm font-semibold text-foreground tabular-nums w-28 text-right">{formatMoney(Number(q.total), q.currency)}</span>
-                <span className={cn("text-xs px-2.5 py-1 rounded-full font-medium shrink-0", STATUS_STYLE[q.status])}>{STATUS_LABEL[q.status]}</span>
+                <span className={cn("text-xs px-2.5 py-1 rounded-full font-medium shrink-0", quoteStatusStyle("quote", q.status))}>{quoteStatusLabel("quote", q.status)}</span>
                 <div className="flex items-center gap-1 shrink-0">
                   <a href={`/api/quotes/pdf?id=${q.id}`} title="Descargar PDF" className="p-1.5 rounded hover:bg-muted transition-colors">
                     <Download className="w-4 h-4 text-muted-foreground" />
                   </a>
+                  {isOrgAdmin && canToggleAccepted(q.status) && (
+                    <button onClick={() => handleToggleAccepted(q)} title={q.status === "accepted" ? "Marcar pendiente" : "Marcar aceptado"} className="p-1.5 rounded hover:bg-muted transition-colors">
+                      {q.status === "accepted"
+                        ? <RotateCcw className="w-4 h-4 text-muted-foreground" />
+                        : <CheckCircle2 className="w-4 h-4 text-[var(--status-paid)]" />}
+                    </button>
+                  )}
                   {isOrgAdmin && q.status !== "converted" && (
                     <>
                       <button onClick={() => openEdit(q)} title="Editar" className="p-1.5 rounded hover:bg-muted transition-colors">

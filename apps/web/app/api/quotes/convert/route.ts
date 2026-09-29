@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getApiClient } from '@/lib/supabase/api-auth'
 import { issueInvoice, IssueError } from '@/lib/invoice-issue'
+import { dueDateFromTerms } from '@/lib/payment-methods'
 
 /**
  * Turn a delivery note into a real Verifactu invoice.
@@ -38,10 +39,18 @@ export async function POST(req: NextRequest) {
     if (!lines || lines.length === 0) return NextResponse.json({ error: 'no_lines' }, { status: 400 })
 
     const issueDate = new Date().toISOString().slice(0, 10)
+
+    // The client's payment terms, as defaults for the invoice. select('*')
+    // rather than naming the columns so billing keeps working on a database
+    // where 20260929_payment_terms.sql has not been applied yet.
+    const { data: client } = await supabase
+      .from('companies').select('*').eq('id', quote.client_company_id).maybeSingle()
     const { id: invoiceId } = await issueInvoice(supabase, user.id, {
       orgId: quote.organization_id,
       clientCompanyId: quote.client_company_id,
       issueDate,
+      dueDate: dueDateFromTerms(issueDate, client?.payment_due_days) || null,
+      paymentMethod: client?.payment_method ?? null,
       notes: quote.notes,
       retentionPct: Number(quote.retention_pct) || 0,
       discountPct: Number(quote.discount_pct) || 0,

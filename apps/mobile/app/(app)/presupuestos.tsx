@@ -7,8 +7,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
   Plus, ClipboardList, X, Trash2, Lock, ArrowLeft, ChevronRight,
-  Search as SearchIcon, Download, Pencil,
+  Search as SearchIcon, Download, Pencil, CheckCircle2, RotateCcw,
 } from "lucide-react-native";
+import { quoteStatusKey, quoteStatusTone, canToggleAccepted } from "@/lib/quote-status";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
@@ -22,7 +23,7 @@ import { ProductPickerModal } from "@/components/ProductPickerModal";
 import { DateField } from "@/components/DateField";
 import { readJson } from "@/lib/api";
 import { EXEMPTION_CAUSES, exemptionShort } from "@/lib/exemption-causes";
-import { Badge, Button, Card, EmptyState, Input, type BadgeTone } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, Input } from "@/components/ui";
 import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
@@ -62,6 +63,7 @@ function PresupuestosScreenContent() {
 
   const [modal, setModal] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [editAccepted, setEditAccepted] = useState(false);
   const [clientPicker, setClientPicker] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
   const [clientId, setClientId] = useState("");
@@ -113,7 +115,7 @@ function PresupuestosScreenContent() {
   }, [lines, retentionPct, discountPct]);
 
   const resetForm = () => {
-    setEditId(null); setClientId(""); setRetentionPct(""); setDiscountPct("");
+    setEditId(null); setEditAccepted(false); setClientId(""); setRetentionPct(""); setDiscountPct("");
     setCurrency(DEFAULT_CURRENCY); setExchangeRate("");
     setValidUntil(""); setNotes(""); setLines([emptyLine()]);
   };
@@ -153,6 +155,7 @@ function PresupuestosScreenContent() {
     ]);
     if (!quote) return;
     setEditId(q.id);
+    setEditAccepted(quote.status === "accepted");
     setClientId(quote.client_company_id ?? "");
     setValidUntil(quote.valid_until ?? "");
     setDiscountPct(quote.discount_pct != null ? String(quote.discount_pct) : "");
@@ -182,7 +185,9 @@ function PresupuestosScreenContent() {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
         body: JSON.stringify({
-          id: editId, orgId, clientCompanyId: clientId, status: "sent",
+          id: editId, orgId, clientCompanyId: clientId,
+          // Editing an accepted order must not quietly send it back to pending.
+          status: editId && editAccepted ? "accepted" : "sent",
           issueDate: new Date().toISOString().slice(0, 10), validUntil: validUntil || null, notes,
           retentionPct: Number(retentionPct) || 0, discountPct: Number(discountPct) || 0,
           currency, exchangeRate: needsExchangeRate(currency) ? Number(exchangeRate) || null : null,
@@ -194,6 +199,15 @@ function PresupuestosScreenContent() {
       setModal(false); resetForm(); await load();
     } catch (e) { Alert.alert(t("common.error"), String(e)); }
     setSaving(false);
+  };
+
+  // Pedido pendiente ⇄ aceptado. Also set on its own when the albarán is billed.
+  const toggleAccepted = async (q: Quote) => {
+    setBusyId(q.id);
+    const { error } = await supabase.from("quotes")
+      .update({ status: q.status === "accepted" ? "sent" : "accepted" }).eq("id", q.id);
+    if (error) Alert.alert(t("common.error"), error.message);
+    await load(); setBusyId(null);
   };
 
   const del = (q: Quote) => {
@@ -213,7 +227,6 @@ function PresupuestosScreenContent() {
     else Alert.alert(t("common.error"), t("quoting.pdfUnavailable"));
   };
 
-  const statusTone = (s: string): BadgeTone => s === "accepted" ? "green" : s === "rejected" ? "red" : "blue";
 
   const Header = (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.lg, paddingVertical: spacing.md }}>
@@ -273,13 +286,21 @@ function PresupuestosScreenContent() {
                 </View>
                 <View style={{ alignItems: "flex-end", gap: 4 }}>
                   <Text style={{ fontFamily: fonts.bold, fontSize: 14, color: C.text }}>{formatMoney(item.total, item.currency)}</Text>
-                  <Badge label={t(`quoting.status.${item.status}`)} tone={statusTone(item.status)} />
+                  <Badge label={t(`quoteStatus.${quoteStatusKey("quote", item.status)}`)} tone={quoteStatusTone("quote", item.status)} />
                 </View>
                 <ChevronRight size={18} color={C.muted} strokeWidth={1.75} />
               </TouchableOpacity>
               {canManage && (
                 <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.md, flexWrap: "wrap" }}>
                   <ActBtn icon={<Download size={14} color={C.text} strokeWidth={1.75} />} label={t("quoting.pdf")} onPress={() => sharePdf(item)} C={C} />
+                  {canToggleAccepted(item.status) && (
+                    <ActBtn
+                      icon={item.status === "accepted"
+                        ? <RotateCcw size={14} color={C.text} strokeWidth={1.75} />
+                        : <CheckCircle2 size={14} color={C.green} strokeWidth={1.75} />}
+                      label={item.status === "accepted" ? t("quoting.markPending") : t("quoting.markAccepted")}
+                      onPress={() => toggleAccepted(item)} C={C} />
+                  )}
                   <ActBtn icon={<Pencil size={14} color={C.text} strokeWidth={1.75} />} label={t("common.edit")} onPress={() => openEdit(item)} C={C} />
                   <ActBtn icon={<Trash2 size={14} color={C.red} strokeWidth={1.75} />} label={t("quoting.delete")} onPress={() => del(item)} danger C={C} />
                 </View>

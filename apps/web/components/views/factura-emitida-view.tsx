@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import useSWR from "swr"
 import QRCode from "qrcode"
-import { ArrowLeft, Printer, ShieldCheck, Loader2, Ban, Copy, Check } from "lucide-react"
+import { ArrowLeft, Printer, ShieldCheck, Loader2, Ban, Copy, Check, Wallet } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { SendEmailButton } from "@/components/send-email-button"
 import type { Database } from "@/lib/supabase/types"
 import { formatMoney, needsExchangeRate, toEur } from "@/lib/currency"
+import { PAYMENT_METHODS, isPaymentMethod } from "@/lib/payment-methods"
 
 type Invoice = Database["public"]["Tables"]["invoices"]["Row"]
 type Line = Database["public"]["Tables"]["invoice_lines"]["Row"]
@@ -40,6 +41,7 @@ async function fetchInvoice(id: string): Promise<{ invoice: Invoice; lines: Line
 
 export function FacturaEmitidaView({ id }: { id: string }) {
   const t = useTranslations("invoicing")
+  const tPayment = useTranslations("documents.paymentMethods")
   const locale = useLocale()
   const router = useRouter()
   const { currentOrg, isOrgAdmin } = useOrganization()
@@ -87,6 +89,42 @@ export function FacturaEmitidaView({ id }: { id: string }) {
       QRCode.toDataURL(invoice.qr_url, { width: 160, margin: 1 }).then(setQrSrc).catch(() => setQrSrc(null))
     }
   }, [invoice?.qr_url])
+
+  // ── Cobro ──
+  // Payment method and date are not part of the Verifactu record, and
+  // protect_issued_invoice does not freeze them: recording that an invoice
+  // was paid does not alter it.
+  const [payMethod, setPayMethod] = useState("")
+  const [payDate, setPayDate] = useState("")
+  const [paySaving, setPaySaving] = useState(false)
+  const [payMsg, setPayMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  useEffect(() => {
+    if (!invoice) return
+    setPayMethod(invoice.payment_method ?? "")
+    setPayDate(invoice.payment_date ?? "")
+  }, [invoice?.id, invoice?.payment_method, invoice?.payment_date])
+
+  const canEditPayment = isOrgAdmin && invoice?.state !== "draft"
+  const payDirty = !!invoice && (payMethod !== (invoice.payment_method ?? "") || payDate !== (invoice.payment_date ?? ""))
+
+  const savePayment = async (override?: { date: string }) => {
+    if (!invoice) return
+    const date = override ? override.date : payDate
+    setPaySaving(true); setPayMsg(null)
+    const supabase: any = createClient()
+    const patch: Record<string, unknown> = {
+      payment_method: payMethod || null,
+      payment_date: date || null,
+    }
+    // An annulled invoice keeps its 'cancelled' status whatever is recorded.
+    if (invoice.payment_status !== "cancelled") patch.payment_status = date ? "paid" : "pending"
+    const { error } = await supabase.from("invoices").update(patch).eq("id", invoice.id)
+    setPaySaving(false)
+    if (error) { setPayMsg({ ok: false, text: `${t("paymentSaveError")}: ${error.message}` }); return }
+    if (override) setPayDate(override.date)
+    setPayMsg({ ok: true, text: t("paymentSaved") })
+    await mutate()
+  }
 
   const fmtEur = (n: number) => formatMoney(Number(n) || 0, invoice?.currency ?? "EUR")
 
@@ -213,6 +251,9 @@ export function FacturaEmitidaView({ id }: { id: string }) {
           </div>
         </div>
 
+        {isPaymentMethod(invoice.payment_method) && (
+          <p className="text-xs text-foreground mb-2"><span className="font-semibold">{t("paymentMethod")}:</span> {tPayment(invoice.payment_method)}</p>
+        )}
         {invoice.notes && <p className="text-xs text-muted-foreground mb-8 whitespace-pre-wrap">{invoice.notes}</p>}
 
         {/* Verifactu block. Solo si la factura lleva registro: sin huella no
@@ -259,6 +300,61 @@ export function FacturaEmitidaView({ id }: { id: string }) {
         </div>
         )}
       </div>
+
+      {/* Cobro — not part of the printed invoice */}
+      {invoice.state !== "draft" && (
+        <div className="mt-4 bg-card border border-border rounded-2xl p-5 print:hidden">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-primary" />
+              <h2 className="text-sm font-semibold text-foreground">{t("payment")}</h2>
+            </div>
+            <span className={cn(
+              "text-[11px] px-2 py-0.5 rounded-full font-medium",
+              invoice.payment_date
+                ? "bg-[var(--status-paid)]/10 text-[var(--status-paid)]"
+                : "bg-[var(--status-pending)]/10 text-[var(--status-pending)]",
+            )}>
+              {invoice.payment_date ? t("paid") : t("unpaid")}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t("paymentMethod")}</label>
+              <select value={payMethod} onChange={e => setPayMethod(e.target.value)} disabled={!canEditPayment}
+                className="w-full px-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-70">
+                <option value="">{tPayment("none")}</option>
+                {PAYMENT_METHODS.map(m => <option key={m} value={m}>{tPayment(m)}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t("paymentDate")}</label>
+              <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} disabled={!canEditPayment}
+                className="w-full px-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-70" />
+            </div>
+          </div>
+          {canEditPayment && (
+            <div className="flex flex-wrap items-center justify-end gap-2 mt-4">
+              {payMsg && <p className={cn("text-xs mr-auto", payMsg.ok ? "text-[var(--status-paid)]" : "text-destructive")}>{payMsg.text}</p>}
+              {invoice.payment_date ? (
+                <button onClick={() => savePayment({ date: "" })} disabled={paySaving}
+                  className="px-3 py-2 text-sm font-medium border border-border rounded-xl hover:bg-muted disabled:opacity-50 transition-colors">
+                  {t("markUnpaid")}
+                </button>
+              ) : (
+                <button onClick={() => savePayment({ date: payDate || new Date().toISOString().slice(0, 10) })} disabled={paySaving}
+                  className="px-3 py-2 text-sm font-medium border border-border rounded-xl hover:bg-muted disabled:opacity-50 transition-colors">
+                  {t("markPaid")}
+                </button>
+              )}
+              <button onClick={() => savePayment()} disabled={paySaving || !payDirty}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
+                {paySaving && <Loader2 className="w-4 h-4 animate-spin" />} {t("savePayment")}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

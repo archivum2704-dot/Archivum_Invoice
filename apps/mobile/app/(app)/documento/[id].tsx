@@ -20,6 +20,7 @@ import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
 import { Button, Card, Badge, EmptyState, type BadgeTone } from "@/components/ui";
+import { isPaymentMethod } from "@/lib/payment-methods";
 
 function Field({ label, value, C }: { label: string; value: string | null | undefined; C: Colors }) {
   if (value == null || value === "") return null;
@@ -225,6 +226,7 @@ export default function DocumentoDetailScreen() {
           <Field C={C} label={t("documento.issueDate")} value={fmtDate(doc.issue_date)} />
           <Field C={C} label={t("documento.dueDate")} value={fmtDate(doc.due_date)} />
           <Field C={C} label={t("documento.paymentDate")} value={fmtDate(doc.payment_date)} />
+          <Field C={C} label={t("documento.paymentMethod")} value={isPaymentMethod(doc.payment_method) ? t(`paymentMethods.${doc.payment_method}`) : null} />
           <Field C={C} label={t("documento.subtotal")} value={doc.subtotal != null ? fmt(doc.subtotal) : null} />
           <Field C={C} label={`${t("documento.vat")} (${doc.tax_rate ?? 0}%)`} value={
             doc.tax_amount != null

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  RefreshControl, ActivityIndicator, ScrollView, Switch, Alert,
+  RefreshControl, ActivityIndicator, ScrollView, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -18,8 +18,8 @@ import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
 import { BillingNotice } from "@/components/BillingNotice";
 import { RequirePermission } from "@/components/RequirePermission";
-import { KeyboardModal } from "@/components/KeyboardModal";
-import { Badge, Button, Card, EmptyState, Input } from "@/components/ui";
+import { ProductFormModal } from "@/components/ProductFormModal";
+import { Badge, Button, Card, EmptyState } from "@/components/ui";
 
 
 
@@ -35,14 +35,6 @@ interface Product {
   stock_qty: number;
   min_stock: number | null;
 }
-
-type Draft = {
-  id?: string;
-  name: string; sku: string; category: string; unit: string;
-  unit_price: string; tax_rate: string; track_stock: boolean; stock_qty: string; min_stock: string;
-};
-
-const EMPTY: Draft = { name: "", sku: "", category: "", unit: "ud", unit_price: "0", tax_rate: "21", track_stock: true, stock_qty: "0", min_stock: "" };
 
 /**
  * A tracked product at or below its reorder floor.
@@ -68,8 +60,7 @@ function InventarioScreenContent() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modal, setModal] = useState(false);
-  const [draft, setDraft] = useState<Draft>(EMPTY);
-  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState<Product | null>(null);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -102,43 +93,6 @@ function InventarioScreenContent() {
   }, [orgId]);
 
   useEffect(() => { if (paid) load(); else setLoading(false); }, [load, paid]);
-
-  // Next free auto reference (REF-0001, REF-0002…) based on existing products
-  const nextAutoSku = () => {
-    let max = 0;
-    for (const p of products) {
-      const m = /^REF-(\d+)$/i.exec(p.sku?.trim() ?? "");
-      if (m) max = Math.max(max, parseInt(m[1], 10));
-    }
-    return `REF-${String(max + 1).padStart(4, "0")}`;
-  };
-
-  const save = async () => {
-    if (!draft.name.trim() || !orgId) return;
-    setSaving(true);
-    const payload = {
-      organization_id: orgId,
-      name: draft.name.trim(),
-      sku: draft.sku.trim() || nextAutoSku(),
-      category: draft.category.trim() || null,
-      unit: draft.unit.trim() || "ud",
-      unit_price: Number(draft.unit_price) || 0,
-      tax_rate: Number(draft.tax_rate) || 0,
-      track_stock: draft.track_stock,
-      stock_qty: draft.track_stock ? Number(draft.stock_qty) || 0 : 0,
-      // Blank means "not watched" — distinct from a floor of 0, which would
-      // only ever warn once the product had already run out.
-      min_stock: draft.track_stock && draft.min_stock.trim() !== ""
-        ? Number(draft.min_stock) || 0
-        : null,
-    };
-    const res = draft.id
-      ? await supabase.from("products").update(payload).eq("id", draft.id)
-      : await supabase.from("products").insert(payload);
-    setSaving(false);
-    if (res.error) { Alert.alert(t("common.error"), res.error.message); return; }
-    setModal(false); setDraft(EMPTY); load();
-  };
 
   const exportExcel = async () => {
     if (filtered.length === 0) return;
@@ -190,7 +144,7 @@ function InventarioScreenContent() {
         {canManage && (
           <Button
             label={t("inventory.new")}
-            onPress={() => { setDraft(EMPTY); setModal(true); }}
+            onPress={() => { setEditing(null); setModal(true); }}
             size="md"
             fullWidth={false}
             icon={<Plus size={16} color="#fff" strokeWidth={1.75} />}
@@ -321,7 +275,7 @@ function InventarioScreenContent() {
                 </View>
                 {canManage && (
                   <View style={{ flexDirection: "row", gap: spacing.xs }}>
-                    <TouchableOpacity onPress={() => { setDraft({ id: item.id, name: item.name, sku: item.sku ?? "", category: item.category ?? "", unit: item.unit, unit_price: String(item.unit_price), tax_rate: String(item.tax_rate), track_stock: item.track_stock, stock_qty: String(item.stock_qty), min_stock: item.min_stock == null ? "" : String(item.min_stock) }); setModal(true); }} style={{ padding: 6 }}>
+                    <TouchableOpacity onPress={() => { setEditing(item); setModal(true); }} style={{ padding: 6 }}>
                       <Pencil size={16} color={C.muted} strokeWidth={1.75} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => remove(item)} style={{ padding: 6 }}><Trash2 size={16} color={C.red} strokeWidth={1.75} /></TouchableOpacity>
@@ -333,56 +287,15 @@ function InventarioScreenContent() {
         />
       )}
 
-      {/* Create / edit modal */}
-      <KeyboardModal visible={modal} animationType="slide" transparent onRequestClose={() => setModal(false)}>
-        <View style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
-          <View style={{ backgroundColor: C.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.xl - 4, maxHeight: "88%" }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.lg }}>
-              <Text style={{ fontFamily: fonts.bold, fontSize: 17, color: C.text }}>{draft.id ? t("inventory.edit") : t("inventory.new")}</Text>
-              <TouchableOpacity onPress={() => setModal(false)}><X size={22} color={C.muted} strokeWidth={1.75} /></TouchableOpacity>
-            </View>
-            <ScrollView keyboardShouldPersistTaps="handled">
-              <View style={{ gap: spacing.md }}>
-                <Input label={t("inventory.name")} value={draft.name} onChangeText={(v) => setDraft({ ...draft, name: v })} />
-                <Input label="Referencia" value={draft.sku} onChangeText={(v) => setDraft({ ...draft, sku: v })} />
-                <Input label={t("inventory.category")} value={draft.category} onChangeText={(v) => setDraft({ ...draft, category: v })} placeholder={t("inventory.categoryPlaceholder")} />
-                <View style={{ flexDirection: "row", gap: spacing.md }}>
-                  <View style={{ flex: 1 }}>
-                    <Input label={`${t("inventory.price")} (€)`} value={draft.unit_price} onChangeText={(v) => setDraft({ ...draft, unit_price: v })} keyboardType="decimal-pad" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Input label={`${t("inventory.iva")} (%)`} value={draft.tax_rate} onChangeText={(v) => setDraft({ ...draft, tax_rate: v })} keyboardType="decimal-pad" />
-                  </View>
-                </View>
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                  <Text style={{ fontFamily: fonts.medium, fontSize: 14, color: C.text }}>{t("inventory.trackStock")}</Text>
-                  <Switch value={draft.track_stock} onValueChange={(v) => setDraft({ ...draft, track_stock: v })} trackColor={{ false: C.border, true: C.blueMed }} thumbColor={C.surface} />
-                </View>
-                {draft.track_stock && (
-                  <>
-                    <Input label={t("inventory.stock")} value={draft.stock_qty} onChangeText={(v) => setDraft({ ...draft, stock_qty: v })} keyboardType="number-pad" />
-                    <Input
-                      label={t("inventory.minStock")}
-                      value={draft.min_stock}
-                      onChangeText={(v) => setDraft({ ...draft, min_stock: v })}
-                      keyboardType="number-pad"
-                      placeholder={t("inventory.minStockPlaceholder")}
-                      hint={t("inventory.minStockHint")}
-                    />
-                  </>
-                )}
-              </View>
-            </ScrollView>
-            <Button
-              label={t("common.save")}
-              onPress={save}
-              disabled={saving || !draft.name.trim()}
-              loading={saving}
-              style={{ marginTop: spacing.md }}
-            />
-          </View>
-        </View>
-      </KeyboardModal>
+      {/* Create / edit modal — shared with the invoice form */}
+      <ProductFormModal
+        visible={modal}
+        orgId={orgId}
+        product={editing}
+        products={products}
+        onSaved={() => { load(); }}
+        onClose={() => setModal(false)}
+      />
     </SafeAreaView>
   );
 }

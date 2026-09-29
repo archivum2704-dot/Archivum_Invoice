@@ -292,7 +292,23 @@
     "clientTaxId": "Tax identifier",
     "clientTaxIdType": "Identification type",
     "clientTaxIdTypeHint": "Required for clients outside Spain: the AEAT needs to know which document this is.",
-    "exemptionCausePrompt": "Why is it exempt? (required)"
+    "exemptionCausePrompt": "Why is it exempt? (required)",
+    "paymentMethod": "Payment method",
+    "notes": "Notes",
+    "notesPlaceholder": "Terms, payment details, remarks…",
+    "newProduct": "Create product",
+    "inInventory": "✓ In inventory",
+    "dueDateFromClient": "Suggested from the client's terms ({days} days)",
+    "payment": "Payment",
+    "paymentDate": "Payment date",
+    "paymentStatus": "Payment status",
+    "paid": "Paid",
+    "unpaid": "Awaiting payment",
+    "markPaid": "Mark as paid",
+    "markUnpaid": "Mark as unpaid",
+    "savePayment": "Save",
+    "paymentSaved": "Saved",
+    "paymentSaveError": "Could not save the payment"
   },
   "verifactu": {
     "title": "Verifactu certificate (AEAT)",
@@ -425,7 +441,9 @@
       "credit_card": "Credit Card",
       "cash": "Cash",
       "check": "Cheque",
-      "other": "Other"
+      "other": "Other",
+      "direct_debit": "Direct debit",
+      "promissory_note": "Promissory note"
     },
     "actions": {
       "upload": "Upload Document",
@@ -575,7 +593,12 @@
     "noCompanies": "No clients yet. Add your first client.",
     "limitCounter": "{current} / {max} clients",
     "viewGrid": "Grid view",
-    "viewList": "List view"
+    "viewList": "List view",
+    "paymentMethod": "Payment method",
+    "paymentDueDays": "Due (days)",
+    "paymentDueDaysHint": "Days from the invoice date. Used to suggest the due date when invoicing.",
+    "paymentTerms": "Payment terms",
+    "daysSuffix": "{days} days"
   },
   "admin": {
     "title": "Admin Panel",

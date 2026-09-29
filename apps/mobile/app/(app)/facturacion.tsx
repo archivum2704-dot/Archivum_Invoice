@@ -16,6 +16,10 @@ import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
 import { NewClientModal, type CreatedClient } from "@/components/NewClientModal";
 import { ProductPickerModal } from "@/components/ProductPickerModal";
+import { ProductFormModal, type FormProduct } from "@/components/ProductFormModal";
+import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
+import { DateField } from "@/components/DateField";
+import { dueDateFromTerms } from "@/lib/payment-methods";
 import { readJson } from "@/lib/api";
 import { EXEMPTION_CAUSES, exemptionShort } from "@/lib/exemption-causes";
 import { Badge, Button, Card, EmptyState, Input, type BadgeTone } from "@/components/ui";
@@ -36,9 +40,9 @@ interface Invoice {
   kind: string; rectifies_invoice_id: string | null;
   verifactu_status: string | null; currency: string;
 }
-interface Company { id: string; name: string; cif: string | null; }
+interface Company { id: string; name: string; cif: string | null; payment_method?: string | null; payment_due_days?: number | null; }
 interface Product {
-  id: string; name: string; unit_price: number; tax_rate: number;
+  id: string; name: string; sku: string | null; unit_price: number; tax_rate: number;
   unit: string; track_stock: boolean; stock_qty: number; min_stock: number | null;
 }
 type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string; exemptionCause: string };
@@ -70,6 +74,11 @@ function FacturacionScreenContent() {
   const [clientSearch, setClientSearch] = useState("");
   const [clientId, setClientId] = useState("");
   const [productPickerIndex, setProductPickerIndex] = useState<number | null>(null);
+  // Line index a product created from the invoice will be linked to.
+  const [productFormIndex, setProductFormIndex] = useState<number | null>(null);
+  const [notes, setNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [retentionPct, setRetentionPct] = useState("");
   const [discountPct, setDiscountPct] = useState("");
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
@@ -91,8 +100,8 @@ function FacturacionScreenContent() {
     if (!orgId) return;
     const [{ data: inv }, { data: co }, { data: pr }] = await Promise.all([
       supabase.from("invoices").select("id, full_number, client_name, total, state, issue_date, kind, rectifies_invoice_id, verifactu_status, currency").eq("organization_id", orgId).order("created_at", { ascending: false }),
-      supabase.from("companies").select("id, name, cif").eq("organization_id", orgId).eq("is_active", true).order("name"),
-      supabase.from("products").select("id, name, unit_price, tax_rate, unit, track_stock, stock_qty, min_stock").eq("organization_id", orgId).eq("is_active", true).order("name"),
+      supabase.from("companies").select("*").eq("organization_id", orgId).eq("is_active", true).order("name"),
+      supabase.from("products").select("id, name, sku, unit_price, tax_rate, unit, track_stock, stock_qty, min_stock").eq("organization_id", orgId).eq("is_active", true).order("name"),
     ]);
     setInvoices((inv as Invoice[]) ?? []); setCompanies((co as Company[]) ?? []); setProducts((pr as Product[]) ?? []);
     setLoading(false); setRefreshing(false);
@@ -116,6 +125,7 @@ function FacturacionScreenContent() {
 
   const resetForm = () => {
     setClientId(""); setRetentionPct(""); setDiscountPct("");
+    setNotes(""); setPaymentMethod(""); setDueDate("");
     setCurrency(DEFAULT_CURRENCY); setExchangeRate("");
     setLines([emptyLine()]);
   };
@@ -130,10 +140,24 @@ function FacturacionScreenContent() {
     taxRate: String(Number(p.tax_rate)),
   });
 
+  // Choosing a client proposes its payment method and due date. Both stay
+  // editable: the client record is a default, not a rule.
+  const selectClient = (c: Company) => {
+    setClientId(c.id);
+    if (c.payment_method) setPaymentMethod(c.payment_method);
+    const proposed = dueDateFromTerms(new Date().toISOString().slice(0, 10), c.payment_due_days);
+    if (proposed) setDueDate(proposed);
+  };
+
   const onClientCreated = (c: CreatedClient) => {
     setCompanies(prev => [...prev, c as Company].sort((a, b) => a.name.localeCompare(b.name)));
-    setClientId(c.id);
+    selectClient(c);
     setClientPicker(false);
+  };
+
+  const onProductCreated = (p: FormProduct) => {
+    setProducts(prev => [...prev, p as Product].sort((a, b) => a.name.localeCompare(b.name)));
+    if (productFormIndex !== null) pickProduct(productFormIndex, p as Product);
   };
 
   const doIssue = async () => {
@@ -144,7 +168,9 @@ function FacturacionScreenContent() {
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
         body: JSON.stringify({
           orgId, clientCompanyId: clientId, series: "FAC", kind: "ordinary",
-          issueDate: new Date().toISOString().slice(0, 10), retentionPct: Number(retentionPct) || 0, discountPct: Number(discountPct) || 0,
+          issueDate: new Date().toISOString().slice(0, 10), notes,
+          dueDate: dueDate || null, paymentMethod: paymentMethod || null,
+          retentionPct: Number(retentionPct) || 0, discountPct: Number(discountPct) || 0,
           currency, exchangeRate: needsExchangeRate(currency) ? Number(exchangeRate) || null : null,
           lines: lines.filter(l => l.description.trim()).map(l => ({ productId: l.productId, description: l.description, quantity: qtyOf(l.quantity), unitPrice: priceOf(l.unitPrice), taxRate: Number(l.taxRate) || 0, discountPct: 0,
             exemptionCause: l.taxRate === "" ? l.exemptionCause : null })),
@@ -300,14 +326,22 @@ function FacturacionScreenContent() {
                       the automatic stock deduction at issue time. */}
                   <Input placeholder={t("invoicing.description")} value={l.description} onChangeText={(v) => setLine(i, { description: v })}
                     style={{ marginBottom: spacing.sm }} />
-                  {products.length > 0 && (
-                    <TouchableOpacity onPress={() => setProductPickerIndex(i)} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: spacing.sm, alignSelf: "flex-start" }}>
-                      <SearchIcon size={13} color={C.blue} strokeWidth={1.75} />
-                      <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.blue }} numberOfLines={1}>
-                        {l.productId ? (products.find(p => p.id === l.productId)?.name ?? t("invoicing.searchInventory")) : t("invoicing.searchInventory")}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                  <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: spacing.lg, rowGap: spacing.xs, marginBottom: spacing.sm }}>
+                    {products.length > 0 && (
+                      <TouchableOpacity onPress={() => setProductPickerIndex(i)} style={{ flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 }}>
+                        <SearchIcon size={13} color={C.blue} strokeWidth={1.75} />
+                        <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.blue }} numberOfLines={1}>
+                          {l.productId ? (products.find(p => p.id === l.productId)?.name ?? t("invoicing.searchInventory")) : t("invoicing.searchInventory")}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    {!l.productId && (
+                      <TouchableOpacity onPress={() => setProductFormIndex(i)} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        <Plus size={13} color={C.blue} strokeWidth={1.75} />
+                        <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.blue }}>{t("invoicing.newProduct")}</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                   <View style={{ flexDirection: "row", gap: spacing.sm }}>
                     <Input placeholder={t("invoicing.qty")} keyboardType="decimal-pad" value={l.quantity} onChangeText={(v) => setLine(i, { quantity: v })}
                       style={{ flex: 1 }} />
@@ -388,6 +422,25 @@ function FacturacionScreenContent() {
               )}
             </View>
 
+            {/* Cobro */}
+            <PaymentMethodPicker label={t("invoicing.paymentMethod")} value={paymentMethod} onChange={setPaymentMethod} />
+            <View>
+              <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.muted, marginBottom: spacing.sm - 2 }}>{t("invoicing.dueDate")}</Text>
+              <DateField value={dueDate || null} onChange={(v) => setDueDate(v ?? "")} />
+              {selectedClient?.payment_due_days != null && (
+                <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted, marginTop: 4 }}>
+                  {t("invoicing.dueDateFromClient", { days: selectedClient.payment_due_days })}
+                </Text>
+              )}
+            </View>
+
+            {/* Notas — igual que en los pedidos; se imprimen en la factura */}
+            <View>
+              <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.muted, marginBottom: spacing.sm - 2 }}>{t("invoicing.notes")}</Text>
+              <Input placeholder={t("invoicing.notesPlaceholder")} value={notes} onChangeText={setNotes} multiline
+                style={{ minHeight: 60, textAlignVertical: "top", paddingTop: spacing.sm + 2 }} />
+            </View>
+
             {/* Totals */}
             <Card style={{ gap: spacing.xs }}>
               <Row label={t("invoicing.subtotal")} value={formatMoney(totals.subtotal, currency)} C={C} />
@@ -441,7 +494,7 @@ function FacturacionScreenContent() {
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={<Text style={{ fontFamily: fonts.regular, color: C.muted, paddingVertical: spacing.md + 2, textAlign: "center" }}>{t("invoicing.noClientMatches")}</Text>}
               renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => { setClientId(item.id); setClientPicker(false); }} style={{ paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: C.border }}>
+                <TouchableOpacity onPress={() => { selectClient(item); setClientPicker(false); }} style={{ paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: C.border }}>
                   <Text style={{ fontFamily: fonts.regular, color: C.text, fontSize: 15 }}>{item.name}</Text>
                   <Text style={{ fontFamily: fonts.regular, color: C.muted, fontSize: 12 }}>{item.cif ?? t("invoicing.noCif")}</Text>
                 </TouchableOpacity>
@@ -455,6 +508,19 @@ function FacturacionScreenContent() {
         products={products}
         onPick={(p) => { if (productPickerIndex !== null) pickProduct(productPickerIndex, p); }}
         onClose={() => setProductPickerIndex(null)}
+      />
+
+      <ProductFormModal
+        visible={productFormIndex !== null}
+        orgId={orgId}
+        products={products}
+        initial={productFormIndex !== null ? {
+          name: lines[productFormIndex]?.description.trim() ?? "",
+          unit_price: lines[productFormIndex]?.unitPrice || "0",
+          tax_rate: lines[productFormIndex]?.taxRate || "21",
+        } : undefined}
+        onSaved={onProductCreated}
+        onClose={() => setProductFormIndex(null)}
       />
 
       <NewClientModal

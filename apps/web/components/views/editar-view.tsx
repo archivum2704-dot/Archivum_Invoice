@@ -11,6 +11,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
+import { PAYMENT_METHODS } from "@/lib/payment-methods"
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { createClient } from "@/lib/supabase/client"
 import type { Database } from "@/lib/supabase/types"
@@ -303,7 +304,7 @@ export function EditarView({ id }: EditarViewProps) {
                     <select value={metodoPago} onChange={e => setMetodoPago(e.target.value)}
                       className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
                       <option value="">{tPayment("none")}</option>
-                      {(["transfer","bizum","paypal","credit_card","cash","check","other"] as const).map(k => (
+                      {PAYMENT_METHODS.map(k => (
                         <option key={k} value={k}>{tPayment(k)}</option>
                       ))}
                     </select>

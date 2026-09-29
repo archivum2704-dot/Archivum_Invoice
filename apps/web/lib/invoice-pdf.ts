@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import QRCode from 'qrcode'
 import { formatMoney, needsExchangeRate, toEur } from '@/lib/currency'
+import { paymentMethodLabelEs } from '@/lib/payment-methods'
 
 export interface InvoicePdfLine {
   description: string
@@ -25,6 +26,8 @@ export interface InvoicePdfData {
   retentionAmount?: number
   total: number
   notes?: string | null
+  /** Código de `lib/payment-methods.ts`. */
+  paymentMethod?: string | null
   /** ISO 4217. Por defecto EUR. */
   currency?: string | null
   /** Euros por 1 unidad de `currency`. Obligatorio (RD 1619/2012 art. 6.1.j)
@@ -55,6 +58,19 @@ export async function buildInvoicePdf(data: InvoicePdfData): Promise<Uint8Array>
 
   // Standard fonts only support WinAnsi — drop anything outside it (emoji, CJK…)
   const clean = (s: string) => (s ?? '').replace(/[^\x00-\xFF]/g, '')
+  const wrap = (s: string, maxWidth: number, size: number): string[] => {
+    const out: string[] = []
+    for (const para of s.split(/\r?\n/)) {
+      let cur = ''
+      for (const word of para.split(/\s+/).filter(Boolean)) {
+        const next = cur ? `${cur} ${word}` : word
+        if (cur && font.widthOfTextAtSize(next, size) > maxWidth) { out.push(cur); cur = word }
+        else cur = next
+      }
+      out.push(cur)
+    }
+    return out
+  }
   const text = (s: string, x: number, yy: number, size = 10, f = font, color = rgb(0.1, 0.12, 0.16)) =>
     page.drawText(clean(s), { x, y: yy, size, font: f, color })
   const right = (s: string, xRight: number, yy: number, size = 10, f = font, color = rgb(0.1, 0.12, 0.16)) => {
@@ -164,7 +180,17 @@ export async function buildInvoicePdf(data: InvoicePdfData): Promise<Uint8Array>
   }
 
   y -= 30
-  if (data.notes) { text(data.notes.slice(0, 120), M, y, 8, font, GREY); y -= 20 }
+  const method = paymentMethodLabelEs(data.paymentMethod)
+  if (method) { text(`Forma de pago: ${method}`, M, y, 9, bold, NAVY); y -= 16 }
+  if (data.notes) {
+    // Wrapped, not cut: invoice notes carry payment details (IBAN, terms)
+    // that are useless half-printed. Capped so they never reach the
+    // Verifactu block at the foot of the page.
+    for (const line of wrap(clean(data.notes), width - 2 * M, 8).slice(0, 8)) {
+      text(line, M, y, 8, font, GREY); y -= 11
+    }
+    y -= 9
+  }
 
   // ── Verifactu block (bottom) ──
   // Solo si la factura lleva registro. Sin él no hay nada que cotejar, y la

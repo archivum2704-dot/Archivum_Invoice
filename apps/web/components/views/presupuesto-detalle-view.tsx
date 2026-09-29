@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ArrowLeft, Printer, Download, Pencil, ArrowRight, Loader2, ClipboardList } from "lucide-react"
+import { ArrowLeft, Printer, Download, Pencil, ArrowRight, Loader2, ClipboardList, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -12,23 +12,12 @@ import { createClient } from "@/lib/supabase/client"
 import { SendEmailButton } from "@/components/send-email-button"
 import { StockWarningModal } from "@/components/stock-warning-modal"
 import { formatMoney, needsExchangeRate, toEur } from "@/lib/currency"
+import { quoteStatusLabel, quoteStatusStyle, canToggleAccepted } from "@/lib/quote-status"
 
 // Toolbar buttons. whitespace-nowrap is the point: the row wraps between
 // buttons, never inside a label.
 const SECONDARY = "flex items-center gap-2 px-3 py-2 text-sm font-medium bg-card border border-border rounded-xl hover:bg-muted whitespace-nowrap transition-colors"
 const PRIMARY = "flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap transition-colors"
-
-const STATUS_LABEL: Record<string, string> = {
-  draft: "Borrador", sent: "Enviado", accepted: "Aceptado", rejected: "Rechazado",
-  open: "Abierto", converted: "Facturado",
-}
-const STATUS_STYLE: Record<string, string> = {
-  draft: "bg-muted text-muted-foreground", sent: "bg-primary/10 text-primary",
-  accepted: "bg-[var(--status-paid)]/10 text-[var(--status-paid)]",
-  rejected: "bg-[var(--status-overdue)]/10 text-[var(--status-overdue)]",
-  open: "bg-[var(--status-pending)]/10 text-[var(--status-pending)]",
-  converted: "bg-accent/10 text-accent",
-}
 
 export function PresupuestoDetalleView({ id }: { id: string }) {
   const router = useRouter()
@@ -47,6 +36,7 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
 
   const { products } = useProducts(quote?.organization_id ?? null)
   const isNote = quote?.kind === "delivery_note"
+  const [toggling, setToggling] = useState(false)
 
   useEffect(() => {
     fetchQuoteWithLines(id).then(async data => {
@@ -101,6 +91,18 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
     router.push(`/presupuestos/${json.id}`)
   }
 
+  // Pedido pendiente ⇄ aceptado. Also set on its own when the albarán is billed.
+  const handleToggleAccepted = async () => {
+    if (!quote) return
+    const next = quote.status === "accepted" ? "sent" : "accepted"
+    setToggling(true)
+    const supabase: any = createClient()
+    const { error } = await supabase.from("quotes").update({ status: next }).eq("id", quote.id)
+    setToggling(false)
+    if (error) { alert(error.message ?? "No se pudo cambiar el estado del pedido."); return }
+    setQuote({ ...quote, status: next })
+  }
+
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
   if (!quote) return (
     <div className="p-8 text-center">
@@ -134,6 +136,12 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
             <Link href={`/presupuestos?edit=${quote.id}`} className={SECONDARY}>
               <Pencil className="w-4 h-4" /> Editar
             </Link>
+          )}
+          {!isNote && canToggleAccepted(quote.status) && (
+            <button onClick={handleToggleAccepted} disabled={toggling} className={SECONDARY}>
+              {toggling ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              {quote.status === "accepted" ? "Marcar pendiente" : "Marcar aceptado"}
+            </button>
           )}
           {!isNote && related && (
             <Link href={`/presupuestos/${related.id}`} className={PRIMARY}>
@@ -180,7 +188,7 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
             <p className="text-lg font-bold text-foreground">{quote.full_number ?? "—"}</p>
             <p className="text-xs text-muted-foreground mt-1">Fecha: {quote.issue_date ?? "—"}</p>
             {quote.valid_until && <p className="text-xs text-muted-foreground">Válido hasta: {quote.valid_until}</p>}
-            <span className={cn("inline-block mt-2 text-xs px-2.5 py-1 rounded-full font-medium print:hidden", STATUS_STYLE[quote.status])}>{STATUS_LABEL[quote.status]}</span>
+            <span className={cn("inline-block mt-2 text-xs px-2.5 py-1 rounded-full font-medium print:hidden", quoteStatusStyle(quote.kind, quote.status))}>{quoteStatusLabel(quote.kind, quote.status)}</span>
           </div>
         </div>
 

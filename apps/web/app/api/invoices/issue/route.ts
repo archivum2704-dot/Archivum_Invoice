@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
       operationDate: body.operationDate,
       dueDate: body.dueDate,
       notes: body.notes,
+      paymentMethod: body.paymentMethod,
       retentionPct: body.retentionPct,
       discountPct: body.discountPct,
       lines: body.lines,

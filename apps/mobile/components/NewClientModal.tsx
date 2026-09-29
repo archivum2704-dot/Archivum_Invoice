@@ -10,29 +10,15 @@ import { radius } from "@/lib/radius";
 import { KeyboardModal } from "@/components/KeyboardModal";
 import { Button, Input } from "@/components/ui";
 import { TAX_ID_TYPES, isForeignClient } from "@/lib/tax-id-types";
+import { randomId } from "@/lib/random-id";
+import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 
-export interface CreatedClient { id: string; name: string; cif: string | null }
+export interface CreatedClient { id: string; name: string; cif: string | null; payment_method: string | null; payment_due_days: number | null }
 
 const EMPTY = {
   name: "", cif: "", email: "", phone: "", address: "", postal_code: "", city: "", province: "",
-  country_code: "ES", tax_id_type: "",
+  country_code: "ES", tax_id_type: "", payment_method: "", payment_due_days: "",
 };
-
-/**
- * A v4-shaped random id for a new client row.
- *
- * Deliberately not expo-crypto: that is a native module, so adding it would
- * make this fix need a new binary instead of riding an over-the-air update.
- * The value is a primary key, never a secret — access is decided by RLS, not by
- * the id being unguessable — and the column's unique constraint would surface a
- * collision as an error rather than letting it corrupt anything.
- */
-function randomId(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
-    const r = (Math.random() * 16) | 0;
-    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-  });
-}
 
 /**
  * Turn a Postgres error into something a user can act on.
@@ -84,6 +70,9 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
     // nothing and denies. Every user hit this, owners included: the client was
     // written and the call still failed with a permissions error.
     const id = randomId();
+    const dueDays = nc.payment_due_days.trim() === ""
+      ? null
+      : Math.max(0, Math.min(365, Math.round(Number(nc.payment_due_days)) || 0));
     const { error } = await supabase.from("companies").insert({
       id,
       organization_id: orgId,
@@ -99,10 +88,14 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
       // Only a foreign client carries a document type; a Spanish one is a NIF.
       tax_id_type: isForeignClient(nc.country_code) ? (nc.tax_id_type || null) : null,
       is_active: true,
+      // Only when set, so creating a client keeps working before
+      // 20260929_payment_terms.sql is applied.
+      ...(nc.payment_method ? { payment_method: nc.payment_method } : {}),
+      ...(dueDays != null ? { payment_due_days: dueDays } : {}),
     });
     setSaving(false);
     if (error) { Alert.alert(t("common.error"), explain(error, t("invoicing.createClientError"))); return; }
-    onCreated({ id, name: nc.name.trim(), cif: nc.cif.trim() || null });
+    onCreated({ id, name: nc.name.trim(), cif: nc.cif.trim() || null, payment_method: nc.payment_method || null, payment_due_days: dueDays });
     setNc(EMPTY);
     onClose();
   };
@@ -167,6 +160,8 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
               <View style={{ flex: 1 }}>{field(t("invoicing.clientCity"), "city")}</View>
             </View>
             {field(t("invoicing.clientProvince"), "province")}
+            <PaymentMethodPicker label={t("empresas.paymentMethod")} value={nc.payment_method} onChange={set("payment_method")} />
+            {field(t("empresas.paymentDueDays"), "payment_due_days", { keyboardType: "number-pad", placeholder: "30", hint: t("empresas.paymentDueDaysHint") })}
 
             <Button
               label={t("invoicing.createClient")}

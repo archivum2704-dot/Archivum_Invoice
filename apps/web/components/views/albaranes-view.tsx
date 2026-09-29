@@ -10,17 +10,9 @@ import { useQuotes, fetchQuoteWithLines, type Quote } from "@/lib/hooks/use-quot
 import { useProducts } from "@/lib/hooks/use-products"
 import { getStockWarnings, type StockWarning } from "@/lib/stock"
 import { formatMoney } from "@/lib/currency"
+import { quoteStatusLabel, quoteStatusStyle } from "@/lib/quote-status"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { StockWarningModal } from "@/components/stock-warning-modal"
-
-const STATUS_LABEL: Record<string, string> = {
-  open: "Abierto",
-  converted: "Facturado",
-}
-const STATUS_STYLE: Record<string, string> = {
-  open:      "bg-[var(--status-pending)]/10 text-[var(--status-pending)]",
-  converted: "bg-accent/10 text-accent",
-}
 
 /**
  * Albaranes — the step between a quote and its invoice.
@@ -164,8 +156,8 @@ export function AlbaranesView() {
       <span className="hidden sm:block text-sm font-semibold text-foreground tabular-nums w-28 text-right">
         {formatMoney(Number(n.total), n.currency)}
       </span>
-      <span className={cn("text-xs px-2.5 py-1 rounded-full font-medium shrink-0", STATUS_STYLE[n.status])}>
-        {STATUS_LABEL[n.status] ?? n.status}
+      <span className={cn("text-xs px-2.5 py-1 rounded-full font-medium shrink-0", quoteStatusStyle("delivery_note", n.status))}>
+        {quoteStatusLabel("delivery_note", n.status)}
       </span>
       <div className="flex items-center gap-1 shrink-0">
         <a href={`/api/quotes/pdf?id=${n.id}`} title="Descargar PDF" className="p-1.5 rounded hover:bg-muted transition-colors">
