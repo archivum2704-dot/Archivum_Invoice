@@ -8,12 +8,13 @@ import { cn } from "@/lib/utils"
 import { TAX_ID_TYPES, isForeignClient } from "@/lib/tax-id-types"
 import { PAYMENT_METHODS } from "@/lib/payment-methods"
 import { useCompanies } from "@/lib/hooks/use-companies"
-import { findSimilarClients, duplicateWarnings, cifTakenMessage, looksLikeSpanishTaxId, explainCompanyError } from "@/lib/client-checks"
+import { findSimilarClients, duplicateWarnings, cifTakenMessage, looksLikeSpanishTaxId, explainCompanyError, type ClientLike } from "@/lib/client-checks"
+import { EstablishmentField, CifTakenNotice } from "@/components/establishment-field"
 import { toast } from "sonner"
 
 const EMPTY = {
   name: "", cif: "", email: "", phone: "", address: "", postal_code: "", city: "", province: "",
-  country_code: "ES", tax_id_type: "", payment_method: "", payment_due_days: "",
+  country_code: "ES", tax_id_type: "", payment_method: "", payment_due_days: "", parent_company_id: "",
 }
 
 const inputCls = "w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
@@ -62,7 +63,12 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
 
   // Existing clients, to warn before creating the same one twice (WEB-004).
   const { companies } = useCompanies(orgId)
-  const similar = findSimilarClients(companies, { name: nc.name, cif: nc.cif })
+  const similar = findSimilarClients(companies, { name: nc.name, cif: nc.cif, parentId: nc.parent_company_id || null })
+  // Filing it under a principal copies the principal's CIF and country.
+  const setPrincipal = (p: ClientLike | null) => setNc(prev => p
+    ? { ...prev, parent_company_id: p.id, cif: p.cif ?? prev.cif,
+        country_code: (p as any).country_code ?? prev.country_code, tax_id_type: (p as any).tax_id_type ?? prev.tax_id_type }
+    : { ...prev, parent_company_id: "" })
   const warnings = duplicateWarnings(similar)
   const cifTaken = cifTakenMessage(similar)
   const badFormat = !foreign && !!nc.cif.trim() && !looksLikeSpanishTaxId(nc.cif)
@@ -95,6 +101,7 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
       // Only a foreign client carries a document type; a Spanish one is a NIF.
       tax_id_type: isForeignClient(nc.country_code) ? (nc.tax_id_type || null) : null,
       is_active: true,
+      parent_company_id: nc.parent_company_id || null,
       // Only when set, so creating a client keeps working before
       // 20260929_payment_terms.sql is applied.
       ...(nc.payment_method ? { payment_method: nc.payment_method } : {}),
@@ -126,13 +133,14 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
             <label className="block text-sm font-medium text-foreground mb-1.5">{t("clientName")} <span className="text-destructive">*</span></label>
             <input autoFocus value={nc.name} onChange={e => setNc({ ...nc, name: e.target.value })} className={inputCls} />
           </div>
+          <EstablishmentField existing={companies} value={nc.parent_company_id} onChange={setPrincipal} />
           <div className="grid grid-cols-[1fr_100px] gap-2">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">
                 {foreign ? t("clientTaxId") : "CIF/NIF"} <span className="text-destructive">*</span>
               </label>
-              <input value={nc.cif} onChange={e => setNc({ ...nc, cif: e.target.value })}
-                placeholder={foreign ? "DE123456789" : "B12345678"} className={inputCls} />
+              <input value={nc.cif} onChange={e => setNc({ ...nc, cif: e.target.value })} disabled={!!nc.parent_company_id}
+                placeholder={foreign ? "DE123456789" : "B12345678"} className={cn(inputCls, "disabled:opacity-70")} />
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">{t("clientCountry")}</label>
@@ -198,10 +206,8 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
                 onChange={e => setNc({ ...nc, payment_due_days: e.target.value })} className={inputCls} />
             </div>
           </div>
-          {cifTaken && (
-            <p className="flex items-start gap-1.5 text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-2.5 py-2">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" /> {cifTaken}
-            </p>
+          {cifTaken && similar.sameCif && (
+            <CifTakenNotice message={cifTaken} principal={similar.sameCif} onMakeEstablishment={() => setPrincipal(similar.sameCif)} />
           )}
           {(warnings.length > 0 || badFormat) && (
             <div className="space-y-1.5">

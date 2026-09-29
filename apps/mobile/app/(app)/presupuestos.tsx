@@ -28,6 +28,7 @@ import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
 import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/lib/currency";
+import { clientLabel } from "@/lib/client-checks";
 
 const IVA_RATES = ["", "4", "10", "21"];
 const RET_RATES = ["", "7", "15", "19"];
@@ -84,14 +85,14 @@ function PresupuestosScreenContent() {
   const clientMatches = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
     if (!q) return companies;
-    return companies.filter(c => c.name.toLowerCase().includes(q) || (c.cif ?? "").toLowerCase().includes(q));
+    return companies.filter(c => clientLabel(c, companies).toLowerCase().includes(q) || (c.cif ?? "").toLowerCase().includes(q));
   }, [companies, clientSearch]);
 
   const load = useCallback(async () => {
     if (!orgId) return;
     const [{ data: q }, { data: co }, { data: pr }] = await Promise.all([
       supabase.from("quotes").select("id, full_number, client_name, total, status, issue_date, currency").eq("organization_id", orgId).eq("kind", "quote").neq("status", "converted").order("created_at", { ascending: false }),
-      supabase.from("companies").select("id, name, cif").eq("organization_id", orgId).eq("is_active", true).order("name"),
+      supabase.from("companies").select("id, name, cif, parent_company_id").eq("organization_id", orgId).eq("is_active", true).order("name"),
       supabase.from("products").select("id, name, unit_price, tax_rate").eq("organization_id", orgId).eq("is_active", true).order("name"),
     ]);
     setQuotes((q as Quote[]) ?? []); setCompanies((co as Company[]) ?? []); setProducts((pr as Product[]) ?? []);
@@ -323,7 +324,7 @@ function PresupuestosScreenContent() {
               <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.muted, marginBottom: spacing.sm - 2 }}>{t("invoicing.client")} *</Text>
               <TouchableOpacity onPress={() => { setClientSearch(""); setClientPicker(true); }} style={{ backgroundColor: C.inputBg, borderWidth: 1.5, borderColor: C.border, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md }}>
                 <Text style={{ fontFamily: fonts.regular, fontSize: 15, color: selectedClient ? C.text : C.muted }}>
-                  {selectedClient ? `${selectedClient.name}${selectedClient.cif ? ` · ${selectedClient.cif}` : ` · ${t("invoicing.noCif")}`}` : t("invoicing.selectClient")}
+                  {selectedClient ? `${clientLabel(selectedClient, companies)}${selectedClient.cif ? ` · ${selectedClient.cif}` : ` · ${t("invoicing.noCif")}`}` : t("invoicing.selectClient")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -499,7 +500,7 @@ function PresupuestosScreenContent() {
               ListEmptyComponent={<Text style={{ fontFamily: fonts.regular, color: C.muted, paddingVertical: spacing.md + 2, textAlign: "center" }}>{t("invoicing.noClientMatches")}</Text>}
               renderItem={({ item }) => (
                 <TouchableOpacity onPress={() => { setClientId(item.id); setClientPicker(false); }} style={{ paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: C.border }}>
-                  <Text style={{ fontFamily: fonts.regular, color: C.text, fontSize: 15 }}>{item.name}</Text>
+                  <Text style={{ fontFamily: fonts.regular, color: C.text, fontSize: 15 }}>{clientLabel(item, companies)}</Text>
                   <Text style={{ fontFamily: fonts.regular, color: C.muted, fontSize: 12 }}>{item.cif ?? t("invoicing.noCif")}</Text>
                 </TouchableOpacity>
               )} />

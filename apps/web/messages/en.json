@@ -861,7 +861,7 @@
     "closeButton": "Close",
     "countriesSheet": "Countries",
     "taxIdMissing": "The tax ID is missing and is required.",
-    "duplicateTaxId": "A client with tax ID {cif} already exists (in the account or earlier in the file)."
+    "duplicateTaxId": "A client with tax ID {cif} already exists (in the account or earlier in the file). If it is another location of theirs, add it as an establishment from Clients."
   },
   "tutorial": {
     "skip": "Skip",

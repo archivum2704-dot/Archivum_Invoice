@@ -19,7 +19,8 @@ import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { ImportExcelButton } from "@/components/import-excel-button"
 import { PAYMENT_METHODS, isPaymentMethod } from "@/lib/payment-methods"
 import { InvoiceReq, Opt } from "@/components/new-client-modal"
-import { findSimilarClients, duplicateWarnings, cifTakenMessage, looksLikeSpanishTaxId, explainCompanyError } from "@/lib/client-checks"
+import { findSimilarClients, duplicateWarnings, cifTakenMessage, looksLikeSpanishTaxId, explainCompanyError, type ClientLike } from "@/lib/client-checks"
+import { EstablishmentField, CifTakenNotice } from "@/components/establishment-field"
 import { toast } from "sonner"
 
 const AVATAR_COLORS = ["bg-blue-500", "bg-emerald-600", "bg-violet-600", "bg-orange-500", "bg-rose-600"]
@@ -48,7 +49,7 @@ function SectorChip({ label, count, active, onClick }: { label: string; count?: 
   )
 }
 
-type CompanyForm = { name: string; cif: string; sector: string; address: string; postal_code: string; city: string; province: string; phone: string; email: string; payment_method: string; payment_due_days: string }
+type CompanyForm = { name: string; cif: string; sector: string; address: string; postal_code: string; city: string; province: string; phone: string; email: string; payment_method: string; payment_due_days: string; parent_company_id: string }
 
 function paymentTermsPatch(form: CompanyForm, initial?: CompanyForm) {
   const days = form.payment_due_days.trim() === "" ? null : Math.max(0, Math.min(365, Math.round(Number(form.payment_due_days)) || 0))
@@ -56,6 +57,16 @@ function paymentTermsPatch(form: CompanyForm, initial?: CompanyForm) {
   const had = !!initial && (initial.payment_method !== "" || initial.payment_due_days !== "")
   if (!method && days == null && !had) return {}
   return { payment_method: method, payment_due_days: days }
+}
+
+/** "Establecimiento de X" under an establishment; "N establecimientos" under a principal. */
+function EstablishmentBadge({ id, parentId, all }: { id: string; parentId: string; all: ClientLike[] }) {
+  if (parentId) {
+    const parent = all.find(c => c.id === parentId)
+    return <p className="text-[11px] text-primary mt-0.5 truncate">Establecimiento de {parent?.name ?? "—"}</p>
+  }
+  const n = all.filter(c => c.parent_company_id === id).length
+  return n ? <p className="text-[11px] text-muted-foreground mt-0.5">{n} establecimiento{n > 1 ? "s" : ""}</p> : null
 }
 
 // ── Shared company form modal ─────────────────────────────────────────────────
@@ -66,7 +77,7 @@ function CompanyModal({
   initial?: { id: string } & CompanyForm
   knownSectors?: string[]
   /** Clients already on file, to warn about duplicates (WEB-004). */
-  existing?: { id: string; name: string; cif: string | null }[]
+  existing?: ClientLike[]
   onClose: () => void
   onSaved: () => void
 }) {
@@ -76,7 +87,7 @@ function CompanyModal({
   const isEdit  = !!initial
 
   const [form, setForm] = useState<CompanyForm>(
-    initial ?? { name: "", cif: "", sector: "", address: "", postal_code: "", city: "", province: "", phone: "", email: "", payment_method: "", payment_due_days: "" }
+    initial ?? { name: "", cif: "", sector: "", address: "", postal_code: "", city: "", province: "", phone: "", email: "", payment_method: "", payment_due_days: "", parent_company_id: "" }
   )
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState<string | null>(null)
@@ -88,7 +99,11 @@ function CompanyModal({
   // created before it was (WEB-004). The database enforces both.
   const cifRequired = true
   const cifMissing = !form.cif.trim()
-  const similar = findSimilarClients(existing, { name: form.name, cif: form.cif }, initial?.id)
+  const similar = findSimilarClients(existing, { name: form.name, cif: form.cif, parentId: form.parent_company_id || null }, initial?.id)
+  const hasEstablishments = !!initial && existing.some(c => c.parent_company_id === initial.id)
+  // Filing it under a principal copies the principal's CIF, which then stays locked.
+  const setPrincipal = (p: ClientLike | null) =>
+    setForm(f => p ? { ...f, parent_company_id: p.id, cif: p.cif ?? f.cif } : { ...f, parent_company_id: "" })
   const warnings = duplicateWarnings(similar)
   const cifTaken = cifTakenMessage(similar)
   const badFormat = !!form.cif.trim() && !looksLikeSpanishTaxId(form.cif)
@@ -101,6 +116,7 @@ function CompanyModal({
 
     const payload = {
       name:        form.name.trim(),
+      parent_company_id: form.parent_company_id || null,
       cif:         form.cif.trim()         || null,
       sector:      form.sector.trim()      || null,
       address:     form.address.trim()     || null,
@@ -148,10 +164,12 @@ function CompanyModal({
             <label className="text-xs font-medium text-muted-foreground">{t("fields.name")} *</label>
             <input required placeholder="Construcciones García SL" value={form.name} onChange={set("name")} disabled={saving} className={inputCls} />
           </div>
+          <EstablishmentField existing={existing} selfId={initial?.id} value={form.parent_company_id}
+            onChange={setPrincipal} disabled={saving} hasEstablishments={hasEstablishments} />
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{t("fields.cif")} {cifRequired ? <span className="text-destructive">*</span> : <InvoiceReq />}</label>
-              <input placeholder="B12345678" value={form.cif} onChange={set("cif")} disabled={saving} className={inputCls} />
+              <input placeholder="B12345678" value={form.cif} onChange={set("cif")} disabled={saving || !!form.parent_company_id} className={cn(inputCls, "disabled:opacity-70")} />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{t("fields.sector")} <Opt /></label>
@@ -205,7 +223,9 @@ function CompanyModal({
             <p className="col-span-2 -mt-2 text-[11px] text-muted-foreground">{t("paymentDueDaysHint")}</p>
           </div>
 
-          {cifTaken && <p className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-2.5 py-2">{cifTaken}</p>}
+          {cifTaken && similar.sameCif && (
+            <CifTakenNotice message={cifTaken} principal={similar.sameCif} onMakeEstablishment={() => setPrincipal(similar.sameCif)} />
+          )}
           {isEdit && !initial?.cif?.trim() && (
             <p className="text-xs text-muted-foreground">{t("cifNowRequired")}</p>
           )}
@@ -344,9 +364,17 @@ export function EmpresasView() {
 
   const handleDelete = async (id: string, name: string) => {
     setOpenMenuId(null)
+    // Deleting a principal would turn its establishments into principals
+    // with a repeated CIF, which the database refuses.
+    const children = companies.filter(c => c.parent_company_id === id)
+    if (children.length) {
+      toast.error(`«${name}» tiene ${children.length} establecimiento(s): elimínalos o asígnalos a otro cliente antes de borrarlo.`)
+      return
+    }
     if (!confirm(t("deleteCompanyConfirm"))) return
     const supabase = createClient()
-    await supabase.from("companies").delete().eq("id", id)
+    const { error } = await supabase.from("companies").delete().eq("id", id)
+    if (error) toast.error(explainCompanyError(error, t("deleteCompany")))
     await mutate()
   }
 
@@ -363,6 +391,7 @@ export function EmpresasView() {
     email:       company.email  ?? "",
     payment_method:   company.payment_method ?? "",
     payment_due_days: company.payment_due_days != null ? String(company.payment_due_days) : "",
+    parent_company_id: company.parent_company_id ?? "",
     isActive:    company.is_active ?? true,
     docs:      company.doc_count,
     color:     AVATAR_COLORS[index % AVATAR_COLORS.length],
@@ -431,6 +460,7 @@ export function EmpresasView() {
     email:       empresa.email,
     payment_method:   empresa.payment_method,
     payment_due_days: empresa.payment_due_days,
+    parent_company_id: empresa.parent_company_id,
   })
 
   const renderMenu = (empresa: EmpresaCard) => (
@@ -525,6 +555,7 @@ export function EmpresasView() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">{t("fields.cif")}: {empresa.cif || "—"}</p>
+                      <EstablishmentBadge id={empresa.id} parentId={empresa.parent_company_id} all={companies} />
                     </div>
                   </div>
 
@@ -614,6 +645,7 @@ export function EmpresasView() {
         <p className="text-xs text-muted-foreground truncate">
           {empresa.city || "—"} · {empresa.sector || "—"}
         </p>
+        <EstablishmentBadge id={empresa.id} parentId={empresa.parent_company_id} all={companies} />
       </div>
       <span className="hidden sm:block w-28 shrink-0 text-xs text-muted-foreground font-mono truncate">{empresa.cif || "—"}</span>
       <span className="hidden lg:block w-48 shrink-0 text-xs text-muted-foreground truncate">{empresa.email || "—"}</span>

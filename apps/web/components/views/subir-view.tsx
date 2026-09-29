@@ -20,6 +20,7 @@ import { CoachmarkTour } from "@/components/coachmark"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { NewClientModal } from "@/components/new-client-modal"
 import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number"
+import { clientLabel } from "@/lib/client-checks"
 
 const CURRENCIES = [
   { code: "EUR", label: "€ Euro" },
@@ -587,7 +588,7 @@ export function SubirView() {
                     <select required value={empresa} onChange={e => setEmpresa(e.target.value)}
                       className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
                       <option value="">{t("selectCompany")}</option>
-                      {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      {companies.map(c => <option key={c.id} value={c.id}>{clientLabel(c, companies)}</option>)}
                     </select>
                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                   </div>

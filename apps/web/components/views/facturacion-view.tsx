@@ -24,6 +24,7 @@ import { StockWarningModal } from "@/components/stock-warning-modal"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { EXEMPTION_CAUSES } from "@/lib/exemption-causes"
 import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/lib/currency"
+import { clientLabel } from "@/lib/client-checks"
 
 type Line = {
   productId: string | null
@@ -164,7 +165,7 @@ export function FacturacionView() {
     const q = clientQuery.trim().toLowerCase()
     if (!q) return companies
     return companies.filter(c =>
-      c.name.toLowerCase().includes(q) || (c.cif ?? "").toLowerCase().includes(q)
+      clientLabel(c, companies).toLowerCase().includes(q) || (c.cif ?? "").toLowerCase().includes(q)
     )
   }, [companies, clientQuery])
 
@@ -647,11 +648,11 @@ export function FacturacionView() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                   <input
                     type="text"
-                    value={clientListOpen ? clientQuery : (selectedClient?.name ?? "")}
+                    value={clientListOpen ? clientQuery : (selectedClient ? clientLabel(selectedClient, companies) : "")}
                     onChange={e => { setClientQuery(e.target.value); setClientListOpen(true) }}
                     onFocus={() => { setClientQuery(""); setClientListOpen(true) }}
                     onBlur={() => setClientListOpen(false)}
-                    placeholder={selectedClient ? selectedClient.name : t("searchClient")}
+                    placeholder={selectedClient ? clientLabel(selectedClient, companies) : t("searchClient")}
                     className={cn(inputCls, "pl-9")}
                   />
                   {clientId && !clientListOpen && (
@@ -679,7 +680,7 @@ export function FacturacionView() {
                             c.id === clientId && "bg-primary/5 font-medium"
                           )}
                         >
-                          <span className="truncate text-foreground">{c.name}</span>
+                          <span className="truncate text-foreground">{clientLabel(c, companies)}</span>
                           <span className="shrink-0 text-xs text-muted-foreground">{c.cif || t("noCif")}</span>
                         </button>
                       ))}

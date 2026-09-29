@@ -29,6 +29,7 @@ import { radius } from "@/lib/radius";
 import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/lib/currency";
 import { getStockWarnings } from "@/lib/stock";
 import { confirmStockWarnings } from "@/lib/stock-warning-alert";
+import { clientLabel } from "@/lib/client-checks";
 
 const IVA_RATES = ["", "4", "10", "21"];
 const RET_RATES = ["", "7", "15", "19"];
@@ -94,7 +95,7 @@ function FacturacionScreenContent() {
   const clientMatches = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
     if (!q) return companies;
-    return companies.filter(c => c.name.toLowerCase().includes(q) || (c.cif ?? "").toLowerCase().includes(q));
+    return companies.filter(c => clientLabel(c, companies).toLowerCase().includes(q) || (c.cif ?? "").toLowerCase().includes(q));
   }, [companies, clientSearch]);
 
   const load = useCallback(async () => {
@@ -315,7 +316,7 @@ function FacturacionScreenContent() {
               <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.muted, marginBottom: spacing.sm - 2 }}>{t("invoicing.client")} *</Text>
               <TouchableOpacity onPress={() => { setClientSearch(""); setClientPicker(true); }} style={{ backgroundColor: C.inputBg, borderWidth: 1.5, borderColor: C.border, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md }}>
                 <Text style={{ fontFamily: fonts.regular, fontSize: 15, color: selectedClient ? C.text : C.muted }}>
-                  {selectedClient ? `${selectedClient.name}${selectedClient.cif ? ` · ${selectedClient.cif}` : ` · ${t("invoicing.noCif")}`}` : t("invoicing.selectClient")}
+                  {selectedClient ? `${clientLabel(selectedClient, companies)}${selectedClient.cif ? ` · ${selectedClient.cif}` : ` · ${t("invoicing.noCif")}`}` : t("invoicing.selectClient")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -501,7 +502,7 @@ function FacturacionScreenContent() {
               ListEmptyComponent={<Text style={{ fontFamily: fonts.regular, color: C.muted, paddingVertical: spacing.md + 2, textAlign: "center" }}>{t("invoicing.noClientMatches")}</Text>}
               renderItem={({ item }) => (
                 <TouchableOpacity onPress={() => { selectClient(item); setClientPicker(false); }} style={{ paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: C.border }}>
-                  <Text style={{ fontFamily: fonts.regular, color: C.text, fontSize: 15 }}>{item.name}</Text>
+                  <Text style={{ fontFamily: fonts.regular, color: C.text, fontSize: 15 }}>{clientLabel(item, companies)}</Text>
                   <Text style={{ fontFamily: fonts.regular, color: C.muted, fontSize: 12 }}>{item.cif ?? t("invoicing.noCif")}</Text>
                 </TouchableOpacity>
               )} />

@@ -13,7 +13,8 @@ import {
 } from "lucide-react-native";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { isPaymentMethod } from "@/lib/payment-methods";
-import { findSimilarClients, duplicateWarnings, cifTakenMessage, looksLikeSpanishTaxId, explainCompanyError } from "@/lib/client-checks";
+import { findSimilarClients, duplicateWarnings, cifTakenMessage, looksLikeSpanishTaxId, explainCompanyError, type ClientLike } from "@/lib/client-checks";
+import { EstablishmentPicker, CifTakenNotice } from "@/components/EstablishmentPicker";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
@@ -49,6 +50,7 @@ interface Company {
   province?: string | null;
   payment_method?: string | null;
   payment_due_days?: number | null;
+  parent_company_id?: string | null;
   is_active: boolean;
   doc_count?: number;
 }
@@ -56,7 +58,7 @@ interface Company {
 type CompanyForm = {
   name: string; cif: string; sector: string; email: string; phone: string;
   address: string; postal_code: string; city: string; province: string;
-  payment_method: string; payment_due_days: string;
+  payment_method: string; payment_due_days: string; parent_company_id: string;
 };
 
 const toForm = (c?: Company | null): CompanyForm => ({
@@ -65,6 +67,7 @@ const toForm = (c?: Company | null): CompanyForm => ({
   postal_code: c?.postal_code ?? "", city: c?.city ?? "", province: c?.province ?? "",
   payment_method: c?.payment_method ?? "",
   payment_due_days: c?.payment_due_days != null ? String(c.payment_due_days) : "",
+  parent_company_id: c?.parent_company_id ?? "",
 });
 
 // Sentinel for the "no sector" filter chip
@@ -132,7 +135,11 @@ function CompanyModal({
   // created before it was (WEB-004). The database enforces both.
   const cifRequired = true;
   const cifMissing = !form.cif.trim();
-  const similar = findSimilarClients(existing, { name: form.name, cif: form.cif }, initial?.id);
+  const similar = findSimilarClients(existing, { name: form.name, cif: form.cif, parentId: form.parent_company_id || null }, initial?.id);
+  const hasEstablishments = !!initial && existing.some(c => c.parent_company_id === initial.id);
+  // Filing it under a principal copies the principal's CIF, which then stays locked.
+  const setPrincipal = (p: ClientLike | null) =>
+    setForm(f => p ? { ...f, parent_company_id: p.id, cif: p.cif ?? f.cif } : { ...f, parent_company_id: "" });
   const warnings = duplicateWarnings(similar);
   const cifTaken = cifTakenMessage(similar);
   const badFormat = !!form.cif.trim() && !looksLikeSpanishTaxId(form.cif);
@@ -146,6 +153,7 @@ function CompanyModal({
     const hadTerms = !!initial && (initial.payment_method != null || initial.payment_due_days != null);
     const payload = {
       name:        form.name.trim(),
+      parent_company_id: form.parent_company_id || null,
       cif:         form.cif.trim()         || null,
       sector:      form.sector.trim()      || null,
       email:       form.email.trim()       || null,
@@ -189,9 +197,11 @@ function CompanyModal({
         </View>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
           <Input label={t("empresas.nameLabel")} placeholder="Iberdrola SA" value={form.name} onChangeText={set("name")} />
+          <EstablishmentPicker existing={existing} selfId={initial?.id} value={form.parent_company_id}
+            onChange={setPrincipal} hasEstablishments={hasEstablishments} />
           <View style={{ flexDirection: "row", gap: spacing.sm + 2 }}>
             <View style={{ flex: 1 }}>
-              <Input label={cifRequired ? `${t("empresas.cifLabel")} *` : t("empresas.cifLabel")} placeholder="A-95075578" value={form.cif} onChangeText={set("cif")} autoCapitalize="characters" />
+              <Input label={cifRequired ? `${t("empresas.cifLabel")} *` : t("empresas.cifLabel")} placeholder="A-95075578" value={form.cif} onChangeText={set("cif")} autoCapitalize="characters" editable={!form.parent_company_id} />
             </View>
             <View style={{ flex: 1 }}>
               <Input label={t("empresas.sectorLabel")} placeholder="Energía" value={form.sector} onChangeText={set("sector")} />
@@ -213,10 +223,8 @@ function CompanyModal({
           <PaymentMethodPicker label={t("empresas.paymentMethod")} value={form.payment_method} onChange={set("payment_method")} />
           <Input label={t("empresas.paymentDueDays")} placeholder="30" value={form.payment_due_days} onChangeText={set("payment_due_days")}
             keyboardType="number-pad" hint={t("empresas.paymentDueDaysHint")} />
-          {!!cifTaken && (
-            <View style={{ backgroundColor: C.redL, borderRadius: radius.md, padding: spacing.sm + 2 }}>
-              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.red }}>{cifTaken}</Text>
-            </View>
+          {!!cifTaken && !!similar.sameCif && (
+            <CifTakenNotice message={cifTaken} principal={similar.sameCif} onMakeEstablishment={() => setPrincipal(similar.sameCif)} />
           )}
           {isEdit && !initial?.cif?.trim() && (
             <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>{t("empresas.cifNowRequired")}</Text>
@@ -296,7 +304,9 @@ function Chip({ label, active, onPress, C }: { label: string; active: boolean; o
 }
 
 /* ── Company card ────────────────────────────────────────────────────────── */
-function CompanyCard({ company, onMenu, C, t }: { company: Company; onMenu: () => void; C: any; t: any }) {
+function CompanyCard({ company, all, onMenu, C, t }: { company: Company; all: Company[]; onMenu: () => void; C: any; t: any }) {
+  const parent = company.parent_company_id ? all.find(c => c.id === company.parent_company_id) : null;
+  const establishments = all.filter(c => c.parent_company_id === company.id).length;
   return (
     <Card
       padded={false}
@@ -316,6 +326,12 @@ function CompanyCard({ company, onMenu, C, t }: { company: Company; onMenu: () =
               </View>
               {company.cif && (
                 <Text style={{ fontFamily: fonts.mono, fontSize: 12, color: C.muted }}>{company.cif}</Text>
+              )}
+              {!!parent && (
+                <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.blue }} numberOfLines={1}>Establecimiento de {parent.name}</Text>
+              )}
+              {!parent && establishments > 0 && (
+                <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{establishments} establecimiento{establishments > 1 ? "s" : ""}</Text>
               )}
             </View>
           </View>
@@ -460,6 +476,13 @@ function EmpresasScreenContent() {
   };
 
   const handleDelete = (c: Company) => {
+    // Deleting a principal would turn its establishments into principals
+    // with a repeated CIF, which the database refuses.
+    const children = companies.filter(x => x.parent_company_id === c.id).length;
+    if (children) {
+      Alert.alert(t("common.error"), `«${c.name}» tiene ${children} establecimiento(s): elimínalos o asígnalos a otro cliente antes de borrarlo.`);
+      return;
+    }
     Alert.alert(
       t("empresas.deleteTitle"),
       t("empresas.deleteConfirm", { name: c.name }),
@@ -556,7 +579,7 @@ function EmpresasScreenContent() {
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <CompanyCard company={item} onMenu={() => setMenuTarget(item)} C={C} t={t} />
+            <CompanyCard company={item} all={companies} onMenu={() => setMenuTarget(item)} C={C} t={t} />
           )}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.blue} />}
           contentContainerStyle={{ paddingTop: spacing.xs, paddingBottom: spacing.xl }}

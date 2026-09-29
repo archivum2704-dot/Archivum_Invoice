@@ -861,7 +861,7 @@
     "closeButton": "Cerrar",
     "countriesSheet": "Países",
     "taxIdMissing": "Falta el CIF/NIF, que es obligatorio.",
-    "duplicateTaxId": "Ya existe un cliente con el CIF/NIF {cif} (en la cuenta o más arriba en el archivo)."
+    "duplicateTaxId": "Ya existe un cliente con el CIF/NIF {cif} (en la cuenta o más arriba en el archivo). Si es otro local suyo, créalo como establecimiento desde Clientes."
   },
   "tutorial": {
     "skip": "Saltar",

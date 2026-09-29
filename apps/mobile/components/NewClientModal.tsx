@@ -11,6 +11,7 @@ import { KeyboardModal } from "@/components/KeyboardModal";
 import { Button, Input } from "@/components/ui";
 import { TAX_ID_TYPES, isForeignClient } from "@/lib/tax-id-types";
 import { randomId } from "@/lib/random-id";
+import { EstablishmentPicker, CifTakenNotice } from "@/components/EstablishmentPicker";
 import { findSimilarClients, duplicateWarnings, cifTakenMessage, looksLikeSpanishTaxId, explainCompanyError, type ClientLike } from "@/lib/client-checks";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 
@@ -18,7 +19,7 @@ export interface CreatedClient { id: string; name: string; cif: string | null; p
 
 const EMPTY = {
   name: "", cif: "", email: "", phone: "", address: "", postal_code: "", city: "", province: "",
-  country_code: "ES", tax_id_type: "", payment_method: "", payment_due_days: "",
+  country_code: "ES", tax_id_type: "", payment_method: "", payment_due_days: "", parent_company_id: "",
 };
 
 /**
@@ -42,7 +43,7 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
   const [existing, setExisting] = useState<ClientLike[]>([]);
   useEffect(() => {
     if (!visible || !orgId) return;
-    supabase.from("companies").select("id, name, cif").eq("organization_id", orgId)
+    supabase.from("companies").select("id, name, cif, parent_company_id, country_code, tax_id_type").eq("organization_id", orgId)
       .then(({ data }) => setExisting((data ?? []) as ClientLike[]));
   }, [visible, orgId]);
   const [saving, setSaving] = useState(false);
@@ -82,6 +83,7 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
       // Only a foreign client carries a document type; a Spanish one is a NIF.
       tax_id_type: isForeignClient(nc.country_code) ? (nc.tax_id_type || null) : null,
       is_active: true,
+      parent_company_id: nc.parent_company_id || null,
       // Only when set, so creating a client keeps working before
       // 20260929_payment_terms.sql is applied.
       ...(nc.payment_method ? { payment_method: nc.payment_method } : {}),
@@ -100,7 +102,12 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
 
   // The CIF/NIF is required: it is what identifies the client on an invoice.
   const disabled = saving || !nc.name.trim() || !nc.cif.trim() || (foreign && !nc.tax_id_type);
-  const similar = findSimilarClients(existing, { name: nc.name, cif: nc.cif });
+  const similar = findSimilarClients(existing, { name: nc.name, cif: nc.cif, parentId: nc.parent_company_id || null });
+  // Filing it under a principal copies the principal's CIF and country; the CIF then stays locked.
+  const setPrincipal = (p: ClientLike | null) => setNc(prev => p
+    ? { ...prev, parent_company_id: p.id, cif: p.cif ?? prev.cif,
+        country_code: (p as any).country_code ?? prev.country_code, tax_id_type: (p as any).tax_id_type ?? prev.tax_id_type }
+    : { ...prev, parent_company_id: "" });
   const warnings = duplicateWarnings(similar);
   const cifTaken = cifTakenMessage(similar);
   const badFormat = !foreign && !!nc.cif.trim() && !looksLikeSpanishTaxId(nc.cif);
@@ -119,10 +126,11 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
             contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.md }}
           >
             {field(`${t("invoicing.clientName")} *`, "name", { autoFocus: true })}
+            <EstablishmentPicker existing={existing} value={nc.parent_company_id} onChange={setPrincipal} />
             <View style={{ flexDirection: "row", gap: spacing.sm + 2 }}>
               <View style={{ flex: 2 }}>
                 {field(foreign ? `${t("invoicing.clientTaxId")} *` : "CIF/NIF *", "cif",
-                  { autoCapitalize: "characters", placeholder: foreign ? "DE123456789" : "B12345678" })}
+                  { autoCapitalize: "characters", placeholder: foreign ? "DE123456789" : "B12345678", editable: !nc.parent_company_id })}
               </View>
               <View style={{ flex: 1 }}>
                 {field(t("invoicing.clientCountry"), "country_code", { autoCapitalize: "characters", maxLength: 2, placeholder: "ES" })}
@@ -162,10 +170,8 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
             <PaymentMethodPicker label={t("empresas.paymentMethod")} value={nc.payment_method} onChange={set("payment_method")} />
             {field(t("empresas.paymentDueDays"), "payment_due_days", { keyboardType: "number-pad", placeholder: "30", hint: t("empresas.paymentDueDaysHint") })}
 
-            {!!cifTaken && (
-              <View style={{ backgroundColor: C.redL, borderRadius: radius.md, padding: spacing.sm + 2 }}>
-                <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.red }}>{cifTaken}</Text>
-              </View>
+            {!!cifTaken && !!similar.sameCif && (
+              <CifTakenNotice message={cifTaken} principal={similar.sameCif} onMakeEstablishment={() => setPrincipal(similar.sameCif)} />
             )}
             {warnings.map(w => (
               <View key={w} style={{ backgroundColor: C.yellowL, borderRadius: radius.md, padding: spacing.sm + 2 }}>

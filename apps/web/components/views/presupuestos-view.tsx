@@ -21,6 +21,7 @@ import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { quoteStatusLabel, quoteStatusStyle, canToggleAccepted } from "@/lib/quote-status"
 import { toast } from "sonner"
+import { clientLabel } from "@/lib/client-checks"
 
 type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string; exemptionCause: string }
 const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1", unitPrice: "0", taxRate: "21", exemptionCause: "" })
@@ -392,7 +393,7 @@ export function PresupuestosView() {
                 <label className="block text-sm font-medium text-foreground mb-1.5">Cliente <span className="text-destructive">*</span></label>
                 <select value={clientId} onChange={e => setClientId(e.target.value)} className={inputCls}>
                   <option value="">Selecciona un cliente…</option>
-                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}{c.cif ? ` · ${c.cif}` : ""}</option>)}
+                  {companies.map(c => <option key={c.id} value={c.id}>{clientLabel(c, companies)}{c.cif ? ` · ${c.cif}` : ""}</option>)}
                 </select>
                 <button type="button" onClick={() => setNewClientOpen(true)} className="mt-1.5 flex items-center gap-1 text-xs text-accent hover:underline font-medium">
                   <Plus className="w-3.5 h-3.5" /> Nuevo cliente
