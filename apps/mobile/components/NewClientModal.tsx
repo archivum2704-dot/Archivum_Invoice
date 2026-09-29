@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
 import { Plus, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
@@ -11,6 +11,7 @@ import { KeyboardModal } from "@/components/KeyboardModal";
 import { Button, Input } from "@/components/ui";
 import { TAX_ID_TYPES, isForeignClient } from "@/lib/tax-id-types";
 import { randomId } from "@/lib/random-id";
+import { findSimilarClients, duplicateWarnings, looksLikeSpanishTaxId, type ClientLike } from "@/lib/client-checks";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 
 export interface CreatedClient { id: string; name: string; cif: string | null; payment_method: string | null; payment_due_days: number | null }
@@ -51,6 +52,13 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
   const { t } = useTranslation();
   const C = useColors();
   const [nc, setNc] = useState(EMPTY);
+  // Existing clients, to warn before creating the same one twice (WEB-004).
+  const [existing, setExisting] = useState<ClientLike[]>([]);
+  useEffect(() => {
+    if (!visible || !orgId) return;
+    supabase.from("companies").select("id, name, cif").eq("organization_id", orgId)
+      .then(({ data }) => setExisting((data ?? []) as ClientLike[]));
+  }, [visible, orgId]);
   const [saving, setSaving] = useState(false);
   const foreign = isForeignClient(nc.country_code);
 
@@ -104,7 +112,10 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
     <Input label={label} value={nc[key]} onChangeText={set(key)} {...extra} />
   );
 
-  const disabled = saving || !nc.name.trim() || (foreign && !!nc.cif.trim() && !nc.tax_id_type);
+  // The CIF/NIF is required: it is what identifies the client on an invoice.
+  const disabled = saving || !nc.name.trim() || !nc.cif.trim() || (foreign && !nc.tax_id_type);
+  const warnings = duplicateWarnings(findSimilarClients(existing, { name: nc.name, cif: nc.cif }));
+  const badFormat = !foreign && !!nc.cif.trim() && !looksLikeSpanishTaxId(nc.cif);
 
   return (
     <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={close}>
@@ -122,7 +133,7 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
             {field(`${t("invoicing.clientName")} *`, "name", { autoFocus: true })}
             <View style={{ flexDirection: "row", gap: spacing.sm + 2 }}>
               <View style={{ flex: 2 }}>
-                {field(foreign ? t("invoicing.clientTaxId") : "CIF", "cif",
+                {field(foreign ? `${t("invoicing.clientTaxId")} *` : "CIF/NIF *", "cif",
                   { autoCapitalize: "characters", placeholder: foreign ? "DE123456789" : "B12345678" })}
               </View>
               <View style={{ flex: 1 }}>
@@ -162,6 +173,15 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
             {field(t("invoicing.clientProvince"), "province")}
             <PaymentMethodPicker label={t("empresas.paymentMethod")} value={nc.payment_method} onChange={set("payment_method")} />
             {field(t("empresas.paymentDueDays"), "payment_due_days", { keyboardType: "number-pad", placeholder: "30", hint: t("empresas.paymentDueDaysHint") })}
+
+            {warnings.map(w => (
+              <View key={w} style={{ backgroundColor: C.yellowL, borderRadius: radius.md, padding: spacing.sm + 2 }}>
+                <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.text }}>{w}</Text>
+              </View>
+            ))}
+            {badFormat && (
+              <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t("empresas.taxIdFormatHint")}</Text>
+            )}
 
             <Button
               label={t("invoicing.createClient")}

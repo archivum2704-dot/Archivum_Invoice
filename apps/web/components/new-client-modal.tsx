@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { TAX_ID_TYPES, isForeignClient } from "@/lib/tax-id-types"
 import { PAYMENT_METHODS } from "@/lib/payment-methods"
+import { useCompanies } from "@/lib/hooks/use-companies"
+import { findSimilarClients, duplicateWarnings, looksLikeSpanishTaxId } from "@/lib/client-checks"
 import { toast } from "sonner"
 
 const EMPTY = {
@@ -73,8 +75,14 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
 
   const close = () => { if (!saving) onClose() }
 
+  // Existing clients, to warn before creating the same one twice (WEB-004).
+  const { companies } = useCompanies(orgId)
+  const similar = findSimilarClients(companies, { name: nc.name, cif: nc.cif })
+  const warnings = duplicateWarnings(similar)
+  const badFormat = !foreign && !!nc.cif.trim() && !looksLikeSpanishTaxId(nc.cif)
+
   const handleCreate = async () => {
-    if (!nc.name.trim() || !orgId) return
+    if (!nc.name.trim() || !nc.cif.trim() || !orgId) return
     setSaving(true); setError(null)
     const supabase: any = createClient()
     // The id is generated here rather than read back from the insert.
@@ -135,7 +143,7 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
           <div className="grid grid-cols-[1fr_100px] gap-2">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">
-                {foreign ? t("clientTaxId") : "CIF"} <InvoiceReq />
+                {foreign ? t("clientTaxId") : "CIF/NIF"} <span className="text-destructive">*</span>
               </label>
               <input value={nc.cif} onChange={e => setNc({ ...nc, cif: e.target.value })}
                 placeholder={foreign ? "DE123456789" : "B12345678"} className={inputCls} />
@@ -204,6 +212,18 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
                 onChange={e => setNc({ ...nc, payment_due_days: e.target.value })} className={inputCls} />
             </div>
           </div>
+          {(warnings.length > 0 || badFormat) && (
+            <div className="space-y-1.5">
+              {warnings.map(w => (
+                <p key={w} className="flex items-start gap-1.5 text-xs text-foreground bg-[var(--status-pending)]/8 border border-[var(--status-pending)]/25 rounded-lg px-2.5 py-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-[var(--status-pending)] shrink-0 mt-px" /> {w}
+                </p>
+              ))}
+              {badFormat && (
+                <p className="text-[11px] text-muted-foreground">{tCompanies("taxIdFormatHint")}</p>
+              )}
+            </div>
+          )}
           {error && (
             <div className="flex items-start gap-2 bg-destructive/10 border border-destructive/20 rounded-lg p-3">
               <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
@@ -214,7 +234,7 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
 
         <div className="flex items-center justify-end gap-2 mt-5">
           <button onClick={close} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">{tCommon("cancel")}</button>
-          <button onClick={handleCreate} disabled={saving || !nc.name.trim()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
+          <button onClick={handleCreate} disabled={saving || !nc.name.trim() || !nc.cif.trim()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             {t("createClient")}
           </button>

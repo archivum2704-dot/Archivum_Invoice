@@ -57,9 +57,16 @@ const STATE_STYLES: Record<string, string> = {
  * withdrawn, but to the user it has been corrected. The rectificative points
  * at the invoice it cancels, so both are derived from the same list.
  */
-function invoiceStatus(inv: { id: string; state: string; kind: string | null }, rectifiedIds: Set<string>) {
+function invoiceStatus(
+  inv: { id: string; state: string; kind: string | null; payment_date?: string | null; sent_at?: string | null },
+  rectifiedIds: Set<string>,
+) {
   if (inv.kind === 'rectifying') return { key: 'rectificative', style: 'bg-[var(--status-pending)]/10 text-[var(--status-pending)]' }
   if (rectifiedIds.has(inv.id))  return { key: 'rectified',     style: 'bg-[var(--status-overdue)]/10 text-[var(--status-overdue)]' }
+  // Past "Emitida": cobrada once paid, enviada once mailed to the client
+  // from Archivum (WEB-014).
+  if (inv.state === 'issued' && inv.payment_date) return { key: 'paid', style: 'bg-[var(--status-paid)]/10 text-[var(--status-paid)]' }
+  if (inv.state === 'issued' && inv.sent_at)      return { key: 'sent', style: 'bg-primary/10 text-primary' }
   return { key: inv.state, style: STATE_STYLES[inv.state] }
 }
 

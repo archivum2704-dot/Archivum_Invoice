@@ -187,7 +187,7 @@
     "createClient": "Create client",
     "noClientsHint": "You don't have any clients yet. Create one with \"New client\".",
     "clientName": "Company name",
-    "clientCifHint": "Optional when creating, but required to invoice them.",
+    "clientCifHint": "Required: it identifies the client on the invoice.",
     "clientAddress": "Address",
     "clientPostalCode": "Postal code",
     "clientCity": "City",
@@ -232,7 +232,9 @@
       "draft": "Draft",
       "cancelled": "Cancelled",
       "rectified": "Corrected",
-      "rectificative": "Credit note"
+      "rectificative": "Credit note",
+      "paid": "Paid",
+      "sent": "Sent"
     },
     "errors": {
       "issuerCif": "Your company needs a tax ID to issue invoices. Add it in Settings.",
@@ -321,7 +323,8 @@
     "issuedToast": "Invoice {number} issued",
     "issuedBanner": "Invoice {number} issued and registered. Next step: send it to the client.",
     "verifactuWhat": "What is this?",
-    "verifactuExplain": "VERI*FACTU is the Spanish Tax Agency system for verifiable invoices. Each invoice produces a record with a \"fingerprint\" (a code computed from its data and the previous invoice's), so any later change would be detected. The record is sent to the AEAT, and the client can check the invoice on the AEAT website by scanning the QR code."
+    "verifactuExplain": "VERI*FACTU is the Spanish Tax Agency system for verifiable invoices. Each invoice produces a record with a \"fingerprint\" (a code computed from its data and the previous invoice's), so any later change would be detected. The record is sent to the AEAT, and the client can check the invoice on the AEAT website by scanning the QR code.",
+    "sentOn": "Sent to {to} on {date}"
   },
   "verifactu": {
     "title": "Verifactu certificate (AEAT)",
@@ -629,7 +632,8 @@
     "requiredToInvoice": "needed to invoice",
     "requiredToInvoiceHint": "An invoice must show the client's tax ID and address. You can save the client without them, but not invoice them.",
     "optional": "optional",
-    "createdToast": "Client “{name}” created"
+    "createdToast": "Client “{name}” created",
+    "taxIdFormatHint": "This does not look like a Spanish NIF/NIE/CIF (e.g. B12345678 or 12345678Z). Check it if the client is Spanish."
   },
   "admin": {
     "title": "Admin Panel",
@@ -854,7 +858,9 @@
     "errorGeneric": "Couldn't complete the import. {message}",
     "importSuccess": "Successfully imported {count} {kind}.",
     "closeButton": "Close",
-    "countriesSheet": "Countries"
+    "countriesSheet": "Countries",
+    "taxIdMissing": "The tax ID is missing and is required.",
+    "duplicateTaxId": "A client with tax ID {cif} already exists (in the account or earlier in the file)."
   },
   "tutorial": {
     "skip": "Skip",

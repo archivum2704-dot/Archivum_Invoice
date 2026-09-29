@@ -37,6 +37,7 @@ interface Invoice {
   aeat_error: string | null; submitted_at: string | null;
   due_date: string | null; notes: string | null; document_id: string | null;
   payment_status: string | null; payment_method: string | null; payment_date: string | null;
+  sent_at?: string | null; sent_to?: string | null;
 }
 interface Line { id: string; description: string; quantity: number; unit_price: number; tax_rate: number; line_total: number; }
 
@@ -181,6 +182,11 @@ export default function FacturaDetailScreen() {
               {!!invoice.issuer_cif && <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>CIF: {invoice.issuer_cif}</Text>}
               <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginTop: 2 }}>{t("invoicing.issueDate")}: {invoice.issue_date}</Text>
               {!!invoice.due_date && <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>{t("invoicing.dueDate")}: {invoice.due_date}</Text>}
+              {!!invoice.sent_at && (
+                <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.blue }}>
+                  {t("invoicing.sentOn", { to: invoice.sent_to ?? "", date: new Date(invoice.sent_at).toLocaleDateString("es-ES") })}
+                </Text>
+              )}
             </View>
           </View>
           <View style={{ height: 1, backgroundColor: C.border }} />
@@ -293,7 +299,7 @@ export default function FacturaDetailScreen() {
         </Card>
         )}
 
-        <SendEmailButton kind="invoice" id={id} defaultTo={clientEmail} />
+        <SendEmailButton kind="invoice" id={id} defaultTo={clientEmail} onSent={() => { load(); }} />
 
         {canRectify && (
           <Button

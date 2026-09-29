@@ -19,10 +19,12 @@ import { Button, Input } from "@/components/ui";
  * one on file is often a billing inbox. Nothing leaves the app until the sender
  * confirms in the sheet — this is outward-facing mail.
  */
-export function SendEmailButton({ kind, id, defaultTo }: {
+export function SendEmailButton({ kind, id, defaultTo, onSent }: {
   kind: "invoice" | "quote";
   id: string;
   defaultTo?: string | null;
+  /** Called after a successful send (the invoice then reads "Enviada"). */
+  onSent?: (to: string) => void;
 }) {
   const { t } = useTranslation();
   const C = useColors();
@@ -48,6 +50,7 @@ export function SendEmailButton({ kind, id, defaultTo }: {
       const json = await readJson(res);
       if (!res.ok) { Alert.alert(t("common.error"), json.detail ?? json.error ?? t("email.failed")); return; }
       setSentTo(json.to ?? to.trim());
+      onSent?.(json.to ?? to.trim());
     } catch (e) {
       Alert.alert(t("common.error"), String(e));
     } finally {

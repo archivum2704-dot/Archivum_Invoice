@@ -67,7 +67,9 @@
       "draft": "Borrador",
       "cancelled": "Anulada",
       "rectified": "Rectificada",
-      "rectificative": "Rectificativa"
+      "rectificative": "Rectificativa",
+      "sent": "Enviada",
+      "paid": "Cobrada"
     },
     "paywallTitle": "La facturación es una función de pago",
     "paywallBody": "Emite facturas conformes con Verifactu actualizando a un plan de pago.",
@@ -113,7 +115,8 @@
     "markUnpaid": "Marcar pendiente",
     "savePayment": "Guardar",
     "paymentSaveError": "No se pudo guardar el cobro",
-    "errZeroTotal": "El total de la factura es 0,00. Revisa cantidades y precios: una factura emitida no se puede retirar, solo rectificar."
+    "errZeroTotal": "El total de la factura es 0,00. Revisa cantidades y precios: una factura emitida no se puede retirar, solo rectificar.",
+    "sentOn": "Enviada a {{to}} el {{date}}"
   },
   "common": {
     "save": "Guardar",
@@ -333,7 +336,8 @@
     "paymentDueDays": "Vencimiento (días)",
     "paymentDueDaysHint": "Días desde la fecha de la factura. Se usa para proponer el vencimiento al facturar.",
     "paymentTerms": "Condiciones de pago",
-    "daysSuffix": "{{days}} días"
+    "daysSuffix": "{{days}} días",
+    "taxIdFormatHint": "El formato no parece un NIF/NIE/CIF español (p. ej. B12345678 o 12345678Z). Revísalo si el cliente es español."
   },
   "equipo": {
     "title": "Equipo",

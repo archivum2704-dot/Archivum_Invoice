@@ -27,7 +27,7 @@ import { RequirePermission } from "@/components/RequirePermission";
 import { DateField } from "@/components/DateField";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number";
-import { randomId } from "@/lib/random-id";
+import { NewClientModal, type CreatedClient } from "@/components/NewClientModal";
 import { FolderField, useFolders } from "@/components/FolderPicker";
 
 interface Company { id: string; name: string; }
@@ -215,20 +215,11 @@ function Step1({ onNext, pickedFile, setPickedFile, C, t }: {
 }
 
 /* ── Company selector (matches web behaviour) ───────────────────────────── */
-function CompanyPicker({ companies, companyId, setCompanyId, onCreate, creating, C, t }: {
+function CompanyPicker({ companies, companyId, setCompanyId, onCreate, C, t }: {
   companies: Company[]; companyId: string | null; setCompanyId: (id: string | null) => void;
-  onCreate: (name: string) => Promise<void>; creating: boolean; C: any; t: any;
+  /** Opens the full client form (CIF/NIF required, duplicate check — WEB-004). */
+  onCreate: () => void; C: any; t: any;
 }) {
-  const [adding, setAdding] = useState(false);
-  const [newName, setNewName] = useState("");
-
-  const submitNew = async () => {
-    if (!newName.trim()) return;
-    await onCreate(newName.trim());
-    setNewName("");
-    setAdding(false);
-  };
-
   return (
     <View>
       <Text style={{ fontFamily: fonts.medium, fontSize: 12, color: C.muted, marginBottom: spacing.xs + 2 }}>
@@ -248,39 +239,22 @@ function CompanyPicker({ companies, companyId, setCompanyId, onCreate, creating,
         </ScrollView>
       )}
 
-      {companies.length === 0 && !adding && (
+      {companies.length === 0 && (
         <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginBottom: spacing.sm }}>{t("subir.noCompanies")}</Text>
       )}
 
-      {adding ? (
-        <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}>
-          <TextInput
-            style={{ flex: 1, borderWidth: 1.5, borderColor: C.blue, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fonts.regular, fontSize: 15, color: C.text, backgroundColor: C.inputBg }}
-            placeholder={t("subir.newCompanyPlaceholder")} placeholderTextColor={C.muted}
-            value={newName} onChangeText={setNewName} autoFocus onSubmitEditing={submitNew} returnKeyType="done"
-          />
-          <TouchableOpacity onPress={submitNew} disabled={creating || !newName.trim()}
-            style={{ backgroundColor: newName.trim() ? C.blue : C.border, borderRadius: radius.md, paddingHorizontal: spacing.md + 2, paddingVertical: spacing.md }}>
-            {creating ? <ActivityIndicator color="#fff" size="small" /> : <Check size={18} color="#fff" strokeWidth={1.75} />}
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => { setAdding(false); setNewName(""); }} style={{ padding: spacing.sm }}>
-            <X size={18} color={C.muted} strokeWidth={1.75} />
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <TouchableOpacity onPress={() => setAdding(true)} style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-          <Plus size={14} color={C.blue} strokeWidth={1.75} />
-          <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: C.blue }}>
-            {companies.length === 0 ? t("subir.addFirstCompany") : t("subir.newCompany")}
-          </Text>
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity onPress={onCreate} style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+        <Plus size={14} color={C.blue} strokeWidth={1.75} />
+        <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: C.blue }}>
+          {companies.length === 0 ? t("subir.addFirstCompany") : t("subir.newCompany")}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 /* ── Step 2: Metadata ───────────────────────────────────────────────────── */
-function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, companies, companyId, setCompanyId, onCreateCompany, creatingCompany, amount, setAmount, taxable, setTaxable, vatRate, setVatRate, issueDate, setIssueDate, dueDate, setDueDate, status, setStatus, payMethod, setPayMethod, notes, setNotes, folders, folderId, setFolderId, foldersLoading, addFolder, canCreateFolder, orgId, pickedFile, C, t }: any) {
+function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, companies, companyId, setCompanyId, onCreateCompany, amount, setAmount, taxable, setTaxable, vatRate, setVatRate, issueDate, setIssueDate, dueDate, setDueDate, status, setStatus, payMethod, setPayMethod, notes, setNotes, folders, folderId, setFolderId, foldersLoading, addFolder, canCreateFolder, orgId, pickedFile, C, t }: any) {
   const DOC_TYPES = [
     { key: "invoice_received", label: t("docTypes.invoice_received") },
     { key: "invoice_issued",   label: t("docTypes.invoice_issued") },
@@ -338,7 +312,7 @@ function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, c
         </View>
 
         {/* Company selector */}
-        <CompanyPicker companies={companies} companyId={companyId} setCompanyId={setCompanyId} onCreate={onCreateCompany} creating={creatingCompany} C={C} t={t} />
+        <CompanyPicker companies={companies} companyId={companyId} setCompanyId={setCompanyId} onCreate={onCreateCompany} C={C} t={t} />
 
         {[
           { label: t("subir.docNumberLabel"), value: docNumber, setter: setDocNumber, ph: t("subir.docNumberPlaceholder") },
@@ -475,7 +449,6 @@ function SubirScreenContent() {
   // Companies
   const [companies,       setCompanies]       = useState<Company[]>([]);
   const [companyId,       setCompanyId]       = useState<string | null>(null);
-  const [creatingCompany, setCreatingCompany] = useState(false);
 
   // Form fields
   const [docType,     setDocType]     = useState("invoice_received");
@@ -504,19 +477,11 @@ function SubirScreenContent() {
 
   useEffect(() => { loadCompanies(); }, [loadCompanies]);
 
-  const handleCreateCompany = async (name: string) => {
-    if (!orgId) { Alert.alert(t("common.error"), t("common.unknownError")); return; }
-    setCreatingCompany(true);
-    // Id generated here, not read back: INSERT ... RETURNING on companies is
-    // refused by its SELECT policy for everyone (see NewClientModal).
-    const data = { id: randomId(), name };
-    const { error } = await supabase
-      .from("companies")
-      .insert({ id: data.id, organization_id: orgId, name, is_active: true });
-    setCreatingCompany(false);
-    if (error) { Alert.alert(t("common.error"), error.message ?? t("common.unknownError")); return; }
-    setCompanies((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
-    setCompanyId(data.id);
+  const [newClientOpen, setNewClientOpen] = useState(false);
+  const handleCreateCompany = () => setNewClientOpen(true);
+  const onClientCreated = (c: CreatedClient) => {
+    setCompanies((prev) => [...prev, { id: c.id, name: c.name }].sort((a, b) => a.name.localeCompare(b.name)));
+    setCompanyId(c.id);
   };
 
   useEffect(() => {
@@ -655,7 +620,7 @@ function SubirScreenContent() {
           <>
             <StepIndicator current={step} C={C} t={t} />
             {step === 1 && <ScrollView keyboardShouldPersistTaps="handled"><Step1 onNext={() => setStep(2)} pickedFile={pickedFile} setPickedFile={setPickedFile} C={C} t={t} /></ScrollView>}
-            {step === 2 && <Step2 onNext={() => setStep(3)} onBack={() => setStep(1)} pickedFile={pickedFile} docType={docType} setDocType={setDocType} docNumber={docNumber} setDocNumber={setDocNumber} companies={companies} companyId={companyId} setCompanyId={setCompanyId} onCreateCompany={handleCreateCompany} creatingCompany={creatingCompany} amount={amount} setAmount={setAmount} taxable={taxable} setTaxable={setTaxable} vatRate={vatRate} setVatRate={setVatRate} issueDate={issueDate} setIssueDate={setIssueDate} dueDate={dueDate} setDueDate={setDueDate} status={status} setStatus={setStatus} payMethod={payMethod} setPayMethod={setPayMethod} notes={notes} setNotes={setNotes} folders={folders} folderId={folderId} setFolderId={setFolderId} foldersLoading={foldersLoading} addFolder={addFolder} canCreateFolder={isAdmin} orgId={orgId} C={C} t={t} />}
+            {step === 2 && <Step2 onNext={() => setStep(3)} onBack={() => setStep(1)} pickedFile={pickedFile} docType={docType} setDocType={setDocType} docNumber={docNumber} setDocNumber={setDocNumber} companies={companies} companyId={companyId} setCompanyId={setCompanyId} onCreateCompany={handleCreateCompany} amount={amount} setAmount={setAmount} taxable={taxable} setTaxable={setTaxable} vatRate={vatRate} setVatRate={setVatRate} issueDate={issueDate} setIssueDate={setIssueDate} dueDate={dueDate} setDueDate={setDueDate} status={status} setStatus={setStatus} payMethod={payMethod} setPayMethod={setPayMethod} notes={notes} setNotes={setNotes} folders={folders} folderId={folderId} setFolderId={setFolderId} foldersLoading={foldersLoading} addFolder={addFolder} canCreateFolder={isAdmin} orgId={orgId} C={C} t={t} />}
             {step === 3 && <ScrollView keyboardShouldPersistTaps="handled"><Step3 onSubmit={handleSubmit} onBack={() => setStep(2)} saving={saving} pickedFile={pickedFile} docType={docType} docNumber={docNumber} companyName={selectedCompanyName} amount={amount} issueDate={issueDate} dueDate={dueDate} status={status} notes={notes} C={C} t={t} /></ScrollView>}
           </>
         ) : (
@@ -667,6 +632,13 @@ function SubirScreenContent() {
           </View>
         )}
       </KeyboardAvoidingView>
+
+      <NewClientModal
+        visible={newClientOpen}
+        orgId={orgId}
+        onCreated={onClientCreated}
+        onClose={() => setNewClientOpen(false)}
+      />
 
       <Coachmark
         id="subir-first-doc"

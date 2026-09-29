@@ -4,6 +4,7 @@ import { useRef, useState } from "react"
 import { FileSpreadsheet, Download, Upload, X, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
 import { COUNTRY_CODES, countryOption, parseCountry } from "@/lib/countries"
+import { normalizeTaxId } from "@/lib/client-checks"
 import { createClient } from "@/lib/supabase/client"
 
 type Kind = "clients" | "products"
@@ -53,7 +54,7 @@ export function ImportExcelButton({ kind, orgId, onImported }: {
   const columns: ColumnDef[] = kind === "clients"
     ? [
         { key: "name", header: tInv("clientName"), required: true },
-        { key: "cif", header: tInv("clientTaxId") },
+        { key: "cif", header: tInv("clientTaxId"), required: true },
         { key: "email", header: tInv("clientEmail") },
         { key: "phone", header: tInv("clientPhone") },
         { key: "address", header: tInv("clientAddress") },
@@ -137,14 +138,22 @@ export function ImportExcelButton({ kind, orgId, onImported }: {
 
       if (json.length === 0) { setFatalError(t("emptyFile")); setBusy(false); return }
 
-      const requiredCol = columns.find((c) => c.required)!
       const firstRowKeys = Object.keys(json[0]).map((k) => k.trim())
-      if (!firstRowKeys.includes(requiredCol.header)) {
+      if (columns.some(c => c.required && !firstRowKeys.includes(c.header))) {
         setFatalError(t("missingHeaders")); setBusy(false); return
       }
 
       const validRows: Record<string, unknown>[] = []
       const rowErrors: RowError[] = []
+
+      // A CIF already on file, or repeated in the file, is the same company
+      // twice (WEB-004). Such rows are reported, not imported.
+      const seenTaxIds = new Set<string>()
+      if (kind === "clients" && orgId) {
+        const supabase: any = createClient()
+        const { data: existing } = await supabase.from("companies").select("cif").eq("organization_id", orgId)
+        for (const c of existing ?? []) if (c.cif) seenTaxIds.add(normalizeTaxId(c.cif))
+      }
 
       json.forEach((raw, i) => {
         const rowNum = i + 2 // header occupies row 1
@@ -157,6 +166,12 @@ export function ImportExcelButton({ kind, orgId, onImported }: {
         if (kind === "clients") {
           const name = get(tInv("clientName"))
           if (!name) { rowErrors.push({ row: rowNum, message: t("requiredFieldMissing") }); return }
+          const cif = get(tInv("clientTaxId"))
+          if (!cif) { rowErrors.push({ row: rowNum, message: t("taxIdMissing") }); return }
+          if (seenTaxIds.has(normalizeTaxId(cif))) {
+            rowErrors.push({ row: rowNum, message: t("duplicateTaxId", { cif }) }); return
+          }
+          seenTaxIds.add(normalizeTaxId(cif))
 
           const email = get(tInv("clientEmail"))
           if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -173,7 +188,7 @@ export function ImportExcelButton({ kind, orgId, onImported }: {
             id: crypto.randomUUID(),
             organization_id: orgId,
             name,
-            cif: get(tInv("clientTaxId")) || null,
+            cif,
             email: email || null,
             phone: get(tInv("clientPhone")) || null,
             address: get(tInv("clientAddress")) || null,

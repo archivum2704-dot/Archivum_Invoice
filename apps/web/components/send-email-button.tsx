@@ -13,13 +13,15 @@ const inputCls = "w-full px-3 py-2 text-sm bg-background border border-border ro
  * the one on file is often a billing inbox and the sender may want a person
  * instead. Nothing is sent until they confirm — this is outward-facing mail.
  */
-export function SendEmailButton({ kind, id, defaultTo, className, compact }: {
+export function SendEmailButton({ kind, id, defaultTo, className, compact, onSent }: {
   kind: "invoice" | "quote"
   id: string
   defaultTo?: string | null
   className?: string
   /** Just "Enviar" — for toolbars where the full label does not fit. */
   compact?: boolean
+  /** Called after a successful send, e.g. to show the invoice as "Enviada". */
+  onSent?: (to: string) => void
 }) {
   const t = useTranslations("email")
   const tCommon = useTranslations("common")
@@ -45,6 +47,7 @@ export function SendEmailButton({ kind, id, defaultTo, className, compact }: {
       const json = await res.json().catch(() => ({}))
       if (!res.ok) { setError(json.detail ?? json.error ?? t("failed")); setSending(false); return }
       setSent(json.to ?? to)
+      onSent?.(json.to ?? to)
     } catch (e) {
       setError(String(e))
     } finally {

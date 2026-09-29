@@ -18,7 +18,7 @@ export type LinkedStatus = { label: string; style: string; href: string; source:
 async function fetchLinked(orgId: string): Promise<Map<string, LinkedStatus>> {
   const supabase: any = createClient()
   let qq = supabase.from('quotes').select('id, kind, status, document_id').not('document_id', 'is', null)
-  let iq = supabase.from('invoices').select('id, document_id, payment_date, payment_status, kind').not('document_id', 'is', null)
+  let iq = supabase.from('invoices').select('*').not('document_id', 'is', null)
   if (orgId !== ALL_ORGS_ID) { qq = qq.eq('organization_id', orgId); iq = iq.eq('organization_id', orgId) }
   const [{ data: quotes }, { data: invoices }] = await Promise.all([qq, iq])
 
@@ -34,10 +34,12 @@ async function fetchLinked(orgId: string): Promise<Map<string, LinkedStatus>> {
   for (const i of invoices ?? []) {
     const paid = !!i.payment_date || i.payment_status === 'paid'
     const cancelled = i.payment_status === 'cancelled'
+    const sent = !!i.sent_at
     map.set(i.document_id, {
-      label: cancelled ? 'Rectificada' : paid ? 'Cobrada' : 'Pendiente de cobro',
+      label: cancelled ? 'Rectificada' : paid ? 'Cobrada' : sent ? 'Enviada' : 'Pendiente de cobro',
       style: cancelled ? 'bg-[var(--status-overdue)]/10 text-[var(--status-overdue)]'
         : paid ? 'bg-[var(--status-paid)]/10 text-[var(--status-paid)]'
+        : sent ? 'bg-primary/10 text-primary'
         : 'bg-[var(--status-pending)]/10 text-[var(--status-pending)]',
       href: `/facturacion/${i.id}`,
       source: 'invoice',

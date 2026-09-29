@@ -17,7 +17,7 @@ export type LinkedStatus = { labelKey: string; tone: BadgeTone };
 export async function fetchLinkedStatuses(orgId: string): Promise<Map<string, LinkedStatus>> {
   const [{ data: quotes }, { data: invoices }] = await Promise.all([
     supabase.from("quotes").select("kind, status, document_id").eq("organization_id", orgId).not("document_id", "is", null),
-    supabase.from("invoices").select("document_id, payment_status, payment_date").eq("organization_id", orgId).not("document_id", "is", null),
+    supabase.from("invoices").select("*").eq("organization_id", orgId).not("document_id", "is", null),
   ]);
   const map = new Map<string, LinkedStatus>();
   for (const q of (quotes ?? []) as any[]) {
@@ -28,7 +28,9 @@ export async function fetchLinkedStatuses(orgId: string): Promise<Map<string, Li
     const cancelled = i.payment_status === "cancelled";
     map.set(i.document_id, cancelled
       ? { labelKey: "invoicing.states.rectified", tone: "red" }
-      : paid ? { labelKey: "invoicing.paid", tone: "green" } : { labelKey: "invoicing.unpaid", tone: "yellow" });
+      : paid ? { labelKey: "invoicing.paid", tone: "green" }
+      : i.sent_at ? { labelKey: "invoicing.states.sent", tone: "blue" }
+      : { labelKey: "invoicing.unpaid", tone: "yellow" });
   }
   return map;
 }

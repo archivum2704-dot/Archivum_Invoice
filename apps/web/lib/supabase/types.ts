@@ -539,6 +539,8 @@ export type Database = {
           payment_status: DocumentStatus | null
           payment_method: string | null
           payment_date: string | null
+          sent_at: string | null
+          sent_to: string | null
           document_id: string | null
           rectifies_invoice_id: string | null
           created_by: string | null
@@ -586,6 +588,8 @@ export type Database = {
           payment_status?: DocumentStatus | null
           payment_method?: string | null
           payment_date?: string | null
+          sent_at?: string | null
+          sent_to?: string | null
           document_id?: string | null
           rectifies_invoice_id?: string | null
           created_by?: string | null
@@ -628,6 +632,8 @@ export type Database = {
           payment_status?: DocumentStatus | null
           payment_method?: string | null
           payment_date?: string | null
+          sent_at?: string | null
+          sent_to?: string | null
           document_id?: string | null
           rectifies_invoice_id?: string | null
           updated_at?: string

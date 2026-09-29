@@ -39,6 +39,7 @@ interface Invoice {
   total: number; state: string; issue_date: string | null;
   kind: string; rectifies_invoice_id: string | null;
   verifactu_status: string | null; currency: string;
+  payment_date?: string | null; sent_at?: string | null;
 }
 interface Company { id: string; name: string; cif: string | null; payment_method?: string | null; payment_due_days?: number | null; }
 interface Product {
@@ -99,7 +100,7 @@ function FacturacionScreenContent() {
   const load = useCallback(async () => {
     if (!orgId) return;
     const [{ data: inv }, { data: co }, { data: pr }] = await Promise.all([
-      supabase.from("invoices").select("id, full_number, client_name, total, state, issue_date, kind, rectifies_invoice_id, verifactu_status, currency").eq("organization_id", orgId).order("created_at", { ascending: false }),
+      supabase.from("invoices").select("*").eq("organization_id", orgId).order("created_at", { ascending: false }),
       supabase.from("companies").select("*").eq("organization_id", orgId).eq("is_active", true).order("name"),
       supabase.from("products").select("id, name, sku, unit_price, tax_rate, unit, track_stock, stock_qty, min_stock").eq("organization_id", orgId).eq("is_active", true).order("name"),
     ]);
@@ -217,6 +218,9 @@ function FacturacionScreenContent() {
   const statusOf = (inv: Invoice): { label: string; tone: BadgeTone } => {
     if (inv.kind === "rectifying") return { label: t("invoicing.states.rectificative"), tone: "yellow" };
     if (rectifiedIds.has(inv.id))  return { label: t("invoicing.states.rectified"),     tone: "red" };
+    // Past "Emitida": cobrada once paid, enviada once mailed from Archivum.
+    if (inv.state === "issued" && inv.payment_date) return { label: t("invoicing.states.paid"), tone: "green" };
+    if (inv.state === "issued" && inv.sent_at)      return { label: t("invoicing.states.sent"), tone: "blue" };
     return { label: t(`invoicing.states.${inv.state}`), tone: stateTone(inv.state) };
   };
 

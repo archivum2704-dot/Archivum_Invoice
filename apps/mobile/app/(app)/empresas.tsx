@@ -13,6 +13,7 @@ import {
 } from "lucide-react-native";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { isPaymentMethod } from "@/lib/payment-methods";
+import { findSimilarClients, duplicateWarnings, looksLikeSpanishTaxId } from "@/lib/client-checks";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Coachmark } from "@/components/Coachmark";
@@ -112,10 +113,10 @@ function UpgradeModal({ visible, maxCompanies, onClose, C, t }: { visible: boole
  * (NewClientModal) did. Kept at module scope so fields keep focus while typing.
  */
 function CompanyModal({
-  visible, onClose, onSaved, orgId, initial, C, t,
+  visible, onClose, onSaved, orgId, initial, existing = [], C, t,
 }: {
   visible: boolean; onClose: () => void; onSaved: () => void;
-  orgId: string; initial?: Company | null; C: any; t: any;
+  orgId: string; initial?: Company | null; existing?: Company[]; C: any; t: any;
 }) {
   const isEdit = !!initial;
   const [form, setForm] = useState<CompanyForm>(toForm(initial));
@@ -127,8 +128,15 @@ function CompanyModal({
 
   const set = (k: keyof CompanyForm) => (v: string) => setForm(f => ({ ...f, [k]: v }));
 
+  // CIF/NIF required for a new client; an existing one without it can still
+  // be edited, but a CIF on file cannot be blanked (WEB-004).
+  const cifRequired = !isEdit || !!initial?.cif?.trim();
+  const cifMissing = cifRequired && !form.cif.trim();
+  const warnings = duplicateWarnings(findSimilarClients(existing, { name: form.name, cif: form.cif }, initial?.id));
+  const badFormat = !!form.cif.trim() && !looksLikeSpanishTaxId(form.cif);
+
   const handleSave = async () => {
-    if (!form.name.trim()) return;
+    if (!form.name.trim() || cifMissing) return;
     setSaving(true);
     const dueDays = form.payment_due_days.trim() === ""
       ? null
@@ -181,7 +189,7 @@ function CompanyModal({
           <Input label={t("empresas.nameLabel")} placeholder="Iberdrola SA" value={form.name} onChangeText={set("name")} />
           <View style={{ flexDirection: "row", gap: spacing.sm + 2 }}>
             <View style={{ flex: 1 }}>
-              <Input label={t("empresas.cifLabel")} placeholder="A-95075578" value={form.cif} onChangeText={set("cif")} autoCapitalize="characters" />
+              <Input label={cifRequired ? `${t("empresas.cifLabel")} *` : t("empresas.cifLabel")} placeholder="A-95075578" value={form.cif} onChangeText={set("cif")} autoCapitalize="characters" />
             </View>
             <View style={{ flex: 1 }}>
               <Input label={t("empresas.sectorLabel")} placeholder="Energía" value={form.sector} onChangeText={set("sector")} />
@@ -203,10 +211,16 @@ function CompanyModal({
           <PaymentMethodPicker label={t("empresas.paymentMethod")} value={form.payment_method} onChange={set("payment_method")} />
           <Input label={t("empresas.paymentDueDays")} placeholder="30" value={form.payment_due_days} onChangeText={set("payment_due_days")}
             keyboardType="number-pad" hint={t("empresas.paymentDueDaysHint")} />
+          {warnings.map(w => (
+            <View key={w} style={{ backgroundColor: C.yellowL, borderRadius: radius.md, padding: spacing.sm + 2 }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.text }}>{w}</Text>
+            </View>
+          ))}
+          {badFormat && <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t("empresas.taxIdFormatHint")}</Text>}
           <Button
             label={isEdit ? t("empresas.saveChanges") : t("empresas.createCompany")}
             onPress={handleSave}
-            disabled={saving || !form.name.trim()}
+            disabled={saving || !form.name.trim() || cifMissing}
             loading={saving}
             style={{ marginTop: spacing.xs, marginBottom: spacing.lg }}
           />
@@ -552,8 +566,8 @@ function EmpresasScreenContent() {
 
       {/* Modals */}
       <UpgradeModal visible={upgradeOpen} maxCompanies={maxCompanies} onClose={() => setUpgradeOpen(false)} C={C} t={t} />
-      <CompanyModal visible={createOpen} onClose={() => setCreateOpen(false)} onSaved={load} orgId={orgId!} C={C} t={t} />
-      <CompanyModal visible={!!editTarget} initial={editTarget} onClose={() => setEditTarget(null)} onSaved={load} orgId={orgId!} C={C} t={t} />
+      <CompanyModal visible={createOpen} existing={companies} onClose={() => setCreateOpen(false)} onSaved={load} orgId={orgId!} C={C} t={t} />
+      <CompanyModal visible={!!editTarget} initial={editTarget} existing={companies} onClose={() => setEditTarget(null)} onSaved={load} orgId={orgId!} C={C} t={t} />
       <ActionMenu
         visible={!!menuTarget} company={menuTarget} onClose={() => setMenuTarget(null)}
         onEdit={() => { setEditTarget(menuTarget); setMenuTarget(null); }}

@@ -165,7 +165,7 @@ export function FacturaEmitidaView({ id }: { id: string }) {
               {rectifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />} {t("rectify")}
             </button>
           )}
-          <SendEmailButton kind="invoice" id={id} defaultTo={data?.clientEmail} />
+          <SendEmailButton kind="invoice" id={id} defaultTo={data?.clientEmail} onSent={() => { void mutate() }} />
           <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 whitespace-nowrap transition-colors">
             <Printer className="w-4 h-4" /> {t("print")}
           </button>
@@ -176,7 +176,7 @@ export function FacturaEmitidaView({ id }: { id: string }) {
         <div className="mb-4 flex flex-wrap items-center gap-3 px-4 py-3 bg-[var(--status-paid)]/8 border border-[var(--status-paid)]/25 rounded-xl print:hidden">
           <Check className="w-4 h-4 text-[var(--status-paid)] shrink-0" />
           <p className="text-sm text-foreground flex-1 min-w-0">{t("issuedBanner", { number: invoice.full_number ?? "" })}</p>
-          <SendEmailButton kind="invoice" id={id} defaultTo={data?.clientEmail}
+          <SendEmailButton kind="invoice" id={id} defaultTo={data?.clientEmail} onSent={() => { setJustIssued(false); void mutate() }}
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 whitespace-nowrap transition-colors" />
         </div>
       )}
@@ -223,6 +223,11 @@ export function FacturaEmitidaView({ id }: { id: string }) {
             <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">{t("invoice")}</p>
             <p className="text-lg font-bold text-foreground">{invoice.full_number}</p>
             <p className="text-xs text-muted-foreground mt-1">{t("issueDate")}: {invoice.issue_date}</p>
+            {invoice.sent_at && (
+              <p className="text-xs text-primary font-medium print:hidden">
+                {t("sentOn", { to: invoice.sent_to ?? "", date: new Date(invoice.sent_at).toLocaleDateString(locale) })}
+              </p>
+            )}
             {invoice.due_date && <p className="text-xs text-muted-foreground">{t("dueDate")}: {invoice.due_date}</p>}
           </div>
         </div>

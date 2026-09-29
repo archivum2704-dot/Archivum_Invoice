@@ -187,7 +187,7 @@
     "createClient": "Crear cliente",
     "noClientsHint": "Aún no tienes clientes. Crea uno con \"Nuevo cliente\".",
     "clientName": "Nombre de la empresa",
-    "clientCifHint": "Opcional al crear, pero obligatorio para poder facturarle.",
+    "clientCifHint": "Obligatorio: identifica al cliente en la factura.",
     "clientAddress": "Dirección",
     "clientPostalCode": "C. postal",
     "clientCity": "Ciudad",
@@ -232,7 +232,9 @@
       "draft": "Borrador",
       "cancelled": "Anulada",
       "rectified": "Rectificada",
-      "rectificative": "Rectificativa"
+      "rectificative": "Rectificativa",
+      "paid": "Cobrada",
+      "sent": "Enviada"
     },
     "errors": {
       "issuerCif": "Tu empresa necesita un CIF para emitir facturas. Añádelo en Ajustes.",
@@ -321,7 +323,8 @@
     "issuedToast": "Factura {number} emitida",
     "issuedBanner": "Factura {number} emitida y registrada. Siguiente paso: enviársela al cliente.",
     "verifactuWhat": "¿Qué es esto?",
-    "verifactuExplain": "VERI*FACTU es el sistema de la Agencia Tributaria para facturas verificables. Cada factura genera un registro con una «huella» (un código calculado a partir de sus datos y de los de la factura anterior), de modo que cualquier cambio posterior se detectaría. El registro se envía a la AEAT, y el cliente puede comprobar la factura en la sede de la AEAT escaneando el código QR."
+    "verifactuExplain": "VERI*FACTU es el sistema de la Agencia Tributaria para facturas verificables. Cada factura genera un registro con una «huella» (un código calculado a partir de sus datos y de los de la factura anterior), de modo que cualquier cambio posterior se detectaría. El registro se envía a la AEAT, y el cliente puede comprobar la factura en la sede de la AEAT escaneando el código QR.",
+    "sentOn": "Enviada a {to} el {date}"
   },
   "verifactu": {
     "title": "Certificado Verifactu (AEAT)",
@@ -629,7 +632,8 @@
     "requiredToInvoice": "necesario para facturar",
     "requiredToInvoiceHint": "Una factura tiene que llevar el NIF y la dirección del cliente. Puedes guardar el cliente sin ellos, pero no facturarle.",
     "optional": "opcional",
-    "createdToast": "Cliente «{name}» creado"
+    "createdToast": "Cliente «{name}» creado",
+    "taxIdFormatHint": "El formato no parece un NIF/NIE/CIF español (p. ej. B12345678 o 12345678Z). Revísalo si el cliente es español."
   },
   "admin": {
     "title": "Panel de Administración",
@@ -854,7 +858,9 @@
     "errorGeneric": "No se pudo completar la importación. {message}",
     "importSuccess": "Se han importado {count} {kind} correctamente.",
     "closeButton": "Cerrar",
-    "countriesSheet": "Países"
+    "countriesSheet": "Países",
+    "taxIdMissing": "Falta el CIF/NIF, que es obligatorio.",
+    "duplicateTaxId": "Ya existe un cliente con el CIF/NIF {cif} (en la cuenta o más arriba en el archivo)."
   },
   "tutorial": {
     "skip": "Saltar",

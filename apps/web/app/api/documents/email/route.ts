@@ -68,7 +68,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'send_failed', detail: sendErr.message }, { status: 502 })
     }
 
-    return NextResponse.json({ success: true, to: recipient })
+    // Record that the invoice went out, so it reads "Enviada" instead of
+    // just "Emitida" (WEB-014). Best-effort: the mail has already left, and a
+    // database without 20260930_invoice_sent.sql must not turn that into an
+    // error.
+    let sentAt: string | null = null
+    if (kind === 'invoice') {
+      const now = new Date().toISOString()
+      const { error: markErr } = await supabase.from('invoices')
+        .update({ sent_at: now, sent_to: recipient }).eq('id', id)
+      if (markErr) console.warn('[documents/email] could not record sent_at:', markErr.message)
+      else sentAt = now
+    }
+
+    return NextResponse.json({ success: true, to: recipient, sentAt })
   } catch (err) {
     console.error('[documents/email] error:', err)
     return NextResponse.json({ error: 'server_error', detail: String(err) }, { status: 500 })

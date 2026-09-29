@@ -67,7 +67,9 @@
       "draft": "Draft",
       "cancelled": "Cancelled",
       "rectified": "Corrected",
-      "rectificative": "Credit note"
+      "rectificative": "Credit note",
+      "sent": "Sent",
+      "paid": "Paid"
     },
     "paywallTitle": "Invoicing is a paid feature",
     "paywallBody": "Issue Verifactu-compliant invoices by upgrading to a paid plan.",
@@ -113,7 +115,8 @@
     "markUnpaid": "Mark unpaid",
     "savePayment": "Save",
     "paymentSaveError": "Could not save the payment",
-    "errZeroTotal": "The invoice total is 0.00. Check quantities and prices: an issued invoice cannot be withdrawn, only rectified."
+    "errZeroTotal": "The invoice total is 0.00. Check quantities and prices: an issued invoice cannot be withdrawn, only rectified.",
+    "sentOn": "Sent to {{to}} on {{date}}"
   },
   "common": {
     "save": "Save",
@@ -333,7 +336,8 @@
     "paymentDueDays": "Due (days)",
     "paymentDueDaysHint": "Days from the invoice date. Used to suggest the due date when invoicing.",
     "paymentTerms": "Payment terms",
-    "daysSuffix": "{{days}} days"
+    "daysSuffix": "{{days}} days",
+    "taxIdFormatHint": "This does not look like a Spanish NIF/NIE/CIF (e.g. B12345678 or 12345678Z). Check it if the client is Spanish."
   },
   "equipo": {
     "title": "Team",

@@ -19,6 +19,7 @@ import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { ImportExcelButton } from "@/components/import-excel-button"
 import { PAYMENT_METHODS, isPaymentMethod } from "@/lib/payment-methods"
 import { InvoiceReq, Opt } from "@/components/new-client-modal"
+import { findSimilarClients, duplicateWarnings, looksLikeSpanishTaxId } from "@/lib/client-checks"
 import { toast } from "sonner"
 
 const AVATAR_COLORS = ["bg-blue-500", "bg-emerald-600", "bg-violet-600", "bg-orange-500", "bg-rose-600"]
@@ -59,11 +60,13 @@ function paymentTermsPatch(form: CompanyForm, initial?: CompanyForm) {
 
 // ── Shared company form modal ─────────────────────────────────────────────────
 function CompanyModal({
-  orgId, initial, knownSectors = [], onClose, onSaved,
+  orgId, initial, knownSectors = [], existing = [], onClose, onSaved,
 }: {
   orgId: string
   initial?: { id: string } & CompanyForm
   knownSectors?: string[]
+  /** Clients already on file, to warn about duplicates (WEB-004). */
+  existing?: { id: string; name: string; cif: string | null }[]
   onClose: () => void
   onSaved: () => void
 }) {
@@ -81,9 +84,16 @@ function CompanyModal({
   const set = (k: keyof CompanyForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
+  // CIF/NIF required for a new client; an existing one without it can still
+  // be edited, but a CIF on file cannot be blanked (WEB-004).
+  const cifRequired = !isEdit || !!initial?.cif?.trim()
+  const cifMissing = cifRequired && !form.cif.trim()
+  const warnings = duplicateWarnings(findSimilarClients(existing, { name: form.name, cif: form.cif }, initial?.id))
+  const badFormat = !!form.cif.trim() && !looksLikeSpanishTaxId(form.cif)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name.trim()) return
+    if (!form.name.trim() || cifMissing) return
     setSaving(true); setError(null)
     const supabase = createClient()
 
@@ -138,7 +148,7 @@ function CompanyModal({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">{t("fields.cif")} <InvoiceReq /></label>
+              <label className="text-xs font-medium text-muted-foreground">{t("fields.cif")} {cifRequired ? <span className="text-destructive">*</span> : <InvoiceReq />}</label>
               <input placeholder="B12345678" value={form.cif} onChange={set("cif")} disabled={saving} className={inputCls} />
             </div>
             <div className="space-y-1">
@@ -193,10 +203,19 @@ function CompanyModal({
             <p className="col-span-2 -mt-2 text-[11px] text-muted-foreground">{t("paymentDueDaysHint")}</p>
           </div>
 
+          {(warnings.length > 0 || badFormat) && (
+            <div className="space-y-1.5">
+              {warnings.map(w => (
+                <p key={w} className="text-xs text-foreground bg-[var(--status-pending)]/8 border border-[var(--status-pending)]/25 rounded-lg px-2.5 py-2">{w}</p>
+              ))}
+              {badFormat && <p className="text-[11px] text-muted-foreground">{t("taxIdFormatHint")}</p>}
+            </div>
+          )}
+
           {error && <p className="text-xs text-destructive">{error}</p>}
 
           <div className="flex items-center gap-3 pt-1">
-            <button type="submit" disabled={saving || !form.name.trim()}
+            <button type="submit" disabled={saving || !form.name.trim() || cifMissing}
               className="flex-1 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
               {saving ? tCommon("saving") : isEdit ? tCommon("saveChanges") : t("createCompany")}
             </button>
@@ -611,6 +630,7 @@ export function EmpresasView() {
         <CompanyModal
           orgId={currentOrg.id}
           knownSectors={sectors}
+          existing={companies}
           onClose={() => setShowCreate(false)}
           onSaved={() => mutate()}
         />
@@ -622,6 +642,7 @@ export function EmpresasView() {
           orgId={currentOrg.id}
           initial={editTarget}
           knownSectors={sectors}
+          existing={companies}
           onClose={() => setEditTarget(null)}
           onSaved={() => mutate()}
         />

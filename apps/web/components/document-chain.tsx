@@ -43,14 +43,14 @@ export async function loadChain(start: { kind: "quote" | "delivery_note" | "invo
 
   let invoice: any = null
   if (invoiceId) {
-    const { data } = await supabase.from("invoices").select("id, full_number, payment_date").eq("id", invoiceId).maybeSingle()
+    const { data } = await supabase.from("invoices").select("*").eq("id", invoiceId).maybeSingle()
     invoice = data
   }
 
   return {
     quote: quote ? { id: quote.id, number: quote.full_number, label: quoteStatusLabel("quote", quote.status), href: `/pedidos/${quote.id}` } : null,
     note: note ? { id: note.id, number: note.full_number, label: quoteStatusLabel("delivery_note", note.status), href: `/albaranes/${note.id}` } : null,
-    invoice: invoice ? { id: invoice.id, number: invoice.full_number, label: invoice.payment_date ? "Cobrada" : "Emitida", href: `/facturacion/${invoice.id}` } : null,
+    invoice: invoice ? { id: invoice.id, number: invoice.full_number, label: invoice.payment_date ? "Cobrada" : invoice.sent_at ? "Enviada" : "Emitida", href: `/facturacion/${invoice.id}` } : null,
   }
 }
 
