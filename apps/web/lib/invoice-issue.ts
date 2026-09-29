@@ -137,6 +137,15 @@ export async function issueInvoice(
   const retentionAmount = round2(netBase * retPct / 100)
   const total = round2(netBase + taxAmount - retentionAmount)
 
+  // An issued invoice cannot be withdrawn, only rectified, so one at 0,00 €
+  // (a price left blank) would be a registered record with no economic
+  // sense. Refused before a number is taken. Credit notes do not come
+  // through here.
+  if (!(total > 0)) {
+    throw new IssueError('zero_total', 422,
+      'El total de la factura es 0,00. Revisa cantidades y precios: una factura emitida no se puede retirar, solo rectificar.')
+  }
+
   // ── Atomic number ──
   const year = parseInt(issueDate.split('-')[0], 10)
   const { data: number, error: numErr } = await supabase

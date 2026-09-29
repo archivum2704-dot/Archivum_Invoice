@@ -1,12 +1,13 @@
 import { Text, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
-import { FileText, ChevronRight } from "lucide-react-native";
+import { FileText, ChevronRight, CheckCircle2, Circle } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { Badge, type BadgeTone } from "@/components/ui";
 import { fonts } from "@/lib/typography";
 import { radius } from "@/lib/radius";
 import { spacing } from "@/lib/spacing";
+import type { LinkedStatus } from "@/lib/linked-status";
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   paid: "green",
@@ -20,23 +21,46 @@ const STATUS_TONE: Record<string, BadgeTone> = {
  * Row for a single document (invoice, quote, delivery note...) in a list —
  * shared by dashboard, biblioteca and buscar so the status badge and layout
  * can't drift between screens.
+ *
+ * With `onToggleSelect` the row can be selected: a long press starts
+ * selection, and while `selecting` a tap toggles instead of opening.
  */
-export function DocRow({ doc, subtitle }: { doc: any; subtitle?: string }) {
+export function DocRow({ doc, subtitle, linked, selecting, selected, onToggleSelect }: {
+  doc: any;
+  subtitle?: string;
+  linked?: LinkedStatus;
+  selecting?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
+}) {
   const { t } = useTranslation();
   const C = useColors();
-  const tone = STATUS_TONE[doc.status] ?? "neutral";
+  // An archived order / albarán / invoice shows its source's real status.
+  const tone = linked?.tone ?? STATUS_TONE[doc.status] ?? "neutral";
+  const label = linked ? t(linked.labelKey) : t(`status.${doc.status}`, { defaultValue: doc.status });
 
   return (
     <TouchableOpacity
-      onPress={() => router.push(`/(app)/documento/${doc.id}`)}
+      onPress={() => selecting && onToggleSelect ? onToggleSelect(doc.id) : router.push(`/(app)/documento/${doc.id}`)}
+      onLongPress={onToggleSelect ? () => onToggleSelect(doc.id) : undefined}
+      delayLongPress={350}
       style={{
         flexDirection: "row", alignItems: "center", gap: spacing.md,
         padding: spacing.md, borderBottomWidth: 1, borderBottomColor: C.border,
+        backgroundColor: selected ? C.blueL : undefined,
       }}
     >
-      <View style={{ width: 36, height: 36, borderRadius: radius.sm, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
-        <FileText size={16} color={C.blue} strokeWidth={1.75} />
-      </View>
+      {selecting ? (
+        <View style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}>
+          {selected
+            ? <CheckCircle2 size={22} color={C.blue} strokeWidth={1.75} />
+            : <Circle size={22} color={C.muted} strokeWidth={1.75} />}
+        </View>
+      ) : (
+        <View style={{ width: 36, height: 36, borderRadius: radius.sm, backgroundColor: C.blueL, alignItems: "center", justifyContent: "center" }}>
+          <FileText size={16} color={C.blue} strokeWidth={1.75} />
+        </View>
+      )}
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text style={{ fontFamily: fonts.mono, fontWeight: "600", fontSize: 13, color: C.text }} numberOfLines={1}>
@@ -50,10 +74,10 @@ export function DocRow({ doc, subtitle }: { doc: any; subtitle?: string }) {
           <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, flex: 1, marginRight: spacing.sm }} numberOfLines={1}>
             {subtitle ?? doc.companies?.name ?? t("common.noCompany")}
           </Text>
-          <Badge label={t(`status.${doc.status}`, { defaultValue: doc.status })} tone={tone} />
+          <Badge label={label} tone={tone} />
         </View>
       </View>
-      <ChevronRight size={16} color={C.muted} strokeWidth={1.75} />
+      {!selecting && <ChevronRight size={16} color={C.muted} strokeWidth={1.75} />}
     </TouchableOpacity>
   );
 }

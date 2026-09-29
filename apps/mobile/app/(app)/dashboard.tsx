@@ -18,6 +18,7 @@ import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
 import { Card, EmptyState } from "@/components/ui";
 import { DocRow } from "@/components/DocRow";
+import { useLinkedStatuses } from "@/lib/linked-status";
 import { UploadFab } from "@/components/UploadFab";
 
 /* ── Bar chart (SVG, no external lib needed) ─────────────────────────────── */
@@ -78,6 +79,7 @@ function QuickAccessRow({ icon, label, onPress, C }: { icon: ReactNode; label: s
 /* ── Main screen ─────────────────────────────────────────────────────────── */
 export default function DashboardScreen() {
   const { profile, orgId, isPaid, isPlatformAdmin } = useAuth();
+  const { linked, refreshLinked } = useLinkedStatuses(orgId);
   const paidFeatures = isPaid || isPlatformAdmin;
   const C = useColors();
   const { t } = useTranslation();
@@ -133,7 +135,7 @@ export default function DashboardScreen() {
 
   useEffect(() => { load(); }, [load]);
 
-  const onRefresh = () => { setRefreshing(true); load(); };
+  const onRefresh = () => { setRefreshing(true); load(); refreshLinked(); };
 
   const firstName = profile?.first_name ?? "Usuario";
 
@@ -255,7 +257,7 @@ export default function DashboardScreen() {
                   subtitle={t("dashboard.uploadFirst")}
                 />
               ) : (
-                docs.map((doc) => <DocRow key={doc.id} doc={doc} />)
+                docs.map((doc) => <DocRow key={doc.id} doc={doc} linked={linked.get(doc.id)} />)
               )}
             </Card>
           </View>

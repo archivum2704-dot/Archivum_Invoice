@@ -112,7 +112,8 @@
     "markPaid": "Mark paid",
     "markUnpaid": "Mark unpaid",
     "savePayment": "Save",
-    "paymentSaveError": "Could not save the payment"
+    "paymentSaveError": "Could not save the payment",
+    "errZeroTotal": "The invoice total is 0.00. Check quantities and prices: an issued invoice cannot be withdrawn, only rectified."
   },
   "common": {
     "save": "Save",
@@ -224,7 +225,10 @@
     "folderLabel": "Folder",
     "dateLabel": "Date",
     "dateFrom": "From",
-    "dateTo": "To"
+    "dateTo": "To",
+    "filteredByClient": "Documents of {{name}}",
+    "selectedCount": "{{count}} selected",
+    "longPressHint": "long-press to select several"
   },
   "buscar": {
     "title": "Search",
@@ -291,7 +295,8 @@
     "markCancelled": "Mark as cancelled",
     "markCancelledTitle": "Mark as cancelled",
     "markCancelledConfirm": "Are you sure? The status will change to cancelled.",
-    "paymentMethod": "Payment method"
+    "paymentMethod": "Payment method",
+    "invoiceArchiveLocked": "This document is the archived copy of invoice {{number}}, issued in Invoicing. Its number, amounts and date are fixed by VeriFactu and cannot be changed here."
   },
   "empresas": {
     "title": "Clients",
@@ -440,7 +445,10 @@
     "leaveTitle": "Leave without archiving?",
     "leaveBody": "You'll lose what you filled in. The document won't be saved.",
     "leaveConfirm": "Leave",
-    "paymentMethodLabel": "Payment method"
+    "paymentMethodLabel": "Payment method",
+    "docNumberPlaceholder": "Document no.",
+    "issuedInvoiceNotice": "This archives invoices issued outside Archivum. To issue a new one, with VAT and VeriFactu, use Invoicing.",
+    "goToInvoicing": "Create invoice →"
   },
   "tutorial": {
     "skip": "Skip",

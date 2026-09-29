@@ -26,6 +26,8 @@ import { Button, Card, Input } from "@/components/ui";
 import { RequirePermission } from "@/components/RequirePermission";
 import { DateField } from "@/components/DateField";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
+import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number";
+import { randomId } from "@/lib/random-id";
 import { FolderField, useFolders } from "@/components/FolderPicker";
 
 interface Company { id: string; name: string; }
@@ -278,7 +280,7 @@ function CompanyPicker({ companies, companyId, setCompanyId, onCreate, creating,
 }
 
 /* ── Step 2: Metadata ───────────────────────────────────────────────────── */
-function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, companies, companyId, setCompanyId, onCreateCompany, creatingCompany, amount, setAmount, taxable, setTaxable, vatRate, setVatRate, issueDate, setIssueDate, dueDate, setDueDate, status, setStatus, payMethod, setPayMethod, notes, setNotes, folders, folderId, setFolderId, foldersLoading, pickedFile, C, t }: any) {
+function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, companies, companyId, setCompanyId, onCreateCompany, creatingCompany, amount, setAmount, taxable, setTaxable, vatRate, setVatRate, issueDate, setIssueDate, dueDate, setDueDate, status, setStatus, payMethod, setPayMethod, notes, setNotes, folders, folderId, setFolderId, foldersLoading, addFolder, canCreateFolder, orgId, pickedFile, C, t }: any) {
   const DOC_TYPES = [
     { key: "invoice_received", label: t("docTypes.invoice_received") },
     { key: "invoice_issued",   label: t("docTypes.invoice_issued") },
@@ -324,13 +326,22 @@ function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, c
               ))}
             </View>
           </ScrollView>
+          {/* Uploading only archives an invoice made elsewhere; issuing one is Facturación. */}
+          {docType === "invoice_issued" && (
+            <TouchableOpacity onPress={() => router.push("/(app)/facturacion")}
+              style={{ marginTop: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: C.blueL }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.text }}>
+                {t("subir.issuedInvoiceNotice")} <Text style={{ fontFamily: fonts.semibold, color: C.blue }}>{t("subir.goToInvoicing")}</Text>
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Company selector */}
         <CompanyPicker companies={companies} companyId={companyId} setCompanyId={setCompanyId} onCreate={onCreateCompany} creating={creatingCompany} C={C} t={t} />
 
         {[
-          { label: t("subir.docNumberLabel"), value: docNumber, setter: setDocNumber, ph: "FAC-2025-0001" },
+          { label: t("subir.docNumberLabel"), value: docNumber, setter: setDocNumber, ph: t("subir.docNumberPlaceholder") },
           { label: t("subir.totalLabel"),     value: amount, setter: setAmount, ph: "4280.00", keyboard: "numeric" },
           { label: t("subir.subtotalLabel"),  value: taxable, setter: setTaxable, ph: "3537.19", keyboard: "numeric" },
           { label: t("subir.vatLabel"),       value: vatRate, setter: setVatRate, ph: "21", keyboard: "numeric" },
@@ -356,7 +367,8 @@ function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, c
 
         <View>
           <Text style={labelStyle}>{t("biblioteca.folderLabel")}</Text>
-          <FolderField folders={folders} value={folderId} onChange={setFolderId} loading={foldersLoading} />
+          <FolderField folders={folders} value={folderId} onChange={setFolderId} loading={foldersLoading}
+            createInOrg={canCreateFolder ? orgId : null} onFolderCreated={addFolder} />
         </View>
 
         {/* Status */}
@@ -452,7 +464,8 @@ function Step3({ onSubmit, onBack, saving, pickedFile, docType, docNumber, compa
 function SubirScreenContent() {
   const { t } = useTranslation();
   const C = useColors();
-  const { orgId } = useAuth();
+  // Folder creation is an admin action, the same rule Biblioteca applies.
+  const { orgId, isAdmin } = useAuth();
   const [step, setStep] = useState(1);
 
   const [pickedFile, setPickedFile] = useState<PickedFile | null>(null);
@@ -473,7 +486,7 @@ function SubirScreenContent() {
   const [issueDate,   setIssueDate]   = useState("");
   const [dueDate,     setDueDate]     = useState("");
   const [folderId,    setFolderId]    = useState<string | null>(null);
-  const { folders, loading: foldersLoading } = useFolders(orgId);
+  const { folders, loading: foldersLoading, addFolder } = useFolders(orgId);
   const [status,      setStatus]      = useState("pending");
   const [notes,       setNotes]       = useState("");
   const [payMethod,   setPayMethod]   = useState("");
@@ -494,13 +507,14 @@ function SubirScreenContent() {
   const handleCreateCompany = async (name: string) => {
     if (!orgId) { Alert.alert(t("common.error"), t("common.unknownError")); return; }
     setCreatingCompany(true);
-    const { data, error } = await supabase
+    // Id generated here, not read back: INSERT ... RETURNING on companies is
+    // refused by its SELECT policy for everyone (see NewClientModal).
+    const data = { id: randomId(), name };
+    const { error } = await supabase
       .from("companies")
-      .insert({ organization_id: orgId, name, is_active: true })
-      .select("id, name")
-      .single();
+      .insert({ id: data.id, organization_id: orgId, name, is_active: true });
     setCreatingCompany(false);
-    if (error || !data) { Alert.alert(t("common.error"), error?.message ?? t("common.unknownError")); return; }
+    if (error) { Alert.alert(t("common.error"), error.message ?? t("common.unknownError")); return; }
     setCompanies((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
     setCompanyId(data.id);
   };
@@ -521,10 +535,20 @@ function SubirScreenContent() {
     })();
   }, [orgId]);
 
+  const resetForm = () => {
+    setStep(1); setPickedFile(null); setDocType("invoice_received"); setDocNumber(""); setAmount("");
+    setCompanyId(null); setNotes(""); setPayMethod(""); setTaxable(""); setVatRate("21");
+    setIssueDate(""); setDueDate(""); setFolderId(null); setStatus("pending");
+  };
+
   const handleSubmit = async () => {
     if (!orgId || !quotaOk) return;
     setSaving(true);
     try {
+      // Refused before the upload, so a taken number leaves no orphan file.
+      const conflict = await findDocumentNumberConflict({ orgId, number: docNumber, documentType: docType, companyId });
+      if (conflict) { Alert.alert(t("common.error"), numberConflictMessage(conflict, docType)); setSaving(false); return; }
+
       let fileUrl: string | null = null;
       let fileName: string | null = null;
       let fileSize: number | null = null;
@@ -558,10 +582,16 @@ function SubirScreenContent() {
       if (insertErr) throw insertErr;
 
       setSaving(false);
-      Alert.alert(t("subir.successTitle"), t("subir.successMsg", { name: docNumber || "Documento" }), [
+      // Reset now, not in an alert button. The screen stays mounted as a tab,
+      // so when the alert was dismissed any other way — or the (+) button was
+      // pressed straight away — it reopened on the last step of the upload
+      // just finished, with nothing left to do there (APP-001).
+      const archivedName = docNumber || "Documento";
+      resetForm();
+      Alert.alert(t("subir.successTitle"), t("subir.successMsg", { name: archivedName }), [
         { text: t("subir.viewLibrary"), onPress: () => router.replace("/(app)/biblioteca") },
-        { text: t("subir.uploadAnother"), onPress: () => { setStep(1); setPickedFile(null); setDocNumber(""); setAmount(""); setCompanyId(null); setNotes(""); setPayMethod(""); setTaxable(""); setVatRate("21"); setIssueDate(""); setDueDate(""); setFolderId(null); } },
-      ]);
+        { text: t("subir.uploadAnother") },
+      ], { cancelable: true });
     } catch (err: any) {
       setSaving(false);
       Alert.alert(t("common.error"), err?.message ?? t("subir.errorArchive"));
@@ -625,7 +655,7 @@ function SubirScreenContent() {
           <>
             <StepIndicator current={step} C={C} t={t} />
             {step === 1 && <ScrollView keyboardShouldPersistTaps="handled"><Step1 onNext={() => setStep(2)} pickedFile={pickedFile} setPickedFile={setPickedFile} C={C} t={t} /></ScrollView>}
-            {step === 2 && <Step2 onNext={() => setStep(3)} onBack={() => setStep(1)} pickedFile={pickedFile} docType={docType} setDocType={setDocType} docNumber={docNumber} setDocNumber={setDocNumber} companies={companies} companyId={companyId} setCompanyId={setCompanyId} onCreateCompany={handleCreateCompany} creatingCompany={creatingCompany} amount={amount} setAmount={setAmount} taxable={taxable} setTaxable={setTaxable} vatRate={vatRate} setVatRate={setVatRate} issueDate={issueDate} setIssueDate={setIssueDate} dueDate={dueDate} setDueDate={setDueDate} status={status} setStatus={setStatus} payMethod={payMethod} setPayMethod={setPayMethod} notes={notes} setNotes={setNotes} folders={folders} folderId={folderId} setFolderId={setFolderId} foldersLoading={foldersLoading} C={C} t={t} />}
+            {step === 2 && <Step2 onNext={() => setStep(3)} onBack={() => setStep(1)} pickedFile={pickedFile} docType={docType} setDocType={setDocType} docNumber={docNumber} setDocNumber={setDocNumber} companies={companies} companyId={companyId} setCompanyId={setCompanyId} onCreateCompany={handleCreateCompany} creatingCompany={creatingCompany} amount={amount} setAmount={setAmount} taxable={taxable} setTaxable={setTaxable} vatRate={vatRate} setVatRate={setVatRate} issueDate={issueDate} setIssueDate={setIssueDate} dueDate={dueDate} setDueDate={setDueDate} status={status} setStatus={setStatus} payMethod={payMethod} setPayMethod={setPayMethod} notes={notes} setNotes={setNotes} folders={folders} folderId={folderId} setFolderId={setFolderId} foldersLoading={foldersLoading} addFolder={addFolder} canCreateFolder={isAdmin} orgId={orgId} C={C} t={t} />}
             {step === 3 && <ScrollView keyboardShouldPersistTaps="handled"><Step3 onSubmit={handleSubmit} onBack={() => setStep(2)} saving={saving} pickedFile={pickedFile} docType={docType} docNumber={docNumber} companyName={selectedCompanyName} amount={amount} issueDate={issueDate} dueDate={dueDate} status={status} notes={notes} C={C} t={t} /></ScrollView>}
           </>
         ) : (

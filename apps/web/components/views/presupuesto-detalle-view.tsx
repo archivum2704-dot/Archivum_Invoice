@@ -13,6 +13,7 @@ import { SendEmailButton } from "@/components/send-email-button"
 import { StockWarningModal } from "@/components/stock-warning-modal"
 import { formatMoney, needsExchangeRate, toEur } from "@/lib/currency"
 import { quoteStatusLabel, quoteStatusStyle, canToggleAccepted } from "@/lib/quote-status"
+import { DocumentChain, useChain } from "@/components/document-chain"
 
 // Toolbar buttons. whitespace-nowrap is the point: the row wraps between
 // buttons, never inside a label.
@@ -36,6 +37,9 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
 
   const { products } = useProducts(quote?.organization_id ?? null)
   const isNote = quote?.kind === "delivery_note"
+  const chain = useChain(quote ? { kind: quote.kind, id: quote.id } : null)
+  // An order whose albarán is already invoiced is frozen with the invoice.
+  const billed = !!chain?.invoice
   const [toggling, setToggling] = useState(false)
 
   useEffect(() => {
@@ -88,7 +92,7 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
     })
     const json = await res.json().catch(() => ({}))
     if (!res.ok) { alert(json.detail ?? json.error ?? "No se pudo abrir el albarán."); setOpening(false); return }
-    router.push(`/presupuestos/${json.id}`)
+    router.push(`/albaranes/${json.id}`)
   }
 
   // Pedido pendiente ⇄ aceptado. Also set on its own when the albarán is billed.
@@ -107,7 +111,7 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
   if (!quote) return (
     <div className="p-8 text-center">
       <p className="text-sm text-muted-foreground mb-3">Documento no encontrado.</p>
-      <Link href="/presupuestos" className="text-sm text-primary hover:underline">Volver</Link>
+      <Link href="/pedidos" className="text-sm text-primary hover:underline">Volver</Link>
     </div>
   )
 
@@ -120,7 +124,7 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
           instead of squeezing: without nowrap the labels broke inside the
           buttons ("Enviar / por / correo") and the row looked broken. */}
       <div className="flex items-start justify-between gap-4 mb-6 print:hidden">
-        <Link href={isNote ? "/albaranes" : "/presupuestos"} className="flex items-center gap-1.5 shrink-0 mt-2 text-sm text-muted-foreground hover:text-foreground whitespace-nowrap transition-colors">
+        <Link href={isNote ? "/albaranes" : "/pedidos"} className="flex items-center gap-1.5 shrink-0 mt-2 text-sm text-muted-foreground hover:text-foreground whitespace-nowrap transition-colors">
           <ArrowLeft className="w-4 h-4" /> {isNote ? "Albaranes" : "Pedidos"}
         </Link>
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -132,8 +136,8 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
           </button>
           <SendEmailButton kind="quote" id={quote.id} defaultTo={clientEmail} compact className={SECONDARY} />
           {/* Only a quote is editable, and only a delivery note is billed. */}
-          {!isNote && quote.status !== "converted" && (
-            <Link href={`/presupuestos?edit=${quote.id}`} className={SECONDARY}>
+          {!isNote && quote.status !== "converted" && !billed && (
+            <Link href={`/pedidos?edit=${quote.id}`} className={SECONDARY}>
               <Pencil className="w-4 h-4" /> Editar
             </Link>
           )}
@@ -144,7 +148,7 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
             </button>
           )}
           {!isNote && related && (
-            <Link href={`/presupuestos/${related.id}`} className={PRIMARY}>
+            <Link href={`/albaranes/${related.id}`} className={PRIMARY}>
               <ArrowRight className="w-4 h-4" /> Albarán {related.full_number ?? ""}
             </Link>
           )}
@@ -165,6 +169,15 @@ export function PresupuestoDetalleView({ id }: { id: string }) {
           )}
         </div>
       </div>
+
+      <DocumentChain chain={chain} current={isNote ? "delivery_note" : "quote"} />
+
+      {!isNote && billed && (
+        <p className="mb-5 text-xs text-muted-foreground print:hidden">
+          Este pedido ya está facturado ({chain?.invoice?.number}), así que no se puede modificar: la factura emitida es inalterable.
+          Si el importe no era correcto, rectifica la factura desde Facturación y crea un pedido nuevo.
+        </p>
+      )}
 
       {/* Quote card */}
       <div className="bg-card border border-border rounded-2xl p-8 print:border-0 print:shadow-none">

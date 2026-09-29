@@ -112,7 +112,8 @@
     "markPaid": "Marcar cobrada",
     "markUnpaid": "Marcar pendiente",
     "savePayment": "Guardar",
-    "paymentSaveError": "No se pudo guardar el cobro"
+    "paymentSaveError": "No se pudo guardar el cobro",
+    "errZeroTotal": "El total de la factura es 0,00. Revisa cantidades y precios: una factura emitida no se puede retirar, solo rectificar."
   },
   "common": {
     "save": "Guardar",
@@ -224,7 +225,10 @@
     "folderLabel": "Carpeta",
     "dateLabel": "Fecha",
     "dateFrom": "Desde",
-    "dateTo": "Hasta"
+    "dateTo": "Hasta",
+    "filteredByClient": "Documentos de {{name}}",
+    "selectedCount": "{{count}} seleccionados",
+    "longPressHint": "mantén pulsado para seleccionar varios"
   },
   "buscar": {
     "title": "Buscador",
@@ -291,7 +295,8 @@
     "markCancelled": "Marcar como cancelado",
     "markCancelledTitle": "Marcar como cancelado",
     "markCancelledConfirm": "¿Estás seguro? El estado cambiará a cancelado.",
-    "paymentMethod": "Forma de pago"
+    "paymentMethod": "Forma de pago",
+    "invoiceArchiveLocked": "Este documento es el archivo de la factura {{number}}, emitida en Facturación. Su número, importes y fecha los fija VeriFactu y no se pueden cambiar aquí."
   },
   "empresas": {
     "title": "Clientes",
@@ -440,7 +445,10 @@
     "leaveTitle": "¿Salir sin archivar?",
     "leaveBody": "Se perderá lo que has rellenado. El documento no quedará guardado.",
     "leaveConfirm": "Salir",
-    "paymentMethodLabel": "Forma de pago"
+    "paymentMethodLabel": "Forma de pago",
+    "docNumberPlaceholder": "Nº del documento",
+    "issuedInvoiceNotice": "Aquí se archivan facturas emitidas fuera de Archivum. Para emitir una factura nueva, con IVA y VeriFactu, usa Facturación.",
+    "goToInvoicing": "Crear factura →"
   },
   "tutorial": {
     "skip": "Saltar",

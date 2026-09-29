@@ -195,6 +195,8 @@ function FacturacionScreenContent() {
     if (needsExchangeRate(currency) && !(Number(exchangeRate) > 0)) {
       Alert.alert(t("common.error"), t("invoicing.errExchangeRate", { currency })); return;
     }
+    // Una factura emitida no se retira, solo se rectifica: a 0,00 € no se emite.
+    if (!(totals.total > 0)) { Alert.alert(t("common.error"), t("invoicing.errZeroTotal")); return; }
     const warnings = getStockWarnings(
       lines.filter(l => l.description.trim()).map(l => ({ productId: l.productId, quantity: qtyOf(l.quantity) })),
       products,

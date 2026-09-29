@@ -4,6 +4,8 @@ import {
   RefreshControl, ActivityIndicator, ScrollView, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useLocalSearchParams } from "expo-router";
+import { FolderPickerModal } from "@/components/FolderPicker";
 import {
   Search, SlidersHorizontal,
   BookOpen, X, FolderPlus, Folder as FolderIcon,
@@ -18,6 +20,7 @@ import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
 import { KeyboardModal } from "@/components/KeyboardModal";
 import { DocRow } from "@/components/DocRow";
+import { useLinkedStatuses } from "@/lib/linked-status";
 import { UploadFab } from "@/components/UploadFab";
 import { Button, EmptyState, Input } from "@/components/ui";
 import { DateField } from "@/components/DateField";
@@ -83,6 +86,7 @@ export default function BibliotecaScreen() {
   const { t } = useTranslation();
   const C = useColors();
   const { orgId, isAdmin } = useAuth();
+  const { linked, refreshLinked } = useLinkedStatuses(orgId);
   const [docs,        setDocs]        = useState<any[]>([]);
   const [filtered,    setFiltered]    = useState<any[]>([]);
   const [query,       setQuery]       = useState("");
@@ -97,6 +101,29 @@ export default function BibliotecaScreen() {
   const [folders,      setFolders]      = useState<Folder[]>([]);
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [newFolder,    setNewFolder]    = useState(false);
+  // Several documents at once into a folder (APP-003): long-press a row to
+  // start selecting, tap to add more, then move them together.
+  const [selectedIds,  setSelectedIds]  = useState<Set<string>>(new Set());
+  const [movePicker,   setMovePicker]   = useState(false);
+  const selecting = selectedIds.size > 0;
+  const toggleSelect = (id: string) => setSelectedIds(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  // "Ver documentos" on a client links here with ?empresa=<id> (WEB-020).
+  const { empresa } = useLocalSearchParams<{ empresa?: string }>();
+  const [companyFilter, setCompanyFilter] = useState<string | null>(null);
+  useEffect(() => { setCompanyFilter(empresa ? String(empresa) : null); }, [empresa]);
+
+  const moveSelected = async (folderId: string | null) => {
+    const ids = Array.from(selectedIds);
+    const { error } = await supabase.from("documents")
+      .update({ folder_id: folderId, updated_at: new Date().toISOString() }).in("id", ids);
+    if (error) { Alert.alert(t("common.error"), error.message); return; }
+    setSelectedIds(new Set());
+    load();
+  };
 
   const DOC_TYPES: Record<string, string> = {
     all:              t("docTypesPlural.all"),
@@ -117,7 +144,7 @@ export default function BibliotecaScreen() {
     const [{ data: docData }, { data: folderData }] = await Promise.all([
       supabase
         .from("documents")
-        .select("id, document_number, document_type, status, total, issue_date, folder_id, companies(name)")
+        .select("id, document_number, document_type, status, total, issue_date, folder_id, company_id, companies(name)")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false }),
       supabase
@@ -138,6 +165,7 @@ export default function BibliotecaScreen() {
   useEffect(() => {
     let result = docs;
     if (activeFolder) result = result.filter((d) => d.folder_id === activeFolder);
+    if (companyFilter) result = result.filter((d) => d.company_id === companyFilter);
     if (activeType !== "all") result = result.filter((d) => d.document_type === activeType);
     if (statusFilter !== "all") result = result.filter((d) => d.status === statusFilter);
     // A document without a date cannot be placed in a range, so a range excludes it.
@@ -152,9 +180,9 @@ export default function BibliotecaScreen() {
       );
     }
     setFiltered(result);
-  }, [docs, query, activeType, statusFilter, activeFolder, dateFrom, dateTo]);
+  }, [docs, query, activeType, statusFilter, activeFolder, dateFrom, dateTo, companyFilter]);
 
-  const onRefresh = () => { setRefreshing(true); load(); };
+  const onRefresh = () => { setRefreshing(true); load(); refreshLinked(); };
 
   const chips = Object.keys(DOC_TYPES).slice(0, 6);
 
@@ -274,9 +302,32 @@ export default function BibliotecaScreen() {
           </View>
         </ScrollView>
 
-        <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginBottom: spacing.sm }}>
-          {t("biblioteca.docsFound", { count: filtered.length })}
-        </Text>
+        {!!companyFilter && (
+          <TouchableOpacity onPress={() => setCompanyFilter(null)}
+            style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: C.blueL, marginBottom: spacing.sm }}>
+            <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.blue }}>
+              {t("biblioteca.filteredByClient", { name: docs.find(d => d.company_id === companyFilter)?.companies?.name ?? "" })}
+            </Text>
+            <X size={13} color={C.blue} strokeWidth={1.75} />
+          </TouchableOpacity>
+        )}
+
+        {selecting ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm }}>
+            <Text style={{ flex: 1, fontFamily: fonts.semibold, fontSize: 13, color: C.text }}>
+              {t("biblioteca.selectedCount", { count: selectedIds.size })}
+            </Text>
+            <Button label={t("biblioteca.moveToFolder")} onPress={() => setMovePicker(true)} size="md" fullWidth={false}
+              icon={<FolderIcon size={15} color="#fff" strokeWidth={1.75} />} />
+            <TouchableOpacity onPress={() => setSelectedIds(new Set())} hitSlop={8}>
+              <X size={20} color={C.muted} strokeWidth={1.75} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginBottom: spacing.sm }}>
+            {t("biblioteca.docsFound", { count: filtered.length })} · {t("biblioteca.longPressHint")}
+          </Text>
+        )}
       </View>
 
       {/* List */}
@@ -301,14 +352,28 @@ export default function BibliotecaScreen() {
           keyboardShouldPersistTaps="handled"
           data={filtered}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <DocRow doc={item} subtitle={docSubtitle(item)} />}
+          extraData={selectedIds}
+          renderItem={({ item }) => (
+            <DocRow doc={item} subtitle={docSubtitle(item)} linked={linked.get(item.id)}
+              selecting={selecting} selected={selectedIds.has(item.id)} onToggleSelect={toggleSelect} />
+          )}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.blue} />}
           contentContainerStyle={{ backgroundColor: C.surface }}
           showsVerticalScrollIndicator={false}
         />
       )}
 
-      <UploadFab />
+      {!selecting && <UploadFab />}
+
+      <FolderPickerModal
+        visible={movePicker}
+        folders={folders}
+        current={null}
+        onSelect={moveSelected}
+        onClose={() => setMovePicker(false)}
+        createInOrg={isAdmin ? orgId : null}
+        onFolderCreated={(f) => setFolders(prev => [...prev, f].sort((a, b) => a.name.localeCompare(b.name)))}
+      />
 
       {/* Filter modal */}
       <KeyboardModal visible={filterModal} animationType="slide" transparent onRequestClose={() => setFilterModal(false)}>

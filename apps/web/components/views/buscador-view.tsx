@@ -53,6 +53,11 @@ export function BuscadorView() {
   const locale    = useLocale()
 
   const [query,            setQuery]            = useState("")
+  // The dashboard search box hands its text over as ?q= on Enter.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q")
+    if (q) setQuery(q)
+  }, [])
   const [selectedTypes,    setSelectedTypes]    = useState<string[]>([])
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
   const [dateFrom,         setDateFrom]         = useState("")

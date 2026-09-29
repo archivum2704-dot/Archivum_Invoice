@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
+import useSWR from "swr"
 import {
   ClipboardList, Plus, X, Trash2, Loader2, Lock, Download, Pencil, ArrowRight, FileText, CheckCircle2, RotateCcw,
 } from "lucide-react"
@@ -19,6 +20,7 @@ import { createClient } from "@/lib/supabase/client"
 import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/lib/currency"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { quoteStatusLabel, quoteStatusStyle, canToggleAccepted } from "@/lib/quote-status"
+import { toast } from "sonner"
 
 type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string; exemptionCause: string }
 const emptyLine = (): Line => ({ productId: null, description: "", quantity: "1", unitPrice: "0", taxRate: "21", exemptionCause: "" })
@@ -51,6 +53,32 @@ export function PresupuestosView() {
   const { products, mutate: mutateProducts } = useProducts(currentOrg?.id ?? null)
   // Billed quotes live on in Facturas; the list keeps the open ones.
   const visibleQuotes = quotes.filter(q => q.status !== "converted")
+  // Each order's albarán — to show where it is in the chain and to know
+  // which orders are already invoiced, and so no longer editable (WEB-008).
+  const { quotes: notes_ } = useQuotes(currentOrg?.id ?? null, "delivery_note")
+  const noteFor = useMemo(() => {
+    const m = new Map<string, Quote>()
+    for (const n of notes_) if (n.source_quote_id) m.set(n.source_quote_id, n)
+    return m
+  }, [notes_])
+  // What was ordered, on the row itself — the list showed only number,
+  // client and total (WEB-012).
+  const { data: lineSummaries } = useSWR(
+    visibleQuotes.length ? ["quote-line-summaries", visibleQuotes.map(q => q.id).join(",")] : null,
+    async () => {
+      const supabase: any = createClient()
+      const { data } = await supabase.from("quote_lines")
+        .select("quote_id, description, quantity, position")
+        .in("quote_id", visibleQuotes.map(q => q.id)).order("position")
+      const m = new Map<string, string>()
+      for (const l of data ?? []) {
+        const part = `${Number(l.quantity)}× ${l.description}`
+        m.set(l.quote_id, m.has(l.quote_id) ? `${m.get(l.quote_id)}, ${part}` : part)
+      }
+      return m
+    },
+    { revalidateOnFocus: false },
+  )
 
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -207,10 +235,24 @@ export function PresupuestosView() {
         )
         setSaving(false); return
       }
+      toast.success(editId ? "Pedido actualizado" : `Pedido ${json.fullNumber ?? ""} creado`)
       await mutate(); setOpen(false); resetForm()
     } catch (e) { setError(String(e)) }
     setSaving(false)
   }
+
+  // "Editar" on the order page links here with ?edit=<id>; it was ignored,
+  // so the button just showed the list.
+  useEffect(() => {
+    if (loading || !quotes.length) return
+    const params = new URLSearchParams(window.location.search)
+    const target = params.get("edit")
+    if (!target) return
+    window.history.replaceState(null, "", window.location.pathname)
+    const q = quotes.find(x => x.id === target)
+    if (q && noteFor.get(q.id)?.status !== "converted") void openEdit(q)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, quotes.length])
 
   // Pedido pendiente ⇄ aceptado. Also set on its own when the albarán is billed.
   const handleToggleAccepted = async (q: Quote) => {
@@ -285,9 +327,17 @@ export function PresupuestosView() {
           <div className="divide-y divide-border">
             {visibleQuotes.map(q => (
               <div key={q.id} className={cn("flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-colors", busyId === q.id && "opacity-50 pointer-events-none")}>
-                <Link href={`/presupuestos/${q.id}`} className="min-w-0 flex-1">
+                <Link href={`/pedidos/${q.id}`} className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-foreground truncate hover:text-accent">{q.full_number ?? "—"}</p>
                   <p className="text-xs text-muted-foreground truncate">{q.client?.name ?? q.client_name ?? "—"} · {q.issue_date ?? ""}</p>
+                  {lineSummaries?.get(q.id) && (
+                    <p className="text-xs text-foreground/80 truncate">{lineSummaries.get(q.id)}</p>
+                  )}
+                  {noteFor.get(q.id) && (
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      → Albarán {noteFor.get(q.id)!.full_number} · {quoteStatusLabel("delivery_note", noteFor.get(q.id)!.status)}
+                    </p>
+                  )}
                 </Link>
                 <span className="hidden sm:block text-sm font-semibold text-foreground tabular-nums w-28 text-right">{formatMoney(Number(q.total), q.currency)}</span>
                 <span className={cn("text-xs px-2.5 py-1 rounded-full font-medium shrink-0", quoteStatusStyle("quote", q.status))}>{quoteStatusLabel("quote", q.status)}</span>
@@ -302,7 +352,7 @@ export function PresupuestosView() {
                         : <CheckCircle2 className="w-4 h-4 text-[var(--status-paid)]" />}
                     </button>
                   )}
-                  {isOrgAdmin && q.status !== "converted" && (
+                  {isOrgAdmin && q.status !== "converted" && noteFor.get(q.id)?.status !== "converted" && (
                     <>
                       <button onClick={() => openEdit(q)} title="Editar" className="p-1.5 rounded hover:bg-muted transition-colors">
                         <Pencil className="w-4 h-4 text-muted-foreground" />
@@ -328,6 +378,14 @@ export function PresupuestosView() {
               <h2 className="text-lg font-semibold text-foreground">{editId ? "Editar pedido" : "Nuevo pedido"}</h2>
               <button onClick={() => !saving && setOpen(false)} className="p-1.5 rounded-lg hover:bg-muted"><X className="w-4 h-4 text-muted-foreground" /></button>
             </div>
+
+            {/* Editing an order that already has an albarán changes the
+                albarán too — say so before saving, not after (WEB-008). */}
+            {editId && noteFor.get(editId) && (
+              <p className="mb-4 px-3 py-2.5 rounded-lg bg-[var(--status-pending)]/8 border border-[var(--status-pending)]/25 text-xs text-foreground">
+                Los cambios se aplicarán también al albarán {noteFor.get(editId)!.full_number}, que aún no está facturado.
+              </p>
+            )}
 
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="col-span-2">
@@ -383,6 +441,11 @@ export function PresupuestosView() {
                   <Plus className="w-3.5 h-3.5" /> Añadir línea
                 </button>
               </div>
+              {/* Column labels: quantity and price are *per unit*; the line
+                  total below each line shows what they add up to (WEB-021). */}
+              <div className="grid grid-cols-[1fr_80px_104px_84px_auto] gap-2 mb-1 px-1 text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                <span>Descripción</span><span className="text-right">Unidades</span><span className="text-right">Precio ud.</span><span className="text-right">IVA</span><span className="w-7"></span>
+              </div>
               <div className="space-y-2">
                 {lines.map((l, i) => (
                   <div key={i} className="grid grid-cols-[1fr_80px_104px_84px_auto] gap-2 items-end">
@@ -399,8 +462,8 @@ export function PresupuestosView() {
                       )}
                       {l.productId && <span className="self-start text-[11px] text-muted-foreground">✓ En inventario</span>}
                     </div>
-                    <input type="number" step="0.01" title="Cantidad" value={l.quantity} onChange={e => setLine(i, { quantity: e.target.value })} className={cn(inputCls, "py-1.5 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none")} />
-                    <input type="number" step="0.01" title="Precio" value={l.unitPrice} onChange={e => setLine(i, { unitPrice: e.target.value })} className={cn(inputCls, "py-1.5 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none")} />
+                    <input type="number" step="0.01" title="Unidades" placeholder="1" value={l.quantity} onChange={e => setLine(i, { quantity: e.target.value })} className={cn(inputCls, "py-1.5 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none")} />
+                    <input type="number" step="0.01" title="Precio por unidad, sin IVA" placeholder="0,00" value={l.unitPrice} onChange={e => setLine(i, { unitPrice: e.target.value })} className={cn(inputCls, "py-1.5 text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none")} />
                     <select title="IVA" value={l.taxRate}
                       onChange={e => setLine(i, {
                         taxRate: e.target.value,
@@ -414,6 +477,10 @@ export function PresupuestosView() {
                     <button onClick={() => setLines(lines.filter((_, idx) => idx !== i))} disabled={lines.length === 1} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive disabled:opacity-30">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
+
+                    <p className="col-span-5 -mt-1 px-1 text-right text-[11px] text-muted-foreground tabular-nums">
+                      Total línea (sin IVA): {formatMoney(Math.round((Number(l.quantity) || 0) * (Number(l.unitPrice) || 0) * 100) / 100, currency)}
+                    </p>
 
                     {/* Solo si la línea es exenta. La AEAT necesita saber por
                         qué artículo, y no hay valor por defecto que se pueda

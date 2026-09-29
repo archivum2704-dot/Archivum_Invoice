@@ -3,15 +3,17 @@
 import { useEffect, useState } from "react"
 import useSWR from "swr"
 import QRCode from "qrcode"
-import { ArrowLeft, Printer, ShieldCheck, Loader2, Ban, Copy, Check, Wallet } from "lucide-react"
+import { ArrowLeft, Printer, ShieldCheck, Loader2, Ban, Copy, Check, Wallet, Info } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import { createClient } from "@/lib/supabase/client"
+import { toast } from "sonner"
 import { useOrganization } from "@/lib/context/organization-context"
 import { isPaidPlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { SendEmailButton } from "@/components/send-email-button"
+import { DocumentChain, useChain } from "@/components/document-chain"
 import type { Database } from "@/lib/supabase/types"
 import { formatMoney, needsExchangeRate, toEur } from "@/lib/currency"
 import { PAYMENT_METHODS, isPaymentMethod } from "@/lib/payment-methods"
@@ -49,6 +51,15 @@ export function FacturaEmitidaView({ id }: { id: string }) {
   const [qrSrc, setQrSrc] = useState<string | null>(null)
   const [rectifying, setRectifying] = useState(false)
   const [huellaCopied, setHuellaCopied] = useState(false)
+  // Just issued (?nueva=1): say so, and put sending it by email right there,
+  // since that is the step that finishes the job (WEB-014).
+  const [justIssued, setJustIssued] = useState(false)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("nueva") !== "1") return
+    setJustIssued(true)
+    window.history.replaceState(null, "", window.location.pathname)
+  }, [])
 
   const copyHuella = () => {
     if (!invoice?.huella) return
@@ -58,6 +69,7 @@ export function FacturaEmitidaView({ id }: { id: string }) {
   }
 
   const invoice = data?.invoice
+  const chain = useChain({ kind: "invoice", id })
   const lines = data?.lines ?? []
   const rectifiedBy = data?.rectifiedBy ?? null
 
@@ -121,6 +133,14 @@ export function FacturaEmitidaView({ id }: { id: string }) {
     const { error } = await supabase.from("invoices").update(patch).eq("id", invoice.id)
     setPaySaving(false)
     if (error) { setPayMsg({ ok: false, text: `${t("paymentSaveError")}: ${error.message}` }); return }
+    // Keep the library copy in step: the dashboard and Biblioteca total
+    // "cobrado / pendiente" from documents.status, not from the invoice.
+    if (invoice.document_id && patch.payment_status) {
+      await supabase.from("documents").update({
+        status: patch.payment_status, payment_date: date || null, payment_method: payMethod || null,
+      }).eq("id", invoice.document_id)
+    }
+    toast.success(t("paymentSaved"))
     if (override) setPayDate(override.date)
     setPayMsg({ ok: true, text: t("paymentSaved") })
     await mutate()
@@ -151,6 +171,17 @@ export function FacturaEmitidaView({ id }: { id: string }) {
           </button>
         </div>
       </div>
+
+      {justIssued && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 px-4 py-3 bg-[var(--status-paid)]/8 border border-[var(--status-paid)]/25 rounded-xl print:hidden">
+          <Check className="w-4 h-4 text-[var(--status-paid)] shrink-0" />
+          <p className="text-sm text-foreground flex-1 min-w-0">{t("issuedBanner", { number: invoice.full_number ?? "" })}</p>
+          <SendEmailButton kind="invoice" id={id} defaultTo={data?.clientEmail}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 whitespace-nowrap transition-colors" />
+        </div>
+      )}
+
+      <DocumentChain chain={chain} current="invoice" />
 
       {/* Rectificative banner */}
       {invoice.kind === "rectifying" && (
@@ -265,6 +296,14 @@ export function FacturaEmitidaView({ id }: { id: string }) {
             <div className="min-w-0">
               <p className="text-xs font-bold text-foreground tracking-wide">VERI*FACTU</p>
               <p className="text-[9px] text-muted-foreground">{t("verifactuFooter")}</p>
+              {/* Plain-language explanation of the seal; the terms mean
+                  nothing to most readers (WEB-015). Screen only. */}
+              <details className="mt-1 print:hidden group/vf">
+                <summary className="flex items-center gap-1 text-[10px] font-medium text-accent cursor-pointer list-none hover:underline">
+                  <Info className="w-3 h-3" /> {t("verifactuWhat")}
+                </summary>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground max-w-md">{t("verifactuExplain")}</p>
+              </details>
               {/* Whether the record actually reached the AEAT. The legend above
                   claims the invoice is verifiable there, and until the record
                   has been accepted it is not — so the state is said plainly. */}

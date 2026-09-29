@@ -39,7 +39,9 @@
     "saving": "Saving...",
     "saved": "Saved",
     "deleting": "Deleting...",
-    "noAccess": "You don't have access to this section"
+    "noAccess": "You don't have access to this section",
+    "invoiceArchiveLocked": "This document is the archived copy of invoice {number}, issued in Invoicing. Its number, amounts and date are fixed by VeriFactu and cannot be changed here; status, due and payment dates, payment method and notes can.",
+    "openInvoice": "Open the invoice →"
   },
   "auth": {
     "login": {
@@ -161,7 +163,7 @@
     "sortPriceAsc": "Price ↑",
     "sortStockDesc": "Stock ↓",
     "sortStockAsc": "Stock ↑",
-    "results": "{count} products",
+    "results": "{count, plural, one {product} other {products}}",
     "productsIn": "in {category}",
     "exportExcel": "Export to Excel",
     "skuPlaceholder": "Auto-generated if left empty",
@@ -169,7 +171,8 @@
     "minStockPlaceholder": "No alert",
     "minStockHint": "Fill this in and we will flag it here when stock falls to that number or below. Leave empty to skip it.",
     "lowStockBadge": "Low stock",
-    "lowStockTitle": "{count, plural, one {# product has reached its minimum stock} other {# products have reached their minimum stock}}"
+    "lowStockTitle": "{count, plural, one {# product has reached its minimum stock} other {# products have reached their minimum stock}}",
+    "createdToast": "Product “{name}” created"
   },
   "invoicing": {
     "title": "Invoicing",
@@ -244,7 +247,9 @@
       "client_required": "Select a client.",
       "no_lines": "Add at least one line with a description.",
       "exemptionCause": "Give the exemption reason for the exempt lines.",
-      "exchangeRateRequired": "Give the exchange rate to euros to invoice in {currency}."
+      "exchangeRateRequired": "Give the exchange rate to euros to invoice in {currency}.",
+      "zeroTotal": "The invoice total is 0.00. Check quantities and prices: an issued invoice cannot be withdrawn, only rectified.",
+      "zero_total": "The invoice total is 0.00. Check quantities and prices: an issued invoice cannot be withdrawn, only rectified."
     },
     "paywallTitle": "Invoicing is a paid feature",
     "paywallBody": "Issue Verifactu-compliant digital invoices by upgrading to a paid plan. The free version does not include invoicing.",
@@ -266,7 +271,7 @@
     "sortAmountDesc": "Amount ↓",
     "sortAmountAsc": "Amount ↑",
     "sortNumber": "Number",
-    "results": "{count} invoices",
+    "results": "{count, plural, one {invoice} other {invoices}}",
     "noResults": "No invoices",
     "noResultsHint": "Try other filters or search terms",
     "searchClient": "Search client by name or tax ID...",
@@ -308,7 +313,15 @@
     "markUnpaid": "Mark as unpaid",
     "savePayment": "Save",
     "paymentSaved": "Saved",
-    "paymentSaveError": "Could not save the payment"
+    "paymentSaveError": "Could not save the payment",
+    "lineTotal": "Line total (excl. VAT)",
+    "unitPriceNoTax": "Unit price",
+    "dueOnReceipt": "On receipt",
+    "dueInDays": "{days} days",
+    "issuedToast": "Invoice {number} issued",
+    "issuedBanner": "Invoice {number} issued and registered. Next step: send it to the client.",
+    "verifactuWhat": "What is this?",
+    "verifactuExplain": "VERI*FACTU is the Spanish Tax Agency system for verifiable invoices. Each invoice produces a record with a \"fingerprint\" (a code computed from its data and the previous invoice's), so any later change would be detected. The record is sent to the AEAT, and the client can check the invoice on the AEAT website by scanning the QR code."
   },
   "verifactu": {
     "title": "Verifactu certificate (AEAT)",
@@ -381,7 +394,17 @@
     "noDocumentsHintViewer": "Documents you have been given access to will appear here.",
     "overdueAlert": "{count} overdue document{plural}",
     "viewOverdue": "View all",
-    "cancelMark": "Mark as cancelled"
+    "cancelMark": "Mark as cancelled",
+    "uploadDocument": "Upload document",
+    "newInvoice": "New invoice",
+    "columns": {
+      "document": "Document",
+      "type": "Type",
+      "amount": "Amount",
+      "status": "Status"
+    },
+    "noSearchMatches": "No document matches “{query}”.",
+    "openAdvancedSearch": "Search in Advanced search →"
   },
   "documents": {
     "types": {
@@ -490,7 +513,10 @@
       "successMessage": "Document {number} has been archived in the digital library.",
       "viewInLibrary": "View in library",
       "uploadAnother": "Upload another",
-      "archiveReminder": "Remember to press “Archive Document” so your invoice is saved correctly."
+      "archiveReminder": "Remember to press “Archive Document” so your invoice is saved correctly.",
+      "docNumberPlaceholder": "Document no.",
+      "issuedInvoiceNotice": "This archives invoices issued outside Archivum. To issue a new invoice, with lines, VAT and VeriFactu, use Invoicing.",
+      "goToInvoicing": "Create invoice →"
     },
     "library": {
       "title": "Document Library",
@@ -512,7 +538,8 @@
         "amount": "Amount",
         "date": "Date",
         "statusTags": "Status / Tags"
-      }
+      },
+      "filteredByClient": "Documents of {name}"
     },
     "export": {
       "button": "Export",
@@ -540,7 +567,7 @@
       "companyFilter": "Client",
       "tagsFilter": "Tags",
       "loading": "Loading results...",
-      "results": "{count} results found",
+      "results": "{count, plural, one {result found} other {results found}}",
       "resultFor": "for \"{query}\"",
       "sortByDate": "Sort by date",
       "sortDateDesc": "Date ↓",
@@ -598,7 +625,11 @@
     "paymentDueDays": "Due (days)",
     "paymentDueDaysHint": "Days from the invoice date. Used to suggest the due date when invoicing.",
     "paymentTerms": "Payment terms",
-    "daysSuffix": "{days} days"
+    "daysSuffix": "{days} days",
+    "requiredToInvoice": "needed to invoice",
+    "requiredToInvoiceHint": "An invoice must show the client's tax ID and address. You can save the client without them, but not invoice them.",
+    "optional": "optional",
+    "createdToast": "Client “{name}” created"
   },
   "admin": {
     "title": "Admin Panel",
@@ -814,7 +845,7 @@
     "missingHeaders": "The file doesn't have the expected columns. Download the template and don't change the column names.",
     "requiredFieldMissing": "Name is required.",
     "invalidEmail": "Email address is not valid.",
-    "invalidCountry": "Country code must be 2 letters (e.g. ES).",
+    "invalidCountry": "Country not recognised: pick one from the dropdown or type its 2-letter code (ES, FR, DE…).",
     "invalidNumber": "\"{value}\" is not a valid number.",
     "summaryValid": "{valid} of {total} rows are correct.",
     "rowError": "Row {row}: {message}",
@@ -822,7 +853,8 @@
     "back": "Back",
     "errorGeneric": "Couldn't complete the import. {message}",
     "importSuccess": "Successfully imported {count} {kind}.",
-    "closeButton": "Close"
+    "closeButton": "Close",
+    "countriesSheet": "Countries"
   },
   "tutorial": {
     "skip": "Skip",

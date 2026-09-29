@@ -147,7 +147,7 @@ export function AlbaranesView() {
           />
         ) : <span className="w-4 shrink-0" />
       )}
-      <Link href={`/presupuestos/${n.id}`} className="min-w-0 flex-1">
+      <Link href={`/albaranes/${n.id}`} className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-foreground truncate hover:text-accent">{n.full_number ?? "—"}</p>
         <p className="text-xs text-muted-foreground truncate">
           {n.client?.name ?? n.client_name ?? "—"} · {n.issue_date ?? ""}

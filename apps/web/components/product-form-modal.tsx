@@ -5,6 +5,7 @@ import { X, Check, Loader2, AlertTriangle } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { createClient } from "@/lib/supabase/client"
 import type { Product } from "@/lib/hooks/use-products"
+import { toast } from "sonner"
 
 type Draft = {
   name: string
@@ -108,6 +109,7 @@ export function ProductFormModal({ orgId, product, products, initial, onSaved, o
       : await supabase.from("products").insert({ id, ...payload })
     if (res.error) { setError(res.error.message); setSaving(false); return }
     await onSaved(id)
+    toast.success(product ? tCommon("saved") : t("createdToast", { name: payload.name }))
     setSaving(false)
     onClose()
   }

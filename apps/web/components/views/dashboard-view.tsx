@@ -5,7 +5,7 @@ import {
   FileText, Receipt, Package, FolderOpen,
   TrendingUp, Clock, CheckCircle2, AlertCircle,
   MoreHorizontal, ChevronRight, Plus, Search, Building2, X,
-  Euro, ArrowUpRight, Eye, Pencil, Trash2,
+  Euro, ArrowUpRight, Eye, Pencil, Trash2, Upload, ArrowUp, ArrowDown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -13,12 +13,14 @@ import { useRouter } from "next/navigation"
 import { useTranslations, useLocale } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useDocuments } from "@/lib/hooks/use-documents"
+import { useLinkedStatuses } from "@/lib/hooks/use-linked-status"
 import { useOverdueDocs } from "@/lib/hooks/use-overdue-docs"
 import { OnboardingChecklist } from "@/components/onboarding-checklist"
 import { createClient } from "@/lib/supabase/client"
 import type { DocumentStatus, DocumentType } from "@/lib/supabase/types"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
+import { isPaidPlan } from "@/lib/plan"
 
 const STATUS_STYLES: Record<DocumentStatus, string> = {
   paid:      "bg-[var(--status-paid)]/10 text-[var(--status-paid)]",
@@ -36,6 +38,19 @@ const TYPE_STYLES: Record<string, string> = {
   order:            "bg-blue-100/50 text-blue-600",
 }
 
+type RecentSortKey = "created" | "number" | "type" | "amount" | "status" | "date"
+
+function SortHeader({ label, active, dir, onClick, className }: {
+  label: string; active: boolean; dir: 1 | -1; onClick: () => void; className?: string
+}) {
+  return (
+    <button type="button" onClick={onClick} className={cn("flex items-center gap-1 hover:text-foreground transition-colors", active && "text-foreground", className)}>
+      {label}
+      {active && (dir === 1 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+    </button>
+  )
+}
+
 export function DashboardView() {
   const t = useTranslations("dashboard")
   const tDoc = useTranslations("documents")
@@ -47,8 +62,10 @@ export function DashboardView() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-  const { currentOrg, userProfile, isViewer, loading: orgLoading } = useOrganization()
+  const { currentOrg, userProfile, isViewer, isOrgAdmin, isPlatformAdmin, loading: orgLoading } = useOrganization()
+  const canInvoice = isOrgAdmin && (isPaidPlan(currentOrg) || isPlatformAdmin)
   const { documents, loading: docsLoading, mutate } = useDocuments(currentOrg?.id ?? null)
+  const { linked } = useLinkedStatuses(currentOrg?.id ?? null)
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -74,7 +91,34 @@ export function DashboardView() {
 
   const loading = orgLoading || docsLoading
 
-  const recentDocs = documents.slice(0, 6)
+  // The search box used to be decorative: what was typed went nowhere
+  // (WEB-004). It now filters this list across every document, and Enter
+  // opens the full Buscador with the same text.
+  const [recentSort, setRecentSort] = useState<{ key: RecentSortKey; dir: 1 | -1 }>({ key: "created", dir: -1 })
+  const recentDocs = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    const matches = q
+      ? documents.filter(d =>
+          (d.document_number ?? "").toLowerCase().includes(q) ||
+          ((d as any).company?.name ?? "").toLowerCase().includes(q) ||
+          tDoc(`types.${d.document_type}`).toLowerCase().includes(q) ||
+          (d.notes ?? "").toLowerCase().includes(q))
+      : documents
+    const { key, dir } = recentSort
+    const val = (d: typeof documents[0]): string | number =>
+      key === "number" ? (d.document_number ?? "")
+      : key === "type" ? tDoc(`types.${d.document_type}`)
+      : key === "amount" ? Number(d.total ?? 0)
+      : key === "status" ? tDoc(`statuses.${d.status}`)
+      : key === "date" ? (d.issue_date ?? "")
+      : (d.created_at ?? "")
+    return [...matches].sort((a, b) => {
+      const va = val(a), vb = val(b)
+      return (typeof va === "number" && typeof vb === "number" ? va - vb : String(va).localeCompare(String(vb), locale, { numeric: true })) * dir
+    }).slice(0, q ? 10 : 6)
+  }, [documents, searchQuery, recentSort, tDoc, locale])
+  const toggleSort = (key: RecentSortKey) =>
+    setRecentSort(s => s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: key === "amount" || key === "date" ? -1 : 1 })
 
   const kpis = useMemo(() => {
     const sum = (pred: (d: typeof documents[0]) => boolean) =>
@@ -200,6 +244,10 @@ export function DashboardView() {
               placeholder={tCommon("search")}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter" && searchQuery.trim()) router.push(`/buscador?q=${encodeURIComponent(searchQuery.trim())}`)
+              }}
+              aria-label={tCommon("search")}
               className="pl-9 pr-4 py-2 text-sm bg-card border border-border rounded-xl w-44 sm:w-56 focus:outline-none focus:ring-2 focus:ring-ring/40 placeholder:text-muted-foreground/50 transition-all duration-200"
             />
           </div>
@@ -213,15 +261,25 @@ export function DashboardView() {
                 <Building2 className="w-3.5 h-3.5" />
                 {tCommon("newCompany")}
               </Link>
+              {/* The primary action is issuing an invoice, which is what a new
+                  user comes for. Uploading an existing document is secondary:
+                  the old single "+ Nuevo documento" led to the archive form,
+                  with no lines and no VAT, and never said "factura" (WEB-002). */}
               <Link
                 href="/subir"
+                className="flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground text-sm font-medium rounded-xl hover:bg-muted transition-all duration-200"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{t("uploadDocument")}</span>
+              </Link>
+              <Link
+                href={canInvoice ? "/facturacion?new=1" : "/facturacion"}
                 className="group flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 active:scale-[0.98] transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
               >
                 <span className="w-5 h-5 rounded-lg bg-primary-foreground/15 flex items-center justify-center transition-transform duration-200 group-hover:scale-110">
                   <Plus className="w-3 h-3" />
                 </span>
-                <span className="hidden sm:inline">{t("newDocument")}</span>
-                <span className="sm:hidden">Nuevo</span>
+                {t("newInvoice")}
               </Link>
             </>
           )}
@@ -374,7 +432,12 @@ export function DashboardView() {
                   {tCommon("viewAll")} <ChevronRight className="w-3 h-3" />
                 </Link>
               </div>
-              {recentDocs.length === 0 ? (
+              {documents.length > 0 && recentDocs.length === 0 ? (
+                <div className="py-10 text-center">
+                  <p className="text-sm text-muted-foreground">{t("noSearchMatches", { query: searchQuery.trim() })}</p>
+                  <Link href={`/buscador?q=${encodeURIComponent(searchQuery.trim())}`} className="mt-2 inline-block text-xs font-medium text-accent hover:underline">{t("openAdvancedSearch")}</Link>
+                </div>
+              ) : recentDocs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-14 gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
                     <FolderOpen className="w-6 h-6 text-muted-foreground/50" />
@@ -394,11 +457,23 @@ export function DashboardView() {
                 </div>
               ) : (
                 <div className="divide-y divide-border/60" ref={menuRef}>
+                  {/* Column headers — click to sort (WEB-028) */}
+                  <div className="hidden sm:flex items-center gap-4 px-5 py-2 text-[10px] uppercase tracking-wide text-muted-foreground/70 font-semibold">
+                    <span className="w-9 shrink-0" />
+                    <SortHeader label={t("columns.document")} active={recentSort.key === "number"} dir={recentSort.dir} onClick={() => toggleSort("number")} className="flex-1 min-w-0" />
+                    <SortHeader label={t("columns.type")} active={recentSort.key === "type"} dir={recentSort.dir} onClick={() => toggleSort("type")} className="w-28" />
+                    <SortHeader label={t("columns.amount")} active={recentSort.key === "amount"} dir={recentSort.dir} onClick={() => toggleSort("amount")} className="w-28 justify-end" />
+                    <SortHeader label={t("columns.status")} active={recentSort.key === "status"} dir={recentSort.dir} onClick={() => toggleSort("status")} className="w-20 justify-center" />
+                    <span className="w-7 shrink-0" />
+                  </div>
                   {recentDocs.map((doc, idx) => (
                     <div
                       key={doc.id}
+                      // The whole row opens the document: the coloured type
+                      // badge looked like a link and did nothing (WEB-024).
+                      onClick={() => router.push(`/factura/${doc.id}`)}
                       className={cn(
-                        "flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-all duration-150 group relative animate-slide-up-fade",
+                        "flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-all duration-150 group relative animate-slide-up-fade cursor-pointer",
                         deletingId === doc.id && "opacity-40 pointer-events-none",
                         // Lift the active row above siblings so the dropdown isn't covered by row stacking contexts
                         openMenuId === doc.id ? "z-30" : "z-0"
@@ -419,8 +494,10 @@ export function DashboardView() {
                       </Link>
 
                       {/* Type badge */}
-                      <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", TYPE_STYLES[doc.document_type] ?? "bg-muted text-muted-foreground")}>
-                        {tDoc(`types.${doc.document_type}`)}
+                      <span className="w-28 hidden sm:block">
+                        <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", TYPE_STYLES[doc.document_type] ?? "bg-muted text-muted-foreground")}>
+                          {tDoc(`types.${doc.document_type}`)}
+                        </span>
                       </span>
 
                       {/* Amount */}
@@ -429,12 +506,20 @@ export function DashboardView() {
                       </span>
 
                       {/* Status badge */}
-                      <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium w-20 text-center", STATUS_STYLES[doc.status])}>
-                        {tDoc(`statuses.${doc.status}`)}
-                      </span>
+                      {/* An archived order / albarán / invoice shows its real
+                          status, not the archive's own (WEB-009). */}
+                      {linked.get(doc.id) ? (
+                        <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium w-20 text-center truncate", linked.get(doc.id)!.style)} title={linked.get(doc.id)!.label}>
+                          {linked.get(doc.id)!.label}
+                        </span>
+                      ) : (
+                        <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium w-20 text-center", STATUS_STYLES[doc.status])}>
+                          {tDoc(`statuses.${doc.status}`)}
+                        </span>
+                      )}
 
                       {/* ··· menu button */}
-                      <div className="relative shrink-0">
+                      <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
                         <button
                           onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === doc.id ? null : doc.id) }}
                           className={cn(

@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const {
-      id = null, orgId, clientCompanyId = null, series = 'PRE',
+      id = null, orgId, clientCompanyId = null, series = 'PED',
       issueDate = null, validUntil = null, notes = null,
       retentionPct = 0, discountPct = 0, status = 'sent',
       lines = [] as LineInput[],
@@ -51,6 +51,22 @@ export async function POST(req: NextRequest) {
     // enviado al cliente y aceptado.
     if (finalize && validLines.some(l => (Number(l.taxRate) || 0) === 0 && !l.exemptionCause?.trim())) {
       return NextResponse.json({ error: 'exemption_cause_required' }, { status: 400 })
+    }
+
+    // Once the order's albarán has been invoiced, the order is part of a
+    // registered VeriFactu invoice that cannot change. Editing the order would
+    // leave order, albarán and invoice with different amounts and nothing to
+    // say so (WEB-008). The fix for a wrong amount is a credit note on the
+    // invoice (Facturación → Rectificar) and, if needed, a new order.
+    if (id) {
+      const { data: billedNote } = await supabase
+        .from('quotes').select('id').eq('source_quote_id', id).eq('status', 'converted').maybeSingle()
+      if (billedNote) {
+        return NextResponse.json({
+          error: 'already_invoiced',
+          detail: 'Este pedido ya está facturado y no se puede modificar: la factura emitida es inalterable. Si el importe no era correcto, rectifica la factura desde Facturación y, si hace falta, crea un pedido nuevo.',
+        }, { status: 409 })
+      }
     }
 
     // Snapshots

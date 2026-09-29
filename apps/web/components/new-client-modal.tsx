@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { TAX_ID_TYPES, isForeignClient } from "@/lib/tax-id-types"
 import { PAYMENT_METHODS } from "@/lib/payment-methods"
+import { toast } from "sonner"
 
 const EMPTY = {
   name: "", cif: "", email: "", phone: "", address: "", postal_code: "", city: "", province: "",
@@ -28,6 +29,21 @@ function explain(err: { code?: string; message?: string }, fallback: string): st
     return "Tu usuario no tiene permiso para crear clientes. Pídeselo a un administrador de la organización."
   }
   return err.message ?? fallback
+}
+
+/**
+ * Field markers (WEB-017). Only the name is needed to save a client, but a
+ * Spanish invoice must carry the recipient's NIF and address (RD 1619/2012,
+ * art. 6.1.d-e), so those say so; everything else says it is optional
+ * instead of leaving it to be inferred from a missing asterisk.
+ */
+export function InvoiceReq() {
+  const t = useTranslations("companies")
+  return <span className="ml-1 text-[10px] font-normal text-[var(--status-pending)]" title={t("requiredToInvoiceHint")}>· {t("requiredToInvoice")}</span>
+}
+export function Opt() {
+  const t = useTranslations("companies")
+  return <span className="ml-1 text-[10px] font-normal text-muted-foreground">({t("optional")})</span>
 }
 
 /**
@@ -96,6 +112,7 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
     if (err) { setError(explain(err, t("createClientError"))); setSaving(false); return }
 
     await onCreated(id)
+    toast.success(tCompanies("createdToast", { name: nc.name.trim() }))
     setSaving(false)
     setNc(EMPTY)
     onClose()
@@ -118,7 +135,7 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
           <div className="grid grid-cols-[1fr_100px] gap-2">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">
-                {foreign ? t("clientTaxId") : "CIF"}
+                {foreign ? t("clientTaxId") : "CIF"} <InvoiceReq />
               </label>
               <input value={nc.cif} onChange={e => setNc({ ...nc, cif: e.target.value })}
                 placeholder={foreign ? "DE123456789" : "B12345678"} className={inputCls} />
@@ -146,43 +163,43 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
           )}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">{t("clientEmail")}</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">{t("clientEmail")} <Opt /></label>
               <input type="email" value={nc.email} onChange={e => setNc({ ...nc, email: e.target.value })} placeholder="cliente@empresa.com" className={inputCls} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">{t("clientPhone")}</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">{t("clientPhone")} <Opt /></label>
               <input value={nc.phone} onChange={e => setNc({ ...nc, phone: e.target.value })} className={inputCls} />
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground -mt-1">{t("clientEmailHint")}</p>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">{t("clientAddress")}</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">{t("clientAddress")} <InvoiceReq /></label>
             <input value={nc.address} onChange={e => setNc({ ...nc, address: e.target.value })} className={inputCls} />
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="block text-xs font-medium text-foreground mb-1.5">{t("clientPostalCode")}</label>
+              <label className="block text-xs font-medium text-foreground mb-1.5">{t("clientPostalCode")} <InvoiceReq /></label>
               <input value={nc.postal_code} onChange={e => setNc({ ...nc, postal_code: e.target.value })} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-foreground mb-1.5">{t("clientCity")}</label>
+              <label className="block text-xs font-medium text-foreground mb-1.5">{t("clientCity")} <InvoiceReq /></label>
               <input value={nc.city} onChange={e => setNc({ ...nc, city: e.target.value })} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-foreground mb-1.5">{t("clientProvince")}</label>
+              <label className="block text-xs font-medium text-foreground mb-1.5">{t("clientProvince")} <Opt /></label>
               <input value={nc.province} onChange={e => setNc({ ...nc, province: e.target.value })} className={inputCls} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs font-medium text-foreground mb-1.5">{tCompanies("paymentMethod")}</label>
+              <label className="block text-xs font-medium text-foreground mb-1.5">{tCompanies("paymentMethod")} <Opt /></label>
               <select value={nc.payment_method} onChange={e => setNc({ ...nc, payment_method: e.target.value })} className={inputCls}>
                 <option value="">{tPayment("none")}</option>
                 {PAYMENT_METHODS.map(m => <option key={m} value={m}>{tPayment(m)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-foreground mb-1.5">{tCompanies("paymentDueDays")}</label>
+              <label className="block text-xs font-medium text-foreground mb-1.5">{tCompanies("paymentDueDays")} <Opt /></label>
               <input type="number" min={0} max={365} step={1} placeholder="30" value={nc.payment_due_days}
                 onChange={e => setNc({ ...nc, payment_due_days: e.target.value })} className={inputCls} />
             </div>

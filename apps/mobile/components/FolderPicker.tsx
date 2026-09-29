@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView } from "react-native";
-import { Folder as FolderIcon, Check, FolderMinus } from "lucide-react-native";
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, Alert } from "react-native";
+import { Folder as FolderIcon, Check, FolderMinus, FolderPlus } from "lucide-react-native";
+import { Button } from "@/components/ui";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/lib/colors";
 import { supabase } from "@/lib/supabase";
@@ -16,6 +17,10 @@ export function useFolders(orgId: string | null) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
 
+  /** Adds a folder created elsewhere (e.g. from the picker) without a reload. */
+  const addFolder = (f: Folder) =>
+    setFolders(prev => [...prev.filter(x => x.id !== f.id), f].sort((a, b) => a.name.localeCompare(b.name)));
+
   useEffect(() => {
     if (!orgId) { setFolders([]); setLoading(false); return; }
     let cancelled = false;
@@ -29,7 +34,7 @@ export function useFolders(orgId: string | null) {
     return () => { cancelled = true; };
   }, [orgId]);
 
-  return { folders, loading };
+  return { folders, loading, addFolder };
 }
 
 /**
@@ -41,7 +46,7 @@ export function useFolders(orgId: string | null) {
  * from the phone.
  */
 export function FolderPickerModal({
-  visible, folders, current, onSelect, onClose, loading,
+  visible, folders, current, onSelect, onClose, loading, createInOrg, onFolderCreated,
 }: {
   visible: boolean;
   folders: Folder[];
@@ -49,9 +54,34 @@ export function FolderPickerModal({
   onSelect: (folderId: string | null) => void;
   onClose: () => void;
   loading?: boolean;
+  /**
+   * When set, the sheet offers "Nueva carpeta" and creates it in this
+   * organization. Creating a folder used to mean abandoning the upload in
+   * progress, going to Biblioteca and starting again (APP-002).
+   */
+  createInOrg?: string | null;
+  onFolderCreated?: (folder: Folder) => void;
 }) {
   const C = useColors();
   const { t } = useTranslation();
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { if (!visible) { setCreating(false); setNewName(""); } }, [visible]);
+
+  const createFolder = async () => {
+    const name = newName.trim();
+    if (!name || !createInOrg) return;
+    setSaving(true);
+    const { data, error } = await supabase.from("folders")
+      .insert({ organization_id: createInOrg, name }).select("id, name").single();
+    setSaving(false);
+    if (error || !data) { Alert.alert(t("common.error"), error?.message ?? t("common.unknownError")); return; }
+    onFolderCreated?.(data as Folder);
+    onSelect((data as Folder).id);
+    onClose();
+  };
 
   const row = (key: string, label: string, icon: React.ReactNode, selected: boolean, onPress: () => void) => (
     <TouchableOpacity
@@ -84,6 +114,21 @@ export function FolderPickerModal({
           </View>
         ) : (
           <ScrollView keyboardShouldPersistTaps="handled">
+            {!!createInOrg && (creating ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.xl - 4, paddingVertical: spacing.sm + 2, borderBottomWidth: 1, borderBottomColor: C.border }}>
+                <TextInput
+                  value={newName}
+                  onChangeText={setNewName}
+                  autoFocus
+                  placeholder={t("biblioteca.folderNamePlaceholder")}
+                  placeholderTextColor={C.muted}
+                  onSubmitEditing={createFolder}
+                  returnKeyType="done"
+                  style={{ flex: 1, fontFamily: fonts.regular, fontSize: 15, color: C.text, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 9 }}
+                />
+                <Button label={t("common.create")} onPress={createFolder} disabled={!newName.trim()} loading={saving} size="md" fullWidth={false} />
+              </View>
+            ) : row("new", t("biblioteca.newFolder"), <FolderPlus size={17} color={C.blue} strokeWidth={1.75} />, false, () => setCreating(true)))}
             {row("none", t("biblioteca.noFolder"), <FolderMinus size={17} color={C.muted} strokeWidth={1.75} />, current == null, () => { onSelect(null); onClose(); })}
             {folders.map(f =>
               row(f.id, f.name, <FolderIcon size={17} color={C.muted} strokeWidth={1.75} />, current === f.id, () => { onSelect(f.id); onClose(); }),
@@ -102,13 +147,15 @@ export function FolderPickerModal({
 
 /** Field that shows the current folder and opens the picker. */
 export function FolderField({
-  folders, value, onChange, loading, style,
+  folders, value, onChange, loading, style, createInOrg, onFolderCreated,
 }: {
   folders: Folder[];
   value: string | null;
   onChange: (folderId: string | null) => void;
   loading?: boolean;
   style?: object;
+  createInOrg?: string | null;
+  onFolderCreated?: (folder: Folder) => void;
 }) {
   const C = useColors();
   const { t } = useTranslation();
@@ -139,6 +186,8 @@ export function FolderField({
         loading={loading}
         onSelect={onChange}
         onClose={() => setOpen(false)}
+        createInOrg={createInOrg}
+        onFolderCreated={onFolderCreated}
       />
     </>
   );

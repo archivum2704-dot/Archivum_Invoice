@@ -11,6 +11,17 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // The user-facing name is "Pedido", so that is the URL (WEB-012). The
+  // pages still live under /presupuestos — renaming the folder would break
+  // every link already shared — and both addresses keep working. An albarán
+  // opens at /albaranes/<id>. These only apply where no page matches.
+  async rewrites() {
+    return [
+      { source: '/pedidos', destination: '/presupuestos' },
+      { source: '/pedidos/:id', destination: '/presupuestos/:id' },
+      { source: '/albaranes/:id', destination: '/presupuestos/:id' },
+    ]
+  },
   async headers() {
     return [
       {

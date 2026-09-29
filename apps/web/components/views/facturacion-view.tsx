@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import {
   Receipt, Plus, X, Trash2, Loader2, Lock, AlertTriangle, ChevronRight, ShieldCheck,
   Search, SlidersHorizontal, CalendarDays, Tag, ArrowUpDown, Hash,
@@ -9,6 +9,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations, useLocale } from "next-intl"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useRegisterNavGuard } from "@/lib/context/nav-guard-context"
 import { useInvoices } from "@/lib/hooks/use-invoices"
@@ -245,8 +246,12 @@ export function FacturacionView() {
     if (needsExchangeRate(currency) && !(Number(exchangeRate) > 0)) {
       return t("errors.exchangeRateRequired", { currency })
     }
+    // An issued invoice cannot be withdrawn, only rectified: one issued at
+    // 0,00 € by a typo (a price left blank) is a registered VeriFactu record
+    // with no economic sense (WEB-006). The server refuses it too.
+    if (!(totals.total > 0)) return t("errors.zeroTotal")
     return null
-  }, [issuerHasCif, clientId, selectedClient, issueDate, lines, currency, exchangeRate, t])
+  }, [issuerHasCif, clientId, selectedClient, issueDate, lines, currency, exchangeRate, totals.total, t])
 
   const resetForm = () => {
     setClientId(""); setClientQuery(""); setClientListOpen(false)
@@ -299,13 +304,14 @@ export function FacturacionView() {
       })
       const json = await res.json()
       if (!res.ok) {
-        const known = ["issuer_cif_required", "client_cif_required", "issue_date_required", "client_required", "no_lines"]
+        const known = ["issuer_cif_required", "client_cif_required", "issue_date_required", "client_required", "no_lines", "zero_total"]
         setError(known.includes(json.error) ? t(`errors.${json.error}`) : (json.detail ?? t("errors.generic")))
         setIssuing(false); return
       }
       await mutate()
       setOpen(false); resetForm()
-      router.push(`/facturacion/${json.id}`)
+      toast.success(t("issuedToast", { number: json.fullNumber ?? "" }))
+      router.push(`/facturacion/${json.id}?nueva=1`)
     } catch (e) {
       setError(String(e)); setIssuing(false)
     }
@@ -359,6 +365,18 @@ export function FacturacionView() {
   }
 
   useRegisterNavGuard(invoiceDirty, "invoice", saveInvoiceDraft)
+
+  // "Nueva factura" from the dashboard (and the Subir notice) lands here with
+  // ?new=1 and should open the form straight away (WEB-002).
+  useEffect(() => {
+    if (!canManage) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("new") !== "1") return
+    resetForm(); setOpen(true)
+    params.delete("new")
+    window.history.replaceState(null, "", `${window.location.pathname}${params.size ? `?${params}` : ""}`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canManage])
 
   // ── Paywall ─────────────────────────────────────────────────
   if (!paid) {
@@ -690,9 +708,24 @@ export function FacturacionView() {
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">{t("dueDate")}</label>
                 <input type="date" value={dueDate} min={issueDate || undefined} onChange={e => setDueDate(e.target.value)} className={inputCls} />
-                {selectedClient?.payment_due_days != null && (
-                  <p className="text-[11px] text-muted-foreground mt-1">{t("dueDateFromClient", { days: selectedClient.payment_due_days })}</p>
-                )}
+                {/* Computed from the issue date instead of counting days by
+                    hand (WEB-013). Always rendered, so choosing a client
+                    never shifts the fields below (WEB-005). */}
+                <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                  {[0, 30, 60, 90].map(days => {
+                    const target = dueDateFromTerms(issueDate, days)
+                    return (
+                      <button key={days} type="button" onClick={() => setDueDate(target)} disabled={!issueDate}
+                        className={cn("px-2 py-0.5 text-[11px] rounded-md border transition-colors disabled:opacity-40",
+                          dueDate && dueDate === target ? "border-primary bg-primary/10 text-primary font-semibold" : "border-border text-muted-foreground hover:bg-muted")}>
+                        {days === 0 ? t("dueOnReceipt") : t("dueInDays", { days })}
+                      </button>
+                    )
+                  })}
+                  {selectedClient?.payment_due_days != null && (
+                    <span className="text-[11px] text-muted-foreground">· {t("dueDateFromClient", { days: selectedClient.payment_due_days })}</span>
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">{t("kind")}</label>
@@ -736,6 +769,11 @@ export function FacturacionView() {
                   <Plus className="w-3.5 h-3.5" /> {t("addLine")}
                 </button>
               </div>
+              {/* Column labels above the fields they name — they used to sit
+                  below the last line, where nobody reads them (WEB-021). */}
+              <div className="grid grid-cols-[1fr_80px_104px_84px_auto] gap-2 mb-1 px-1 text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                <span>{t("description")}</span><span className="text-right">{t("qty")}</span><span className="text-right">{t("unitPriceNoTax")}</span><span className="text-right">{t("tax")}%</span><span className="w-7"></span>
+              </div>
               <div className="space-y-2">
                 {lines.map((l, i) => (
                   <div key={i} className="grid grid-cols-[1fr_80px_104px_84px_auto] gap-2 items-end">
@@ -775,6 +813,13 @@ export function FacturacionView() {
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
 
+                    {/* Line total, always rendered (no jump when a price is typed):
+                        makes it plain that quantity × unit price is what is
+                        billed, before VAT (WEB-021). */}
+                    <p className="col-span-5 -mt-1 px-1 text-right text-[11px] text-muted-foreground tabular-nums">
+                      {t("lineTotal")}: {formatMoney(Math.round((Number(l.quantity) || 0) * (Number(l.unitPrice) || 0) * (1 - (Number(l.discountPct) || 0) / 100) * 100) / 100, currency)}
+                    </p>
+
                     {/* Only for an exempt line, and only then: the AEAT needs
                         to know under which article, and there is no safe
                         default to pick on the user's behalf. */}
@@ -794,9 +839,6 @@ export function FacturacionView() {
                     )}
                   </div>
                 ))}
-              </div>
-              <div className="grid grid-cols-[1fr_80px_104px_84px_auto] gap-2 mt-1 px-1 text-[10px] uppercase tracking-wide text-muted-foreground/60">
-                <span>{t("description")}</span><span className="text-right">{t("qty")}</span><span className="text-right">{t("unitPrice")}</span><span className="text-right">{t("tax")}%</span><span></span>
               </div>
             </div>
 
@@ -819,14 +861,17 @@ export function FacturacionView() {
               <div className="flex justify-between font-bold text-foreground text-base"><span>{t("total")}</span><span>{formatMoney(totals.total, currency)}</span></div>
             </div>
 
-            {(error || validationError) && (
-              <div className="flex items-start gap-2 bg-destructive/10 border border-destructive/20 rounded-lg p-3 mt-4">
-                <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
-                <p className="text-destructive text-sm">{error ?? validationError}</p>
-              </div>
-            )}
-
-            <div className="flex items-center justify-end gap-2 mt-5">
+            {/* The pending-requirement message shares a row with the buttons
+                instead of sitting above them: as it appeared, changed and
+                disappeared while typing, it moved "Emitir" up and down under
+                the pointer (WEB-005). */}
+            <div className="flex items-start justify-end gap-2 mt-5">
+              {(error || validationError) && (
+                <p className={cn("flex-1 min-w-0 flex items-start gap-1.5 text-xs pt-2", error ? "text-destructive" : "text-muted-foreground")}>
+                  <AlertTriangle className={cn("w-3.5 h-3.5 mt-px shrink-0", error ? "text-destructive" : "text-[var(--status-pending)]")} />
+                  <span>{error ?? validationError}</span>
+                </p>
+              )}
               <button onClick={() => !issuing && setOpen(false)} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">{tCommon("cancel")}</button>
               <button onClick={handleIssue} disabled={issuing || !!validationError} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
                 {issuing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}

@@ -14,6 +14,8 @@ import { useOrganization } from "@/lib/context/organization-context"
 import { PAYMENT_METHODS } from "@/lib/payment-methods"
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { createClient } from "@/lib/supabase/client"
+import { toast } from "sonner"
+import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number"
 import type { Database } from "@/lib/supabase/types"
 
 type DocumentRow = Database["public"]["Tables"]["documents"]["Row"]
@@ -74,6 +76,11 @@ export function EditarView({ id }: EditarViewProps) {
   const [descripcion, setDescripcion] = useState("")
   const [moneda,     setMoneda]     = useState("EUR")
   const [metodoPago, setMetodoPago] = useState("")
+  // Set when this document is the archived PDF of an invoice issued in
+  // Facturación. Its number, type, amounts and date are that invoice's,
+  // which VeriFactu freezes — changing them here would make the archive
+  // contradict the registered invoice.
+  const [linkedInvoice, setLinkedInvoice] = useState<{ id: string; full_number: string | null } | null>(null)
 
   // File replacement
   const [newFile,    setNewFile]    = useState<File | null>(null)
@@ -85,6 +92,7 @@ export function EditarView({ id }: EditarViewProps) {
   const [loading,      setLoading]      = useState(false)
   const [error,        setError]        = useState<string | null>(null)
   const [saved,        setSaved]        = useState(false)
+  const [fetchError,   setFetchError]   = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   // Load existing document
@@ -97,7 +105,7 @@ export function EditarView({ id }: EditarViewProps) {
       .eq("id", id)
       .single()
       .then(({ data, error: err }) => {
-        if (err || !data) { setError(err?.message ?? "Documento no encontrado"); setFetchLoading(false); return }
+        if (err || !data) { setError(err?.message ?? "Documento no encontrado"); setFetchError(true); setFetchLoading(false); return }
         const d = data as DocumentRow
         setTipo(d.document_type)
         setEmpresa(d.company_id ?? "")
@@ -116,6 +124,8 @@ export function EditarView({ id }: EditarViewProps) {
         setExistingFileUrl(d.file_url)
         setFetchLoading(false)
       })
+    supabase.from("invoices").select("id, full_number").eq("document_id", id).maybeSingle()
+      .then(({ data }) => setLinkedInvoice((data as any) ?? null))
   }, [id])
 
   const computedTotal = (() => {
@@ -131,6 +141,14 @@ export function EditarView({ id }: EditarViewProps) {
 
     try {
       const supabase = createClient()
+
+      if (!linkedInvoice) {
+        const conflict = await findDocumentNumberConflict(supabase as any, {
+          orgId: currentOrg.id, number: numero, documentType: tipo, companyId: empresa || null, excludeDocumentId: id,
+        })
+        if (conflict) throw new Error(numberConflictMessage(conflict, tipo))
+      }
+
       let fileUrl  = existingFileUrl
       let fileName = existingFileName
       let fileSize: number | null = null
@@ -161,15 +179,18 @@ export function EditarView({ id }: EditarViewProps) {
       const { error: updateErr } = await supabase
         .from("documents")
         .update({
-          document_number: numero.trim() || null,
-          document_type:   tipo as any,
-          company_id:      empresa || null,
+          // An invoice archive keeps the invoice's fiscal data untouched.
+          ...(linkedInvoice ? {} : {
+            document_number: numero.trim() || null,
+            document_type:   tipo as any,
+            company_id:      empresa || null,
+            subtotal:        baseAmount,
+            tax_rate:        rate,
+            tax_amount:      taxAmount,
+            total:           total,
+            issue_date:      fecha || null,
+          }),
           status:          estado as any,
-          subtotal:        baseAmount,
-          tax_rate:        rate,
-          tax_amount:      taxAmount,
-          total:           total,
-          issue_date:      fecha || null,
           due_date:        fechaVenc || null,
           payment_date:    fechaPago || null,
           notes:           notas.trim() || null,
@@ -184,9 +205,11 @@ export function EditarView({ id }: EditarViewProps) {
       if (updateErr) throw updateErr
 
       setSaved(true)
+      toast.success(tCommon("saved"))
       setTimeout(() => router.push(`/factura/${id}`), 800)
     } catch (err: any) {
       setError(err?.message ?? "Error al guardar los cambios")
+      toast.error(err?.message ?? "Error al guardar los cambios")
     } finally {
       setLoading(false)
     }
@@ -230,17 +253,23 @@ export function EditarView({ id }: EditarViewProps) {
         </div>
       </div>
 
-      {saved && (
-        <div className="mb-6 flex items-center gap-2.5 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          <p className="text-sm font-medium text-foreground">{tCommon("saved")}</p>
-        </div>
-      )}
-
-      {error && !saved && (
+      {/* Save confirmation is a toast: an inline banner appearing here pushed
+          the whole form down under the pointer (WEB-005). A load error still
+          shows inline — there is no form to push then. */}
+      {error && !saved && fetchError && (
         <div className="mb-6 flex items-start gap-2.5 px-4 py-3 bg-destructive/10 border border-destructive/20 rounded-xl">
           <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
           <p className="text-sm text-destructive">{error}</p>
+        </div>
+      )}
+
+      {linkedInvoice && (
+        <div className="mb-6 flex items-start gap-2.5 px-4 py-3 bg-primary/5 border border-primary/20 rounded-xl">
+          <AlertCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+          <p className="text-sm text-foreground">
+            {tCommon("invoiceArchiveLocked", { number: linkedInvoice.full_number ?? "" })}{" "}
+            <Link href={`/facturacion/${linkedInvoice.id}`} className="font-semibold text-primary hover:underline">{tCommon("openInvoice")}</Link>
+          </p>
         </div>
       )}
 
@@ -257,7 +286,7 @@ export function EditarView({ id }: EditarViewProps) {
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">{t("docType")}</label>
                   <div className="relative">
-                    <select required value={tipo} onChange={e => setTipo(e.target.value)}
+                    <select required value={tipo} disabled={!!linkedInvoice} onChange={e => setTipo(e.target.value)}
                       className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
                       <option value="">{t("selectType")}</option>
                       {DOC_TYPES.map(k => <option key={k} value={k}>{tTypes(k)}</option>)}
@@ -268,7 +297,7 @@ export function EditarView({ id }: EditarViewProps) {
 
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">{t("docNumber")}</label>
-                  <input type="text" placeholder="FAC-2024-0001" value={numero}
+                  <input type="text" placeholder="FAC-2024-0001" value={numero} disabled={!!linkedInvoice}
                     onChange={e => setNumero(e.target.value)}
                     className="w-full px-3 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground" />
                 </div>
@@ -278,7 +307,7 @@ export function EditarView({ id }: EditarViewProps) {
                     <Building2 className="w-3.5 h-3.5 inline mr-1" />{t("company")}
                   </label>
                   <div className="relative">
-                    <select value={empresa} onChange={e => setEmpresa(e.target.value)}
+                    <select value={empresa} disabled={!!linkedInvoice} onChange={e => setEmpresa(e.target.value)}
                       className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
                       <option value="">{t("selectCompany")}</option>
                       {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -322,7 +351,7 @@ export function EditarView({ id }: EditarViewProps) {
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">
                     <Calendar className="w-3.5 h-3.5 inline mr-1" />{tFields("issueDate")}
                   </label>
-                  <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+                  <input type="date" value={fecha} disabled={!!linkedInvoice} onChange={e => setFecha(e.target.value)}
                     className="w-full px-3 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground" />
                 </div>
                 <div>
@@ -359,7 +388,7 @@ export function EditarView({ id }: EditarViewProps) {
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">{tFields("taxableBase")}</label>
                   <div className="relative">
-                    <input type="text" placeholder="0,00" value={subtotal} onChange={e => setSubtotal(e.target.value)}
+                    <input type="text" placeholder="0,00" value={subtotal} disabled={!!linkedInvoice} onChange={e => setSubtotal(e.target.value)}
                       className="w-full px-3 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground" />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">{moneda}</span>
                   </div>
@@ -367,7 +396,7 @@ export function EditarView({ id }: EditarViewProps) {
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">{tFields("vatRate")}</label>
                   <div className="relative">
-                    <select value={taxRate} onChange={e => setTaxRate(e.target.value)}
+                    <select value={taxRate} disabled={!!linkedInvoice} onChange={e => setTaxRate(e.target.value)}
                       className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
                       {["0","4","10","21"].map(v => <option key={v} value={v}>{v}%</option>)}
                     </select>

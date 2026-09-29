@@ -12,6 +12,8 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useOrganization, ALL_ORGS_ID } from "@/lib/context/organization-context"
 import { useDocuments } from "@/lib/hooks/use-documents"
+import { useLinkedStatuses, type LinkedStatus } from "@/lib/hooks/use-linked-status"
+import { toast } from "sonner"
 import { useFolders } from "@/lib/hooks/use-folders"
 import { downloadCSV, downloadExcel } from "@/lib/utils/export"
 import { createClient } from "@/lib/supabase/client"
@@ -25,6 +27,46 @@ const TYPE_STYLES: Record<string, { icon: React.ElementType; className: string }
   receipt:          { icon: Receipt,   className: "bg-secondary-foreground/10 text-muted-foreground" },
   order:            { icon: FolderOpen, className: "bg-blue-100/50 text-blue-600" },
   quote:            { icon: FileSpreadsheet, className: "bg-secondary-foreground/10 text-muted-foreground" },
+}
+
+const ROW_STATUSES = ["draft", "pending", "paid", "overdue", "cancelled"] as const
+
+/**
+ * Status cell of a library row. An archived order / albarán / invoice shows
+ * its source's real status and links there — that is where it changes
+ * (WEB-009). Any other document can be re-statused in place (WEB-018).
+ */
+function DocStatusCell({ doc, linked, editable, label, onChange }: {
+  doc: { id: string; status: string }
+  linked?: LinkedStatus
+  editable: boolean
+  label: (s: string) => string
+  onChange: (status: string) => void
+}) {
+  if (linked) {
+    return (
+      <Link href={linked.href} title={linked.label} onClick={e => e.stopPropagation()}
+        className={cn("text-xs px-2 py-0.5 rounded-full font-medium truncate hover:opacity-80", linked.style)}>
+        {linked.label}
+      </Link>
+    )
+  }
+  if (!editable) {
+    return <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", STATUS_STYLES[doc.status] ?? "bg-muted text-muted-foreground")}>{label(doc.status)}</span>
+  }
+  return (
+    <select
+      value={doc.status}
+      onChange={e => onChange(e.target.value)}
+      onClick={e => e.stopPropagation()}
+      onMouseDown={e => e.stopPropagation()}
+      draggable={false}
+      aria-label={label(doc.status)}
+      className={cn("text-xs pl-2 pr-1 py-0.5 rounded-full font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring max-w-full", STATUS_STYLES[doc.status] ?? "bg-muted text-muted-foreground")}
+    >
+      {ROW_STATUSES.map(s => <option key={s} value={s}>{label(s)}</option>)}
+    </select>
+  )
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -55,6 +97,17 @@ export function BibliotecaView() {
   const [search, setSearch] = useState("")
   const [filterType, setFilterType] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
+  // "Ver documentos" on a client card links here with ?empresa=<id>; the
+  // parameter was ignored and the whole library opened (WEB-020). The
+  // dashboard's overdue banner likewise sends ?status=overdue.
+  const [filterCompany, setFilterCompany] = useState<string | null>(null)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const empresa = params.get("empresa")
+    const status = params.get("status")
+    if (empresa) setFilterCompany(empresa)
+    if (status) setFilterStatus(status)
+  }, [])
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null) // null = all docs
@@ -88,6 +141,20 @@ export function BibliotecaView() {
 
   const { currentOrg, isOrgAdmin, isViewer } = useOrganization()
   const { documents, loading, mutate: mutateDocuments } = useDocuments(currentOrg?.id ?? null)
+  const { linked } = useLinkedStatuses(currentOrg?.id ?? null)
+
+  // Status from the row itself (WEB-018): marking a received invoice as paid
+  // was open → edit → save. Paying records today's date if none was set.
+  const handleStatusChange = async (docId: string, status: string) => {
+    const supabase: any = createClient()
+    const doc = documents.find(d => d.id === docId)
+    const patch: Record<string, unknown> = { status, updated_at: new Date().toISOString() }
+    if (status === "paid" && !doc?.payment_date) patch.payment_date = new Date().toISOString().slice(0, 10)
+    const { error } = await supabase.from("documents").update(patch).eq("id", docId)
+    if (error) { toast.error(error.message); return }
+    toast.success(tCommon("saved"))
+    await mutateDocuments()
+  }
   const { folders, mutate: mutateFolders } = useFolders(currentOrg?.id ?? null)
 
   const toggleExpand = (id: string) =>
@@ -276,6 +343,7 @@ export function BibliotecaView() {
       (d.company?.name ?? "").toLowerCase().includes(search.toLowerCase())
     const matchType = filterType === "all" || d.document_type === filterType
     const matchStatus = filterStatus === "all" || d.status === filterStatus
+    const matchCompany = !filterCompany || d.company_id === filterCompany
     const matchDate = (() => {
       if (!dateFrom && !dateTo) return true
       if (!d.issue_date) return !dateFrom  // docs without date only shown when no lower bound
@@ -289,13 +357,15 @@ export function BibliotecaView() {
       return [id, ...children.flatMap((c: any) => getFolderIds(c.id))]
     }
     // Root view = only docs with no folder (unless searching — search shows everything)
-    const matchFolder = search.trim()
+    // A client's documents may be filed in any folder, so filtering by client
+    // looks everywhere, the same as a search does.
+    const matchFolder = search.trim() || filterCompany
       ? true
       : selectedFolder === null
         ? !(d as any).folder_id
         : getFolderIds(selectedFolder).includes((d as any).folder_id)
-    return matchSearch && matchType && matchStatus && matchDate && matchFolder
-  }), [documents, search, filterType, filterStatus, dateFrom, dateTo, selectedFolder])
+    return matchSearch && matchType && matchStatus && matchDate && matchFolder && matchCompany
+  }), [documents, search, filterType, filterStatus, dateFrom, dateTo, selectedFolder, filterCompany])
 
   // Reset to page 1 when filters change
   useEffect(() => { setPage(1) }, [search, filterType, filterStatus, dateFrom, dateTo, selectedFolder])
@@ -701,11 +771,22 @@ export function BibliotecaView() {
         </div>
       ) : (
         <>
+          {filterCompany && (
+            <div className="mb-3 flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                {t("filteredByClient", { name: documents.find(d => d.company_id === filterCompany)?.company?.name ?? "" })}
+                <button onClick={() => { setFilterCompany(null); window.history.replaceState(null, "", window.location.pathname) }}
+                  className="p-0.5 rounded-full hover:bg-primary/20" aria-label={t("clearFilters")}>
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            </div>
+          )}
           {viewMode === "list" && (
             <div className="relative">
               <div className="bg-card border border-border rounded-xl overflow-hidden overflow-x-auto">
                 <div className="min-w-[700px]">
-                <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1.5fr_auto] gap-4 px-5 py-3 bg-muted/50 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_112px] gap-4 px-5 py-3 bg-muted/50 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   <span>{t("columns.document")}</span>
                   <span>{t("columns.company")}</span>
                   <span>{t("columns.type")}</span>
@@ -734,7 +815,7 @@ export function BibliotecaView() {
                         }}
                         onDragEnd={() => { setDragDocId(null); setDragOverFolder(null) }}
                         className={cn(
-                          "grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1.5fr_auto] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-all duration-300 group relative cursor-grab active:cursor-grabbing select-none",
+                          "grid grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_112px] gap-4 items-center px-5 py-3.5 hover:bg-muted/30 transition-all duration-300 group relative cursor-grab active:cursor-grabbing select-none",
                           dragDocId === doc.id && "opacity-0",
                           movingOutId === doc.id && "opacity-0 -translate-x-12 scale-y-0 pointer-events-none",
                           // Lift the active row above siblings so the move-to-folder dropdown isn't covered
@@ -755,13 +836,19 @@ export function BibliotecaView() {
                           </Link>
                         </div>
                         <span className="text-sm text-muted-foreground truncate">{doc.company?.name ?? "—"}</span>
-                        <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium inline-flex w-fit", typeClass)}>{tTypes(doc.document_type as any)}</span>
-                        <span className="text-sm font-semibold text-foreground">{doc.total != null ? `${doc.total.toFixed(2)} ${doc.currency ?? "€"}` : "—"}</span>
-                        <span className="text-sm text-muted-foreground">{doc.issue_date ? new Date(doc.issue_date).toLocaleDateString() : "—"}</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", STATUS_STYLES[doc.status] ?? "bg-muted text-muted-foreground")}>{tStatuses(doc.status as any)}</span>
+                        <span className="min-w-0"><span className={cn("text-xs px-2 py-0.5 rounded-full font-medium inline-flex max-w-full truncate", typeClass)}>{tTypes(doc.document_type as any)}</span></span>
+                        <span className="text-sm font-semibold text-foreground truncate tabular-nums">{doc.total != null ? `${doc.total.toFixed(2)} ${doc.currency ?? "€"}` : "—"}</span>
+                        <span className="text-sm text-muted-foreground truncate">{doc.issue_date ? new Date(doc.issue_date).toLocaleDateString() : "—"}</span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <DocStatusCell
+                            doc={doc}
+                            linked={linked.get(doc.id)}
+                            editable={!isViewer}
+                            label={s => tStatuses(s as any)}
+                            onChange={status => handleStatusChange(doc.id, status)}
+                          />
                         </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Link href={`/factura/${doc.id}`} className="p-1.5 rounded hover:bg-muted transition-colors" title={tActions("preview")}>
                             <Eye className="w-3.5 h-3.5 text-muted-foreground" />
                           </Link>
@@ -933,8 +1020,8 @@ export function BibliotecaView() {
                       )}
                       <div className="flex justify-between items-center pt-1">
                         <span className="text-muted-foreground">{tFields("status")}</span>
-                        <span className={cn("px-1.5 py-0.5 rounded-full font-medium", STATUS_STYLES[previewDoc.status] ?? "bg-muted text-muted-foreground")}>
-                          {tStatuses(previewDoc.status as any)}
+                        <span className={cn("px-1.5 py-0.5 rounded-full font-medium", linked.get(previewDoc.id)?.style ?? STATUS_STYLES[previewDoc.status] ?? "bg-muted text-muted-foreground")}>
+                          {linked.get(previewDoc.id)?.label ?? tStatuses(previewDoc.status as any)}
                         </span>
                       </div>
                     </div>
@@ -958,7 +1045,7 @@ export function BibliotecaView() {
                       <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
                         <Icon className="w-5 h-5 text-muted-foreground" />
                       </div>
-                      <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", STATUS_STYLES[doc.status] ?? "bg-muted text-muted-foreground")}>{tStatuses(doc.status as any)}</span>
+                      <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", linked.get(doc.id)?.style ?? STATUS_STYLES[doc.status] ?? "bg-muted text-muted-foreground")}>{linked.get(doc.id)?.label ?? tStatuses(doc.status as any)}</span>
                     </div>
                     <p className="text-sm font-semibold text-foreground mb-1">{doc.document_number}</p>
                     <p className="text-xs text-muted-foreground mb-3">{doc.company?.name ?? "—"}</p>

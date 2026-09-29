@@ -39,7 +39,9 @@
     "saving": "Guardando...",
     "saved": "Guardado",
     "deleting": "Eliminando...",
-    "noAccess": "No tienes permisos para esta sección"
+    "noAccess": "No tienes permisos para esta sección",
+    "invoiceArchiveLocked": "Este documento es el archivo de la factura {number}, emitida en Facturación. Su número, importes y fecha los fija VeriFactu y no se pueden cambiar aquí; sí el estado, las fechas de vencimiento y pago, la forma de pago y las notas.",
+    "openInvoice": "Abrir la factura →"
   },
   "auth": {
     "login": {
@@ -161,7 +163,7 @@
     "sortPriceAsc": "Precio ↑",
     "sortStockDesc": "Stock ↓",
     "sortStockAsc": "Stock ↑",
-    "results": "{count} productos",
+    "results": "{count, plural, one {producto} other {productos}}",
     "productsIn": "en {category}",
     "exportExcel": "Exportar Excel",
     "skuPlaceholder": "Automática si se deja vacía",
@@ -169,7 +171,8 @@
     "minStockPlaceholder": "Sin aviso",
     "minStockHint": "Si lo rellenas, te avisamos aquí cuando el stock baje a ese número o menos. Déjalo vacío para no vigilarlo.",
     "lowStockBadge": "Stock bajo",
-    "lowStockTitle": "{count, plural, one {# producto ha llegado a su stock mínimo} other {# productos han llegado a su stock mínimo}}"
+    "lowStockTitle": "{count, plural, one {# producto ha llegado a su stock mínimo} other {# productos han llegado a su stock mínimo}}",
+    "createdToast": "Producto «{name}» creado"
   },
   "invoicing": {
     "title": "Facturación",
@@ -244,7 +247,9 @@
       "client_required": "Selecciona un cliente.",
       "no_lines": "Añade al menos una línea con descripción.",
       "exemptionCause": "Indica el motivo de exención de las líneas exentas.",
-      "exchangeRateRequired": "Indica el tipo de cambio a euros para facturar en {currency}."
+      "exchangeRateRequired": "Indica el tipo de cambio a euros para facturar en {currency}.",
+      "zeroTotal": "El total de la factura es 0,00. Revisa cantidades y precios: una factura emitida no se puede retirar, solo rectificar.",
+      "zero_total": "El total de la factura es 0,00. Revisa cantidades y precios: una factura emitida no se puede retirar, solo rectificar."
     },
     "paywallTitle": "La facturación es una función de pago",
     "paywallBody": "Emite facturas digitales conformes con Verifactu actualizando a un plan de pago. La versión gratuita no incluye facturación.",
@@ -266,7 +271,7 @@
     "sortAmountDesc": "Importe ↓",
     "sortAmountAsc": "Importe ↑",
     "sortNumber": "Número",
-    "results": "{count} facturas",
+    "results": "{count, plural, one {factura} other {facturas}}",
     "noResults": "Sin facturas",
     "noResultsHint": "Prueba con otros filtros o términos de búsqueda",
     "searchClient": "Buscar cliente por nombre o CIF...",
@@ -308,7 +313,15 @@
     "markUnpaid": "Marcar como pendiente",
     "savePayment": "Guardar",
     "paymentSaved": "Guardado",
-    "paymentSaveError": "No se pudo guardar el cobro"
+    "paymentSaveError": "No se pudo guardar el cobro",
+    "lineTotal": "Total línea (sin IVA)",
+    "unitPriceNoTax": "Precio ud.",
+    "dueOnReceipt": "Al contado",
+    "dueInDays": "{days} días",
+    "issuedToast": "Factura {number} emitida",
+    "issuedBanner": "Factura {number} emitida y registrada. Siguiente paso: enviársela al cliente.",
+    "verifactuWhat": "¿Qué es esto?",
+    "verifactuExplain": "VERI*FACTU es el sistema de la Agencia Tributaria para facturas verificables. Cada factura genera un registro con una «huella» (un código calculado a partir de sus datos y de los de la factura anterior), de modo que cualquier cambio posterior se detectaría. El registro se envía a la AEAT, y el cliente puede comprobar la factura en la sede de la AEAT escaneando el código QR."
   },
   "verifactu": {
     "title": "Certificado Verifactu (AEAT)",
@@ -381,7 +394,17 @@
     "noDocumentsHintViewer": "Aquí aparecerán los documentos a los que tengas acceso.",
     "overdueAlert": "{count} documento{plural} vencido{plural}",
     "viewOverdue": "Ver todos",
-    "cancelMark": "Marcar como cancelado"
+    "cancelMark": "Marcar como cancelado",
+    "uploadDocument": "Subir documento",
+    "newInvoice": "Nueva factura",
+    "columns": {
+      "document": "Documento",
+      "type": "Tipo",
+      "amount": "Importe",
+      "status": "Estado"
+    },
+    "noSearchMatches": "Ningún documento coincide con «{query}».",
+    "openAdvancedSearch": "Buscar en el Buscador avanzado →"
   },
   "documents": {
     "types": {
@@ -490,7 +513,10 @@
       "successMessage": "El documento {number} ha sido archivado en la biblioteca digital.",
       "viewInLibrary": "Ver en biblioteca",
       "uploadAnother": "Subir otro",
-      "archiveReminder": "Recuerda pulsar «Archivar Documento» para que tu factura quede correctamente guardada."
+      "archiveReminder": "Recuerda pulsar «Archivar Documento» para que tu factura quede correctamente guardada.",
+      "docNumberPlaceholder": "Nº del documento",
+      "issuedInvoiceNotice": "Aquí se archivan facturas emitidas fuera de Archivum. Para emitir una factura nueva, con líneas, IVA y VeriFactu, usa Facturación.",
+      "goToInvoicing": "Crear factura →"
     },
     "library": {
       "title": "Biblioteca de Documentos",
@@ -512,7 +538,8 @@
         "amount": "Importe",
         "date": "Fecha",
         "statusTags": "Estado / Etiquetas"
-      }
+      },
+      "filteredByClient": "Documentos de {name}"
     },
     "export": {
       "button": "Exportar",
@@ -540,7 +567,7 @@
       "companyFilter": "Cliente",
       "tagsFilter": "Etiquetas",
       "loading": "Cargando resultados...",
-      "results": "{count} resultados encontrados",
+      "results": "{count, plural, one {resultado encontrado} other {resultados encontrados}}",
       "resultFor": "para \"{query}\"",
       "sortByDate": "Ordenar por fecha",
       "sortDateDesc": "Fecha ↓",
@@ -598,7 +625,11 @@
     "paymentDueDays": "Vencimiento (días)",
     "paymentDueDaysHint": "Días desde la fecha de la factura. Se usa para proponer el vencimiento al facturar.",
     "paymentTerms": "Condiciones de pago",
-    "daysSuffix": "{days} días"
+    "daysSuffix": "{days} días",
+    "requiredToInvoice": "necesario para facturar",
+    "requiredToInvoiceHint": "Una factura tiene que llevar el NIF y la dirección del cliente. Puedes guardar el cliente sin ellos, pero no facturarle.",
+    "optional": "opcional",
+    "createdToast": "Cliente «{name}» creado"
   },
   "admin": {
     "title": "Panel de Administración",
@@ -814,7 +845,7 @@
     "missingHeaders": "El archivo no tiene las columnas esperadas. Descarga la plantilla y no cambies los nombres de las columnas.",
     "requiredFieldMissing": "El nombre es obligatorio.",
     "invalidEmail": "El correo electrónico no es válido.",
-    "invalidCountry": "El código de país debe tener 2 letras (por ejemplo, ES).",
+    "invalidCountry": "País no reconocido: elige uno de la lista desplegable o escribe su código de 2 letras (ES, FR, DE…).",
     "invalidNumber": "«{value}» no es un número válido.",
     "summaryValid": "{valid} de {total} filas correctas.",
     "rowError": "Fila {row}: {message}",
@@ -822,7 +853,8 @@
     "back": "Atrás",
     "errorGeneric": "No se pudo completar la importación. {message}",
     "importSuccess": "Se han importado {count} {kind} correctamente.",
-    "closeButton": "Cerrar"
+    "closeButton": "Cerrar",
+    "countriesSheet": "Países"
   },
   "tutorial": {
     "skip": "Saltar",

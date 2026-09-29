@@ -11,6 +11,8 @@ import { useTranslations } from "next-intl"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { isPaymentMethod } from "@/lib/payment-methods"
+import { useOrganization } from "@/lib/context/organization-context"
+import { useLinkedStatuses } from "@/lib/hooks/use-linked-status"
 import type { Database, DocumentType } from "@/lib/supabase/types"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -187,6 +189,8 @@ function WorkflowChain({
 interface FacturaViewProps { id: string }
 
 export function FacturaView({ id }: FacturaViewProps) {
+  const { currentOrg: linkedOrg } = useOrganization()
+  const { linked } = useLinkedStatuses(linkedOrg?.id ?? null)
   const tTypes    = useTranslations("documents.types")
   const tStatuses = useTranslations("documents.statuses")
   const tFields   = useTranslations("documents.fields")
@@ -303,7 +307,9 @@ export function FacturaView({ id }: FacturaViewProps) {
 
   // ── Derived labels ───────────────────────────────────────────────────────────
   const typeLabel   = tTypes(doc.document_type as Parameters<typeof tTypes>[0])
-  const statusLabel = tStatuses(doc.status as Parameters<typeof tStatuses>[0])
+  // An archived order / albarán / invoice shows its source's status (WEB-009).
+  const linkedStatus = linked.get(doc.id)
+  const statusLabel = linkedStatus?.label ?? tStatuses(doc.status as Parameters<typeof tStatuses>[0])
   const docTitle    = doc.document_number ?? doc.id.slice(0, 8).toUpperCase()
 
   return (
@@ -326,7 +332,7 @@ export function FacturaView({ id }: FacturaViewProps) {
             <span className="text-xs font-medium text-muted-foreground hidden sm:inline">· {typeLabel}</span>
             <span className={cn(
               "text-xs px-2 py-0.5 rounded-full font-medium shrink-0",
-              STATUS_STYLES[doc.status] ?? STATUS_STYLES.draft
+              linkedStatus?.style ?? STATUS_STYLES[doc.status] ?? STATUS_STYLES.draft
             )}>
               {statusLabel}
             </span>
@@ -482,7 +488,7 @@ export function FacturaView({ id }: FacturaViewProps) {
               <p className="text-base font-bold text-foreground">{typeLabel}</p>
               <span className={cn(
                 "inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full font-medium",
-                STATUS_STYLES[doc.status] ?? STATUS_STYLES.draft
+                linkedStatus?.style ?? STATUS_STYLES[doc.status] ?? STATUS_STYLES.draft
               )}>
                 {statusLabel}
               </span>

@@ -16,6 +16,7 @@ import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
 import { Button, Card, Input } from "@/components/ui";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
+import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number";
 
 /** Same label treatment as Input, but the value comes from the calendar. */
 function DateRow({ label, value, onChange, C }: {
@@ -49,6 +50,10 @@ export default function EditarScreen() {
   const [notes,     setNotes]     = useState("");
   const [desc,      setDesc]      = useState("");
   const [payMethod, setPayMethod] = useState("");
+  const [docMeta,   setDocMeta]   = useState<{ orgId: string; type: string; companyId: string | null } | null>(null);
+  // Set when this document is the archived PDF of an invoice issued in
+  // Facturación: its number, amounts and date are frozen by VeriFactu.
+  const [linkedInvoice, setLinkedInvoice] = useState<string | null>(null);
 
   const STATUS_OPTIONS = [
     { key: "draft",     label: t("status.draft") },
@@ -73,8 +78,11 @@ export default function EditarScreen() {
       setNotes(data.notes ?? "");
       setDesc(data.description ?? "");
       setPayMethod(data.payment_method ?? "");
+      setDocMeta({ orgId: data.organization_id, type: data.document_type, companyId: data.company_id ?? null });
       setLoading(false);
     });
+    supabase.from("invoices").select("full_number").eq("document_id", id).maybeSingle()
+      .then(({ data }) => setLinkedInvoice((data as { full_number: string | null } | null)?.full_number ?? null));
   }, [id]);
 
   const handleSave = async () => {
@@ -84,14 +92,24 @@ export default function EditarScreen() {
     const taxAmount  = baseAmount != null && rate != null ? baseAmount * rate / 100 : null;
     const totalVal   = amount ? parseFloat(amount.replace(",", ".")) : (baseAmount != null ? baseAmount + (taxAmount ?? 0) : null);
 
-    await supabase.from("documents").update({
-      document_number: docNumber.trim(),
+    if (!linkedInvoice && docMeta) {
+      const conflict = await findDocumentNumberConflict({
+        orgId: docMeta.orgId, number: docNumber, documentType: docMeta.type, companyId: docMeta.companyId, excludeDocumentId: id,
+      });
+      if (conflict) { setSaving(false); Alert.alert(t("common.error"), numberConflictMessage(conflict, docMeta.type)); return; }
+    }
+
+    const { error } = await supabase.from("documents").update({
+      // An invoice archive keeps the invoice's fiscal data untouched.
+      ...(linkedInvoice ? {} : {
+        document_number: docNumber.trim(),
+        total:        totalVal,
+        subtotal:     baseAmount,
+        tax_rate:     rate,
+        tax_amount:   taxAmount,
+        issue_date:   issueDate || null,
+      }),
       status,
-      total:        totalVal,
-      subtotal:     baseAmount,
-      tax_rate:     rate,
-      tax_amount:   taxAmount,
-      issue_date:   issueDate || null,
       due_date:     dueDate   || null,
       payment_date: payDate   || null,
       payment_method: payMethod || null,
@@ -100,6 +118,7 @@ export default function EditarScreen() {
       updated_at:   new Date().toISOString(),
     }).eq("id", id);
     setSaving(false);
+    if (error) { Alert.alert(t("common.error"), error.message ?? t("editar.saveError")); return; }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -153,10 +172,17 @@ export default function EditarScreen() {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {!!linkedInvoice && (
+            <Card containerStyle={{ marginHorizontal: spacing.lg, marginTop: spacing.md }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.text }}>
+                {t("editar.invoiceArchiveLocked", { number: linkedInvoice })}
+              </Text>
+            </Card>
+          )}
           {/* Información */}
           <Text style={sectionStyle}>{t("editar.information")}</Text>
           <Card containerStyle={{ marginHorizontal: spacing.lg }} style={{ gap: spacing.md }}>
-            <Input label={t("editar.docNumber")} value={docNumber} onChangeText={setDocNumber} placeholder="FAC-2025-0001" />
+            <Input label={t("editar.docNumber")} value={docNumber} onChangeText={setDocNumber} placeholder="Nº" editable={!linkedInvoice} />
             <View>
               <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: C.text, marginBottom: spacing.sm }}>{t("editar.status")}</Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs + 2 }}>
@@ -181,7 +207,9 @@ export default function EditarScreen() {
           {/* Fechas */}
           <Text style={sectionStyle}>{t("editar.dates")}</Text>
           <Card containerStyle={{ marginHorizontal: spacing.lg }} style={{ gap: spacing.md }}>
-            <DateRow C={C} label={t("editar.issueDate")}   value={issueDate} onChange={setIssueDate} />
+            {linkedInvoice
+              ? <Input label={t("editar.issueDate")} value={issueDate} editable={false} />
+              : <DateRow C={C} label={t("editar.issueDate")}   value={issueDate} onChange={setIssueDate} />}
             <DateRow C={C} label={t("editar.dueDate")}     value={dueDate}   onChange={setDueDate} />
             <DateRow C={C} label={t("editar.paymentDate")} value={payDate}   onChange={setPayDate} />
             <PaymentMethodPicker label={t("editar.paymentMethod")} value={payMethod} onChange={setPayMethod} />
@@ -190,9 +218,9 @@ export default function EditarScreen() {
           {/* Importes */}
           <Text style={sectionStyle}>{t("editar.amounts")}</Text>
           <Card containerStyle={{ marginHorizontal: spacing.lg }} style={{ gap: spacing.md }}>
-            <Input label={t("editar.total")} value={amount} onChangeText={setAmount} keyboardType="numeric" placeholder="4280.00" />
-            <Input label={t("editar.subtotal")} value={taxable} onChangeText={setTaxable} keyboardType="numeric" placeholder="3537.19" />
-            <Input label={t("editar.taxRate")} value={vatRate} onChangeText={setVatRate} keyboardType="numeric" placeholder="21" />
+            <Input label={t("editar.total")} value={amount} onChangeText={setAmount} editable={!linkedInvoice} keyboardType="numeric" placeholder="4280.00" />
+            <Input label={t("editar.subtotal")} value={taxable} onChangeText={setTaxable} editable={!linkedInvoice} keyboardType="numeric" placeholder="3537.19" />
+            <Input label={t("editar.taxRate")} value={vatRate} onChangeText={setVatRate} editable={!linkedInvoice} keyboardType="numeric" placeholder="21" />
           </Card>
 
           {/* Notas */}

@@ -129,7 +129,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
     ...(hasPaidModules
       ? [
           { section: "inventario"   as const, label: t("inventory"),     icon: Package,       href: "/inventario" },
-          { section: "presupuestos" as const, label: t("quotes"),        icon: ClipboardList, href: "/presupuestos" },
+          { section: "presupuestos" as const, label: t("quotes"),        icon: ClipboardList, href: "/pedidos" },
           { section: "albaranes"    as const, label: t("deliveryNotes"), icon: Truck,         href: "/albaranes" },
           { section: "facturacion"  as const, label: t("invoicing"),     icon: Receipt,       href: "/facturacion" },
         ]
@@ -166,7 +166,11 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
 
       {/* Navigation (square button grid) + summary — scroll together */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-4">
-        <nav className="grid grid-cols-2 gap-2">
+        {/* Three compact columns, not two square tiles: at two per row the
+            eleven modules ran ~900px tall and Pedidos, Albaranes, Facturación
+            and Usuarios sat below the fold with nothing hinting they were
+            there (WEB-003). Now the whole menu fits in the first screen. */}
+        <nav className="grid grid-cols-3 gap-1.5">
           {navItems.map((item) => {
             const active = pathname === item.href
             const showBadge = item.href === "/biblioteca" && overdueCount > 0 && !item.locked
@@ -176,7 +180,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
                 href={item.href}
                 title={item.locked ? tCommon("noAccess") : undefined}
                 className={cn(
-                  "group relative flex flex-col items-center justify-center gap-2 aspect-square rounded-xl border p-2 text-center",
+                  "group relative flex flex-col items-center justify-center gap-1.5 h-[68px] rounded-xl border px-1 py-2 text-center",
                   "transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.97]",
                   active
                     ? "bg-sidebar-primary/90 border-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-sm"
@@ -186,7 +190,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
                 )}
               >
                 <item.icon className={cn("w-5 h-5 shrink-0 transition-transform duration-200", !item.locked && "group-hover:scale-110", active && "scale-110")} />
-                <span className="text-[11px] font-medium leading-tight">{item.label}</span>
+                <span className="text-[11px] font-medium leading-tight line-clamp-2">{item.label}</span>
                 {item.locked && (
                   <Lock className="absolute top-1.5 right-1.5 w-3 h-3 text-sidebar-foreground/40" />
                 )}

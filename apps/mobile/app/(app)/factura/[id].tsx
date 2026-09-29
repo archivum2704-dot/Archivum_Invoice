@@ -35,7 +35,7 @@ interface Invoice {
   // afirmaba que la factura era verificable allí sin saber si lo era.
   verifactu_status: string | null; aeat_csv: string | null;
   aeat_error: string | null; submitted_at: string | null;
-  due_date: string | null; notes: string | null;
+  due_date: string | null; notes: string | null; document_id: string | null;
   payment_status: string | null; payment_method: string | null; payment_date: string | null;
 }
 interface Line { id: string; description: string; quantity: number; unit_price: number; tax_rate: number; line_total: number; }
@@ -90,6 +90,12 @@ export default function FacturaDetailScreen() {
     const { error } = await supabase.from("invoices").update(patch).eq("id", invoice.id);
     setPaySaving(false);
     if (error) { Alert.alert(t("common.error"), `${t("invoicing.paymentSaveError")}: ${error.message}`); return; }
+    // Keep the library copy in step: dashboard and Biblioteca total by documents.status.
+    if (invoice.document_id && patch.payment_status) {
+      await supabase.from("documents").update({
+        status: patch.payment_status, payment_date: date || null, payment_method: payMethod || null,
+      }).eq("id", invoice.document_id);
+    }
     setInvoice({ ...invoice, payment_method: payMethod || null, payment_date: date || null,
       payment_status: (patch.payment_status as string | undefined) ?? invoice.payment_status });
   };

@@ -21,6 +21,7 @@ import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
 import { Button, Card, Badge, EmptyState, type BadgeTone } from "@/components/ui";
 import { isPaymentMethod } from "@/lib/payment-methods";
+import { useLinkedStatuses } from "@/lib/linked-status";
 
 function Field({ label, value, C }: { label: string; value: string | null | undefined; C: Colors }) {
   if (value == null || value === "") return null;
@@ -39,6 +40,7 @@ export default function DocumentoDetailScreen() {
   const [folderOpen, setFolderOpen] = useState(false);
   const [moving,     setMoving]     = useState(false);
   const { orgId } = useAuth();
+  const { linked } = useLinkedStatuses(orgId);
   const { folders, loading: foldersLoading } = useFolders(orgId);
   const C = useColors();
   const { t } = useTranslation();
@@ -149,8 +151,10 @@ export default function DocumentoDetailScreen() {
     );
   }
 
-  const label = STATUS_LABEL[doc.status] ?? STATUS_LABEL.draft;
-  const tone = STATUS_TONE[doc.status] ?? "neutral";
+  // An archived order / albarán / invoice shows its source's real status.
+  const linkedStatus = linked.get(doc.id);
+  const label = linkedStatus ? t(linkedStatus.labelKey) : (STATUS_LABEL[doc.status] ?? STATUS_LABEL.draft);
+  const tone = linkedStatus?.tone ?? STATUS_TONE[doc.status] ?? "neutral";
   const fmt = (n: number | null | undefined) =>
     n != null ? `€${n.toLocaleString("es-ES", { minimumFractionDigits: 2 })}` : "—";
   const fmtDate = (s: string | null) =>

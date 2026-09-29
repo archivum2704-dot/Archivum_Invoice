@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react"
 import { FileSpreadsheet, Download, Upload, X, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
+import { COUNTRY_CODES, countryOption, parseCountry } from "@/lib/countries"
 import { createClient } from "@/lib/supabase/client"
 
 type Kind = "clients" | "products"
@@ -33,6 +34,7 @@ export function ImportExcelButton({ kind, orgId, onImported }: {
   onImported: () => void
 }) {
   const t = useTranslations("importExcel")
+  const locale = useLocale()
   const tInv = useTranslations("invoicing")
   const tProd = useTranslations("inventory")
 
@@ -83,15 +85,38 @@ export function ImportExcelButton({ kind, orgId, onImported }: {
     reset()
   }
 
+  // Built with exceljs rather than SheetJS: SheetJS cannot write data
+  // validation, and the country has to be a dropdown instead of free text
+  // checked only on upload (WEB-030). The list lives on a second sheet.
   const downloadTemplate = async () => {
-    const XLSX = await import("xlsx")
-    const exampleRow: Record<string, string> = {}
-    for (const c of columns) exampleRow[c.header] = ""
-    const ws = XLSX.utils.json_to_sheet([exampleRow])
-    ws["!cols"] = columns.map(() => ({ wch: 22 }))
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, kindLabel)
-    XLSX.writeFile(wb, `plantilla_${kind === "clients" ? "clientes" : "inventario"}.xlsx`)
+    const ExcelJS = (await import("exceljs")).default
+    const wb = new ExcelJS.Workbook()
+    const ws = wb.addWorksheet(kindLabel)
+    ws.columns = columns.map(c => ({ header: c.header, key: c.key, width: 24 }))
+    ws.getRow(1).font = { bold: true }
+
+    if (kind === "clients") {
+      const list = wb.addWorksheet(t("countriesSheet"))
+      COUNTRY_CODES.forEach((code, i) => { list.getCell(`A${i + 1}`).value = countryOption(code, locale) })
+      list.getColumn(1).width = 32
+      const col = columns.findIndex(c => c.key === "country_code") + 1
+      const range = `'${t("countriesSheet")}'!$A$1:$A$${COUNTRY_CODES.length}`
+      for (let r = 2; r <= 500; r++) {
+        ws.getCell(r, col).dataValidation = {
+          type: "list", allowBlank: true, formulae: [range],
+          showErrorMessage: false, // a code not on the list is still accepted
+        }
+      }
+      ws.getCell(2, col).value = countryOption("ES", locale)
+    }
+
+    const buffer = await wb.xlsx.writeBuffer()
+    const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }))
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `plantilla_${kind === "clients" ? "clientes" : "inventario"}.xlsx`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   // Blank -> null (field not supplied). Otherwise a finite number, or NaN if unparsable.
@@ -138,8 +163,9 @@ export function ImportExcelButton({ kind, orgId, onImported }: {
             rowErrors.push({ row: rowNum, message: t("invalidEmail") }); return
           }
 
-          const country = (get(tInv("clientCountry")) || "ES").toUpperCase()
-          if (country.length !== 2) {
+          const rawCountry = get(tInv("clientCountry"))
+          const country = rawCountry ? parseCountry(rawCountry) : "ES"
+          if (!country) {
             rowErrors.push({ row: rowNum, message: t("invalidCountry") }); return
           }
 

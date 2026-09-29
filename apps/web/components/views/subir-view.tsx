@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import {
   Upload, FileText, Image, Scan, X, CheckCircle2,
   Building2, Tag, Calendar, ChevronDown, Plus, ArrowLeft, AlertCircle, Loader2,
-  Link2, Folder,
+  Link2, Folder, Receipt,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -18,6 +18,8 @@ import { useFolders } from "@/lib/hooks/use-folders"
 import { createClient } from "@/lib/supabase/client"
 import { CoachmarkTour } from "@/components/coachmark"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
+import { NewClientModal } from "@/components/new-client-modal"
+import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number"
 
 const CURRENCIES = [
   { code: "EUR", label: "€ Euro" },
@@ -117,7 +119,7 @@ export function SubirView() {
   const tStorage  = useTranslations("settings.storage")
   const tHints    = useTranslations("coachmarks")
   const { currentOrg, userProfile, isPlatformAdmin } = useOrganization()
-  const { companies } = useCompanies(currentOrg?.id ?? null)
+  const { companies, mutate: mutateCompanies } = useCompanies(currentOrg?.id ?? null)
   const { folders } = useFolders(currentOrg?.id ?? null)
   const searchParams = useSearchParams()
   const fromId   = searchParams.get("from")
@@ -137,7 +139,12 @@ export function SubirView() {
   const [empresa,    setEmpresa]    = useState("")
   const [estado,     setEstado]     = useState("")
   const [fecha,      setFecha]      = useState("")
+  // Base imponible + % IVA, the same fields the edit form has. Asking for a
+  // single "importe total" here and for the breakdown when editing made the
+  // same document look like two different forms (WEB-016).
   const [importe,    setImporte]    = useState("")
+  const [taxRate,    setTaxRate]    = useState("21")
+  const [newClientOpen, setNewClientOpen] = useState(false)
   const [numero,     setNumero]     = useState("")
   const [etiquetas,  setEtiquetas]  = useState<string[]>([])
   const [notas,      setNotas]      = useState("")
@@ -156,7 +163,7 @@ export function SubirView() {
     const supabase = createClient()
     supabase
       .from("documents")
-      .select("id, document_number, document_type, company_id, total, currency")
+      .select("id, document_number, document_type, company_id, subtotal, tax_rate, total, currency")
       .eq("id", fromId)
       .single()
       .then(({ data }) => {
@@ -164,8 +171,13 @@ export function SubirView() {
         setParentDoc(data as ParentDoc)
         // Pre-fill company and amount from parent
         if (data.company_id) setEmpresa(data.company_id)
-        if (data.total != null)
-          setImporte(data.total.toFixed(2).replace(".", ","))
+        if (data.subtotal != null) {
+          setImporte(Number(data.subtotal).toFixed(2).replace(".", ","))
+          if (data.tax_rate != null) setTaxRate(String(Number(data.tax_rate)))
+        } else if (data.total != null) {
+          setImporte(Number(data.total).toFixed(2).replace(".", ","))
+          setTaxRate("0")
+        }
       })
   }, [fromId])
 
@@ -205,7 +217,7 @@ export function SubirView() {
     setEtiquetas(prev => prev.includes(et) ? prev.filter(x => x !== et) : [...prev, et])
 
   const reset = () => {
-    setFiles([]); setNumero(""); setImporte(""); setNotas(""); setMoneda("EUR")
+    setFiles([]); setNumero(""); setImporte(""); setTaxRate("21"); setNotas(""); setMoneda("EUR")
     setEtiquetas([]); setTipo(fromType ?? ""); setEmpresa(""); setEstado(""); setFecha(""); setCarpeta(""); setMetodoPago("")
     setError(null); setUploadedId(null)
   }
@@ -217,6 +229,14 @@ export function SubirView() {
   const persistDocument = async (status: string, enforceLimits: boolean): Promise<string> => {
     if (!currentOrg) throw new Error(t("errorArchiving"))
     const supabase = createClient()
+
+      // A document number that is already taken is refused before anything
+      // is uploaded, so a refusal leaves no orphan file in Storage.
+      const conflict = await findDocumentNumberConflict(supabase as any, {
+        orgId: currentOrg.id, number: numero, documentType: tipo || "other", companyId: empresa || null,
+      })
+      if (conflict) throw new Error(numberConflictMessage(conflict, tipo))
+
       let fileUrl: string | null = null
       let fileName: string | null = null
       let fileSize: number | null = null
@@ -278,10 +298,13 @@ export function SubirView() {
         }
       }
 
-      // 2. Parse amount
-      const totalAmount = importe
+      // 2. Parse amounts (same arithmetic as the edit form)
+      const baseAmount = importe
         ? parseFloat(importe.replace(/\./g, "").replace(",", "."))
         : null
+      const rate        = parseFloat(taxRate) || 0
+      const taxAmount   = baseAmount != null ? Math.round(baseAmount * rate) / 100 : null
+      const totalAmount = baseAmount != null ? Math.round((baseAmount + (taxAmount ?? 0)) * 100) / 100 : null
 
       // 3. Insert document record
       const { data, error: insertErr } = await supabase
@@ -296,6 +319,9 @@ export function SubirView() {
           document_number:    numero.trim() || null,
           document_type:      (tipo || "other") as any,
           status:             status as any,
+          subtotal:           baseAmount,
+          tax_rate:           rate,
+          tax_amount:         taxAmount,
           total:              totalAmount,
           currency:           moneda,
           issue_date:         fecha || null,
@@ -433,6 +459,14 @@ export function SubirView() {
         </div>
       )}
 
+      {newClientOpen && currentOrg && (
+        <NewClientModal
+          orgId={currentOrg.id}
+          onCreated={async (id) => { await mutateCompanies(); setEmpresa(id) }}
+          onClose={() => setNewClientOpen(false)}
+        />
+      )}
+
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-3 gap-6">
           <div className="col-span-2 space-y-5">
@@ -525,9 +559,22 @@ export function SubirView() {
                   </div>
                 </div>
 
+                {/* Uploading here only archives an invoice made elsewhere. A user
+                    looking to *make* one would otherwise fill this whole form
+                    and never reach Facturación (WEB-002/016). */}
+                {tipo === "invoice_issued" && (
+                  <div className="col-span-2 flex items-start gap-2.5 px-3.5 py-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <Receipt className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <p className="text-xs text-foreground leading-relaxed">
+                      {t("issuedInvoiceNotice")}{" "}
+                      <Link href="/facturacion?new=1" className="font-semibold text-primary hover:underline">{t("goToInvoicing")}</Link>
+                    </p>
+                  </div>
+                )}
+
                 <div ref={numeroRef}>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">{t("docNumber")}</label>
-                  <input required type="text" placeholder="FAC-2024-0001" value={numero}
+                  <input required type="text" placeholder={t("docNumberPlaceholder")} value={numero}
                     onChange={e => setNumero(e.target.value)}
                     className="w-full px-3 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground" />
                 </div>
@@ -544,24 +591,49 @@ export function SubirView() {
                     </select>
                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                   </div>
-                  <Link href="/empresas"
+                  {/* Created in place: leaving for Clientes lost the file and everything typed. */}
+                  <button type="button" onClick={() => setNewClientOpen(true)}
                     className="inline-flex items-center gap-1 mt-1.5 text-xs text-muted-foreground hover:text-accent transition-colors">
                     <Plus className="w-3 h-3" />
                     {companies.length === 0 ? t("addFirstCompany") : tCommon("newCompany")}
-                  </Link>
+                  </button>
                 </div>
 
-                <div ref={importeRef}>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">{t("amount")}</label>
-                  <div className="flex gap-2">
-                    <input type="text" placeholder="0,00" value={importe} onChange={e => setImporte(e.target.value)}
-                      className="flex-1 min-w-0 px-3 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground" />
-                    <div className="relative">
-                      <select value={moneda} onChange={e => setMoneda(e.target.value)}
-                        className="appearance-none pl-2 pr-6 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground font-mono">
-                        {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+                <div ref={importeRef} className="col-span-2">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1.5">{tFields("taxableBase")}</label>
+                      <div className="flex gap-2">
+                        <input type="text" inputMode="decimal" placeholder="0,00" value={importe} onChange={e => setImporte(e.target.value)}
+                          className="flex-1 min-w-0 px-3 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground" />
+                        <div className="relative">
+                          <select value={moneda} onChange={e => setMoneda(e.target.value)}
+                            className="appearance-none pl-2 pr-6 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground font-mono">
+                            {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
+                          </select>
+                          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1.5">{tFields("vatRate")}</label>
+                      <div className="relative">
+                        <select value={taxRate} onChange={e => setTaxRate(e.target.value)}
+                          className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
+                          {["0","4","10","21"].map(v => <option key={v} value={v}>{v}%</option>)}
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1.5">{tFields("total")}</label>
+                      <div className="px-3 py-2.5 text-sm bg-muted/50 border border-border rounded-lg text-foreground font-semibold">
+                        {(() => {
+                          const base = parseFloat(importe.replace(/\./g, "").replace(",", ".")) || 0
+                          const total = base + base * (parseFloat(taxRate) || 0) / 100
+                          return total > 0 ? `${total.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${moneda}` : "—"
+                        })()}
+                      </div>
                     </div>
                   </div>
                 </div>

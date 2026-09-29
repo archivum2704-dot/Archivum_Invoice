@@ -11,6 +11,7 @@ import { useColors } from "@/lib/colors";
 import { useTranslation } from "react-i18next";
 import { KeyboardModal } from "@/components/KeyboardModal";
 import { DocRow } from "@/components/DocRow";
+import { useLinkedStatuses } from "@/lib/linked-status";
 import { EmptyState } from "@/components/ui";
 import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
@@ -20,6 +21,7 @@ type SortKey = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
 
 export default function BuscarScreen() {
   const { orgId } = useAuth();
+  const { linked } = useLinkedStatuses(orgId);
   const C = useColors();
   const { t } = useTranslation();
   const [query,      setQuery]      = useState("");
@@ -148,7 +150,7 @@ export default function BuscarScreen() {
           keyboardShouldPersistTaps="handled"
           data={results}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <DocRow doc={item} />}
+          renderItem={({ item }) => <DocRow doc={item} linked={linked.get(item.id)} />}
           contentContainerStyle={{ backgroundColor: C.surface }}
           showsVerticalScrollIndicator={false}
         />

@@ -20,6 +20,19 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => { document.body.style.overflow = "" }
   }, [sidebarOpen])
 
+  // A native date field splits into day / month / year segments, so a click
+  // a few pixels off lands on the wrong one (WEB-023). Opening the calendar
+  // on any click makes the exact spot irrelevant; typing still works.
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const el = e.target as HTMLInputElement | null
+      if (el?.tagName !== "INPUT" || el.type !== "date" || el.disabled || el.readOnly) return
+      try { el.showPicker?.() } catch { /* not allowed in this context — the field still works */ }
+    }
+    document.addEventListener("click", onClick)
+    return () => document.removeEventListener("click", onClick)
+  }, [])
+
   return (
     <NavGuardProvider>
     <div className="flex h-screen overflow-hidden bg-background">

@@ -18,6 +18,8 @@ import { Coachmark } from "@/components/coachmark"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { ImportExcelButton } from "@/components/import-excel-button"
 import { PAYMENT_METHODS, isPaymentMethod } from "@/lib/payment-methods"
+import { InvoiceReq, Opt } from "@/components/new-client-modal"
+import { toast } from "sonner"
 
 const AVATAR_COLORS = ["bg-blue-500", "bg-emerald-600", "bg-violet-600", "bg-orange-500", "bg-rose-600"]
 
@@ -107,6 +109,7 @@ function CompanyModal({
 
     setSaving(false)
     if (err) { setError(err.message); return }
+    toast.success(isEdit ? tCommon("saved") : t("createdToast", { name: form.name.trim() }))
     onSaved()
     onClose()
   }
@@ -135,11 +138,11 @@ function CompanyModal({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">{t("fields.cif")}</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("fields.cif")} <InvoiceReq /></label>
               <input placeholder="B12345678" value={form.cif} onChange={set("cif")} disabled={saving} className={inputCls} />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">{t("fields.sector")}</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("fields.sector")} <Opt /></label>
               <input list="company-sectors" placeholder="Construcción" value={form.sector} onChange={set("sector")} disabled={saving} className={inputCls} />
               <datalist id="company-sectors">
                 {knownSectors.map(s => <option key={s} value={s} />)}
@@ -147,44 +150,44 @@ function CompanyModal({
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">{t("fields.address")}</label>
+            <label className="text-xs font-medium text-muted-foreground">{t("fields.address")} <InvoiceReq /></label>
             <input placeholder="Calle Mayor 1" value={form.address} onChange={set("address")} disabled={saving} className={inputCls} />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">{t("fields.postalCode")}</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("fields.postalCode")} <InvoiceReq /></label>
               <input placeholder="28001" value={form.postal_code} onChange={set("postal_code")} disabled={saving} className={inputCls} />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">{t("fields.city")}</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("fields.city")} <InvoiceReq /></label>
               <input placeholder="Madrid" value={form.city} onChange={set("city")} disabled={saving} className={inputCls} />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">{t("fields.province")}</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("fields.province")} <Opt /></label>
               <input placeholder="Madrid" value={form.province} onChange={set("province")} disabled={saving} className={inputCls} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">{t("fields.phone")}</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("fields.phone")} <Opt /></label>
               <input placeholder="+34 600 000 000" value={form.phone} onChange={set("phone")} disabled={saving} className={inputCls} />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">{t("fields.email")}</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("fields.email")} <Opt /></label>
               <input type="email" placeholder="info@empresa.es" value={form.email} onChange={set("email")} disabled={saving} className={inputCls} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">{t("paymentMethod")}</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("paymentMethod")} <Opt /></label>
               <select value={form.payment_method} onChange={set("payment_method")} disabled={saving} className={inputCls}>
                 <option value="">{tPayment("none")}</option>
                 {PAYMENT_METHODS.map(m => <option key={m} value={m}>{tPayment(m)}</option>)}
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">{t("paymentDueDays")}</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("paymentDueDays")} <Opt /></label>
               <input type="number" min={0} max={365} step={1} placeholder="30" value={form.payment_due_days} onChange={set("payment_due_days")} disabled={saving} className={inputCls} />
             </div>
             <p className="col-span-2 -mt-2 text-[11px] text-muted-foreground">{t("paymentDueDaysHint")}</p>
@@ -390,6 +393,21 @@ export function EmpresasView() {
 
   type EmpresaCard = (typeof empresas)[number]
 
+  const startEdit = (empresa: EmpresaCard) => setEditTarget({
+    id:          empresa.id,
+    name:        empresa.name,
+    cif:         empresa.cif,
+    sector:      empresa.sector,
+    address:     empresa.address,
+    postal_code: empresa.postal_code,
+    city:        empresa.city,
+    province:    empresa.province,
+    phone:       empresa.phone,
+    email:       empresa.email,
+    payment_method:   empresa.payment_method,
+    payment_due_days: empresa.payment_due_days,
+  })
+
   const renderMenu = (empresa: EmpresaCard) => (
     <div className="relative shrink-0">
       <button
@@ -418,23 +436,7 @@ export function EmpresasView() {
 
           {/* Editar */}
           <button
-            onClick={() => {
-              setOpenMenuId(null)
-              setEditTarget({
-                id:          empresa.id,
-                name:        empresa.name,
-                cif:         empresa.cif,
-                sector:      empresa.sector,
-                address:     empresa.address,
-                postal_code: empresa.postal_code,
-                city:        empresa.city,
-                province:    empresa.province,
-                phone:       empresa.phone,
-                email:       empresa.email,
-                payment_method:   empresa.payment_method,
-                payment_due_days: empresa.payment_due_days,
-              })
-            }}
+            onClick={() => { setOpenMenuId(null); startEdit(empresa) }}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
           >
             <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
@@ -537,16 +539,24 @@ export function EmpresasView() {
                     <span className="font-semibold text-foreground">{empresa.docs}</span>
                     <span className="text-muted-foreground">{t("docs")}</span>
                   </div>
-                  {empresa.cif && (
-                    <p className="text-xs text-muted-foreground font-mono">{empresa.cif}</p>
-                  )}
+                  {/* The CIF used to be repeated here, unlabelled and in another
+                      typeface, under the one in the header (WEB-011). */}
                 </div>
               </div>
 
-              <div className="px-5 pb-4">
+              {/* Edit in plain sight — it only lived in the "···" menu, where a
+                  new user did not look for it (WEB-011). */}
+              <div className="px-5 pb-4 flex gap-2">
+                <button
+                  onClick={() => startEdit(empresa)}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  {tCommon("edit")}
+                </button>
                 <Link
                   href={`/biblioteca?empresa=${empresa.id}`}
-                  className="flex items-center justify-center gap-2 w-full py-2 text-xs font-medium text-accent border border-accent/30 rounded-lg hover:bg-accent/5 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium text-accent border border-accent/30 rounded-lg hover:bg-accent/5 transition-colors"
                 >
                   <Building2 className="w-3.5 h-3.5" />
                   {t("viewDocuments")}
