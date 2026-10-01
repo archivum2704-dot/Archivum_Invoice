@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 import { Plus_Jakarta_Sans } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { OrganizationProvider } from '@/lib/context/organization-context'
 import './globals.css'
 import { Toaster } from "@/components/ui/sonner"
+import { PublicAnalytics } from "@/components/public-analytics"
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -51,7 +51,7 @@ export default async function RootLayout({
             floats over the page, so it never pushes the form under the
             cursor the way the inline banners did (WEB-005). */}
         <Toaster richColors position="top-center" closeButton />
-        <Analytics />
+        <PublicAnalytics />
       </body>
     </html>
   )

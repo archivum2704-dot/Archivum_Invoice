@@ -19,7 +19,7 @@ export default function CookiesPage() {
         },
         {
           title: 'Analítica',
-          summary: 'Vercel Analytics, que por defecto no usa cookies ni identificadores persistentes — mide visitas de forma agregada y anónima. A confirmar en el texto final si esto exime del deber de información reforzado.',
+          summary: 'Vercel Analytics, solo en las páginas públicas (inicio y páginas legales; nunca dentro de la aplicación), que por defecto no usa cookies ni identificadores persistentes — mide visitas de forma agregada y anónima. A confirmar en el texto final si esto exime del deber de información reforzado.',
         },
         {
           title: 'Lo que no se usa',
