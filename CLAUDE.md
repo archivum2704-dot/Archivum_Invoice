@@ -412,6 +412,7 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
   landing y en los planes. **Hoy eso no se sostiene** — falta la declaración
   responsable y nunca se ha probado contra la AEAT. Pendiente de suavizar.
 - Los avisos de stock mínimo son **dentro de la app**, no por correo ni push.
+- **Los datos NO están en Europa** (Vercel `iad1`, Supabase `us-east-1`). El 1 de octubre se quitó de la landing «Datos en Europa (EU)» y «Alojado en Europa». Volver a ponerlo **solo** después de migrar a Frankfurt (se hará cuando el cliente contrate Supabase Pro: el proyecto nuevo nace en Pro y en la UE).
 
 ---
 
@@ -419,6 +420,7 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 1 oct | **Quitado «Datos en Europa» de la landing** (y «Alojado en Europa» del bloque de seguridad): hoy todo está en EE. UU. Acordado con el cliente migrar a Frankfurt cuando contrate Supabase Pro (trabajo de una tarde) |
 | 1 oct | **Vercel Analytics solo en la web pública**, recomendado por el cliente antes de firmar el DPA: la aplicación privada guarda documentación de clientes y ningún tercero debe observarla. `components/public-analytics.tsx` monta `<Analytics />` solo en `/`, `/privacidad`, `/cookies`, `/terminos` y `/declaracion-responsable` (fuera también `/auth`, cuyas URL llevan códigos de un solo uso), y un `beforeSend` descarta cualquier evento de otra ruta (el script sigue cargado tras navegar a la app) y quita la query string. Revisado también para el DPA: funciones de Vercel en `iad1` y Supabase sin copias de seguridad (plan Free), ver «Lo que bloquea» |
 | 30 sept | **Merge a `main`** (fast-forward hasta `96d5d50`) y **primera OTA al canal `production`** (grupo `8239d49a-0922-4e72-a758-2b799df2380d`, runtime 1.0.1): la build de iOS del 3 de septiembre no había recibido ninguna actualización hasta ahora. Android sigue en `preview` |
 | 30 sept | **Aplicadas en producción** (a mano, desde el SQL Editor) `20260929_payment_terms.sql`, `20260930_invoice_sent.sql` y `20260930_company_cif_unique.sql`. Para que entrara el índice de CIF único hubo que resolver dos repetidos: el segundo local de `X6995146H` (Hassan Azeem, Villarcayo) pasó a **establecimiento** del de Medina de Pomar, y en la organización de pruebas `263369db…` «Panadería Luz del Alba SL» tenía el mismo CIF de ejemplo que «Panadería La Espiga» (`B87654321`) y pasó a `B87654322` — su factura ya emitida conserva impreso el CIF antiguo, como debe |

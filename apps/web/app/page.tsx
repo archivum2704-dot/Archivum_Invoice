@@ -16,7 +16,6 @@ import { PLANS, ADDONS, PRICING_FAQ } from "@/lib/pricing"
 const SOCIAL_PROOF = [
   "Plan gratuito incluido",
   "Conforme con VeriFactu",
-  "Datos en Europa (EU)",
   "Multi-empresa",
 ]
 
@@ -443,7 +442,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-6 py-16">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
             {[
-              { icon: Shield, title: "Datos seguros", desc: "Alojado en Europa. RLS por organización. Nadie accede a tus documentos." },
+              { icon: Shield, title: "Datos seguros", desc: "Aislamiento por organización en la base de datos. Nadie accede a tus documentos." },
               { icon: Globe,  title: "ES / EN",        desc: "Interfaz disponible en español e inglés. Cambia de idioma en cualquier momento." },
               { icon: Zap,    title: "Sin instalación", desc: "100% en el navegador. Nada que instalar, nada que mantener." },
             ].map(item => (
