@@ -38,6 +38,8 @@ import { isPaidPlan } from "@/lib/plan"
 import { canAccess } from "@/lib/permissions"
 import { useAccessContext } from "@/lib/hooks/use-access"
 import type { DocumentStatus } from "@/lib/supabase/types"
+import { useTaxAuthorityMode } from "@/lib/hooks/use-tax-authority-mode"
+import { setTaxAccessCookie } from "@/lib/tax-authority-access"
 
 // Traffic-light dot colour by document status
 const DOT_COLORS: Record<DocumentStatus, string> = {
@@ -48,6 +50,63 @@ const DOT_COLORS: Record<DocumentStatus, string> = {
   cancelled: "bg-sidebar-foreground/30",
 }
 
+/**
+ * Menu for a session opened as «Acceso de la Administración tributaria»: only
+ * the pages with tax significance, and nothing of the summaries, recent
+ * documents or settings the normal sidebar shows.
+ */
+function TaxAuthoritySidebar({ onClose, orgName, onLogout }: {
+  onClose?: () => void; orgName: string; onLogout: () => void
+}) {
+  const t = useTranslations("taxAuthority")
+  const pathname = usePathname()
+  const items = [
+    { label: t("issuedInvoices"), icon: Receipt, href: "/facturacion" },
+    { label: t("records"), icon: ShieldCheck, href: "/configuracion/verifactu/eventos" },
+    { label: t("declaration"), icon: FileText, href: "/declaracion-responsable" },
+  ]
+  return (
+    <aside className="flex flex-col w-80 h-full bg-sidebar border-r border-sidebar-border shrink-0">
+      <div className="flex items-start justify-between px-5 py-5 border-b border-sidebar-border">
+        <div className="flex flex-col gap-1">
+          <Logo size={40} textClassName="text-sidebar-foreground text-base" />
+          <p className="text-xs text-sidebar-foreground/65 pl-[52px]">{orgName}</p>
+        </div>
+        {onClose && (
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-sidebar-accent transition-colors lg:hidden mt-0.5">
+            <X className="w-4 h-4 text-sidebar-foreground/70" />
+          </button>
+        )}
+      </div>
+      <div className="mx-3 mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+        <p className="text-xs font-semibold text-sidebar-foreground">{t("title")}</p>
+        <p className="text-[11px] text-sidebar-foreground/70 mt-1 leading-relaxed">{t("description")}</p>
+      </div>
+      <nav className="flex-1 px-3 py-4 space-y-1">
+        {items.map(item => (
+          <Link key={item.href} href={item.href} onClick={onClose}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors",
+              pathname.startsWith(item.href)
+                ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                : "text-sidebar-foreground/80 hover:bg-sidebar-accent/80"
+            )}>
+            <item.icon className="w-4 h-4" />
+            <span>{item.label}</span>
+          </Link>
+        ))}
+      </nav>
+      <div className="px-3 py-4 border-t border-sidebar-border">
+        <button onClick={onLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/80 transition-colors">
+          <LogOut className="w-4 h-4" />
+          <span>{t("exit")}</span>
+        </button>
+      </div>
+    </aside>
+  )
+}
+
 export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   const t = useTranslations("nav")
   const tDash = useTranslations("dashboard")
@@ -56,6 +115,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   const pathname = usePathname()
   const router = useRouter()
   const { currentOrg, userProfile, isPlatformAdmin } = useOrganization()
+  const taxMode = useTaxAuthorityMode()
   const { overdueCount } = useOverdueDocs(currentOrg?.id ?? null)
   const { documents } = useDocuments(currentOrg?.id ?? null)
   const { companies } = useCompanies(currentOrg?.id ?? null)
@@ -103,6 +163,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   const handleLogout = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
+    setTaxAccessCookie(false)
     router.push("/auth/login")
   }
 
@@ -143,6 +204,10 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   const initials =
     (userProfile?.first_name?.charAt(0) ?? "") +
     (userProfile?.last_name?.charAt(0) ?? "")
+
+  if (taxMode) {
+    return <TaxAuthoritySidebar onClose={onClose} orgName={currentOrg?.name ?? ""} onLogout={handleLogout} />
+  }
 
   return (
     <aside className="flex flex-col w-80 h-full bg-sidebar border-r border-sidebar-border shrink-0">

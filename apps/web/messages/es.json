@@ -66,7 +66,9 @@
         "invalidCredentials": "Correo o contraseña incorrectos",
         "invalidCompanyCode": "Código de empresa no encontrado o no eres miembro de esa organización.",
         "generic": "Se produjo un error inesperado. Inténtalo de nuevo."
-      }
+      },
+      "taxAuthorityAccess": "Acceso de la Administración tributaria",
+      "taxAuthorityAccessHint": "Solo muestra la información con trascendencia tributaria: facturas emitidas y registros de facturación y de eventos, en modo consulta."
     },
     "signup": {
       "title": "Crear tu cuenta",
@@ -177,7 +179,7 @@
   "invoicing": {
     "title": "Facturación",
     "newInvoice": "Nueva factura",
-    "verifactuNote": "Facturas conformes con Verifactu (huella encadenada + QR de cotejo de la AEAT).",
+    "verifactuNote": "Facturas con huella encadenada y QR de cotejo de la AEAT (VeriFactu).",
     "configureVerifactu": "Configurar certificado",
     "empty": "Aún no has emitido facturas",
     "client": "Cliente",
@@ -254,7 +256,7 @@
       "zero_total": "El total de la factura es 0,00. Revisa cantidades y precios: una factura emitida no se puede retirar, solo rectificar."
     },
     "paywallTitle": "La facturación es una función de pago",
-    "paywallBody": "Emite facturas digitales conformes con Verifactu actualizando a un plan de pago. La versión gratuita no incluye facturación.",
+    "paywallBody": "Emite facturas digitales con huella y QR VeriFactu actualizando a un plan de pago. La versión gratuita no incluye facturación.",
     "upgrade": "Ver planes",
     "searchPlaceholder": "Buscar por número o cliente...",
     "filters": "Filtros",
@@ -354,7 +356,15 @@
     },
     "producerMissingTitle": "Falta la identidad del productor del software",
     "producerMissingBody": "Sin estos datos el registro de facturación que se genera está incompleto y la AEAT lo rechazaría. Configúralos en las variables de entorno del servidor:",
-    "declarationLink": "Declaración responsable del sistema"
+    "declarationLink": "Declaración responsable del sistema",
+    "submitNow": {
+      "title": "Enviar ahora a la AEAT",
+      "hint": "Remite ya los registros pendientes o rechazados, sin esperar al envío automático diario. El resultado de cada factura queda en su ficha (aceptada, rechazada y por qué).",
+      "button": "Enviar ahora",
+      "failed": "No se pudo completar el envío.",
+      "skipped": "No se ha enviado nada: {reason}.",
+      "summary": "Registros enviados: {attempted}. Aceptados: {sent}. Rechazados: {rejected}."
+    }
   },
   "dashboard": {
     "title": "Panel Principal",
@@ -971,7 +981,7 @@
       },
       "invoicing": {
         "title": "5. Emite facturas con VeriFactu",
-        "description": "Crea facturas legales conformes con el sistema VeriFactu de la AEAT.",
+        "description": "Crea facturas con huella encadenada y QR del sistema VeriFactu de la AEAT.",
         "steps": [
           "Primero sube tu certificado digital en Ajustes → VERI*FACTU (solo una vez).",
           "Factura desde un albarán con «Convertir en factura», o pulsa «Nueva factura» directamente si no usas pedidos.",
@@ -1111,5 +1121,13 @@
     "total": "Total",
     "linesTitle": "Líneas",
     "fromLines": "Calculado a partir de las líneas"
+  },
+  "taxAuthority": {
+    "title": "Acceso de la Administración tributaria",
+    "description": "Sesión limitada a la información con trascendencia tributaria, en modo consulta. El resto de la aplicación está oculto.",
+    "issuedInvoices": "Facturas emitidas",
+    "records": "Registros VERI*FACTU",
+    "declaration": "Declaración responsable",
+    "exit": "Salir"
   }
 }

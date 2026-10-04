@@ -1,5 +1,6 @@
 "use client"
 
+import { useTaxAuthorityMode } from "@/lib/hooks/use-tax-authority-mode"
 import { useEffect, useState } from "react"
 import useSWR from "swr"
 import QRCode from "qrcode"
@@ -75,8 +76,10 @@ export function FacturaEmitidaView({ id }: { id: string }) {
 
   // Once annulled it cannot be annulled again — the server refuses it, so
   // offering the button only produces an error.
+  // The tax authority access mode only consults (RD 1007/2023 art. 8.4).
+  const taxMode = useTaxAuthorityMode()
   const canRectify = invoice?.state === "issued" && invoice?.kind !== "rectifying"
-    && !rectifiedBy && isOrgAdmin && isPaidPlan(currentOrg)
+    && !rectifiedBy && isOrgAdmin && isPaidPlan(currentOrg) && !taxMode
 
   const handleRectify = async () => {
     if (!invoice || !currentOrg || !confirm(t("rectifyConfirm"))) return
@@ -116,7 +119,7 @@ export function FacturaEmitidaView({ id }: { id: string }) {
     setPayDate(invoice.payment_date ?? "")
   }, [invoice?.id, invoice?.payment_method, invoice?.payment_date])
 
-  const canEditPayment = isOrgAdmin && invoice?.state !== "draft"
+  const canEditPayment = isOrgAdmin && invoice?.state !== "draft" && !taxMode
   const payDirty = !!invoice && (payMethod !== (invoice.payment_method ?? "") || payDate !== (invoice.payment_date ?? ""))
 
   const savePayment = async (override?: { date: string }) => {
@@ -165,7 +168,7 @@ export function FacturaEmitidaView({ id }: { id: string }) {
               {rectifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />} {t("rectify")}
             </button>
           )}
-          <SendEmailButton kind="invoice" id={id} defaultTo={data?.clientEmail} onSent={() => { void mutate() }} />
+          {!taxMode && <SendEmailButton kind="invoice" id={id} defaultTo={data?.clientEmail} onSent={() => { void mutate() }} />}
           <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 whitespace-nowrap transition-colors">
             <Printer className="w-4 h-4" /> {t("print")}
           </button>
@@ -181,7 +184,7 @@ export function FacturaEmitidaView({ id }: { id: string }) {
         </div>
       )}
 
-      <DocumentChain chain={chain} current="invoice" />
+      {!taxMode && <DocumentChain chain={chain} current="invoice" />}
 
       {/* Rectificative banner */}
       {invoice.kind === "rectifying" && (

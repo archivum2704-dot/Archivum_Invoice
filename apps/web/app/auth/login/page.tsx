@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Logo } from '@/components/logo'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { cn } from '@/lib/utils'
+import { TAX_ACCESS_HOME, setTaxAccessCookie } from '@/lib/tax-authority-access'
 
 type Tab = 'empresa' | 'usuario'
 
@@ -40,6 +41,15 @@ export default function LoginPage() {
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  // «Acceso de la Administración tributaria» — unchecked by default, chosen
+  // before entering (RD 1007/2023 art. 8.4; AEAT example, apartado 2.c).
+  const [taxAccess, setTaxAccess] = useState(false)
+
+  // Set (or clear) the mode only once the password was accepted, then enter.
+  const enter = () => {
+    setTaxAccessCookie(taxAccess)
+    router.push(taxAccess ? TAX_ACCESS_HOME : '/dashboard'); router.refresh()
+  }
 
   const input = 'w-full px-3 py-2.5 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground'
 
@@ -55,7 +65,7 @@ export default function LoginPage() {
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
     if (authError) { setError(t('errors.invalidCredentials')); setLoading(false); return }
     await registerSession()
-    router.push('/dashboard'); router.refresh()
+    enter()
   }
 
   const handleUsuarioLogin = async (e: React.FormEvent) => {
@@ -74,7 +84,7 @@ export default function LoginPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) await supabase.from('profiles').update({ current_org_id: org.id }).eq('id', user.id)
     await registerSession()
-    router.push('/dashboard'); router.refresh()
+    enter()
   }
 
   return (
@@ -236,6 +246,20 @@ export default function LoginPage() {
                   <p className="text-xs text-muted-foreground mt-1">{t('companyCodeHint')}</p>
                 </div>
               )}
+
+              <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={taxAccess}
+                  onChange={e => setTaxAccess(e.target.checked)}
+                  disabled={loading}
+                  className="mt-0.5 h-4 w-4 rounded border-input accent-primary"
+                />
+                <span className="text-xs text-muted-foreground leading-relaxed">
+                  <span className="font-medium text-foreground">{t('taxAuthorityAccess')}</span>
+                  <br />{t('taxAuthorityAccessHint')}
+                </span>
+              </label>
 
               {error && (
                 <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">

@@ -66,7 +66,9 @@
         "invalidCredentials": "Invalid email or password",
         "invalidCompanyCode": "Company code not found or you are not a member of this organization.",
         "generic": "An unexpected error occurred. Please try again."
-      }
+      },
+      "taxAuthorityAccess": "Tax authority access",
+      "taxAuthorityAccessHint": "Shows only tax-relevant information: issued invoices and invoicing and event records, read-only."
     },
     "signup": {
       "title": "Create your account",
@@ -177,7 +179,7 @@
   "invoicing": {
     "title": "Invoicing",
     "newInvoice": "New invoice",
-    "verifactuNote": "Verifactu-compliant invoices (chained fingerprint + AEAT verification QR).",
+    "verifactuNote": "Invoices with a chained fingerprint and AEAT verification QR (VeriFactu).",
     "configureVerifactu": "Configure certificate",
     "empty": "You haven't issued any invoices yet",
     "client": "Client",
@@ -254,7 +256,7 @@
       "zero_total": "The invoice total is 0.00. Check quantities and prices: an issued invoice cannot be withdrawn, only rectified."
     },
     "paywallTitle": "Invoicing is a paid feature",
-    "paywallBody": "Issue Verifactu-compliant digital invoices by upgrading to a paid plan. The free version does not include invoicing.",
+    "paywallBody": "Issue digital invoices with VeriFactu fingerprint and QR by upgrading to a paid plan. The free version does not include invoicing.",
     "upgrade": "View plans",
     "searchPlaceholder": "Search by number or client...",
     "filters": "Filters",
@@ -354,7 +356,15 @@
     },
     "producerMissingTitle": "The software producer’s identity is missing",
     "producerMissingBody": "Without these the billing record generated is incomplete and the AEAT would reject it. Set them in the server environment variables:",
-    "declarationLink": "System responsible declaration"
+    "declarationLink": "System responsible declaration",
+    "submitNow": {
+      "title": "Send to the AEAT now",
+      "hint": "Submits pending or rejected records right away, without waiting for the daily automatic run. Each invoice shows the outcome (accepted, rejected and why).",
+      "button": "Send now",
+      "failed": "The submission could not be completed.",
+      "skipped": "Nothing was sent: {reason}.",
+      "summary": "Records sent: {attempted}. Accepted: {sent}. Rejected: {rejected}."
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -971,7 +981,7 @@
       },
       "invoicing": {
         "title": "5. Issue invoices with VeriFactu",
-        "description": "Create legal invoices compliant with the AEAT VeriFactu system.",
+        "description": "Create invoices with the chained fingerprint and QR of the AEAT VeriFactu system.",
         "steps": [
           "First upload your digital certificate in Settings → VERI*FACTU (just once).",
           "Invoice from a delivery note with “Convert to invoice”, or click “New invoice” directly if you don't use quotes.",
@@ -1111,5 +1121,13 @@
     "total": "Total",
     "linesTitle": "Lines",
     "fromLines": "Calculated from the lines"
+  },
+  "taxAuthority": {
+    "title": "Tax authority access",
+    "description": "Session limited to tax-relevant information, read-only. The rest of the application is hidden.",
+    "issuedInvoices": "Issued invoices",
+    "records": "VERI*FACTU records",
+    "declaration": "Responsible declaration",
+    "exit": "Sign out"
   }
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ShieldCheck, Upload, Trash2, Loader2, AlertTriangle, CheckCircle2, Lock, ArrowLeft, FileText, ChevronRight, ScrollText } from "lucide-react"
+import { ShieldCheck, Upload, Trash2, Loader2, AlertTriangle, CheckCircle2, Lock, ArrowLeft, FileText, ChevronRight, ScrollText, Send } from "lucide-react"
 import Link from "next/link"
 import { useTranslations, useLocale } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
@@ -197,7 +197,69 @@ export function VerifactuSettingsView() {
         </div>
       </div>
 
+      {status?.exists && currentOrg && <SubmitNowCard orgId={currentOrg.id} />}
+
       <p className="text-[11px] text-muted-foreground mt-4 leading-relaxed">{t("securityNote")}</p>
+    </div>
+  )
+}
+
+type SubmitResult = { attempted: number; sent: number; rejected: number; skipped: string | null; error: string | null }
+
+/**
+ * Send the outstanding records to the AEAT now instead of waiting for the
+ * daily sweep — to retry after a rejection, or to confirm on demand that a
+ * submission is accepted (POST /api/verifactu/submit, admins only).
+ */
+function SubmitNowCard({ orgId }: { orgId: string }) {
+  const t = useTranslations("verifactu.submitNow")
+  const [sending, setSending] = useState(false)
+  const [result, setResult] = useState<SubmitResult | null>(null)
+  const [failure, setFailure] = useState<string | null>(null)
+
+  const send = async () => {
+    setSending(true); setResult(null); setFailure(null)
+    try {
+      const res = await fetch("/api/verifactu/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId }),
+      })
+      const json = await res.json()
+      if (!res.ok) setFailure(json.detail ?? json.error ?? t("failed"))
+      else setResult(json as SubmitResult)
+    } catch {
+      setFailure(t("failed"))
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-5 mt-5">
+      <h2 className="text-sm font-semibold text-foreground mb-1">{t("title")}</h2>
+      <p className="text-xs text-muted-foreground mb-4">{t("hint")}</p>
+      <button onClick={send} disabled={sending}
+        className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
+        {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+        {t("button")}
+      </button>
+      {result && (
+        <div className={`mt-4 rounded-lg p-3 text-sm border ${result.rejected || result.error
+          ? "bg-destructive/10 border-destructive/20 text-destructive"
+          : "bg-[var(--status-paid)]/10 border-[var(--status-paid)]/20 text-foreground"}`}>
+          {result.skipped
+            ? t("skipped", { reason: result.skipped.charAt(0).toLowerCase() + result.skipped.slice(1) })
+            : t("summary", { attempted: result.attempted, sent: result.sent, rejected: result.rejected })}
+          {result.error && <p className="mt-1">{result.error}</p>}
+        </div>
+      )}
+      {failure && (
+        <div className="mt-4 flex items-start gap-2 bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+          <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+          <p className="text-destructive text-sm">{failure}</p>
+        </div>
+      )}
     </div>
   )
 }

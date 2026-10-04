@@ -72,7 +72,7 @@
       "paid": "Paid"
     },
     "paywallTitle": "Invoicing is a paid feature",
-    "paywallBody": "Issue Verifactu-compliant invoices by upgrading to a paid plan.",
+    "paywallBody": "Issue invoices with VeriFactu fingerprint and QR by upgrading to a paid plan.",
     "upgrade": "View plans",
     "searchClient": "Search by name or tax ID...",
     "noClientMatches": "No matching clients",

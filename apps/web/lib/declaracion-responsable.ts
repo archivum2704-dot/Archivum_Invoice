@@ -212,6 +212,12 @@ export function declaracionResponsable(): DeclaracionResponsable {
         'La huella se ha contrastado con los ejemplos oficiales publicados por la Agencia ' +
         'Tributaria en el documento de especificaciones técnicas para su generación, y esa ' +
         'comprobación se ejecuta automáticamente en cada modificación del sistema.',
+        'Existe una forma especial de entrar en la aplicación que solo da acceso a la ' +
+        'información con trascendencia tributaria —facturas expedidas y registros de ' +
+        'facturación y de eventos, con su consulta y exportación—, ocultando la información ' +
+        'confidencial de carácter no patrimonial y sin permitir modificaciones, de forma que la ' +
+        'Administración tributaria pueda acceder directamente a ella. Se implementa mediante un ' +
+        'control tipo «check», no seleccionado por defecto, que se elige antes de entrar.',
       ],
     },
   ]

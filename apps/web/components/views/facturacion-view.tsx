@@ -1,5 +1,6 @@
 "use client"
 
+import { useTaxAuthorityMode } from "@/lib/hooks/use-tax-authority-mode"
 import { useState, useMemo, useEffect } from "react"
 import {
   Receipt, Plus, X, Trash2, Loader2, Lock, AlertTriangle, ChevronRight, ShieldCheck,
@@ -157,7 +158,9 @@ export function FacturacionView() {
     })
   }
 
-  const canManage = isOrgAdmin && paid
+  // The tax authority access mode only consults: nothing is issued or edited.
+  const taxMode = useTaxAuthorityMode()
+  const canManage = isOrgAdmin && paid && !taxMode
 
   const selectedClient = companies.find(c => c.id === clientId)
 

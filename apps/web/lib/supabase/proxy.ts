@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { TAX_ACCESS_COOKIE, TAX_ACCESS_HOME, isTaxAccessPage } from '@/lib/tax-authority-access'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -82,10 +83,30 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // «Acceso de la Administración tributaria» (RD 1007/2023, art. 8.4): a
+  // session opened with that box checked only reaches the pages with tax
+  // significance, and cannot write through the API. See
+  // lib/tax-authority-access.ts.
+  const taxAccess = request.cookies.get(TAX_ACCESS_COOKIE)?.value === '1'
+
   if (user && !mfaPending && request.nextUrl.pathname.startsWith('/auth/')) {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    url.pathname = taxAccess ? TAX_ACCESS_HOME : '/dashboard'
     return NextResponse.redirect(url)
+  }
+
+  if (user && !mfaPending && taxAccess) {
+    const path = request.nextUrl.pathname
+    if (isApiRoute) {
+      if (request.method !== 'GET' && request.method !== 'HEAD' && !path.startsWith('/api/auth/')) {
+        return NextResponse.json({ error: 'tax_authority_read_only' }, { status: 403 })
+      }
+    } else if (!isPublicRoute && !isTaxAccessPage(path)) {
+      const url = request.nextUrl.clone()
+      url.pathname = TAX_ACCESS_HOME
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse

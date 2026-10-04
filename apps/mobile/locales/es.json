@@ -72,7 +72,7 @@
       "paid": "Cobrada"
     },
     "paywallTitle": "La facturación es una función de pago",
-    "paywallBody": "Emite facturas conformes con Verifactu actualizando a un plan de pago.",
+    "paywallBody": "Emite facturas con huella y QR VeriFactu actualizando a un plan de pago.",
     "upgrade": "Ver planes",
     "searchClient": "Buscar por nombre o CIF...",
     "noClientMatches": "Ningún cliente coincide",

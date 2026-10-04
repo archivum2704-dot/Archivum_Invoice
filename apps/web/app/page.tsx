@@ -15,12 +15,12 @@ import { PLANS, ADDONS, PRICING_FAQ } from "@/lib/pricing"
 
 const SOCIAL_PROOF = [
   "Plan gratuito incluido",
-  "Conforme con VeriFactu",
+  "Preparado para VeriFactu",
   "Multi-empresa",
 ]
 
 const STATS = [
-  { value: "VeriFactu", label: "Conforme con la AEAT" },
+  { value: "VeriFactu", label: "Huella y QR de la AEAT" },
   { value: "0 €", label: "Para empezar" },
   { value: "IVA + IRPF", label: "Calculados al instante" },
   { value: "100%", label: "En la nube" },
@@ -37,8 +37,8 @@ const FEATURES = [
   },
   {
     icon: ShieldCheck,
-    title: "Conforme con VeriFactu",
-    desc: "Facturas con huella encadenada y QR de cotejo de la AEAT. Cumple con el nuevo sistema de facturación verificable.",
+    title: "Preparado para VeriFactu",
+    desc: "Facturas con huella encadenada y QR de cotejo de la AEAT, diseñadas para el nuevo sistema de facturación verificable.",
     color: "bg-emerald-500/10 text-emerald-600",
     border: "border-emerald-500/20",
   },
@@ -219,7 +219,7 @@ export default function LandingPage() {
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-5 max-w-4xl mx-auto leading-tight">
             Emite y archiva tus facturas.{" "}
             <span className="text-primary relative">
-              Conforme con VeriFactu.
+              Preparado para VeriFactu.
             </span>
           </h1>
 
@@ -329,8 +329,8 @@ export default function LandingPage() {
               </h2>
               <p className="text-primary-foreground/80 leading-relaxed mb-6">
                 Cada factura emitida incorpora la huella encadenada y el código QR
-                de cotejo de la AEAT. Sube tu certificado digital una vez y factura
-                conforme al sistema de facturación verificable, sin software extra.
+                de cotejo de la AEAT. Sube tu certificado digital una vez y Archivum
+                prepara y remite el registro de cada factura, sin software extra.
               </p>
               <ul className="space-y-2.5">
                 {[
@@ -412,7 +412,7 @@ export default function LandingPage() {
               {[
                 { icon: FolderOpen, label: "Pedido",         sub: "Origen del proceso",      color: "bg-blue-100 text-blue-600",     done: true },
                 { icon: Package,   label: "Albarán",         sub: "Confirmación de entrega", color: "bg-primary/10 text-primary",    done: true },
-                { icon: FileText,  label: "Factura emitida", sub: "Conforme con VeriFactu",  color: "bg-violet-100 text-violet-600", done: false },
+                { icon: FileText,  label: "Factura emitida", sub: "Con huella y QR VeriFactu",  color: "bg-violet-100 text-violet-600", done: false },
                 { icon: Receipt,   label: "Recibo",          sub: "Pago confirmado",         color: "bg-emerald-100 text-emerald-600", done: false },
               ].map((step, i) => (
                 <div key={step.label}>
