@@ -33,7 +33,7 @@ LEFT JOIN public.organizations o        ON o.id = m.organization_id;
 -- y si alguna factura llegó a la AEAT. Ejecuta también esto (va en el mismo
 -- fichero; el SQL Editor muestra el resultado de la última consulta, así que
 -- si solo ves esta tabla, la de arriba ya la tenías).
-SELECT o.name AS org_name, u.email, m.role, m.created_at AS miembro_desde,
+SELECT o.name AS org_name, u.email, m.role, u.created_at AS cuenta_creada,
        (SELECT string_agg(DISTINCT coalesce(i.verifactu_status, 'null'), ', ')
           FROM public.invoices i WHERE i.organization_id = o.id) AS estados_verifactu
 FROM public.organization_members m
