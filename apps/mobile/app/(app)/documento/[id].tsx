@@ -58,15 +58,19 @@ export default function DocumentoDetailScreen() {
 
   useEffect(() => {
     if (!id) return;
-    supabase
-      .from("documents")
-      .select("*, companies(name, cif), items:document_items(id, description, quantity, unit_price, tax_rate, subtotal, position)")
-      .eq("id", id)
-      .single()
-      .then(({ data }) => {
-        setDoc(data);
-        setLoading(false);
-      });
+    (async () => {
+      const base = "*, companies(name, cif)";
+      let { data, error } = await supabase
+        .from("documents")
+        .select(`${base}, items:document_items(id, description, quantity, unit_price, tax_rate, subtotal, position)`)
+        .eq("id", id)
+        .single();
+      // Before migration 20261004 document_items has no `position`; the
+      // document must still open, just without lines.
+      if (error) ({ data } = await supabase.from("documents").select(base).eq("id", id).single());
+      setDoc(data);
+      setLoading(false);
+    })();
   }, [id]);
 
   const handleDelete = () => {

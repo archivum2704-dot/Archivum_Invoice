@@ -223,11 +223,15 @@ export function FacturaView({ id }: FacturaViewProps) {
     setLoading(true)
     const supabase = createClient()
 
+    const base = "*, company:companies(name, cif)"
     supabase
       .from("documents")
-      .select("*, company:companies(name, cif), items:document_items(id, description, quantity, unit_price, tax_rate, subtotal, position)")
+      .select(`${base}, items:document_items(id, description, quantity, unit_price, tax_rate, subtotal, position)`)
       .eq("id", id)
       .single()
+      // Before migration 20261004 document_items has no `position`; the
+      // document must still open, just without lines.
+      .then(async (res) => res.error ? await supabase.from("documents").select(base).eq("id", id).single() : res)
       .then(async ({ data, error: err }) => {
         if (err || !data) {
           setError(err?.message ?? "Document not found")
