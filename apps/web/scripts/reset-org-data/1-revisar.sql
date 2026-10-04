@@ -28,3 +28,19 @@ SELECT u.email, u.id AS user_id, m.organization_id, m.role, o.name AS org_name,
 FROM u
 LEFT JOIN public.organization_members m ON m.user_id = u.id
 LEFT JOIN public.organizations o        ON o.id = m.organization_id;
+
+-- ── Quién más está en esas organizaciones (el paso 2 se para si hay alguien) ──
+-- y si alguna factura llegó a la AEAT. Ejecuta también esto (va en el mismo
+-- fichero; el SQL Editor muestra el resultado de la última consulta, así que
+-- si solo ves esta tabla, la de arriba ya la tenías).
+SELECT o.name AS org_name, u.email, m.role, m.created_at AS miembro_desde,
+       (SELECT string_agg(DISTINCT coalesce(i.verifactu_status, 'null'), ', ')
+          FROM public.invoices i WHERE i.organization_id = o.id) AS estados_verifactu
+FROM public.organization_members m
+JOIN public.organizations o ON o.id = m.organization_id
+JOIN auth.users u          ON u.id = m.user_id
+WHERE m.organization_id IN (
+  SELECT organization_id FROM public.organization_members
+  WHERE user_id = (SELECT id FROM auth.users WHERE lower(email) = lower('archivum2704@gmail.com'))
+)
+ORDER BY o.name, m.role, u.email;

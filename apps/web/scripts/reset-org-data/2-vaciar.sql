@@ -23,7 +23,7 @@
 --
 -- Los triggers de inalterabilidad se desactivan solo dentro de esta
 -- instrucción y se reactivan antes de terminar. Si la organización tiene
--- otros miembros, aborta sin tocar nada.
+-- otros miembros, aborta sin tocar nada salvo v_otros_miembros_ok := true.
 --
 -- Los PDF del bucket `documents` (carpeta = id de la organización) hay que
 -- borrarlos aparte desde Storage: el SQL no borra ficheros.
@@ -33,6 +33,10 @@ DO $reset$
 DECLARE
   v_email    text    := 'archivum2704@gmail.com';
   v_aplicar  boolean := false;   -- ← cambiar a true para borrar de verdad
+  -- Si la organización tiene más miembros, se aborta salvo que pongas true
+  -- aquí, después de comprobar con 1-revisar.sql quiénes son. Sus cuentas
+  -- se conservan; solo se vacían los datos compartidos de la organización.
+  v_otros_miembros_ok boolean := false;
   -- Tablas con organization_id que NO se tocan.
   v_keep     text[]  := ARRAY['organizations', 'organization_members',
                               'org_certificates', 'billing_events', 'profiles'];
@@ -71,8 +75,8 @@ BEGIN
   LOOP
     SELECT count(*) INTO v_others FROM public.organization_members
     WHERE organization_id = v_org AND user_id <> v_user;
-    IF v_others > 0 THEN
-      RAISE EXCEPTION 'La organización % tiene % miembro(s) más. Abortado sin cambios: revisa que sea de pruebas.',
+    IF v_others > 0 AND NOT v_otros_miembros_ok THEN
+      RAISE EXCEPTION 'La organización % tiene % miembro(s) más. Abortado sin cambios: revisa quiénes son con 1-revisar.sql y, si es correcto, pon v_otros_miembros_ok := true.',
         v_org, v_others;
     END IF;
 
