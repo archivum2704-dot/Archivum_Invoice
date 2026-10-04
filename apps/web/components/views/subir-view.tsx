@@ -21,6 +21,10 @@ import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { NewClientModal } from "@/components/new-client-modal"
 import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number"
 import { clientLabel } from "@/lib/client-checks"
+import { PurchaseLinesEditor } from "@/components/purchase-lines-editor"
+import {
+  type PurchaseLine, PURCHASE_DOC_TYPE, isFilledLine, purchaseTotals, toItemRows, validatePurchaseLines,
+} from "@/lib/purchase-lines"
 
 const CURRENCIES = [
   { code: "EUR", label: "€ Euro" },
@@ -109,6 +113,12 @@ type ParentDoc = {
   currency: string
 }
 
+/** The single VAT rate of all lines, or null when they mix rates. */
+function uniformRate(lines: PurchaseLine[]): number | null {
+  const rates = new Set(lines.map(l => parseFloat(l.taxRate) || 0))
+  return rates.size === 1 ? [...rates][0] : null
+}
+
 export function SubirView() {
   const t        = useTranslations("documents.upload")
   const tTypes   = useTranslations("documents.types")
@@ -119,6 +129,7 @@ export function SubirView() {
   const tPayment  = useTranslations("documents.paymentMethods")
   const tStorage  = useTranslations("settings.storage")
   const tHints    = useTranslations("coachmarks")
+  const tLines    = useTranslations("purchaseLines")
   const { currentOrg, userProfile, isPlatformAdmin } = useOrganization()
   const { companies, mutate: mutateCompanies } = useCompanies(currentOrg?.id ?? null)
   const { folders } = useFolders(currentOrg?.id ?? null)
@@ -152,11 +163,15 @@ export function SubirView() {
   const [moneda,     setMoneda]     = useState("EUR")
   const [carpeta,    setCarpeta]    = useState("")
   const [metodoPago, setMetodoPago] = useState("")
+  // Líneas de una factura de compra. Si hay alguna, los importes salen de
+  // ellas (y la base de datos suma sus cantidades al stock).
+  const [lineas,     setLineas]     = useState<PurchaseLine[]>([])
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState<string | null>(null)
   const [uploadedId, setUploadedId] = useState<string | null>(null)
   const [parentDoc,  setParentDoc]  = useState<ParentDoc | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const hasLines = tipo === PURCHASE_DOC_TYPE && lineas.some(isFilledLine)
 
   // ── Load parent document if ?from= is present ───────────────────────────────
   useEffect(() => {
@@ -220,6 +235,7 @@ export function SubirView() {
   const reset = () => {
     setFiles([]); setNumero(""); setImporte(""); setTaxRate("21"); setNotas(""); setMoneda("EUR")
     setEtiquetas([]); setTipo(fromType ?? ""); setEmpresa(""); setEstado(""); setFecha(""); setCarpeta(""); setMetodoPago("")
+    setLineas([])
     setError(null); setUploadedId(null)
   }
 
@@ -237,6 +253,10 @@ export function SubirView() {
         orgId: currentOrg.id, number: numero, documentType: tipo || "other", companyId: empresa || null,
       })
       if (conflict) throw new Error(numberConflictMessage(conflict, tipo))
+
+      const purchaseLines = tipo === PURCHASE_DOC_TYPE ? lineas.filter(isFilledLine) : []
+      const linesError = validatePurchaseLines(purchaseLines)
+      if (linesError) throw new Error(linesError)
 
       let fileUrl: string | null = null
       let fileName: string | null = null
@@ -299,13 +319,16 @@ export function SubirView() {
         }
       }
 
-      // 2. Parse amounts (same arithmetic as the edit form)
-      const baseAmount = importe
+      // 2. Parse amounts (same arithmetic as the edit form). With purchase
+      //    lines they come from the lines instead; the database recomputes
+      //    them anyway when the lines are inserted.
+      const lineTotals  = purchaseLines.length > 0 ? purchaseTotals(purchaseLines) : null
+      const baseAmount  = lineTotals ? lineTotals.subtotal : importe
         ? parseFloat(importe.replace(/\./g, "").replace(",", "."))
         : null
-      const rate        = parseFloat(taxRate) || 0
-      const taxAmount   = baseAmount != null ? Math.round(baseAmount * rate) / 100 : null
-      const totalAmount = baseAmount != null ? Math.round((baseAmount + (taxAmount ?? 0)) * 100) / 100 : null
+      const rate        = lineTotals ? uniformRate(purchaseLines) : (parseFloat(taxRate) || 0)
+      const taxAmount   = lineTotals ? lineTotals.tax : baseAmount != null ? Math.round(baseAmount * (rate ?? 0)) / 100 : null
+      const totalAmount = lineTotals ? lineTotals.total : baseAmount != null ? Math.round((baseAmount + (taxAmount ?? 0)) * 100) / 100 : null
 
       // 3. Insert document record
       const { data, error: insertErr } = await supabase
@@ -336,6 +359,17 @@ export function SubirView() {
         .single()
 
       if (insertErr) throw insertErr
+
+      // 3b. Purchase lines. Without them the document would claim amounts no
+      //     line backs up and the stock would not move, so a failure here
+      //     removes the document again.
+      if (purchaseLines.length > 0) {
+        const { error: itemsErr } = await supabase.from("document_items").insert(toItemRows(data.id, purchaseLines))
+        if (itemsErr) {
+          await supabase.from("documents").delete().eq("id", data.id)
+          throw itemsErr
+        }
+      }
 
       // 4. Save tags — upsert by name then link to document
       if (etiquetas.length > 0) {
@@ -387,7 +421,8 @@ export function SubirView() {
     !uploadedId && (
       files.length > 0 || !!tipo || !!empresa || !!estado || !!fecha ||
       !!carpeta || !!metodoPago || etiquetas.length > 0 ||
-      importe.trim() !== "" || numero.trim() !== "" || notas.trim() !== ""
+      importe.trim() !== "" || numero.trim() !== "" || notas.trim() !== "" ||
+      lineas.some(isFilledLine)
     )
   useRegisterNavGuard(isDirty, "document", async () => { await persistDocument("draft", false) })
 
@@ -601,6 +636,14 @@ export function SubirView() {
                 </div>
 
                 <div ref={importeRef} className="col-span-2">
+                  {hasLines ? (
+                    <div className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm bg-muted/50 border border-border rounded-lg">
+                      <span className="text-xs text-muted-foreground">{tLines("fromLines")}</span>
+                      <span className="font-semibold tabular-nums">
+                        {purchaseTotals(lineas).total.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {moneda}
+                      </span>
+                    </div>
+                  ) : (
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="text-xs font-medium text-muted-foreground block mb-1.5">{tFields("taxableBase")}</label>
@@ -637,6 +680,7 @@ export function SubirView() {
                       </div>
                     </div>
                   </div>
+                  )}
                 </div>
 
                 <div ref={fechaRef}>
@@ -696,6 +740,10 @@ export function SubirView() {
                   className="w-full px-3 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground resize-none leading-relaxed" />
               </div>
             </div>
+
+            {tipo === PURCHASE_DOC_TYPE && (
+              <PurchaseLinesEditor lines={lineas} onChange={setLineas} currency={moneda} />
+            )}
           </div>
 
           {/* Right sidebar */}

@@ -17,6 +17,11 @@ import { radius } from "@/lib/radius";
 import { Button, Card, Input } from "@/components/ui";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number";
+import { PurchaseLinesEditor } from "@/components/PurchaseLinesEditor";
+import {
+  type PurchaseLine, PURCHASE_DOC_TYPE, fromItemRows, isFilledLine, purchaseTotals,
+  replacePurchaseItems, validatePurchaseLines,
+} from "@/lib/purchase-lines";
 
 /** Same label treatment as Input, but the value comes from the calendar. */
 function DateRow({ label, value, onChange, C }: {
@@ -54,6 +59,11 @@ export default function EditarScreen() {
   // Set when this document is the archived PDF of an invoice issued in
   // Facturación: its number, amounts and date are frozen by VeriFactu.
   const [linkedInvoice, setLinkedInvoice] = useState<string | null>(null);
+  // Purchase invoice lines (document_items). hadLines: there were lines when
+  // the screen opened, so saving must replace them even if all were removed.
+  const [lines,    setLines]    = useState<PurchaseLine[]>([]);
+  const [hadLines, setHadLines] = useState(false);
+  const [currency, setCurrency] = useState("EUR");
 
   const STATUS_OPTIONS = [
     { key: "draft",     label: t("status.draft") },
@@ -79,11 +89,24 @@ export default function EditarScreen() {
       setDesc(data.description ?? "");
       setPayMethod(data.payment_method ?? "");
       setDocMeta({ orgId: data.organization_id, type: data.document_type, companyId: data.company_id ?? null });
+      setCurrency(data.currency ?? "EUR");
       setLoading(false);
     });
+    supabase.from("document_items")
+      .select("id, product_id, description, quantity, unit_price, tax_rate, position")
+      .eq("document_id", id)
+      .then(({ data }) => {
+        const rows = (data as any[]) ?? [];
+        setLines(fromItemRows(rows));
+        setHadLines(rows.length > 0);
+      });
     supabase.from("invoices").select("full_number").eq("document_id", id).maybeSingle()
       .then(({ data }) => setLinkedInvoice((data as { full_number: string | null } | null)?.full_number ?? null));
   }, [id]);
+
+  const isPurchase = docMeta?.type === PURCHASE_DOC_TYPE && !linkedInvoice;
+  const purchaseLines = isPurchase ? lines.filter(isFilledLine) : [];
+  const hasLines = purchaseLines.length > 0;
 
   const handleSave = async () => {
     setSaving(true);
@@ -99,14 +122,30 @@ export default function EditarScreen() {
       if (conflict) { setSaving(false); Alert.alert(t("common.error"), numberConflictMessage(conflict, docMeta.type)); return; }
     }
 
+    const linesError = validatePurchaseLines(purchaseLines);
+    if (linesError) { setSaving(false); Alert.alert(t("common.error"), linesError); return; }
+
+    // Lines first: the database recomputes the amounts from them (and moves
+    // the stock), so the manual amounts below only apply without lines.
+    if (isPurchase && (hadLines || hasLines)) {
+      try {
+        await replacePurchaseItems(supabase, id, purchaseLines);
+      } catch (e: any) {
+        setSaving(false); Alert.alert(t("common.error"), e?.message ?? t("editar.saveError")); return;
+      }
+      setHadLines(hasLines);
+    }
+
     const { error } = await supabase.from("documents").update({
       // An invoice archive keeps the invoice's fiscal data untouched.
       ...(linkedInvoice ? {} : {
         document_number: docNumber.trim(),
-        total:        totalVal,
-        subtotal:     baseAmount,
-        tax_rate:     rate,
-        tax_amount:   taxAmount,
+        ...(hasLines ? {} : {
+          total:        totalVal,
+          subtotal:     baseAmount,
+          tax_rate:     rate,
+          tax_amount:   taxAmount,
+        }),
         issue_date:   issueDate || null,
       }),
       status,
@@ -218,10 +257,27 @@ export default function EditarScreen() {
           {/* Importes */}
           <Text style={sectionStyle}>{t("editar.amounts")}</Text>
           <Card containerStyle={{ marginHorizontal: spacing.lg }} style={{ gap: spacing.md }}>
-            <Input label={t("editar.total")} value={amount} onChangeText={setAmount} editable={!linkedInvoice} keyboardType="numeric" placeholder="4280.00" />
-            <Input label={t("editar.subtotal")} value={taxable} onChangeText={setTaxable} editable={!linkedInvoice} keyboardType="numeric" placeholder="3537.19" />
-            <Input label={t("editar.taxRate")} value={vatRate} onChangeText={setVatRate} editable={!linkedInvoice} keyboardType="numeric" placeholder="21" />
+            {hasLines ? (
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>{t("purchaseLines.fromLines")}</Text>
+                <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: C.text }}>
+                  {purchaseTotals(purchaseLines).total.toLocaleString("es-ES", { minimumFractionDigits: 2 })} {currency}
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Input label={t("editar.total")} value={amount} onChangeText={setAmount} editable={!linkedInvoice} keyboardType="numeric" placeholder="4280.00" />
+                <Input label={t("editar.subtotal")} value={taxable} onChangeText={setTaxable} editable={!linkedInvoice} keyboardType="numeric" placeholder="3537.19" />
+                <Input label={t("editar.taxRate")} value={vatRate} onChangeText={setVatRate} editable={!linkedInvoice} keyboardType="numeric" placeholder="21" />
+              </>
+            )}
           </Card>
+
+          {isPurchase && (
+            <View style={{ marginHorizontal: spacing.lg, marginTop: spacing.md }}>
+              <PurchaseLinesEditor lines={lines} onChange={setLines} currency={currency} />
+            </View>
+          )}
 
           {/* Notas */}
           <Text style={sectionStyle}>{t("editar.notes")}</Text>

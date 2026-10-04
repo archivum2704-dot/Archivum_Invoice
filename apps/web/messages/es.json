@@ -542,7 +542,14 @@
         "date": "Fecha",
         "statusTags": "Estado / Etiquetas"
       },
-      "filteredByClient": "Documentos de {name}"
+      "filteredByClient": "Documentos de {name}",
+      "ledger": {
+        "all": "Todos los documentos",
+        "sales": "Facturas de venta",
+        "purchases": "Facturas de compra",
+        "salesSummary": "{count, plural, one {# factura de venta} other {# facturas de venta}}",
+        "purchasesSummary": "{count, plural, one {# factura de compra} other {# facturas de compra}}"
+      }
     },
     "export": {
       "button": "Exportar",
@@ -1084,5 +1091,25 @@
     "sentTitle": "Enviado correctamente",
     "failed": "No se pudo enviar el correo.",
     "sendShort": "Enviar"
+  },
+  "purchaseLines": {
+    "title": "Líneas de la factura de compra",
+    "hint": "Opcional. Las líneas enlazadas a un producto con control de stock suman su cantidad al inventario al guardar la factura. Si la anulas o la borras, se resta.",
+    "product": "Producto",
+    "description": "Descripción",
+    "quantity": "Cant.",
+    "unitCost": "Coste unit.",
+    "vat": "IVA",
+    "lineTotal": "Base",
+    "removeLine": "Quitar línea",
+    "addLine": "Añadir línea",
+    "newProduct": "Crear producto",
+    "addsStock": "Suma al stock",
+    "noStockTracking": "Sin control de stock",
+    "subtotal": "Base imponible",
+    "vatTotal": "IVA",
+    "total": "Total",
+    "linesTitle": "Líneas",
+    "fromLines": "Calculado a partir de las líneas"
   }
 }

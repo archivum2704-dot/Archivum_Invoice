@@ -754,5 +754,31 @@
     "note": "Delivery note",
     "invoice": "Invoice",
     "notInvoiced": "not invoiced"
+  },
+  "purchaseLines": {
+    "title": "Purchase invoice lines",
+    "hint": "Optional. Lines linked to a stock-tracked product add their quantity to inventory when saved. Cancelling or deleting the invoice takes it back off.",
+    "pickProduct": "Pick a product (optional)",
+    "unlink": "Unlink",
+    "description": "Description",
+    "quantity": "Quantity",
+    "unitCost": "Unit cost",
+    "vat": "VAT",
+    "lineTotal": "Net",
+    "removeLine": "Remove line",
+    "addLine": "Add line",
+    "newProduct": "Create product",
+    "addsStock": "Adds to stock",
+    "noStockTracking": "No stock tracking",
+    "subtotal": "Net amount",
+    "vatTotal": "VAT",
+    "total": "Total",
+    "linesTitle": "Lines",
+    "fromLines": "Calculated from the lines"
+  },
+  "ledger": {
+    "all": "All",
+    "sales": "Sales",
+    "purchases": "Purchases"
   }
 }

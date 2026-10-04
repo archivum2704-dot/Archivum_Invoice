@@ -754,5 +754,31 @@
     "note": "Albarán",
     "invoice": "Factura",
     "notInvoiced": "sin facturar"
+  },
+  "purchaseLines": {
+    "title": "Líneas de la factura de compra",
+    "hint": "Opcional. Las líneas enlazadas a un producto con control de stock suman su cantidad al inventario al guardar. Si anulas o borras la factura, se resta.",
+    "pickProduct": "Elegir producto (opcional)",
+    "unlink": "Desvincular",
+    "description": "Descripción",
+    "quantity": "Cantidad",
+    "unitCost": "Coste unit.",
+    "vat": "IVA",
+    "lineTotal": "Base",
+    "removeLine": "Quitar línea",
+    "addLine": "Añadir línea",
+    "newProduct": "Crear producto",
+    "addsStock": "Suma al stock",
+    "noStockTracking": "Sin control de stock",
+    "subtotal": "Base imponible",
+    "vatTotal": "IVA",
+    "total": "Total",
+    "linesTitle": "Líneas",
+    "fromLines": "Calculado a partir de las líneas"
+  },
+  "ledger": {
+    "all": "Todo",
+    "sales": "Ventas",
+    "purchases": "Compras"
   }
 }

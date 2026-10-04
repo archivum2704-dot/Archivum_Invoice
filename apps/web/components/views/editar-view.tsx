@@ -18,6 +18,11 @@ import { toast } from "sonner"
 import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number"
 import type { Database } from "@/lib/supabase/types"
 import { clientLabel } from "@/lib/client-checks"
+import { PurchaseLinesEditor } from "@/components/purchase-lines-editor"
+import {
+  type PurchaseLine, PURCHASE_DOC_TYPE, fromItemRows, isFilledLine, purchaseTotals,
+  replacePurchaseItems, validatePurchaseLines,
+} from "@/lib/purchase-lines"
 
 type DocumentRow = Database["public"]["Tables"]["documents"]["Row"]
 
@@ -59,6 +64,7 @@ export function EditarView({ id }: EditarViewProps) {
   const tFields  = useTranslations("documents.fields")
   const tCommon  = useTranslations("common")
   const tPayment = useTranslations("documents.paymentMethods")
+  const tLines   = useTranslations("purchaseLines")
   const router   = useRouter()
   const { currentOrg } = useOrganization()
   const { companies }  = useCompanies(currentOrg?.id ?? null)
@@ -77,6 +83,11 @@ export function EditarView({ id }: EditarViewProps) {
   const [descripcion, setDescripcion] = useState("")
   const [moneda,     setMoneda]     = useState("EUR")
   const [metodoPago, setMetodoPago] = useState("")
+  // Líneas de factura de compra (document_items). hadLines: el documento ya
+  // tenía líneas al abrirlo, así que al guardar hay que sustituirlas aunque
+  // ahora se haya quitado el tipo de compra.
+  const [lineas,     setLineas]     = useState<PurchaseLine[]>([])
+  const [hadLines,   setHadLines]   = useState(false)
   // Set when this document is the archived PDF of an invoice issued in
   // Facturación. Its number, type, amounts and date are that invoice's,
   // which VeriFactu freezes — changing them here would make the archive
@@ -125,11 +136,22 @@ export function EditarView({ id }: EditarViewProps) {
         setExistingFileUrl(d.file_url)
         setFetchLoading(false)
       })
+    supabase.from("document_items")
+      .select("id, product_id, description, quantity, unit_price, tax_rate, position")
+      .eq("document_id", id)
+      .then(({ data }) => {
+        const rows = (data as any[]) ?? []
+        setLineas(fromItemRows(rows))
+        setHadLines(rows.length > 0)
+      })
     supabase.from("invoices").select("id, full_number").eq("document_id", id).maybeSingle()
       .then(({ data }) => setLinkedInvoice((data as any) ?? null))
   }, [id])
 
-  const computedTotal = (() => {
+  const purchaseLines = tipo === PURCHASE_DOC_TYPE && !linkedInvoice ? lineas.filter(isFilledLine) : []
+  const hasLines = purchaseLines.length > 0
+
+  const computedTotal = hasLines ? purchaseTotals(purchaseLines).total : (() => {
     const base = parseFloat(subtotal.replace(/\./g, "").replace(",", ".")) || 0
     const rate = parseFloat(taxRate) || 0
     return base + (base * rate) / 100
@@ -149,6 +171,9 @@ export function EditarView({ id }: EditarViewProps) {
         })
         if (conflict) throw new Error(numberConflictMessage(conflict, tipo))
       }
+
+      const linesError = validatePurchaseLines(purchaseLines)
+      if (linesError) throw new Error(linesError)
 
       let fileUrl  = existingFileUrl
       let fileName = existingFileName
@@ -172,10 +197,17 @@ export function EditarView({ id }: EditarViewProps) {
         }
       }
 
+      // Lines first: the database recomputes the amounts from them (and moves
+      // the stock), so the manual amounts below only apply without lines.
+      if (!linkedInvoice && (hadLines || hasLines)) {
+        await replacePurchaseItems(supabase, id, purchaseLines)
+      }
+
       const baseAmount = parseFloat(subtotal.replace(/\./g, "").replace(",", ".")) || null
       const rate       = parseFloat(taxRate) || 0
       const taxAmount  = baseAmount != null ? (baseAmount * rate) / 100 : null
       const total      = baseAmount != null ? baseAmount + (taxAmount ?? 0) : null
+      const amounts = hasLines ? {} : { subtotal: baseAmount, tax_rate: rate, tax_amount: taxAmount, total }
 
       const { error: updateErr } = await supabase
         .from("documents")
@@ -185,10 +217,7 @@ export function EditarView({ id }: EditarViewProps) {
             document_number: numero.trim() || null,
             document_type:   tipo as any,
             company_id:      empresa || null,
-            subtotal:        baseAmount,
-            tax_rate:        rate,
-            tax_amount:      taxAmount,
-            total:           total,
+            ...amounts,
             issue_date:      fecha || null,
           }),
           status:          estado as any,
@@ -385,6 +414,14 @@ export function EditarView({ id }: EditarViewProps) {
                   <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
                 </div>
               </div>
+              {hasLines ? (
+                <div className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm bg-muted/50 border border-border rounded-lg">
+                  <span className="text-xs text-muted-foreground">{tLines("fromLines")}</span>
+                  <span className="font-semibold tabular-nums">
+                    {computedTotal.toLocaleString("es-ES", { minimumFractionDigits: 2 })} {moneda}
+                  </span>
+                </div>
+              ) : (
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">{tFields("taxableBase")}</label>
@@ -411,7 +448,12 @@ export function EditarView({ id }: EditarViewProps) {
                   </div>
                 </div>
               </div>
+              )}
             </div>
+
+            {tipo === PURCHASE_DOC_TYPE && !linkedInvoice && (
+              <PurchaseLinesEditor lines={lineas} onChange={setLineas} currency={moneda} />
+            )}
 
             {/* Notes */}
             <div className="bg-card border border-border rounded-xl p-5">

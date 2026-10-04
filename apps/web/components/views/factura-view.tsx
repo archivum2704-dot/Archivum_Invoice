@@ -17,8 +17,18 @@ import type { Database, DocumentType } from "@/lib/supabase/types"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type DocumentRow = Database["public"]["Tables"]["documents"]["Row"]
+type DocumentItem = {
+  id: string
+  description: string
+  quantity: number
+  unit_price: number
+  tax_rate: number
+  subtotal: number | null
+  position: number | null
+}
 type DocumentWithCompany = DocumentRow & {
   company: { name: string; cif: string | null } | null
+  items?: DocumentItem[]
 }
 type DocRef = {
   id: string
@@ -197,6 +207,7 @@ export function FacturaView({ id }: FacturaViewProps) {
   const tActions  = useTranslations("documents.actions")
   const tCommon   = useTranslations("common")
   const tPayment  = useTranslations("documents.paymentMethods")
+  const tLines    = useTranslations("purchaseLines")
 
   const [doc,      setDoc]      = useState<DocumentWithCompany | null>(null)
   const [parent,   setParent]   = useState<DocRef | null>(null)
@@ -214,7 +225,7 @@ export function FacturaView({ id }: FacturaViewProps) {
 
     supabase
       .from("documents")
-      .select("*, company:companies(name, cif)")
+      .select("*, company:companies(name, cif), items:document_items(id, description, quantity, unit_price, tax_rate, subtotal, position)")
       .eq("id", id)
       .single()
       .then(async ({ data, error: err }) => {
@@ -523,6 +534,28 @@ export function FacturaView({ id }: FacturaViewProps) {
               )}
             </div>
 
+            {/* Purchase invoice lines */}
+            {(doc.items?.length ?? 0) > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                  {tLines("linesTitle")}
+                </p>
+                <div className="rounded-xl border border-border divide-y divide-border">
+                  {[...doc.items!].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)).map(it => (
+                    <div key={it.id} className="flex items-start justify-between gap-3 px-3 py-2 text-sm">
+                      <div className="min-w-0">
+                        <p className="text-foreground truncate">{it.description}</p>
+                        <p className="text-xs text-muted-foreground tabular-nums">
+                          {Number(it.quantity).toLocaleString("es-ES")} × {formatAmount(it.unit_price, doc.currency)} · {tLines("vat")} {Number(it.tax_rate)}%
+                        </p>
+                      </div>
+                      <span className="font-medium tabular-nums shrink-0">{formatAmount(it.subtotal, doc.currency)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Amounts */}
             {(doc.total != null || doc.subtotal != null) && (
               <div className="rounded-xl bg-muted/50 p-4 space-y-2">
@@ -534,7 +567,7 @@ export function FacturaView({ id }: FacturaViewProps) {
                 )}
                 {doc.tax_amount != null && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">IVA ({doc.tax_rate}%)</span>
+                    <span className="text-muted-foreground">IVA{doc.tax_rate != null && !(doc.items?.length) ? ` (${doc.tax_rate}%)` : ""}</span>
                     <span className="font-medium">{formatAmount(doc.tax_amount, doc.currency)}</span>
                   </div>
                 )}

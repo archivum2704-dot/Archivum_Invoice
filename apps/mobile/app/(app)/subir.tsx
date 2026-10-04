@@ -29,6 +29,10 @@ import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number";
 import { NewClientModal, type CreatedClient } from "@/components/NewClientModal";
 import { FolderField, useFolders } from "@/components/FolderPicker";
+import { PurchaseLinesEditor } from "@/components/PurchaseLinesEditor";
+import {
+  type PurchaseLine, PURCHASE_DOC_TYPE, isFilledLine, purchaseTotals, toItemRows, validatePurchaseLines,
+} from "@/lib/purchase-lines";
 
 interface Company { id: string; name: string; }
 
@@ -254,7 +258,8 @@ function CompanyPicker({ companies, companyId, setCompanyId, onCreate, C, t }: {
 }
 
 /* ── Step 2: Metadata ───────────────────────────────────────────────────── */
-function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, companies, companyId, setCompanyId, onCreateCompany, amount, setAmount, taxable, setTaxable, vatRate, setVatRate, issueDate, setIssueDate, dueDate, setDueDate, status, setStatus, payMethod, setPayMethod, notes, setNotes, folders, folderId, setFolderId, foldersLoading, addFolder, canCreateFolder, orgId, pickedFile, C, t }: any) {
+function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, companies, companyId, setCompanyId, onCreateCompany, amount, setAmount, taxable, setTaxable, vatRate, setVatRate, issueDate, setIssueDate, dueDate, setDueDate, status, setStatus, payMethod, setPayMethod, notes, setNotes, folders, folderId, setFolderId, foldersLoading, addFolder, canCreateFolder, orgId, pickedFile, lines, setLines, C, t }: any) {
+  const hasLines = docType === PURCHASE_DOC_TYPE && (lines as PurchaseLine[]).some(isFilledLine);
   const DOC_TYPES = [
     { key: "invoice_received", label: t("docTypes.invoice_received") },
     { key: "invoice_issued",   label: t("docTypes.invoice_issued") },
@@ -316,9 +321,12 @@ function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, c
 
         {[
           { label: t("subir.docNumberLabel"), value: docNumber, setter: setDocNumber, ph: t("subir.docNumberPlaceholder") },
-          { label: t("subir.totalLabel"),     value: amount, setter: setAmount, ph: "4280.00", keyboard: "numeric" },
-          { label: t("subir.subtotalLabel"),  value: taxable, setter: setTaxable, ph: "3537.19", keyboard: "numeric" },
-          { label: t("subir.vatLabel"),       value: vatRate, setter: setVatRate, ph: "21", keyboard: "numeric" },
+          // With purchase lines the amounts come from the lines.
+          ...(hasLines ? [] : [
+            { label: t("subir.totalLabel"),     value: amount, setter: setAmount, ph: "4280.00", keyboard: "numeric" },
+            { label: t("subir.subtotalLabel"),  value: taxable, setter: setTaxable, ph: "3537.19", keyboard: "numeric" },
+            { label: t("subir.vatLabel"),       value: vatRate, setter: setVatRate, ph: "21", keyboard: "numeric" },
+          ]),
         ].map((f) => (
           <Input
             key={f.label}
@@ -329,6 +337,8 @@ function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, c
             keyboardType={(f.keyboard as any) ?? "default"}
           />
         ))}
+
+        {docType === PURCHASE_DOC_TYPE && <PurchaseLinesEditor lines={lines} onChange={setLines} />}
 
         <View>
           <Text style={labelStyle}>{t("subir.issueDateLabel")}</Text>
@@ -378,7 +388,11 @@ function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, c
 }
 
 /* ── Step 3: Confirm ────────────────────────────────────────────────────── */
-function Step3({ onSubmit, onBack, saving, pickedFile, docType, docNumber, companyName, amount, issueDate, dueDate, status, notes, C, t }: any) {
+function Step3({ onSubmit, onBack, saving, pickedFile, docType, docNumber, companyName, amount, issueDate, dueDate, status, notes, lines, C, t }: any) {
+  const filled = docType === PURCHASE_DOC_TYPE ? (lines as PurchaseLine[]).filter(isFilledLine) : [];
+  const shownTotal = filled.length > 0
+    ? purchaseTotals(filled).total
+    : amount ? parseFloat(amount.replace(",", ".")) : null;
   const formatSize = (bytes: number) => bytes > 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.round(bytes / 1024)} KB`;
 
   const rows = [
@@ -387,7 +401,8 @@ function Step3({ onSubmit, onBack, saving, pickedFile, docType, docNumber, compa
     [t("subir.companyLabel").replace(" *", ""), companyName || "—"],
     [t("subir.issueDateLabel"), issueDate || "—"],
     [t("subir.dueDateLabel"), dueDate || "—"],
-    [t("subir.totalLabel"), amount ? `€${parseFloat(amount.replace(",", ".")).toLocaleString("es-ES", { minimumFractionDigits: 2 })}` : "—"],
+    [t("subir.totalLabel"), shownTotal != null ? `€${shownTotal.toLocaleString("es-ES", { minimumFractionDigits: 2 })}` : "—"],
+    ...(filled.length > 0 ? [[t("purchaseLines.linesTitle"), String(filled.length)]] : []),
     [t("subir.statusLabel"), t(`status.${status}`, { defaultValue: status })],
   ];
 
@@ -463,6 +478,9 @@ function SubirScreenContent() {
   const [status,      setStatus]      = useState("pending");
   const [notes,       setNotes]       = useState("");
   const [payMethod,   setPayMethod]   = useState("");
+  // Purchase invoice lines; with any, the amounts come from them and the
+  // database adds their quantities to stock.
+  const [lines,       setLines]       = useState<PurchaseLine[]>([]);
   const [saving,      setSaving]      = useState(false);
 
   const loadCompanies = useCallback(async () => {
@@ -503,7 +521,7 @@ function SubirScreenContent() {
   const resetForm = () => {
     setStep(1); setPickedFile(null); setDocType("invoice_received"); setDocNumber(""); setAmount("");
     setCompanyId(null); setNotes(""); setPayMethod(""); setTaxable(""); setVatRate("21");
-    setIssueDate(""); setDueDate(""); setFolderId(null); setStatus("pending");
+    setIssueDate(""); setDueDate(""); setFolderId(null); setStatus("pending"); setLines([]);
   };
 
   const handleSubmit = async () => {
@@ -513,6 +531,10 @@ function SubirScreenContent() {
       // Refused before the upload, so a taken number leaves no orphan file.
       const conflict = await findDocumentNumberConflict({ orgId, number: docNumber, documentType: docType, companyId });
       if (conflict) { Alert.alert(t("common.error"), numberConflictMessage(conflict, docType)); setSaving(false); return; }
+
+      const purchaseLines = docType === PURCHASE_DOC_TYPE ? lines.filter(isFilledLine) : [];
+      const linesError = validatePurchaseLines(purchaseLines);
+      if (linesError) { Alert.alert(t("common.error"), linesError); setSaving(false); return; }
 
       let fileUrl: string | null = null;
       let fileName: string | null = null;
@@ -531,20 +553,32 @@ function SubirScreenContent() {
         fileUrl = storagePath; fileName = pickedFile.name; fileSize = pickedFile.size; fileType = pickedFile.mimeType;
       }
 
-      const baseAmount = taxable ? parseFloat(taxable.replace(",", ".")) : null;
-      const rate = vatRate ? parseFloat(vatRate.replace(",", ".")) : null;
-      const taxAmount = baseAmount != null && rate != null ? baseAmount * rate / 100 : null;
-      const totalVal = amount ? parseFloat(amount.replace(",", ".")) : (baseAmount != null ? baseAmount + (taxAmount ?? 0) : null);
+      const lineTotals = purchaseLines.length > 0 ? purchaseTotals(purchaseLines) : null;
+      const rates = new Set(purchaseLines.map(l => parseFloat(l.taxRate) || 0));
+      const baseAmount = lineTotals ? lineTotals.subtotal : taxable ? parseFloat(taxable.replace(",", ".")) : null;
+      const rate = lineTotals ? (rates.size === 1 ? [...rates][0] : null) : vatRate ? parseFloat(vatRate.replace(",", ".")) : null;
+      const taxAmount = lineTotals ? lineTotals.tax : baseAmount != null && rate != null ? baseAmount * rate / 100 : null;
+      const totalVal = lineTotals ? lineTotals.total : amount ? parseFloat(amount.replace(",", ".")) : (baseAmount != null ? baseAmount + (taxAmount ?? 0) : null);
 
-      const { error: insertErr } = await supabase.from("documents").insert({
+      const { data: inserted, error: insertErr } = await supabase.from("documents").insert({
         organization_id: orgId, company_id: companyId,
         document_number: docNumber.trim() || null, document_type: docType, status,
         total: totalVal, subtotal: baseAmount, tax_rate: rate, tax_amount: taxAmount,
         issue_date: issueDate || null, due_date: dueDate || null, folder_id: folderId,
         payment_method: payMethod || null,
         notes: notes.trim() || null, file_url: fileUrl, file_name: fileName, file_size: fileSize, file_type: fileType,
-      });
+      }).select("id").single();
       if (insertErr) throw insertErr;
+
+      // Without its lines the document would claim amounts nothing backs up
+      // and the stock would not move, so a failure removes it again.
+      if (purchaseLines.length > 0) {
+        const { error: itemsErr } = await supabase.from("document_items").insert(toItemRows(inserted.id, purchaseLines));
+        if (itemsErr) {
+          await supabase.from("documents").delete().eq("id", inserted.id);
+          throw itemsErr;
+        }
+      }
 
       setSaving(false);
       // Reset now, not in an alert button. The screen stays mounted as a tab,
@@ -568,7 +602,8 @@ function SubirScreenContent() {
   // ── Guard: warn before leaving a half-filled upload ────────────────────────
   const isDirty =
     !!pickedFile || !!companyId ||
-    [docNumber, amount, taxable, issueDate, dueDate, notes].some(v => v.trim() !== "");
+    [docNumber, amount, taxable, issueDate, dueDate, notes].some(v => v.trim() !== "") ||
+    lines.some(isFilledLine);
 
   const leave = () => router.back();
 
@@ -620,8 +655,8 @@ function SubirScreenContent() {
           <>
             <StepIndicator current={step} C={C} t={t} />
             {step === 1 && <ScrollView keyboardShouldPersistTaps="handled"><Step1 onNext={() => setStep(2)} pickedFile={pickedFile} setPickedFile={setPickedFile} C={C} t={t} /></ScrollView>}
-            {step === 2 && <Step2 onNext={() => setStep(3)} onBack={() => setStep(1)} pickedFile={pickedFile} docType={docType} setDocType={setDocType} docNumber={docNumber} setDocNumber={setDocNumber} companies={companies} companyId={companyId} setCompanyId={setCompanyId} onCreateCompany={handleCreateCompany} amount={amount} setAmount={setAmount} taxable={taxable} setTaxable={setTaxable} vatRate={vatRate} setVatRate={setVatRate} issueDate={issueDate} setIssueDate={setIssueDate} dueDate={dueDate} setDueDate={setDueDate} status={status} setStatus={setStatus} payMethod={payMethod} setPayMethod={setPayMethod} notes={notes} setNotes={setNotes} folders={folders} folderId={folderId} setFolderId={setFolderId} foldersLoading={foldersLoading} addFolder={addFolder} canCreateFolder={isAdmin} orgId={orgId} C={C} t={t} />}
-            {step === 3 && <ScrollView keyboardShouldPersistTaps="handled"><Step3 onSubmit={handleSubmit} onBack={() => setStep(2)} saving={saving} pickedFile={pickedFile} docType={docType} docNumber={docNumber} companyName={selectedCompanyName} amount={amount} issueDate={issueDate} dueDate={dueDate} status={status} notes={notes} C={C} t={t} /></ScrollView>}
+            {step === 2 && <Step2 onNext={() => setStep(3)} onBack={() => setStep(1)} pickedFile={pickedFile} docType={docType} setDocType={setDocType} docNumber={docNumber} setDocNumber={setDocNumber} companies={companies} companyId={companyId} setCompanyId={setCompanyId} onCreateCompany={handleCreateCompany} amount={amount} setAmount={setAmount} taxable={taxable} setTaxable={setTaxable} vatRate={vatRate} setVatRate={setVatRate} issueDate={issueDate} setIssueDate={setIssueDate} dueDate={dueDate} setDueDate={setDueDate} status={status} setStatus={setStatus} payMethod={payMethod} setPayMethod={setPayMethod} notes={notes} setNotes={setNotes} folders={folders} folderId={folderId} setFolderId={setFolderId} foldersLoading={foldersLoading} addFolder={addFolder} canCreateFolder={isAdmin} orgId={orgId} lines={lines} setLines={setLines} C={C} t={t} />}
+            {step === 3 && <ScrollView keyboardShouldPersistTaps="handled"><Step3 onSubmit={handleSubmit} onBack={() => setStep(2)} saving={saving} pickedFile={pickedFile} docType={docType} docNumber={docNumber} companyName={selectedCompanyName} amount={amount} issueDate={issueDate} dueDate={dueDate} status={status} notes={notes} lines={lines} C={C} t={t} /></ScrollView>}
           </>
         ) : (
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.xxl, gap: spacing.lg }}>

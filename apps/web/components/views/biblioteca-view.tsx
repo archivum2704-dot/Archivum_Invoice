@@ -79,8 +79,12 @@ const STATUS_STYLES: Record<string, string> = {
 
 const TAG_COLORS = ["bg-blue-100 text-blue-700", "bg-amber-100 text-amber-700", "bg-emerald-100 text-emerald-700", "bg-rose-100 text-rose-700"]
 
+type Ledger = "all" | "sales" | "purchases"
+const LEDGER_TYPE = { sales: "invoice_issued", purchases: "invoice_received" } as const
+
 export function BibliotecaView() {
   const t = useTranslations("documents.library")
+  const tLedger = useTranslations("documents.library.ledger")
   const tHints = useTranslations("coachmarks")
   const tTypes = useTranslations("documents.types")
   const tStatuses = useTranslations("documents.statuses")
@@ -96,6 +100,10 @@ export function BibliotecaView() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("list")
   const [search, setSearch] = useState("")
   const [filterType, setFilterType] = useState("all")
+  // Facturas de venta y de compra por separado. A diferencia del filtro de
+  // tipo, estas pestañas buscan en todas las carpetas: quien abre «Compras»
+  // quiere todas sus facturas de proveedor, no solo las que no tienen carpeta.
+  const [ledger, setLedger] = useState<Ledger>("all")
   const [filterStatus, setFilterStatus] = useState("all")
   // "Ver documentos" on a client card links here with ?empresa=<id>; the
   // parameter was ignored and the whole library opened (WEB-020). The
@@ -107,6 +115,9 @@ export function BibliotecaView() {
     const status = params.get("status")
     if (empresa) setFilterCompany(empresa)
     if (status) setFilterStatus(status)
+    const tipo = params.get("tipo")
+    if (tipo === "ventas") setLedger("sales")
+    if (tipo === "compras") setLedger("purchases")
   }, [])
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
@@ -341,7 +352,9 @@ export function BibliotecaView() {
     const matchSearch =
       (d.document_number ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (d.company?.name ?? "").toLowerCase().includes(search.toLowerCase())
-    const matchType = filterType === "all" || d.document_type === filterType
+    const matchType = ledger !== "all"
+      ? d.document_type === LEDGER_TYPE[ledger]
+      : filterType === "all" || d.document_type === filterType
     const matchStatus = filterStatus === "all" || d.status === filterStatus
     const matchCompany = !filterCompany || d.company_id === filterCompany
     const matchDate = (() => {
@@ -359,16 +372,28 @@ export function BibliotecaView() {
     // Root view = only docs with no folder (unless searching — search shows everything)
     // A client's documents may be filed in any folder, so filtering by client
     // looks everywhere, the same as a search does.
-    const matchFolder = search.trim() || filterCompany
+    const matchFolder = search.trim() || filterCompany || ledger !== "all"
       ? true
       : selectedFolder === null
         ? !(d as any).folder_id
         : getFolderIds(selectedFolder).includes((d as any).folder_id)
     return matchSearch && matchType && matchStatus && matchDate && matchFolder && matchCompany
-  }), [documents, search, filterType, filterStatus, dateFrom, dateTo, selectedFolder, filterCompany])
+  }), [documents, search, filterType, filterStatus, dateFrom, dateTo, selectedFolder, filterCompany, ledger])
 
   // Reset to page 1 when filters change
-  useEffect(() => { setPage(1) }, [search, filterType, filterStatus, dateFrom, dateTo, selectedFolder])
+  useEffect(() => { setPage(1) }, [search, filterType, filterStatus, dateFrom, dateTo, selectedFolder, ledger])
+
+  // Total of the invoices on screen, only when they share one currency —
+  // adding EUR to USD would be meaningless.
+  const ledgerTotal = useMemo(() => {
+    if (ledger === "all") return null
+    const live = filtered.filter(d => d.status !== "cancelled" && d.total != null)
+    const currencies = new Set(live.map(d => d.currency ?? "EUR"))
+    if (currencies.size > 1) return null
+    const currency = [...currencies][0] ?? "EUR"
+    const sum = live.reduce((acc, d) => acc + Number(d.total), 0)
+    return new Intl.NumberFormat("es-ES", { style: "currency", currency }).format(sum)
+  }, [filtered, ledger])
 
   const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated   = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -656,6 +681,27 @@ export function BibliotecaView() {
         </div>
       </div>
 
+      {/* Sales / purchases */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="inline-flex items-center bg-card border border-border rounded-lg p-0.5">
+          {(["all", "sales", "purchases"] as const).map(k => (
+            <button key={k} type="button" onClick={() => setLedger(k)}
+              className={cn(
+                "px-3 py-1.5 text-sm rounded-md transition-colors",
+                ledger === k ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:text-foreground"
+              )}>
+              {tLedger(k)}
+            </button>
+          ))}
+        </div>
+        {ledger !== "all" && (
+          <p className="text-sm text-muted-foreground">
+            {tLedger(ledger === "sales" ? "salesSummary" : "purchasesSummary", { count: filtered.length })}
+            {ledgerTotal && <> · <span className="font-semibold text-foreground tabular-nums">{ledgerTotal}</span></>}
+          </p>
+        )}
+      </div>
+
       {/* Filter bar — row 1 */}
       <div className="flex items-center gap-3 mb-3">
         <div className="relative flex-1 max-w-md">
@@ -669,7 +715,7 @@ export function BibliotecaView() {
         </div>
 
         <div className="relative">
-          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="appearance-none pl-3 pr-8 py-2 text-sm bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
+          <select value={ledger !== "all" ? LEDGER_TYPE[ledger] : filterType} disabled={ledger !== "all"} onChange={(e) => setFilterType(e.target.value)} className="disabled:opacity-60 appearance-none pl-3 pr-8 py-2 text-sm bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
             <option value="all">{t("all")}</option>
             {["invoice_issued","invoice_received","delivery_note","receipt","order","quote"].map((k) => (
               <option key={k} value={k}>{tTypes(k as any)}</option>

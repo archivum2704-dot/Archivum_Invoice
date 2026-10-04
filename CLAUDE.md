@@ -3,7 +3,7 @@
 > **Léeme primero.** Este fichero es el punto de partida de cada sesión.
 > Cuando cambies algo relevante, actualízalo en el mismo commit.
 >
-> Última actualización: **1 de octubre de 2026 (Vercel Analytics solo en la web pública; región y copias revisadas para el DPA)**
+> Última actualización: **4 de octubre de 2026 (facturas de compra con líneas que suben el stock; ventas y compras por separado)**
 
 ---
 
@@ -92,6 +92,7 @@ Rama de trabajo: `claude/user-client-creation-kk6p58` → merge a `main`.
 | **Política de cookies** | Abogado | Sigue con contenido placeholder (`/cookies`) — es la única de las tres páginas legales que no ha llegado todavía. Términos y Privacidad ya tienen texto real (ver abajo) |
 | **Copias de seguridad de la base de datos: NO HAY** | Cliente | Comprobado el 1 de octubre en Supabase → Database → Backups: el proyecto está en el **plan Free**, que no incluye copias («Free Plan does not include project backups»), ni PITR. Para un SaaS que guarda facturas con obligación de conservación, es un riesgo serio y además hay que declararlo en el DPA. Pasar a **Pro** da 7 días de copias diarias; PITR es un complemento aparte |
 | **Nada está en la UE: funciones de Vercel en Washington (`iad1`) y base de datos de Supabase en Virginia del Norte (`us-east-1`)** | Cliente | Comprobado el 1 de octubre (Vercel → Settings → Functions; Supabase → Project Settings → General). La landing decía «Datos en Europa (EU)»; se quitó el 1 de octubre. ⚠️ **No cambiar solo la región de Vercel**: con la base de datos en EE. UU., cada consulta cruzaría el Atlántico y la app iría mucho más lenta. La región de Supabase **no se puede cambiar**: hay que crear un proyecto nuevo en la UE (p. ej. `eu-central-1`, Frankfurt) y migrar BD, Storage y usuarios de Auth, y entonces mover Vercel a `fra1`. **Decidido (1 oct)**: se migra a Frankfurt cuando el cliente contrate Supabase Pro; el proyecto nuevo nace en Pro, con copias. Trabajo de una tarde; todos los usuarios tendrán que volver a iniciar sesión una vez |
+| **Aplicar `20261004_purchase_invoice_lines.sql` en el SQL Editor** | Nosotros | Sin ella, guardar una factura de compra con líneas falla (`product_id`/`position` no existen en `document_items`) y Subir la deshace entera. Las facturas sin líneas siguen funcionando igual. Probada contra un PostgreSQL 16 local (17 comprobaciones de stock y totales) pero **no contra producción** |
 | **Decisión: apoderamiento vs certificado por cliente** | Cliente + gestor | Cambia el modelo de servicio. La AEAT admite las dos vías (ver abajo); es decisión de negocio, ya no técnica |
 
 
@@ -353,6 +354,13 @@ en varios sitios acaba divergiendo**. Por eso:
 - **Estado real de un documento archivado**: `lib/hooks/use-linked-status.ts` (web) /
   `lib/linked-status.ts` (móvil). La copia en Biblioteca de un pedido, albarán o
   factura muestra el estado de su origen, no `documents.status`.
+- **Líneas de factura de compra y su stock**: `lib/purchase-lines.ts` (web y móvil,
+  copia idéntica) y los editores `components/purchase-lines-editor.tsx` /
+  `PurchaseLinesEditor.tsx`. **El stock de las compras lo mueve la base de datos**
+  (`trg_purchase_item_stock` + `document_items.stock_applied`), no la app: no
+  añadir nunca un `update products set stock_qty` para compras desde el cliente,
+  se sumaría dos veces. El selector de producto de la web vive ya en
+  `components/product-picker.tsx`.
 - **Cadena Pedido → Albarán → Factura**: `components/document-chain.tsx` (web) y
   `components/DocumentChain.tsx` (móvil).
 - **CIF/NIF de cliente**: obligatorio y único **entre clientes principales** de cada
@@ -420,6 +428,8 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 4 oct | **Facturas de compra con líneas que suben el stock, y ventas/compras por separado** (petición del cliente). Una factura recibida (`invoice_received`) admite ahora líneas en `document_items` —tabla que existía desde el principio pero nada usaba—, cada una con producto opcional, cantidad, coste unitario e IVA; se puede crear el producto sin salir de la factura. En Subir, Editar y el detalle, en **web y móvil**. Con líneas, base/IVA/total salen de ellas y no se escriben a mano. **El stock lo mueve un trigger** (migración `20261004_purchase_invoice_lines.sql`, **sin aplicar**): `document_items.stock_applied` recuerda lo sumado, así que editar una cantidad, borrar una línea o la factura, anularla, pasarla a borrador o cambiarle el tipo resta o suma exactamente lo que toca; un borrador no mueve stock. Es `SECURITY DEFINER` porque un colaborador puede registrar compras aunque solo los admins editen productos, y comprueba que el producto sea de la misma organización. La misma migración arregla `update_document_totals()` (en DELETE usaba `NEW`, que es NULL) y deja borrar líneas a quien puede crearlas (antes solo admins). Biblioteca: pestañas **Todos / Facturas de venta / Facturas de compra** con recuento y total (si todas comparten moneda); las de venta y compra buscan en todas las carpetas, y se puede enlazar con `/biblioteca?tipo=compras` o `?tipo=ventas`. En el móvil, el mismo selector Todo / Ventas / Compras. Verificado: `tsc` web y móvil, `next build`, y la migración contra un PostgreSQL 16 local (17 comprobaciones, idempotente). **No probado en navegador ni en el móvil**: hace falta sesión contra Supabase |
+| 4 oct | **Vaciada la organización de pruebas «Archivum»** (`777fa818…`, owner `archivum2704@gmail.com`) con `apps/web/scripts/reset-org-data/`: 6 facturas (todas en `error`, ninguna aceptada por la AEAT), 251 eventos VERI\*FACTU, 6 pedidos/albaranes, 12 documentos, 1 cliente, 3 productos, 4 carpetas y contadores. Se conservan las 3 cuentas (las otras dos son `viewer`) y el certificado |
 | 4 oct | **Script para vaciar una cuenta de pruebas**: `apps/web/scripts/reset-org-data/` (`1-revisar.sql`, solo lectura; `2-vaciar.sql`, una sola instrucción `DO`, en ensayo hasta poner `v_aplicar := true`) borra facturas, VERI\*FACTU, pedidos/albaranes, documentos, clientes y productos de las organizaciones de un correo (por defecto `archivum2704@gmail.com`), conservando cuenta, organización y certificado. Desactiva los triggers de inalterabilidad solo dentro de la transacción, y aborta si la organización tiene otros miembros salvo `v_otros_miembros_ok := true` (la organización «Archivum», `777fa818…`, tiene 3). Cada fichero se pega entero en una pestaña nueva: ejecutar una selección parcial corta el bloque `DO` («unterminated dollar-quoted string»). Se ejecuta a mano en el SQL Editor (el MCP de Supabase no tiene permiso). **Sin copias de seguridad: lo borrado no vuelve** |
 | 1 oct | **Quitado «Datos en Europa» de la landing** (y «Alojado en Europa» del bloque de seguridad): hoy todo está en EE. UU. Acordado con el cliente migrar a Frankfurt cuando contrate Supabase Pro (trabajo de una tarde) |
 | 1 oct | **Vercel Analytics solo en la web pública**, recomendado por el cliente antes de firmar el DPA: la aplicación privada guarda documentación de clientes y ningún tercero debe observarla. `components/public-analytics.tsx` monta `<Analytics />` solo en `/`, `/privacidad`, `/cookies`, `/terminos` y `/declaracion-responsable` (fuera también `/auth`, cuyas URL llevan códigos de un solo uso), y un `beforeSend` descarta cualquier evento de otra ruta (el script sigue cargado tras navegar a la app) y quita la query string. Revisado también para el DPA: funciones de Vercel en `iad1` y Supabase sin copias de seguridad (plan Free), ver «Lo que bloquea» |

@@ -318,6 +318,9 @@ export type Database = {
           unit_price: number
           tax_rate: number
           subtotal: number | null
+          product_id: string | null
+          position: number
+          stock_applied: boolean
           created_at: string
         }
         Insert: {
@@ -328,6 +331,8 @@ export type Database = {
           unit_price: number
           tax_rate?: number
           subtotal?: number | null
+          product_id?: string | null
+          position?: number
         }
         Update: {
           description?: string
@@ -335,6 +340,8 @@ export type Database = {
           unit_price?: number
           tax_rate?: number
           subtotal?: number | null
+          product_id?: string | null
+          position?: number
         }
       }
       tags: {

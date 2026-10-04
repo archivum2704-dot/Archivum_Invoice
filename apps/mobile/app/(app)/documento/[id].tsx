@@ -60,7 +60,7 @@ export default function DocumentoDetailScreen() {
     if (!id) return;
     supabase
       .from("documents")
-      .select("*, companies(name, cif)")
+      .select("*, companies(name, cif), items:document_items(id, description, quantity, unit_price, tax_rate, subtotal, position)")
       .eq("id", id)
       .single()
       .then(({ data }) => {
@@ -232,7 +232,7 @@ export default function DocumentoDetailScreen() {
           <Field C={C} label={t("documento.paymentDate")} value={fmtDate(doc.payment_date)} />
           <Field C={C} label={t("documento.paymentMethod")} value={isPaymentMethod(doc.payment_method) ? t(`paymentMethods.${doc.payment_method}`) : null} />
           <Field C={C} label={t("documento.subtotal")} value={doc.subtotal != null ? fmt(doc.subtotal) : null} />
-          <Field C={C} label={`${t("documento.vat")} (${doc.tax_rate ?? 0}%)`} value={
+          <Field C={C} label={doc.items?.length ? t("documento.vat") : `${t("documento.vat")} (${doc.tax_rate ?? 0}%)`} value={
             doc.tax_amount != null
               ? fmt(doc.tax_amount)
               : doc.subtotal != null && doc.tax_rate != null
@@ -243,6 +243,25 @@ export default function DocumentoDetailScreen() {
           <Field C={C} label={t("documento.notes")} value={doc.notes} />
           <Field C={C} label={t("documento.description")} value={doc.description} />
         </Card>
+
+        {(doc.items?.length ?? 0) > 0 && (
+          <Card containerStyle={{ marginHorizontal: spacing.lg, marginTop: spacing.md }} padded={false}>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 11, color: C.muted, letterSpacing: 1, textTransform: "uppercase", padding: spacing.lg, paddingBottom: spacing.sm }}>
+              {t("purchaseLines.linesTitle")}
+            </Text>
+            {[...doc.items].sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0)).map((it: any) => (
+              <View key={it.id} style={{ flexDirection: "row", justifyContent: "space-between", gap: spacing.md, padding: spacing.md, paddingHorizontal: spacing.lg, borderTopWidth: 1, borderTopColor: C.border }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: C.text }} numberOfLines={2}>{it.description}</Text>
+                  <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>
+                    {Number(it.quantity).toLocaleString("es-ES")} × {fmt(Number(it.unit_price))} · {t("documento.vat")} {Number(it.tax_rate)}%
+                  </Text>
+                </View>
+                <Text style={{ fontFamily: fonts.semibold, fontSize: 13, color: C.text }}>{fmt(it.subtotal != null ? Number(it.subtotal) : null)}</Text>
+              </View>
+            ))}
+          </Card>
+        )}
 
         <View style={{ height: spacing.xl }} />
       </ScrollView>

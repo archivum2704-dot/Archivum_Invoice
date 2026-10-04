@@ -542,7 +542,14 @@
         "date": "Date",
         "statusTags": "Status / Tags"
       },
-      "filteredByClient": "Documents of {name}"
+      "filteredByClient": "Documents of {name}",
+      "ledger": {
+        "all": "All documents",
+        "sales": "Sales invoices",
+        "purchases": "Purchase invoices",
+        "salesSummary": "{count, plural, one {# sales invoice} other {# sales invoices}}",
+        "purchasesSummary": "{count, plural, one {# purchase invoice} other {# purchase invoices}}"
+      }
     },
     "export": {
       "button": "Export",
@@ -1084,5 +1091,25 @@
     "sentTitle": "Sent successfully",
     "failed": "The email could not be sent.",
     "sendShort": "Send"
+  },
+  "purchaseLines": {
+    "title": "Purchase invoice lines",
+    "hint": "Optional. Lines linked to a stock-tracked product add their quantity to inventory when the invoice is saved. Cancelling or deleting the invoice takes it back off.",
+    "product": "Product",
+    "description": "Description",
+    "quantity": "Qty",
+    "unitCost": "Unit cost",
+    "vat": "VAT",
+    "lineTotal": "Net",
+    "removeLine": "Remove line",
+    "addLine": "Add line",
+    "newProduct": "Create product",
+    "addsStock": "Adds to stock",
+    "noStockTracking": "No stock tracking",
+    "subtotal": "Net amount",
+    "vatTotal": "VAT",
+    "total": "Total",
+    "linesTitle": "Lines",
+    "fromLines": "Calculated from the lines"
   }
 }

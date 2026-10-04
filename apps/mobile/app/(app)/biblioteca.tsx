@@ -112,9 +112,13 @@ export default function BibliotecaScreen() {
     return next;
   });
   // "Ver documentos" on a client links here with ?empresa=<id> (WEB-020).
-  const { empresa } = useLocalSearchParams<{ empresa?: string }>();
+  const { empresa, tipo } = useLocalSearchParams<{ empresa?: string; tipo?: string }>();
   const [companyFilter, setCompanyFilter] = useState<string | null>(null);
   useEffect(() => { setCompanyFilter(empresa ? String(empresa) : null); }, [empresa]);
+  useEffect(() => {
+    if (tipo === "ventas") setActiveType("invoice_issued");
+    if (tipo === "compras") setActiveType("invoice_received");
+  }, [tipo]);
 
   const moveSelected = async (folderId: string | null) => {
     const ids = Array.from(selectedIds);
@@ -144,7 +148,7 @@ export default function BibliotecaScreen() {
     const [{ data: docData }, { data: folderData }] = await Promise.all([
       supabase
         .from("documents")
-        .select("id, document_number, document_type, status, total, issue_date, folder_id, company_id, companies(name)")
+        .select("id, document_number, document_type, status, total, currency, issue_date, folder_id, company_id, companies(name)")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false }),
       supabase
@@ -185,6 +189,24 @@ export default function BibliotecaScreen() {
   const onRefresh = () => { setRefreshing(true); load(); refreshLinked(); };
 
   const chips = Object.keys(DOC_TYPES).slice(0, 6);
+
+  // Facturas de venta y de compra por separado (mismo criterio que la web).
+  const LEDGERS = [
+    { key: "all",              label: t("ledger.all") },
+    { key: "invoice_issued",   label: t("ledger.sales") },
+    { key: "invoice_received", label: t("ledger.purchases") },
+  ];
+  const isLedger = activeType === "invoice_issued" || activeType === "invoice_received";
+  // Sum only when every invoice shares one currency; EUR + USD means nothing.
+  const ledgerTotal = (() => {
+    if (!isLedger) return null;
+    const live = filtered.filter((d) => d.status !== "cancelled" && d.total != null);
+    const currencies = new Set(live.map((d) => d.currency ?? "EUR"));
+    if (currencies.size > 1) return null;
+    const currency = [...currencies][0] ?? "EUR";
+    const sum = live.reduce((acc, d) => acc + Number(d.total), 0);
+    return `${sum.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+  })();
 
   if (loading) {
     return (
@@ -237,6 +259,19 @@ export default function BibliotecaScreen() {
             <SlidersHorizontal size={16} color={hasFilters ? "#fff" : C.blue} strokeWidth={1.75} />
             {hasFilters && <Text style={{ fontFamily: fonts.semibold, fontSize: 13, color: "#fff" }}>•</Text>}
           </TouchableOpacity>
+        </View>
+
+        {/* Sales / purchases */}
+        <View style={{ flexDirection: "row", backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: radius.md, padding: 3, marginBottom: spacing.sm + 2 }}>
+          {LEDGERS.map((l) => {
+            const active = l.key === "all" ? !isLedger : activeType === l.key;
+            return (
+              <TouchableOpacity key={l.key} onPress={() => setActiveType(l.key)}
+                style={{ flex: 1, alignItems: "center", paddingVertical: 7, borderRadius: radius.sm, backgroundColor: active ? C.blue : "transparent" }}>
+                <Text style={{ fontFamily: active ? fonts.semibold : fonts.medium, fontSize: 12, color: active ? "#fff" : C.muted }}>{l.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Folders — only admins may create them, everyone sees the ones they can reach */}
@@ -325,7 +360,9 @@ export default function BibliotecaScreen() {
           </View>
         ) : (
           <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginBottom: spacing.sm }}>
-            {t("biblioteca.docsFound", { count: filtered.length })} · {t("biblioteca.longPressHint")}
+            {t("biblioteca.docsFound", { count: filtered.length })}
+            {ledgerTotal ? <Text style={{ fontFamily: fonts.semibold, color: C.text }}> · {ledgerTotal}</Text> : null}
+            {" · "}{t("biblioteca.longPressHint")}
           </Text>
         )}
       </View>
