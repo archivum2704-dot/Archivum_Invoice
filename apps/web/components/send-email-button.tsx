@@ -67,7 +67,7 @@ export function SendEmailButton({ kind, id, defaultTo, className, compact, onSen
       {open && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !sending && setOpen(false)} />
-          <div className="relative bg-card border border-border rounded-2xl shadow-xl w-full max-w-md p-6">
+          <div className="relative bg-card border border-border rounded-2xl shadow-xl w-full max-w-md p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-semibold text-foreground">{t("title")}</h2>
               <button onClick={() => !sending && setOpen(false)} className="p-1 rounded-lg hover:bg-muted">

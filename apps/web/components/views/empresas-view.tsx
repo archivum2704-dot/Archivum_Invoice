@@ -146,8 +146,11 @@ function CompanyModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between p-5 border-b border-border">
+      {/* Capped at the viewport: with every field the form grew past a laptop
+          screen, cutting off the title and the create button. Header and
+          buttons stay put; only the fields scroll. */}
+      <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100dvh-2rem)] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
           <div>
             <h2 className="text-base font-semibold text-foreground">
               {isEdit ? t("editCompany") : t("addCompany")}
@@ -159,14 +162,15 @@ function CompanyModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+          <div className="p-5 space-y-4 overflow-y-auto min-h-0 flex-1">
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">{t("fields.name")} *</label>
             <input required placeholder="Construcciones García SL" value={form.name} onChange={set("name")} disabled={saving} className={inputCls} />
           </div>
           <EstablishmentField existing={existing} selfId={initial?.id} value={form.parent_company_id}
             onChange={setPrincipal} disabled={saving} hasEstablishments={hasEstablishments} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 items-end">
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{t("fields.cif")} {cifRequired ? <span className="text-destructive">*</span> : <InvoiceReq />}</label>
               <input placeholder="B12345678" value={form.cif} onChange={set("cif")} disabled={saving || !!form.parent_company_id} className={cn(inputCls, "disabled:opacity-70")} />
@@ -183,7 +187,7 @@ function CompanyModal({
             <label className="text-xs font-medium text-muted-foreground">{t("fields.address")} <InvoiceReq /></label>
             <input placeholder="Calle Mayor 1" value={form.address} onChange={set("address")} disabled={saving} className={inputCls} />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3 items-end">
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{t("fields.postalCode")} <InvoiceReq /></label>
               <input placeholder="28001" value={form.postal_code} onChange={set("postal_code")} disabled={saving} className={inputCls} />
@@ -197,7 +201,7 @@ function CompanyModal({
               <input placeholder="Madrid" value={form.province} onChange={set("province")} disabled={saving} className={inputCls} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 items-end">
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{t("fields.phone")} <Opt /></label>
               <input placeholder="+34 600 000 000" value={form.phone} onChange={set("phone")} disabled={saving} className={inputCls} />
@@ -208,7 +212,7 @@ function CompanyModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 items-end">
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{t("paymentMethod")} <Opt /></label>
               <select value={form.payment_method} onChange={set("payment_method")} disabled={saving} className={inputCls}>
@@ -239,8 +243,9 @@ function CompanyModal({
           )}
 
           {error && <p className="text-xs text-destructive">{error}</p>}
+          </div>
 
-          <div className="flex items-center gap-3 pt-1">
+          <div className="flex items-center gap-3 px-5 py-4 border-t border-border shrink-0">
             <button type="submit" disabled={saving || !form.name.trim() || cifMissing || !!cifTaken}
               className="flex-1 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
               {saving ? tCommon("saving") : isEdit ? tCommon("saveChanges") : t("createCompany")}

@@ -1169,7 +1169,7 @@ export function BibliotecaView() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
           onClick={(e) => { if (e.target === e.currentTarget && !deletingFolder) setDeleteConfirm(null) }}
         >
-          <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 flex flex-col gap-4">
+          <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 flex flex-col gap-4 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             {/* Header */}
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">

@@ -48,7 +48,7 @@ export function CancellationModal({ open, onClose, onConfirm }: CancellationModa
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="w-full max-w-lg bg-background rounded-2xl shadow-2xl border border-border overflow-hidden">
+      <div className="w-full max-w-lg bg-background rounded-2xl shadow-2xl border border-border max-h-[calc(100dvh-2rem)] overflow-y-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-destructive/5">

@@ -135,7 +135,7 @@ function CompanyAccessPanel({ member, orgId, onClose }: { member: OrgMember; org
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-lg">
+      <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <div className="flex items-start justify-between p-5 border-b border-border">
           <div>
             <h3 className="text-base font-semibold text-foreground">{t("companyAccessTitle", { name })}</h3>
@@ -256,7 +256,7 @@ function FolderAccessPanel({ member, orgId, onClose }: { member: OrgMember; orgI
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-lg">
+      <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <div className="flex items-start justify-between p-5 border-b border-border">
           <div>
             <h3 className="text-base font-semibold text-foreground">{tS("folderAccessTitle", { name })}</h3>
@@ -694,7 +694,7 @@ function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan
   const router = useRouter()
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between mb-4">
           <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
             <UserPlus className="w-6 h-6 text-primary" />
