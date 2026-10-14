@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { sendWithRetry, explainResendError } from '@/lib/resend-send'
 import { randomInt } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
@@ -178,7 +179,7 @@ export async function POST(req: NextRequest) {
       let addedEmailError: string | null = null
       try {
         const resend = getResend()
-        const { error: emailErr } = await resend.emails.send({
+        const { error: emailErr } = await sendWithRetry(resend, {
           from: FROM_EMAIL,
           to: normalizedEmail,
           subject: `Nuevo acceso · ${orgBilling?.name ?? 'Archivum'}`,
@@ -187,7 +188,7 @@ export async function POST(req: NextRequest) {
             orgName: orgBilling?.name ?? null, accessCode: orgBilling?.access_code ?? null,
           }),
         })
-        if (emailErr) { console.error('[create-member] Resend error (existing user):', emailErr); addedEmailError = emailErr.message }
+        if (emailErr) { console.error('[create-member] Resend error (existing user):', emailErr); addedEmailError = explainResendError(emailErr) }
         else addedEmailSent = true
       } catch (mailErr) {
         console.error('[create-member] email skipped (existing user):', mailErr)
@@ -250,7 +251,7 @@ export async function POST(req: NextRequest) {
     let emailError: string | null = null
     try {
       const resend = getResend()
-      const { error: emailErr } = await resend.emails.send({
+      const { error: emailErr } = await sendWithRetry(resend, {
         from: FROM_EMAIL,
         to: normalizedEmail,
         subject: `Tu cuenta de Archivum · ${orgBilling?.name ?? ''}`.trim(),
@@ -259,7 +260,7 @@ export async function POST(req: NextRequest) {
           orgName: orgBilling?.name ?? null, accessCode: orgBilling?.access_code ?? null,
         }),
       })
-      if (emailErr) { console.error('[create-member] Resend error:', emailErr); emailError = emailErr.message }
+      if (emailErr) { console.error('[create-member] Resend error:', emailErr); emailError = explainResendError(emailErr) }
       else emailSent = true
     } catch (mailErr) {
       // Email not configured or failed — the admin still gets the credentials in the response.

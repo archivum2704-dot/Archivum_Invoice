@@ -1,3 +1,4 @@
+import { explainAuthEmailError } from "@/lib/auth-email-errors";
 import { useState } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView,
@@ -164,7 +165,7 @@ export default function LoginScreen() {
                     }
                     const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email.trim());
                     if (resetErr) {
-                      Alert.alert("Error", resetErr.message);
+                      Alert.alert("Error", explainAuthEmailError(resetErr));
                     } else {
                       Alert.alert("Correo enviado", "Revisa tu bandeja de entrada para restablecer tu contraseña.");
                     }

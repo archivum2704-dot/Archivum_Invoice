@@ -1,5 +1,6 @@
 'use client'
 
+import { explainAuthEmailError } from '@/lib/auth-email-errors'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -61,7 +62,7 @@ export default function SignupPage() {
     })
 
     if (authError) {
-      setError(authError.message)
+      setError(explainAuthEmailError(authError))
       setLoading(false)
       return
     }

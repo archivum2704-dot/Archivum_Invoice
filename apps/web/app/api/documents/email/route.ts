@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { sendWithRetry, explainResendError } from '@/lib/resend-send'
 import { getApiClient } from '@/lib/supabase/api-auth'
 import { renderDocument, type DocKind } from '@/lib/document-render'
 import { buildDocumentEmail, buildDocumentSubject } from '@/lib/document-email'
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
       }, { status: 503 })
     }
 
-    const { error: sendErr } = await new Resend(key).emails.send({
+    const { error: sendErr } = await sendWithRetry(new Resend(key), {
       from: FROM_EMAIL,
       to: recipient,
       replyTo: user.email ?? undefined,
@@ -65,7 +66,8 @@ export async function POST(req: NextRequest) {
     })
     if (sendErr) {
       console.error('[documents/email] Resend error:', sendErr)
-      return NextResponse.json({ error: 'send_failed', detail: sendErr.message }, { status: 502 })
+      const quota = sendErr.name === 'daily_quota_exceeded' || sendErr.name === 'monthly_quota_exceeded'
+      return NextResponse.json({ error: quota ? 'email_quota_exceeded' : 'send_failed', detail: explainResendError(sendErr) }, { status: quota ? 429 : 502 })
     }
 
     // Record that the invoice went out, so it reads "Enviada" instead of

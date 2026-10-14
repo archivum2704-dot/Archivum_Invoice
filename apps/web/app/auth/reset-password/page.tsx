@@ -1,5 +1,6 @@
 'use client'
 
+import { explainAuthEmailError } from '@/lib/auth-email-errors'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -27,7 +28,7 @@ export default function ResetPasswordPage() {
     })
 
     if (resetError) {
-      setError(t('errors.generic'))
+      setError(explainAuthEmailError(resetError))
       setLoading(false)
       return
     }

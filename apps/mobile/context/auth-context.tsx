@@ -1,3 +1,4 @@
+import { explainAuthEmailError } from "@/lib/auth-email-errors";
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Alert } from "react-native";
 import { Session } from "@supabase/supabase-js";
@@ -262,7 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: { first_name: firstName, last_name: lastName },
       },
     });
-    return error?.message ?? null;
+    return error ? explainAuthEmailError(error) : null;
   };
 
   /* ── Sign out ───────────────────────────────────────────────────────────── */
