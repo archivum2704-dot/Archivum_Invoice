@@ -14,7 +14,7 @@
  * different companies can share one. Espejo de `apps/web/lib/client-checks.ts`.
  */
 
-export type ClientLike = { id: string; name: string; cif: string | null; parent_company_id?: string | null }
+export type ClientLike = { id: string; name: string; cif: string | null; parent_company_id?: string | null; kind?: string | null }
 
 /**
  * A client is either *principal* or an *establishment* (local, delegación)

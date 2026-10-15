@@ -11,6 +11,8 @@ import { useCompanies } from "@/lib/hooks/use-companies"
 import { findSimilarClients, duplicateWarnings, cifTakenMessage, looksLikeSpanishTaxId, explainCompanyError, type ClientLike } from "@/lib/client-checks"
 import { EstablishmentField, CifTakenNotice } from "@/components/establishment-field"
 import { toast } from "sonner"
+import { CompanyRoleNotice } from "@/components/company-role-notice"
+import { hasRole, type CompanyRole } from "@/lib/company-kind"
 
 const EMPTY = {
   name: "", cif: "", email: "", phone: "", address: "", postal_code: "", city: "", province: "",
@@ -43,8 +45,10 @@ export function Opt() {
  * everything a Spanish invoice has to print — the address is not optional on
  * one.
  */
-export function NewClientModal({ orgId, onCreated, onClose }: {
+export function NewClientModal({ orgId, role = "client", onCreated, onClose }: {
   orgId: string
+  /** "supplier" from a purchase invoice: same form, saved as a supplier. */
+  role?: CompanyRole
   /** Receives the new client's id so the caller can select it. */
   onCreated: (id: string) => Promise<void> | void
   onClose: () => void
@@ -53,6 +57,8 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
   const locale = useLocale()
   const tCommon = useTranslations("common")
   const tCompanies = useTranslations("companies")
+  const tRole = useTranslations(role === "supplier" ? "suppliers" : "companies")
+  const isSupplier = role === "supplier"
   const tPayment = useTranslations("documents.paymentMethods")
   const [nc, setNc] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
@@ -70,6 +76,8 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
         country_code: (p as any).country_code ?? prev.country_code, tax_id_type: (p as any).tax_id_type ?? prev.tax_id_type }
     : { ...prev, parent_company_id: "" })
   const warnings = duplicateWarnings(similar)
+  // Same CIF as a company on file only as the other role: it gains this one.
+  const otherRole = similar.sameCif && !hasRole(similar.sameCif, role) ? similar.sameCif : null
   const cifTaken = cifTakenMessage(similar)
   const badFormat = !foreign && !!nc.cif.trim() && !looksLikeSpanishTaxId(nc.cif)
 
@@ -102,6 +110,9 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
       tax_id_type: isForeignClient(nc.country_code) ? (nc.tax_id_type || null) : null,
       is_active: true,
       parent_company_id: nc.parent_company_id || null,
+      // A client is the column default, so creating one keeps working
+      // before 20261015_company_kind.sql is applied.
+      ...(isSupplier ? { kind: "supplier" } : {}),
       // Only when set, so creating a client keeps working before
       // 20260929_payment_terms.sql is applied.
       ...(nc.payment_method ? { payment_method: nc.payment_method } : {}),
@@ -113,7 +124,7 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
     if (err) { setError(explainCompanyError(err, t("createClientError"))); setSaving(false); return }
 
     await onCreated(id)
-    toast.success(tCompanies("createdToast", { name: nc.name.trim() }))
+    toast.success(tRole("createdToast", { name: nc.name.trim() }))
     setSaving(false)
     setNc(EMPTY)
     onClose()
@@ -124,13 +135,13 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={close} />
       <div className="relative bg-card border border-border rounded-2xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-foreground">{t("newClient")}</h2>
+          <h2 className="text-lg font-semibold text-foreground">{isSupplier ? tRole("addCompany") : t("newClient")}</h2>
           <button onClick={close} className="p-1 rounded-lg hover:bg-muted"><X className="w-4 h-4 text-muted-foreground" /></button>
         </div>
 
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">{t("clientName")} <span className="text-destructive">*</span></label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">{isSupplier ? tRole("fields.name") : t("clientName")} <span className="text-destructive">*</span></label>
             <input autoFocus value={nc.name} onChange={e => setNc({ ...nc, name: e.target.value })} className={inputCls} />
           </div>
           <EstablishmentField existing={companies} value={nc.parent_company_id} onChange={setPrincipal} />
@@ -206,7 +217,9 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
                 onChange={e => setNc({ ...nc, payment_due_days: e.target.value })} className={inputCls} />
             </div>
           </div>
-          {cifTaken && similar.sameCif && (
+          {otherRole ? (
+            <CompanyRoleNotice company={otherRole} role={role} onAdded={async id => { await onCreated(id); onClose() }} />
+          ) : cifTaken && similar.sameCif && (
             <CifTakenNotice message={cifTaken} principal={similar.sameCif} onMakeEstablishment={() => setPrincipal(similar.sameCif)} />
           )}
           {(warnings.length > 0 || badFormat) && (
@@ -233,7 +246,7 @@ export function NewClientModal({ orgId, onCreated, onClose }: {
           <button onClick={close} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">{tCommon("cancel")}</button>
           <button onClick={handleCreate} disabled={saving || !nc.name.trim() || !nc.cif.trim() || !!cifTaken} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-            {t("createClient")}
+            {isSupplier ? tRole("createCompany") : t("createClient")}
           </button>
         </div>
       </div>

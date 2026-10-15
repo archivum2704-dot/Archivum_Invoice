@@ -22,6 +22,8 @@ import { InvoiceReq, Opt } from "@/components/new-client-modal"
 import { findSimilarClients, duplicateWarnings, cifTakenMessage, looksLikeSpanishTaxId, explainCompanyError, type ClientLike } from "@/lib/client-checks"
 import { EstablishmentField, CifTakenNotice } from "@/components/establishment-field"
 import { toast } from "sonner"
+import { CompanyRoleNotice } from "@/components/company-role-notice"
+import { hasRole, kindOf, isClient, type CompanyKind, type CompanyRole } from "@/lib/company-kind"
 
 const AVATAR_COLORS = ["bg-blue-500", "bg-emerald-600", "bg-violet-600", "bg-orange-500", "bg-rose-600"]
 
@@ -71,17 +73,19 @@ function EstablishmentBadge({ id, parentId, all }: { id: string; parentId: strin
 
 // ── Shared company form modal ─────────────────────────────────────────────────
 function CompanyModal({
-  orgId, initial, knownSectors = [], existing = [], onClose, onSaved,
+  orgId, role, initial, knownSectors = [], existing = [], onClose, onSaved,
 }: {
   orgId: string
-  initial?: { id: string } & CompanyForm
+  /** The page it is opened from: Clientes or Proveedores. */
+  role: CompanyRole
+  initial?: { id: string; kind: CompanyKind } & CompanyForm
   knownSectors?: string[]
   /** Clients already on file, to warn about duplicates (WEB-004). */
   existing?: ClientLike[]
   onClose: () => void
   onSaved: () => void
 }) {
-  const t       = useTranslations("companies")
+  const t       = useTranslations(role === "supplier" ? "suppliers" : "companies")
   const tCommon = useTranslations("common")
   const tPayment = useTranslations("documents.paymentMethods")
   const isEdit  = !!initial
@@ -91,6 +95,16 @@ function CompanyModal({
   )
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState<string | null>(null)
+  // Client, supplier or both. A new one starts as what the page lists.
+  const [roles, setRoles] = useState(() => {
+    const k = initial?.kind ?? role
+    return { client: k !== "supplier", supplier: k !== "client" }
+  })
+  const kind: CompanyKind = roles.client && roles.supplier ? "both" : roles.supplier ? "supplier" : "client"
+  const toggleRole = (r: CompanyRole) => setRoles(prev => {
+    const next = { ...prev, [r]: !prev[r] }
+    return next.client || next.supplier ? next : prev
+  })
 
   const set = (k: keyof CompanyForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
@@ -105,6 +119,9 @@ function CompanyModal({
   const setPrincipal = (p: ClientLike | null) =>
     setForm(f => p ? { ...f, parent_company_id: p.id, cif: p.cif ?? f.cif } : { ...f, parent_company_id: "" })
   const warnings = duplicateWarnings(similar)
+  // Same CIF as a company that is on file only as the other role: offer to
+  // give it this role instead of refusing (a second record cannot exist).
+  const otherRole = !isEdit && similar.sameCif && !hasRole(similar.sameCif, role) ? similar.sameCif : null
   const cifTaken = cifTakenMessage(similar)
   const badFormat = !!form.cif.trim() && !looksLikeSpanishTaxId(form.cif)
 
@@ -129,6 +146,9 @@ function CompanyModal({
       // to clear), so the form keeps saving on a database where
       // 20260929_payment_terms.sql has not been applied yet.
       ...paymentTermsPatch(form, initial),
+      // Only written when it is not a plain client, or changes, so saving a
+      // client keeps working before 20261015_company_kind.sql is applied.
+      ...(kind !== (initial?.kind ?? "client") ? { kind } : {}),
     }
 
     const { error: err } = isEdit
@@ -227,7 +247,23 @@ function CompanyModal({
             <p className="col-span-2 -mt-2 text-[11px] text-muted-foreground">{t("paymentDueDaysHint")}</p>
           </div>
 
-          {cifTaken && similar.sameCif && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">{t("roleLabel")}</p>
+            <div className="flex items-center gap-4">
+              {(["client", "supplier"] as const).map(r => (
+                <label key={r} className="inline-flex items-center gap-2 text-sm text-foreground">
+                  <input type="checkbox" checked={roles[r]} onChange={() => toggleRole(r)} disabled={saving}
+                    className="w-4 h-4 rounded border-border accent-primary" />
+                  {t(r === "client" ? "roleClient" : "roleSupplier")}
+                </label>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground">{t("roleHint")}</p>
+          </div>
+
+          {otherRole ? (
+            <CompanyRoleNotice company={otherRole} role={role} onAdded={() => { onSaved(); onClose() }} />
+          ) : cifTaken && similar.sameCif && (
             <CifTakenNotice message={cifTaken} principal={similar.sameCif} onMakeEstablishment={() => setPrincipal(similar.sameCif)} />
           )}
           {isEdit && !initial?.cif?.trim() && (
@@ -311,8 +347,14 @@ function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan
 }
 
 // ── Main view ─────────────────────────────────────────────────────────────────
-export function EmpresasView() {
-  const t       = useTranslations("companies")
+/**
+ * Clientes (`/empresas`) and Proveedores (`/proveedores`) are the same screen
+ * over the same table: each lists the companies with its role, and one that
+ * is both appears in the two (lib/company-kind.ts).
+ */
+export function EmpresasView({ role = "client" }: { role?: CompanyRole }) {
+  const isSuppliers = role === "supplier"
+  const t       = useTranslations(isSuppliers ? "suppliers" : "companies")
   const tCommon = useTranslations("common")
   const tHints  = useTranslations("coachmarks")
   const tPayment = useTranslations("documents.paymentMethods")
@@ -322,21 +364,26 @@ export function EmpresasView() {
   const [viewMode,     setViewMode]     = useState<"grid" | "list">("grid")
   const [showCreate,   setShowCreate]   = useState(false)
   const [showUpgrade,  setShowUpgrade]  = useState(false)
-  const [editTarget,   setEditTarget]   = useState<null | { id: string } & CompanyForm>(null)
+  const [editTarget,   setEditTarget]   = useState<null | { id: string; kind: CompanyKind } & CompanyForm>(null)
   const [openMenuId,   setOpenMenuId]   = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const addBtnRef = useRef<HTMLButtonElement>(null)
 
   const { currentOrg, isPlatformAdmin } = useOrganization()
+  // `companies` is every company of the organization (duplicate CIF checks
+  // span both roles); `listed` the ones this page shows.
   const { companies, loading, mutate } = useCompanies(currentOrg?.id ?? null)
+  const listed = useMemo(() => companies.filter(c => hasRole(c, role)), [companies, role])
   const { billing } = useBilling(currentOrg?.id ?? null)
 
+  // The plan limits clients; suppliers do not count (20261015_company_kind.sql).
+  const clientCount   = companies.filter(isClient).length
   const maxCompanies  = billing?.maxCompanies ?? 1
   const isFreePlan    = !billing?.hasSubscription
-  const atLimit       = !isPlatformAdmin && companies.length >= maxCompanies
+  const atLimit       = !isPlatformAdmin && clientCount >= maxCompanies
 
   function handleAddClick() {
-    if (atLimit) { setShowUpgrade(true); return }
+    if (atLimit && !isSuppliers) { setShowUpgrade(true); return }
     setShowCreate(true)
   }
 
@@ -367,6 +414,16 @@ export function EmpresasView() {
     await mutate()
   }
 
+  // A company that is both keeps its record and only leaves this list.
+  const handleRemoveRole = async (id: string, name: string) => {
+    setOpenMenuId(null)
+    const supabase = createClient()
+    const { error } = await supabase.from("companies").update({ kind: isSuppliers ? "client" : "supplier" }).eq("id", id)
+    if (error) toast.error(explainCompanyError(error, t("removeRole")))
+    else toast.success(t("removedRoleToast", { name }))
+    await mutate()
+  }
+
   const handleDelete = async (id: string, name: string) => {
     setOpenMenuId(null)
     // Deleting a principal would turn its establishments into principals
@@ -383,7 +440,7 @@ export function EmpresasView() {
     await mutate()
   }
 
-  const empresas = companies.map((company, index) => ({
+  const empresas = listed.map((company, index) => ({
     id:          company.id,
     name:        company.name,
     cif:         company.cif    ?? "",
@@ -397,6 +454,7 @@ export function EmpresasView() {
     payment_method:   company.payment_method ?? "",
     payment_due_days: company.payment_due_days != null ? String(company.payment_due_days) : "",
     parent_company_id: company.parent_company_id ?? "",
+    kind:        kindOf(company),
     isActive:    company.is_active ?? true,
     docs:      company.doc_count,
     color:     AVATAR_COLORS[index % AVATAR_COLORS.length],
@@ -452,6 +510,9 @@ export function EmpresasView() {
 
   type EmpresaCard = (typeof empresas)[number]
 
+  // A supplier's documents are its purchase invoices.
+  const docsHref = (id: string) => `/biblioteca?empresa=${id}${isSuppliers ? "&tipo=compras" : ""}`
+
   const startEdit = (empresa: EmpresaCard) => setEditTarget({
     id:          empresa.id,
     name:        empresa.name,
@@ -466,6 +527,7 @@ export function EmpresasView() {
     payment_method:   empresa.payment_method,
     payment_due_days: empresa.payment_due_days,
     parent_company_id: empresa.parent_company_id,
+    kind:        empresa.kind,
   })
 
   const renderMenu = (empresa: EmpresaCard) => (
@@ -486,7 +548,7 @@ export function EmpresasView() {
         <div className="absolute right-0 top-full mt-1 z-50 w-44 bg-popover border border-border rounded-xl shadow-xl overflow-hidden">
           {/* Ver documentos */}
           <Link
-            href={`/biblioteca?empresa=${empresa.id}`}
+            href={docsHref(empresa.id)}
             onClick={() => setOpenMenuId(null)}
             className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
           >
@@ -517,14 +579,24 @@ export function EmpresasView() {
 
           <div className="border-t border-border" />
 
-          {/* Eliminar */}
-          <button
-            onClick={() => handleDelete(empresa.id, empresa.name)}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-destructive hover:bg-destructive/8 transition-colors"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            {t("deleteCompany")}
-          </button>
+          {/* Eliminar — or, for a company that is both, leave only this list */}
+          {empresa.kind === "both" ? (
+            <button
+              onClick={() => handleRemoveRole(empresa.id, empresa.name)}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              <X className="w-3.5 h-3.5 text-muted-foreground" />
+              {t("removeRole")}
+            </button>
+          ) : (
+            <button
+              onClick={() => handleDelete(empresa.id, empresa.name)}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-destructive hover:bg-destructive/8 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {t("deleteCompany")}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -561,6 +633,7 @@ export function EmpresasView() {
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">{t("fields.cif")}: {empresa.cif || "—"}</p>
                       <EstablishmentBadge id={empresa.id} parentId={empresa.parent_company_id} all={companies} />
+                      {empresa.kind === "both" && <p className="text-[11px] text-muted-foreground mt-0.5">{t("otherRoleBadge")}</p>}
                     </div>
                   </div>
 
@@ -616,7 +689,7 @@ export function EmpresasView() {
                   {tCommon("edit")}
                 </button>
                 <Link
-                  href={`/biblioteca?empresa=${empresa.id}`}
+                  href={docsHref(empresa.id)}
                   className="flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium text-accent border border-accent/30 rounded-lg hover:bg-accent/5 transition-colors"
                 >
                   <Building2 className="w-3.5 h-3.5" />
@@ -651,6 +724,7 @@ export function EmpresasView() {
           {empresa.city || "—"} · {empresa.sector || "—"}
         </p>
         <EstablishmentBadge id={empresa.id} parentId={empresa.parent_company_id} all={companies} />
+        {empresa.kind === "both" && <p className="text-[11px] text-muted-foreground mt-0.5">{t("otherRoleBadge")}</p>}
       </div>
       <span className="hidden sm:block w-28 shrink-0 text-xs text-muted-foreground font-mono truncate">{empresa.cif || "—"}</span>
       <span className="hidden lg:block w-48 shrink-0 text-xs text-muted-foreground truncate">{empresa.email || "—"}</span>
@@ -672,6 +746,7 @@ export function EmpresasView() {
       {showCreate && currentOrg && (
         <CompanyModal
           orgId={currentOrg.id}
+          role={role}
           knownSectors={sectors}
           existing={companies}
           onClose={() => setShowCreate(false)}
@@ -683,6 +758,7 @@ export function EmpresasView() {
       {editTarget && currentOrg && (
         <CompanyModal
           orgId={currentOrg.id}
+          role={role}
           initial={editTarget}
           knownSectors={sectors}
           existing={companies}
@@ -695,20 +771,22 @@ export function EmpresasView() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold text-foreground text-balance">{t("title")}</h1>
-            <TutorialHelpButton slide="companies" />
+            {!isSuppliers && <TutorialHelpButton slide="companies" />}
           </div>
           <p className="text-muted-foreground text-sm mt-1">{t("subtitle", { count: empresas.length })}</p>
         </div>
         <div className="flex items-center gap-3">
           {currentOrg && (
-            <ImportExcelButton kind="clients" orgId={currentOrg.id} onImported={() => mutate()} />
+            <ImportExcelButton kind={isSuppliers ? "suppliers" : "clients"} orgId={currentOrg.id} onImported={() => mutate()} />
           )}
-          <span className={cn(
-            "text-xs font-medium px-3 py-1.5 rounded-full border",
-            atLimit ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-muted text-muted-foreground border-border"
-          )}>
-            {t("limitCounter", { current: companies.length, max: isPlatformAdmin ? "∞" : maxCompanies })}
-          </span>
+          {!isSuppliers && (
+            <span className={cn(
+              "text-xs font-medium px-3 py-1.5 rounded-full border",
+              atLimit ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-muted text-muted-foreground border-border"
+            )}>
+              {t("limitCounter", { current: clientCount, max: isPlatformAdmin ? "∞" : maxCompanies })}
+            </span>
+          )}
           <div className="flex items-center bg-card border border-border rounded-lg p-0.5">
             <button
               onClick={() => changeViewMode("grid")}
@@ -788,7 +866,7 @@ export function EmpresasView() {
             {(search || selectedSector) ? t("noResultsHint") : ""}
           </p>
           {!search && !selectedSector && currentOrg && (
-            <button onClick={() => setShowCreate(true)}
+            <button onClick={handleAddClick}
               className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
               <Plus className="w-4 h-4" /> {t("addFirstCompany")}
             </button>
@@ -819,7 +897,7 @@ export function EmpresasView() {
       )}
 
       {/* First-time hint */}
-      {companies.length === 0 && !loading && (
+      {!isSuppliers && listed.length === 0 && !loading && (
         <Coachmark
           id="empresas-create-first"
           targetRef={addBtnRef}

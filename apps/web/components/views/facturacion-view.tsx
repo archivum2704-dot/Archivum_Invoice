@@ -15,6 +15,7 @@ import { useOrganization } from "@/lib/context/organization-context"
 import { useRegisterNavGuard } from "@/lib/context/nav-guard-context"
 import { useInvoices } from "@/lib/hooks/use-invoices"
 import { useCompanies } from "@/lib/hooks/use-companies"
+import { forRole } from "@/lib/company-kind"
 import { useProducts, type Product } from "@/lib/hooks/use-products"
 import { isPaidPlan } from "@/lib/plan"
 import { getStockWarnings, type StockWarning } from "@/lib/stock"
@@ -167,11 +168,13 @@ export function FacturacionView() {
   // Type-to-search matches for the client combobox
   const clientMatches = useMemo(() => {
     const q = clientQuery.trim().toLowerCase()
-    if (!q) return companies
-    return companies.filter(c =>
+    // Sales are to clients: suppliers only stay out (lib/company-kind.ts).
+    const clients = forRole(companies, "client", clientId)
+    if (!q) return clients
+    return clients.filter(c =>
       clientLabel(c, companies).toLowerCase().includes(q) || (c.cif ?? "").toLowerCase().includes(q)
     )
-  }, [companies, clientQuery])
+  }, [companies, clientQuery, clientId])
 
   const toggle = (arr: string[], setArr: (a: string[]) => void, val: string) =>
     setArr(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])

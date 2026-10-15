@@ -5,7 +5,7 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   Plus, Search, MoreVertical, Building2, X,
   FileText, Pencil, PauseCircle, PlayCircle, Trash2,
@@ -28,6 +28,7 @@ import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
 import { resolveEntitlements } from "@/lib/pricing";
 import { Badge, Button, Card, EmptyState, Input } from "@/components/ui";
+import { hasRole, isClient, kindOf, withRole, type CompanyKind, type CompanyRole } from "@/lib/company-kind";
 
 
 
@@ -51,6 +52,7 @@ interface Company {
   payment_method?: string | null;
   payment_due_days?: number | null;
   parent_company_id?: string | null;
+  kind?: string | null;
   is_active: boolean;
   doc_count?: number;
 }
@@ -116,17 +118,27 @@ function UpgradeModal({ visible, maxCompanies, onClose, C, t }: { visible: boole
  * (NewClientModal) did. Kept at module scope so fields keep focus while typing.
  */
 function CompanyModal({
-  visible, onClose, onSaved, orgId, initial, existing = [], C, t,
+  visible, onClose, onSaved, orgId, role, initial, existing = [], C, t,
 }: {
   visible: boolean; onClose: () => void; onSaved: () => void;
-  orgId: string; initial?: Company | null; existing?: Company[]; C: any; t: any;
+  orgId: string; role: CompanyRole; initial?: Company | null; existing?: Company[]; C: any; t: any;
 }) {
+  const ns = role === "supplier" ? "proveedores" : "empresas";
   const isEdit = !!initial;
   const [form, setForm] = useState<CompanyForm>(toForm(initial));
   const [saving, setSaving] = useState(false);
+  // Client, supplier or both. A new one starts as what the list shows.
+  const startKind = (): CompanyKind => initial ? kindOf(initial) : role;
+  const [kind, setKind] = useState<CompanyKind>(startKind());
+  const roles = { client: kind !== "supplier", supplier: kind !== "client" };
+  const toggleRole = (r: CompanyRole) => {
+    const next = { ...roles, [r]: !roles[r] };
+    if (!next.client && !next.supplier) return;
+    setKind(next.client && next.supplier ? "both" : next.supplier ? "supplier" : "client");
+  };
 
   useEffect(() => {
-    if (visible) setForm(toForm(initial));
+    if (visible) { setForm(toForm(initial)); setKind(startKind()); }
   }, [visible, initial]);
 
   const set = (k: keyof CompanyForm) => (v: string) => setForm(f => ({ ...f, [k]: v }));
@@ -141,7 +153,20 @@ function CompanyModal({
   const setPrincipal = (p: ClientLike | null) =>
     setForm(f => p ? { ...f, parent_company_id: p.id, cif: p.cif ?? f.cif } : { ...f, parent_company_id: "" });
   const warnings = duplicateWarnings(similar);
+  // Same CIF as a company on file only as the other role: it gains this one
+  // instead of a second record (the CIF is unique per organization).
+  const otherRole = !isEdit && similar.sameCif && !hasRole(similar.sameCif, role) ? similar.sameCif : null;
   const cifTaken = cifTakenMessage(similar);
+  const addRoleToExisting = async () => {
+    if (!otherRole) return;
+    setSaving(true);
+    const { error } = await supabase.from("companies").update({ kind: withRole(otherRole, role) }).eq("id", otherRole.id);
+    setSaving(false);
+    if (error) { Alert.alert(t("common.error"), explainCompanyError(error, t("common.unknownError"))); return; }
+    Alert.alert(t(`${ns}.addedRoleToast`, { name: otherRole.name }));
+    onSaved();
+    onClose();
+  };
   const badFormat = !!form.cif.trim() && !looksLikeSpanishTaxId(form.cif);
 
   const handleSave = async () => {
@@ -168,6 +193,9 @@ function CompanyModal({
       ...((form.payment_method || dueDays != null || hadTerms)
         ? { payment_method: form.payment_method || null, payment_due_days: dueDays }
         : {}),
+      // Only written when not a plain client, or when it changes, so saving a
+      // client keeps working before 20261015_company_kind.sql is applied.
+      ...(kind !== (initial ? kindOf(initial) : "client") ? { kind } : {}),
     };
     let error: any;
     if (isEdit && initial) {
@@ -190,7 +218,7 @@ function CompanyModal({
       <View style={{ backgroundColor: C.surface, borderRadius: radius.xl, maxHeight: "88%", overflow: "hidden" }}>
         <View style={{ width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: "center", marginTop: spacing.md }} />
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: C.border }}>
-          <Text style={{ fontFamily: fonts.bold, fontSize: 17, color: C.text }}>{isEdit ? t("empresas.editCompany") : t("empresas.newCompany")}</Text>
+          <Text style={{ fontFamily: fonts.bold, fontSize: 17, color: C.text }}>{isEdit ? t(`${ns}.editCompany`) : t(`${ns}.newCompany`)}</Text>
           <TouchableOpacity onPress={onClose} style={{ backgroundColor: C.segmentBg, borderRadius: radius.sm, padding: 6 }}>
             <X size={16} color={C.muted} strokeWidth={1.75} />
           </TouchableOpacity>
@@ -222,21 +250,34 @@ function CompanyModal({
           <Input label={t("invoicing.clientProvince")} placeholder="Madrid" value={form.province} onChangeText={set("province")} />
           <PaymentMethodPicker label={t("empresas.paymentMethod")} value={form.payment_method} onChange={set("payment_method")} />
           <Input label={t("empresas.paymentDueDays")} placeholder="30" value={form.payment_due_days} onChangeText={set("payment_due_days")}
-            keyboardType="number-pad" hint={t("empresas.paymentDueDaysHint")} />
-          {!!cifTaken && !!similar.sameCif && (
+            keyboardType="number-pad" hint={t(`${ns}.paymentDueDaysHint`)} />
+          <View style={{ gap: 6 }}>
+            <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.muted }}>{t("empresas.roleLabel")}</Text>
+            <View style={{ flexDirection: "row", gap: 6 }}>
+              <Chip label={t("empresas.roleClient")} active={roles.client} onPress={() => toggleRole("client")} C={C} />
+              <Chip label={t("empresas.roleSupplier")} active={roles.supplier} onPress={() => toggleRole("supplier")} C={C} />
+            </View>
+            <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t("empresas.roleHint")}</Text>
+          </View>
+          {otherRole ? (
+            <View style={{ backgroundColor: C.blueL, borderRadius: radius.md, padding: spacing.sm + 2, gap: spacing.sm }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.text }}>{t(`${ns}.existsWithOtherRole`, { name: otherRole.name })}</Text>
+              <Button label={t(`${ns}.addRoleExisting`, { name: otherRole.name })} onPress={addRoleToExisting} disabled={saving} variant="secondary" size="md" />
+            </View>
+          ) : !!cifTaken && !!similar.sameCif && (
             <CifTakenNotice message={cifTaken} principal={similar.sameCif} onMakeEstablishment={() => setPrincipal(similar.sameCif)} />
           )}
           {isEdit && !initial?.cif?.trim() && (
-            <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>{t("empresas.cifNowRequired")}</Text>
+            <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted }}>{t(`${ns}.cifNowRequired`)}</Text>
           )}
           {warnings.map(w => (
             <View key={w} style={{ backgroundColor: C.yellowL, borderRadius: radius.md, padding: spacing.sm + 2 }}>
               <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.text }}>{w}</Text>
             </View>
           ))}
-          {badFormat && <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t("empresas.taxIdFormatHint")}</Text>}
+          {badFormat && <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t(`${ns}.taxIdFormatHint`)}</Text>}
           <Button
-            label={isEdit ? t("empresas.saveChanges") : t("empresas.createCompany")}
+            label={isEdit ? t("empresas.saveChanges") : t(`${ns}.createCompany`)}
             onPress={handleSave}
             disabled={saving || !form.name.trim() || cifMissing || !!cifTaken}
             loading={saving}
@@ -250,12 +291,14 @@ function CompanyModal({
 
 /* ── Action menu modal ───────────────────────────────────────────────────── */
 function ActionMenu({
-  visible, company, onClose, onEdit, onToggle, onDelete, C, t,
+  visible, company, role, onClose, onEdit, onToggle, onDelete, onRemoveRole, C, t,
 }: {
-  visible: boolean; company: Company | null; onClose: () => void;
-  onEdit: () => void; onToggle: () => void; onDelete: () => void; C: any; t: any;
+  visible: boolean; company: Company | null; role: CompanyRole; onClose: () => void;
+  onEdit: () => void; onToggle: () => void; onDelete: () => void; onRemoveRole: () => void; C: any; t: any;
 }) {
   if (!company) return null;
+  const ns = role === "supplier" ? "proveedores" : "empresas";
+  const both = kindOf(company) === "both";
   return (
     <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
@@ -265,7 +308,7 @@ function ActionMenu({
           {company.name}
         </Text>
         {[
-          { icon: <FileText size={18} color={C.blue} strokeWidth={1.75} />,   label: t("empresas.viewDocs"),   action: () => { onClose(); router.push(`/(app)/biblioteca?empresa=${company.id}`); } },
+          { icon: <FileText size={18} color={C.blue} strokeWidth={1.75} />,   label: t(`${ns}.viewDocs`),     action: () => { onClose(); router.push(`/(app)/biblioteca?empresa=${company.id}${role === "supplier" ? "&tipo=compras" : ""}`); } },
           { icon: <Pencil size={18} color={C.text} strokeWidth={1.75} />,     label: t("common.edit"),         action: () => { onClose(); onEdit(); } },
           { icon: company.is_active
               ? <PauseCircle size={18} color={C.yellow} strokeWidth={1.75} />
@@ -273,7 +316,10 @@ function ActionMenu({
             label: company.is_active ? t("empresas.suspend") : t("empresas.reactivate"),
             action: () => { onClose(); onToggle(); }
           },
-          { icon: <Trash2 size={18} color={C.red} strokeWidth={1.75} />, label: t("common.delete"), action: () => { onClose(); onDelete(); }, danger: true },
+          // A company that is both keeps its record and only leaves this list.
+          both
+            ? { icon: <X size={18} color={C.text} strokeWidth={1.75} />, label: t(`${ns}.removeRole`), action: () => { onClose(); onRemoveRole(); }, danger: false }
+            : { icon: <Trash2 size={18} color={C.red} strokeWidth={1.75} />, label: t("common.delete"), action: () => { onClose(); onDelete(); }, danger: true },
         ].map((item) => (
           <TouchableOpacity
             key={item.label} onPress={item.action}
@@ -304,7 +350,7 @@ function Chip({ label, active, onPress, C }: { label: string; active: boolean; o
 }
 
 /* ── Company card ────────────────────────────────────────────────────────── */
-function CompanyCard({ company, all, onMenu, C, t }: { company: Company; all: Company[]; onMenu: () => void; C: any; t: any }) {
+function CompanyCard({ company, all, ns, onMenu, C, t }: { company: Company; all: Company[]; ns: string; onMenu: () => void; C: any; t: any }) {
   const parent = company.parent_company_id ? all.find(c => c.id === company.parent_company_id) : null;
   const establishments = all.filter(c => c.parent_company_id === company.id).length;
   return (
@@ -322,13 +368,16 @@ function CompanyCard({ company, all, onMenu, C, t }: { company: Company; all: Co
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: "row", gap: spacing.xs + 2, alignItems: "center" }}>
                 <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: C.text }} numberOfLines={1}>{company.name}</Text>
-                {!company.is_active && <Badge label={t("empresas.suspended")} tone="yellow" />}
+                {!company.is_active && <Badge label={t(`${ns}.suspended`)} tone="yellow" />}
               </View>
               {company.cif && (
                 <Text style={{ fontFamily: fonts.mono, fontSize: 12, color: C.muted }}>{company.cif}</Text>
               )}
               {!!parent && (
                 <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.blue }} numberOfLines={1}>Establecimiento de {parent.name}</Text>
+              )}
+              {kindOf(company) === "both" && (
+                <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t(`${ns}.otherRoleBadge`)}</Text>
               )}
               {!parent && establishments > 0 && (
                 <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{establishments} establecimiento{establishments > 1 ? "s" : ""}</Text>
@@ -398,6 +447,12 @@ function EmpresasScreenContent() {
   const { t } = useTranslation();
   const C = useColors();
   const { orgId, isPlatformAdmin } = useAuth();
+  // Clientes and Proveedores share this screen (lib/company-kind.ts);
+  // `?tipo=proveedores` opens it on suppliers.
+  const params = useLocalSearchParams<{ tipo?: string }>();
+  const [role, setRole] = useState<CompanyRole>(params.tipo === "proveedores" ? "supplier" : "client");
+  useEffect(() => { if (params.tipo === "proveedores") setRole("supplier"); }, [params.tipo]);
+  const ns = role === "supplier" ? "proveedores" : "empresas";
   const [companies,    setCompanies]    = useState<Company[]>([]);
   const [filtered,     setFiltered]     = useState<Company[]>([]);
   const [query,        setQuery]        = useState("");
@@ -415,14 +470,17 @@ function EmpresasScreenContent() {
     ? resolveEntitlements(plan, { isPlatformAdmin }).maxCompanies
     : 999; // Don't block while the plan is loading
 
-  const atLimit = plan != null && companies.length >= maxCompanies;
+  // The plan limits clients; suppliers do not count (20261015_company_kind.sql).
+  const clientCount = companies.filter(isClient).length;
+  const atLimit = plan != null && clientCount >= maxCompanies;
+  const listed = companies.filter(c => hasRole(c, role));
 
   const handleAddPress = () => {
     if (!orgId) {
       Alert.alert(t("common.error"), t("common.unknownError"));
       return;
     }
-    if (atLimit) { setUpgradeOpen(true); }
+    if (atLimit && role === "client") { setUpgradeOpen(true); }
     else         { setCreateOpen(true);  }
   };
 
@@ -447,14 +505,15 @@ function EmpresasScreenContent() {
   useEffect(() => { load(); }, [load]);
 
   const sectors = Array.from(
-    new Set(companies.map((c) => c.sector?.trim()).filter((s): s is string => !!s))
+    new Set(listed.map((c) => c.sector?.trim()).filter((s): s is string => !!s))
   ).sort((a, b) => a.localeCompare(b));
-  const hasNoSector = companies.some((c) => !c.sector?.trim());
+  const hasNoSector = listed.some((c) => !c.sector?.trim());
 
   useEffect(() => {
     const q = query.trim().toLowerCase();
     setFiltered(
       companies.filter((c) => {
+        if (!hasRole(c, role)) return false;
         const matchesSearch =
           !q ||
           c.name.toLowerCase().includes(q) ||
@@ -466,12 +525,19 @@ function EmpresasScreenContent() {
         return matchesSearch && matchesSector;
       })
     );
-  }, [query, companies, selectedSector]);
+  }, [query, companies, selectedSector, role]);
 
   const onRefresh = () => { setRefreshing(true); load(); };
 
   const handleToggle = async (c: Company) => {
     await supabase.from("companies").update({ is_active: !c.is_active }).eq("id", c.id);
+    load();
+  };
+
+  const handleRemoveRole = async (c: Company) => {
+    const { error } = await supabase.from("companies").update({ kind: role === "supplier" ? "client" : "supplier" }).eq("id", c.id);
+    if (error) Alert.alert(t("common.error"), explainCompanyError(error, t("common.unknownError")));
+    else Alert.alert(t(`${ns}.removedRoleToast`, { name: c.name }));
     load();
   };
 
@@ -484,8 +550,8 @@ function EmpresasScreenContent() {
       return;
     }
     Alert.alert(
-      t("empresas.deleteTitle"),
-      t("empresas.deleteConfirm", { name: c.name }),
+      t(`${ns}.deleteTitle`),
+      t(`${ns}.deleteConfirm`, { name: c.name }),
       [
         { text: t("common.cancel"), style: "cancel" },
         {
@@ -510,10 +576,10 @@ function EmpresasScreenContent() {
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.sm }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.md }}>
           <View>
-            <Text style={{ fontFamily: fonts.extrabold, fontSize: 22, color: C.text }}>{t("empresas.title")}</Text>
-            {plan && (
+            <Text style={{ fontFamily: fonts.extrabold, fontSize: 22, color: C.text }}>{t(`${ns}.title`)}</Text>
+            {plan && role === "client" && (
               <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: atLimit ? C.red : C.muted, marginTop: 1 }}>
-                {t("empresas.companiesCount", { current: companies.length, max: maxCompanies })}
+                {t("empresas.companiesCount", { current: clientCount, max: maxCompanies })}
               </Text>
             )}
           </View>
@@ -525,6 +591,18 @@ function EmpresasScreenContent() {
           </TouchableOpacity>
         </View>
 
+        {/* Clientes / Proveedores */}
+        <View style={{ flexDirection: "row", backgroundColor: C.segmentBg, borderRadius: radius.md, padding: 3, marginBottom: spacing.sm + 2 }}>
+          {(["client", "supplier"] as const).map(r => (
+            <TouchableOpacity key={r} onPress={() => { setRole(r); setSelectedSector(null); }}
+              style={{ flex: 1, alignItems: "center", paddingVertical: 7, borderRadius: radius.md - 3, backgroundColor: role === r ? C.surface : "transparent" }}>
+              <Text style={{ fontFamily: fonts.semibold, fontSize: 13, color: role === r ? C.text : C.muted }}>
+                {t(r === "client" ? "empresas.segmentClients" : "empresas.segmentSuppliers")}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <View style={{
           flexDirection: "row", alignItems: "center", gap: spacing.sm,
           backgroundColor: C.inputBg, borderWidth: 1.5, borderColor: C.border, borderRadius: radius.md, paddingHorizontal: spacing.md,
@@ -532,7 +610,7 @@ function EmpresasScreenContent() {
           <Search size={16} color={C.muted} strokeWidth={1.75} />
           <TextInput
             style={{ flex: 1, fontFamily: fonts.regular, fontSize: 14, color: C.text, paddingVertical: spacing.sm + 2 }}
-            placeholder={t("empresas.searchPlaceholder")}
+            placeholder={t(`${ns}.searchPlaceholder`)}
             placeholderTextColor={C.muted}
             value={query}
             onChangeText={setQuery}
@@ -566,10 +644,10 @@ function EmpresasScreenContent() {
         <View style={{ flex: 1, justifyContent: "center" }}>
           <EmptyState
             icon={<Building2 size={28} color={C.muted} strokeWidth={1.5} />}
-            title={(query || selectedSector) ? t("empresas.noResults") : t("empresas.noCompanies")}
-            subtitle={(query || selectedSector) ? t("empresas.tryOther") : t("empresas.addFirst")}
+            title={(query || selectedSector) ? t("empresas.noResults") : t(`${ns}.noCompanies`)}
+            subtitle={(query || selectedSector) ? t("empresas.tryOther") : t(`${ns}.addFirst`)}
             action={!query && !selectedSector ? (
-              <Button label={t("empresas.addCompany")} onPress={handleAddPress} size="md" fullWidth={false} />
+              <Button label={t(`${ns}.addCompany`)} onPress={handleAddPress} size="md" fullWidth={false} />
             ) : undefined}
           />
         </View>
@@ -579,7 +657,7 @@ function EmpresasScreenContent() {
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <CompanyCard company={item} all={companies} onMenu={() => setMenuTarget(item)} C={C} t={t} />
+            <CompanyCard company={item} all={companies} ns={ns} onMenu={() => setMenuTarget(item)} C={C} t={t} />
           )}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.blue} />}
           contentContainerStyle={{ paddingTop: spacing.xs, paddingBottom: spacing.xl }}
@@ -590,7 +668,7 @@ function EmpresasScreenContent() {
       {/* First-time hint */}
       <Coachmark
         id="empresas-create-first"
-        active={!loading && companies.length === 0}
+        active={!loading && role === "client" && listed.length === 0}
         icon={<Building2 size={32} color={C.blue} />}
         title={t("coachmarks.empresasCreateFirst.title")}
         description={t("coachmarks.empresasCreateFirst.description")}
@@ -599,13 +677,14 @@ function EmpresasScreenContent() {
 
       {/* Modals */}
       <UpgradeModal visible={upgradeOpen} maxCompanies={maxCompanies} onClose={() => setUpgradeOpen(false)} C={C} t={t} />
-      <CompanyModal visible={createOpen} existing={companies} onClose={() => setCreateOpen(false)} onSaved={load} orgId={orgId!} C={C} t={t} />
-      <CompanyModal visible={!!editTarget} initial={editTarget} existing={companies} onClose={() => setEditTarget(null)} onSaved={load} orgId={orgId!} C={C} t={t} />
+      <CompanyModal visible={createOpen} role={role} existing={companies} onClose={() => setCreateOpen(false)} onSaved={load} orgId={orgId!} C={C} t={t} />
+      <CompanyModal visible={!!editTarget} role={role} initial={editTarget} existing={companies} onClose={() => setEditTarget(null)} onSaved={load} orgId={orgId!} C={C} t={t} />
       <ActionMenu
-        visible={!!menuTarget} company={menuTarget} onClose={() => setMenuTarget(null)}
+        visible={!!menuTarget} company={menuTarget} role={role} onClose={() => setMenuTarget(null)}
         onEdit={() => { setEditTarget(menuTarget); setMenuTarget(null); }}
         onToggle={() => { if (menuTarget) handleToggle(menuTarget); setMenuTarget(null); }}
         onDelete={() => { if (menuTarget) handleDelete(menuTarget); }}
+        onRemoveRole={() => { if (menuTarget) handleRemoveRole(menuTarget); }}
         C={C} t={t}
       />
     </SafeAreaView>

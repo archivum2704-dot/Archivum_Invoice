@@ -29,13 +29,14 @@ import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
 import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/lib/currency";
 import { clientLabel } from "@/lib/client-checks";
+import { forRole } from "@/lib/company-kind";
 
 const IVA_RATES = ["", "4", "10", "21"];
 const RET_RATES = ["", "7", "15", "19"];
 const DISC_RATES = ["", "5", "10", "15", "20"];
 
 interface Quote { id: string; full_number: string | null; client_name: string | null; total: number; status: string; issue_date: string | null; currency: string; }
-interface Company { id: string; name: string; cif: string | null; }
+interface Company { id: string; name: string; cif: string | null; kind?: string | null; }
 interface Product { id: string; name: string; unit_price: number; tax_rate: number; }
 type Line = { productId: string | null; description: string; quantity: string; unitPrice: string; taxRate: string; exemptionCause: string };
 
@@ -84,15 +85,17 @@ function PresupuestosScreenContent() {
 
   const clientMatches = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
-    if (!q) return companies;
-    return companies.filter(c => clientLabel(c, companies).toLowerCase().includes(q) || (c.cif ?? "").toLowerCase().includes(q));
-  }, [companies, clientSearch]);
+    // Sales are to clients: suppliers only stay out (lib/company-kind.ts).
+    const clients = forRole(companies, "client", clientId);
+    if (!q) return clients;
+    return clients.filter(c => clientLabel(c, companies).toLowerCase().includes(q) || (c.cif ?? "").toLowerCase().includes(q));
+  }, [companies, clientSearch, clientId]);
 
   const load = useCallback(async () => {
     if (!orgId) return;
     const [{ data: q }, { data: co }, { data: pr }] = await Promise.all([
       supabase.from("quotes").select("id, full_number, client_name, total, status, issue_date, currency").eq("organization_id", orgId).eq("kind", "quote").neq("status", "converted").order("created_at", { ascending: false }),
-      supabase.from("companies").select("id, name, cif, parent_company_id").eq("organization_id", orgId).eq("is_active", true).order("name"),
+      supabase.from("companies").select("*").eq("organization_id", orgId).eq("is_active", true).order("name"),
       supabase.from("products").select("id, name, unit_price, tax_rate").eq("organization_id", orgId).eq("is_active", true).order("name"),
     ]);
     setQuotes((q as Quote[]) ?? []); setCompanies((co as Company[]) ?? []); setProducts((pr as Product[]) ?? []);
@@ -131,7 +134,7 @@ function PresupuestosScreenContent() {
   });
 
   const onClientCreated = (c: CreatedClient) => {
-    setCompanies(prev => [...prev, c as Company].sort((a, b) => a.name.localeCompare(b.name)));
+    setCompanies(prev => [...prev.filter(x => x.id !== c.id), c as Company].sort((a, b) => a.name.localeCompare(b.name)));
     setClientId(c.id);
     setClientPicker(false);
   };

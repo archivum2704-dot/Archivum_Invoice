@@ -30,11 +30,16 @@ export async function GET(req: NextRequest) {
     if (!member && !isPlatformAdmin) return NextResponse.json({ error: 'not_member' }, { status: 403 })
 
     // Count members, documents and companies
-    const [{ count: memberCount }, { count: documentCount }, { count: companyCount }] = await Promise.all([
+    const [{ count: memberCount }, { count: documentCount }, clients] = await Promise.all([
       supabase.from('organization_members').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
       supabase.from('documents').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
-      supabase.from('companies').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
+      // The plan limits clients; suppliers do not count (20261015_company_kind.sql).
+      supabase.from('companies').select('*', { count: 'exact', head: true }).eq('organization_id', orgId).neq('kind', 'supplier'),
     ])
+    // Before that migration there is no `kind` column: every company is a client.
+    const companyCount = clients.error
+      ? (await supabase.from('companies').select('*', { count: 'exact', head: true }).eq('organization_id', orgId)).count
+      : clients.count
 
     const { data: org } = await supabase
       .from('organizations')

@@ -13,6 +13,7 @@ import { useTranslations } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { PAYMENT_METHODS } from "@/lib/payment-methods"
 import { useCompanies } from "@/lib/hooks/use-companies"
+import { forRole, roleForDocType } from "@/lib/company-kind"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number"
@@ -148,6 +149,8 @@ export function EditarView({ id }: EditarViewProps) {
       .then(({ data }) => setLinkedInvoice((data as any) ?? null))
   }, [id])
 
+  // Suppliers for a purchase, clients for a sale (lib/company-kind.ts).
+  const party = roleForDocType(tipo)
   const purchaseLines = tipo === PURCHASE_DOC_TYPE && !linkedInvoice ? lineas.filter(isFilledLine) : []
   const hasLines = purchaseLines.length > 0
 
@@ -334,13 +337,13 @@ export function EditarView({ id }: EditarViewProps) {
 
                 <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                    <Building2 className="w-3.5 h-3.5 inline mr-1" />{t("company")}
+                    <Building2 className="w-3.5 h-3.5 inline mr-1" />{party === "supplier" ? t("supplier") : party ? t("company") : t("party")}
                   </label>
                   <div className="relative">
                     <select value={empresa} disabled={!!linkedInvoice} onChange={e => setEmpresa(e.target.value)}
                       className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
-                      <option value="">{t("selectCompany")}</option>
-                      {companies.map(c => <option key={c.id} value={c.id}>{clientLabel(c, companies)}</option>)}
+                      <option value="">{party === "supplier" ? t("selectSupplier") : party ? t("selectCompany") : t("selectParty")}</option>
+                      {forRole(companies, party, empresa).map(c => <option key={c.id} value={c.id}>{clientLabel(c, companies)}</option>)}
                     </select>
                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                   </div>

@@ -30,6 +30,7 @@ import { CURRENCIES, DEFAULT_CURRENCY, needsExchangeRate, formatMoney } from "@/
 import { getStockWarnings } from "@/lib/stock";
 import { confirmStockWarnings } from "@/lib/stock-warning-alert";
 import { clientLabel } from "@/lib/client-checks";
+import { forRole } from "@/lib/company-kind";
 
 const IVA_RATES = ["", "4", "10", "21"];
 const RET_RATES = ["", "7", "15", "19"];
@@ -42,7 +43,7 @@ interface Invoice {
   verifactu_status: string | null; currency: string;
   payment_date?: string | null; sent_at?: string | null;
 }
-interface Company { id: string; name: string; cif: string | null; payment_method?: string | null; payment_due_days?: number | null; }
+interface Company { id: string; name: string; cif: string | null; kind?: string | null; payment_method?: string | null; payment_due_days?: number | null; }
 interface Product {
   id: string; name: string; sku: string | null; unit_price: number; tax_rate: number;
   unit: string; track_stock: boolean; stock_qty: number; min_stock: number | null;
@@ -94,9 +95,11 @@ function FacturacionScreenContent() {
 
   const clientMatches = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
-    if (!q) return companies;
-    return companies.filter(c => clientLabel(c, companies).toLowerCase().includes(q) || (c.cif ?? "").toLowerCase().includes(q));
-  }, [companies, clientSearch]);
+    // Sales are to clients: suppliers only stay out (lib/company-kind.ts).
+    const clients = forRole(companies, "client", clientId);
+    if (!q) return clients;
+    return clients.filter(c => clientLabel(c, companies).toLowerCase().includes(q) || (c.cif ?? "").toLowerCase().includes(q));
+  }, [companies, clientSearch, clientId]);
 
   const load = useCallback(async () => {
     if (!orgId) return;
@@ -152,7 +155,7 @@ function FacturacionScreenContent() {
   };
 
   const onClientCreated = (c: CreatedClient) => {
-    setCompanies(prev => [...prev, c as Company].sort((a, b) => a.name.localeCompare(b.name)));
+    setCompanies(prev => [...prev.filter(x => x.id !== c.id), c as Company].sort((a, b) => a.name.localeCompare(b.name)));
     selectClient(c);
     setClientPicker(false);
   };

@@ -24,8 +24,10 @@ import {
   ClipboardList,
   Truck,
   Lock,
+  Factory,
 } from "lucide-react"
 import { Logo } from "@/components/logo"
+import { isClient } from "@/lib/company-kind"
 import { useTranslations, useLocale } from "next-intl"
 import { cn } from "@/lib/utils"
 import { useOrganization, ALL_ORGS_ID } from "@/lib/context/organization-context"
@@ -187,6 +189,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
     { section: "subir"      as const, label: t("upload"),    icon: Upload,          href: "/subir" },
     { section: "biblioteca" as const, label: t("library"),   icon: Library,         href: "/biblioteca" },
     { section: "empresas"   as const, label: t("companies"), icon: Building2,       href: "/empresas" },
+    { section: "empresas"   as const, label: t("suppliers"), icon: Factory,         href: "/proveedores" },
     ...(hasPaidModules
       ? [
           { section: "inventario"   as const, label: t("inventory"),     icon: Package,       href: "/inventario" },
@@ -232,7 +235,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
       {/* Navigation (square button grid) + summary — scroll together */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-4">
         {/* Three compact columns, not two square tiles: at two per row the
-            eleven modules ran ~900px tall and Pedidos, Albaranes, Facturación
+            eleven (now twelve) modules ran ~900px tall and Pedidos, Albaranes, Facturación
             and Usuarios sat below the fold with nothing hinting they were
             there (WEB-003). Now the whole menu fits in the first screen. */}
         <nav className="grid grid-cols-3 gap-1.5">
@@ -314,7 +317,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
         <div className="grid grid-cols-2 gap-2">
           {[
             { label: tDash("stats.invoices"), value: String(documents.length), icon: FileText,     color: "text-primary",                 href: "/biblioteca" },
-            { label: tDash("clients"),        value: String(companies.length), icon: Building2,     color: "text-accent",                  href: "/empresas" },
+            { label: tDash("clients"),        value: String(companies.filter(isClient).length), icon: Building2,     color: "text-accent",                  href: "/empresas" },
             { label: tDash("kpi.collected"),  value: fmtEur(summary.paid),     icon: CheckCircle2,  color: "text-[var(--status-paid)]",    href: "/biblioteca" },
             { label: tDash("pendingShort"),   value: fmtEur(summary.pending),  icon: Clock,         color: "text-[var(--status-pending)]", href: "/biblioteca" },
           ].map(card => (

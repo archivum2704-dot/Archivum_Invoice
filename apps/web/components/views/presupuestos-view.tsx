@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useQuotes, fetchQuoteWithLines, type Quote } from "@/lib/hooks/use-quotes"
 import { useCompanies } from "@/lib/hooks/use-companies"
+import { forRole } from "@/lib/company-kind"
 import { useProducts } from "@/lib/hooks/use-products"
 import { ProductPicker } from "@/components/product-picker"
 import { isPaidPlan } from "@/lib/plan"
@@ -393,7 +394,7 @@ export function PresupuestosView() {
                 <label className="block text-sm font-medium text-foreground mb-1.5">Cliente <span className="text-destructive">*</span></label>
                 <select value={clientId} onChange={e => setClientId(e.target.value)} className={inputCls}>
                   <option value="">Selecciona un cliente…</option>
-                  {companies.map(c => <option key={c.id} value={c.id}>{clientLabel(c, companies)}{c.cif ? ` · ${c.cif}` : ""}</option>)}
+                  {forRole(companies, "client", clientId).map(c => <option key={c.id} value={c.id}>{clientLabel(c, companies)}{c.cif ? ` · ${c.cif}` : ""}</option>)}
                 </select>
                 <button type="button" onClick={() => setNewClientOpen(true)} className="mt-1.5 flex items-center gap-1 text-xs text-accent hover:underline font-medium">
                   <Plus className="w-3.5 h-3.5" /> Nuevo cliente

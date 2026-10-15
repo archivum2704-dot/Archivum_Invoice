@@ -7,7 +7,7 @@ import { COUNTRY_CODES, countryOption, parseCountry } from "@/lib/countries"
 import { normalizeTaxId } from "@/lib/client-checks"
 import { createClient } from "@/lib/supabase/client"
 
-type Kind = "clients" | "products"
+type Kind = "clients" | "suppliers" | "products"
 type Stage = "pick" | "review" | "done"
 
 interface RowError {
@@ -49,9 +49,11 @@ export function ImportExcelButton({ kind, orgId, onImported }: {
   const [fatalError, setFatalError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const kindLabel = kind === "clients" ? t("kindClients") : t("kindProducts")
+  // Suppliers share the client template: same table, same columns.
+  const isCompanies = kind !== "products"
+  const kindLabel = kind === "clients" ? t("kindClients") : kind === "suppliers" ? t("kindSuppliers") : t("kindProducts")
 
-  const columns: ColumnDef[] = kind === "clients"
+  const columns: ColumnDef[] = isCompanies
     ? [
         { key: "name", header: tInv("clientName"), required: true },
         { key: "cif", header: tInv("clientTaxId"), required: true },
@@ -96,7 +98,7 @@ export function ImportExcelButton({ kind, orgId, onImported }: {
     ws.columns = columns.map(c => ({ header: c.header, key: c.key, width: 24 }))
     ws.getRow(1).font = { bold: true }
 
-    if (kind === "clients") {
+    if (isCompanies) {
       const list = wb.addWorksheet(t("countriesSheet"))
       COUNTRY_CODES.forEach((code, i) => { list.getCell(`A${i + 1}`).value = countryOption(code, locale) })
       list.getColumn(1).width = 32
@@ -115,7 +117,7 @@ export function ImportExcelButton({ kind, orgId, onImported }: {
     const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }))
     const a = document.createElement("a")
     a.href = url
-    a.download = `plantilla_${kind === "clients" ? "clientes" : "inventario"}.xlsx`
+    a.download = `plantilla_${kind === "clients" ? "clientes" : kind === "suppliers" ? "proveedores" : "inventario"}.xlsx`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -149,7 +151,7 @@ export function ImportExcelButton({ kind, orgId, onImported }: {
       // A CIF already on file, or repeated in the file, is the same company
       // twice (WEB-004). Such rows are reported, not imported.
       const seenTaxIds = new Set<string>()
-      if (kind === "clients" && orgId) {
+      if (isCompanies && orgId) {
         const supabase: any = createClient()
         const { data: existing } = await supabase.from("companies").select("cif").eq("organization_id", orgId)
         for (const c of existing ?? []) if (c.cif) seenTaxIds.add(normalizeTaxId(c.cif))
@@ -163,7 +165,7 @@ export function ImportExcelButton({ kind, orgId, onImported }: {
           return value == null ? "" : String(value).trim()
         }
 
-        if (kind === "clients") {
+        if (isCompanies) {
           const name = get(tInv("clientName"))
           if (!name) { rowErrors.push({ row: rowNum, message: t("requiredFieldMissing") }); return }
           const cif = get(tInv("clientTaxId"))
@@ -198,6 +200,7 @@ export function ImportExcelButton({ kind, orgId, onImported }: {
             country_code: country,
             tax_id_type: null,
             is_active: true,
+            ...(kind === "suppliers" ? { kind: "supplier" } : {}),
           })
         } else {
           const name = get(tProd("name"))
@@ -250,7 +253,7 @@ export function ImportExcelButton({ kind, orgId, onImported }: {
     if (!rows || rows.length === 0 || !orgId) return
     setBusy(true); setFatalError(null)
     const supabase = createClient()
-    const table = kind === "clients" ? "companies" : "products"
+    const table = isCompanies ? "companies" : "products"
     const { error } = await supabase.from(table).insert(rows)
     setBusy(false)
     if (error) { setFatalError(t("errorGeneric", { message: error.message })); return }

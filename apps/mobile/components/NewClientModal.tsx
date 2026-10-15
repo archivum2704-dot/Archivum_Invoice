@@ -14,6 +14,7 @@ import { randomId } from "@/lib/random-id";
 import { EstablishmentPicker, CifTakenNotice } from "@/components/EstablishmentPicker";
 import { findSimilarClients, duplicateWarnings, cifTakenMessage, looksLikeSpanishTaxId, explainCompanyError, type ClientLike } from "@/lib/client-checks";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
+import { hasRole, withRole, type CompanyRole } from "@/lib/company-kind";
 
 export interface CreatedClient { id: string; name: string; cif: string | null; payment_method: string | null; payment_due_days: number | null }
 
@@ -30,20 +31,25 @@ const EMPTY = {
  * invoice has to print, and no email, so the document could not be sent to
  * them. This asks for all of it, in a sheet with room to type.
  */
-export function NewClientModal({ visible, orgId, onCreated, onClose }: {
+export function NewClientModal({ visible, orgId, role = "client", onCreated, onClose }: {
   visible: boolean;
   orgId: string | null;
+  /** "supplier" from a purchase invoice: same form, saved as a supplier. */
+  role?: CompanyRole;
   onCreated: (client: CreatedClient) => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const C = useColors();
+  const ns = role === "supplier" ? "proveedores" : "empresas";
+  const isSupplier = role === "supplier";
   const [nc, setNc] = useState(EMPTY);
   // Existing clients, to warn before creating the same one twice (WEB-004).
   const [existing, setExisting] = useState<ClientLike[]>([]);
   useEffect(() => {
     if (!visible || !orgId) return;
-    supabase.from("companies").select("id, name, cif, parent_company_id, country_code, tax_id_type").eq("organization_id", orgId)
+    // "*" rather than a column list: `kind` only exists once 20261015_company_kind.sql is applied.
+    supabase.from("companies").select("*").eq("organization_id", orgId)
       .then(({ data }) => setExisting((data ?? []) as ClientLike[]));
   }, [visible, orgId]);
   const [saving, setSaving] = useState(false);
@@ -84,6 +90,9 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
       tax_id_type: isForeignClient(nc.country_code) ? (nc.tax_id_type || null) : null,
       is_active: true,
       parent_company_id: nc.parent_company_id || null,
+      // A client is the column default, so creating one keeps working
+      // before 20261015_company_kind.sql is applied.
+      ...(isSupplier ? { kind: "supplier" } : {}),
       // Only when set, so creating a client keeps working before
       // 20260929_payment_terms.sql is applied.
       ...(nc.payment_method ? { payment_method: nc.payment_method } : {}),
@@ -109,7 +118,20 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
         country_code: (p as any).country_code ?? prev.country_code, tax_id_type: (p as any).tax_id_type ?? prev.tax_id_type }
     : { ...prev, parent_company_id: "" });
   const warnings = duplicateWarnings(similar);
+  // Same CIF as a company on file only as the other role: it gains this one.
+  const otherRole = similar.sameCif && !hasRole(similar.sameCif, role) ? similar.sameCif : null;
   const cifTaken = cifTakenMessage(similar);
+  const addRoleToExisting = async () => {
+    if (!otherRole) return;
+    setSaving(true);
+    const { error } = await supabase.from("companies").update({ kind: withRole(otherRole, role) }).eq("id", otherRole.id);
+    setSaving(false);
+    if (error) { Alert.alert(t("common.error"), explainCompanyError(error, t("invoicing.createClientError"))); return; }
+    const c = otherRole as any;
+    onCreated({ id: c.id, name: c.name, cif: c.cif ?? null, payment_method: c.payment_method ?? null, payment_due_days: c.payment_due_days ?? null });
+    setNc(EMPTY);
+    onClose();
+  };
   const badFormat = !foreign && !!nc.cif.trim() && !looksLikeSpanishTaxId(nc.cif);
 
   return (
@@ -117,7 +139,7 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
       <View style={{ flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" }}>
         <View style={{ backgroundColor: C.bg, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, maxHeight: "92%" }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: spacing.lg }}>
-            <Text style={{ fontFamily: fonts.bold, fontSize: 17, color: C.text }}>{t("invoicing.newClient")}</Text>
+            <Text style={{ fontFamily: fonts.bold, fontSize: 17, color: C.text }}>{isSupplier ? t("proveedores.newCompany") : t("invoicing.newClient")}</Text>
             <TouchableOpacity onPress={close}><X size={22} color={C.muted} strokeWidth={1.75} /></TouchableOpacity>
           </View>
 
@@ -125,7 +147,7 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.md }}
           >
-            {field(`${t("invoicing.clientName")} *`, "name", { autoFocus: true })}
+            {field(`${isSupplier ? t("proveedores.roleSupplier") : t("invoicing.clientName")} *`, "name", { autoFocus: true })}
             <EstablishmentPicker existing={existing} value={nc.parent_company_id} onChange={setPrincipal} />
             <View style={{ flexDirection: "row", gap: spacing.sm + 2 }}>
               <View style={{ flex: 2 }}>
@@ -168,9 +190,14 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
             </View>
             {field(t("invoicing.clientProvince"), "province")}
             <PaymentMethodPicker label={t("empresas.paymentMethod")} value={nc.payment_method} onChange={set("payment_method")} />
-            {field(t("empresas.paymentDueDays"), "payment_due_days", { keyboardType: "number-pad", placeholder: "30", hint: t("empresas.paymentDueDaysHint") })}
+            {field(t("empresas.paymentDueDays"), "payment_due_days", { keyboardType: "number-pad", placeholder: "30", hint: t(`${ns}.paymentDueDaysHint`) })}
 
-            {!!cifTaken && !!similar.sameCif && (
+            {otherRole ? (
+              <View style={{ backgroundColor: C.blueL, borderRadius: radius.md, padding: spacing.sm + 2, gap: spacing.sm }}>
+                <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.text }}>{t(`${ns}.existsWithOtherRole`, { name: otherRole.name })}</Text>
+                <Button label={t(`${ns}.addRoleExisting`, { name: otherRole.name })} onPress={addRoleToExisting} disabled={saving} variant="secondary" size="md" />
+              </View>
+            ) : !!cifTaken && !!similar.sameCif && (
               <CifTakenNotice message={cifTaken} principal={similar.sameCif} onMakeEstablishment={() => setPrincipal(similar.sameCif)} />
             )}
             {warnings.map(w => (
@@ -179,11 +206,11 @@ export function NewClientModal({ visible, orgId, onCreated, onClose }: {
               </View>
             ))}
             {badFormat && (
-              <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t("empresas.taxIdFormatHint")}</Text>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted }}>{t(`${ns}.taxIdFormatHint`)}</Text>
             )}
 
             <Button
-              label={t("invoicing.createClient")}
+              label={isSupplier ? t("proveedores.createCompany") : t("invoicing.createClient")}
               onPress={create}
               disabled={disabled || !!cifTaken}
               loading={saving}

@@ -518,7 +518,7 @@ export function FacturaView({ id }: FacturaViewProps) {
             {doc.company && (
               <MetaRow
                 icon={Building2}
-                label={tFields("company")}
+                label={doc.document_type === "invoice_received" ? tFields("supplier") : tFields("company")}
                 value={doc.company.name}
                 sub={doc.company.cif ?? undefined}
               />

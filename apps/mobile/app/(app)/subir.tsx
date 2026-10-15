@@ -28,13 +28,14 @@ import { DateField } from "@/components/DateField";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number";
 import { NewClientModal, type CreatedClient } from "@/components/NewClientModal";
+import { forRole, roleForDocType, type CompanyRole } from "@/lib/company-kind";
 import { FolderField, useFolders } from "@/components/FolderPicker";
 import { PurchaseLinesEditor } from "@/components/PurchaseLinesEditor";
 import {
   type PurchaseLine, PURCHASE_DOC_TYPE, isFilledLine, purchaseTotals, toItemRows, validatePurchaseLines,
 } from "@/lib/purchase-lines";
 
-interface Company { id: string; name: string; }
+interface Company { id: string; name: string; kind?: string | null; }
 
 /* ── Convert any image URI to a PDF using pdf-lib (pure JS, no native) ─── */
 async function convertImageToPdf(imageUri: string): Promise<string> {
@@ -219,15 +220,19 @@ function Step1({ onNext, pickedFile, setPickedFile, C, t }: {
 }
 
 /* ── Company selector (matches web behaviour) ───────────────────────────── */
-function CompanyPicker({ companies, companyId, setCompanyId, onCreate, C, t }: {
-  companies: Company[]; companyId: string | null; setCompanyId: (id: string | null) => void;
+function CompanyPicker({ companies: all, party, companyId, setCompanyId, onCreate, C, t }: {
+  companies: Company[]; party: CompanyRole | null; companyId: string | null; setCompanyId: (id: string | null) => void;
   /** Opens the full client form (CIF/NIF required, duplicate check — WEB-004). */
   onCreate: () => void; C: any; t: any;
 }) {
+  // A purchase invoice is filed under a supplier, a sale under a client
+  // (lib/company-kind.ts); the one already chosen always stays.
+  const companies = forRole(all, party, companyId);
+  const sup = party === "supplier";
   return (
     <View>
       <Text style={{ fontFamily: fonts.medium, fontSize: 12, color: C.muted, marginBottom: spacing.xs + 2 }}>
-        <Building2 size={12} color={C.muted} strokeWidth={1.75} /> {t("subir.companyLabel")}
+        <Building2 size={12} color={C.muted} strokeWidth={1.75} /> {sup ? t("subir.supplierLabel") : party ? t("subir.companyLabel") : t("subir.partyLabel")}
       </Text>
 
       {companies.length > 0 && (
@@ -244,13 +249,15 @@ function CompanyPicker({ companies, companyId, setCompanyId, onCreate, C, t }: {
       )}
 
       {companies.length === 0 && (
-        <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginBottom: spacing.sm }}>{t("subir.noCompanies")}</Text>
+        <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginBottom: spacing.sm }}>{sup ? t("subir.noSuppliers") : t("subir.noCompanies")}</Text>
       )}
 
       <TouchableOpacity onPress={onCreate} style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
         <Plus size={14} color={C.blue} strokeWidth={1.75} />
         <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: C.blue }}>
-          {companies.length === 0 ? t("subir.addFirstCompany") : t("subir.newCompany")}
+          {sup
+            ? (companies.length === 0 ? t("subir.addFirstSupplier") : t("subir.newSupplier"))
+            : (companies.length === 0 ? t("subir.addFirstCompany") : t("subir.newCompany"))}
         </Text>
       </TouchableOpacity>
     </View>
@@ -317,7 +324,7 @@ function Step2({ onNext, onBack, docType, setDocType, docNumber, setDocNumber, c
         </View>
 
         {/* Company selector */}
-        <CompanyPicker companies={companies} companyId={companyId} setCompanyId={setCompanyId} onCreate={onCreateCompany} C={C} t={t} />
+        <CompanyPicker companies={companies} party={roleForDocType(docType)} companyId={companyId} setCompanyId={setCompanyId} onCreate={onCreateCompany} C={C} t={t} />
 
         {[
           { label: t("subir.docNumberLabel"), value: docNumber, setter: setDocNumber, ph: t("subir.docNumberPlaceholder") },
@@ -487,10 +494,11 @@ function SubirScreenContent() {
     if (!orgId) return;
     const { data } = await supabase
       .from("companies")
-      .select("id, name")
+      // "*": `kind` only exists once 20261015_company_kind.sql is applied.
+      .select("*")
       .eq("organization_id", orgId)
       .order("name");
-    setCompanies(data ?? []);
+    setCompanies((data ?? []) as Company[]);
   }, [orgId]);
 
   useEffect(() => { loadCompanies(); }, [loadCompanies]);
@@ -498,7 +506,9 @@ function SubirScreenContent() {
   const [newClientOpen, setNewClientOpen] = useState(false);
   const handleCreateCompany = () => setNewClientOpen(true);
   const onClientCreated = (c: CreatedClient) => {
-    setCompanies((prev) => [...prev, { id: c.id, name: c.name }].sort((a, b) => a.name.localeCompare(b.name)));
+    // Reloaded rather than appended: it may be an existing company that just
+    // gained the supplier (or client) role, and its kind has changed.
+    loadCompanies();
     setCompanyId(c.id);
   };
 
@@ -671,6 +681,7 @@ function SubirScreenContent() {
       <NewClientModal
         visible={newClientOpen}
         orgId={orgId}
+        role={roleForDocType(docType) === "supplier" ? "supplier" : "client"}
         onCreated={onClientCreated}
         onClose={() => setNewClientOpen(false)}
       />

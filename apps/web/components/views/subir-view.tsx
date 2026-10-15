@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/client"
 import { CoachmarkTour } from "@/components/coachmark"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { NewClientModal } from "@/components/new-client-modal"
+import { forRole, roleForDocType } from "@/lib/company-kind"
 import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number"
 import { clientLabel } from "@/lib/client-checks"
 import { PurchaseLinesEditor } from "@/components/purchase-lines-editor"
@@ -171,6 +172,10 @@ export function SubirView() {
   const [uploadedId, setUploadedId] = useState<string | null>(null)
   const [parentDoc,  setParentDoc]  = useState<ParentDoc | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  // A purchase invoice is filed under a supplier, a sale under a client;
+  // other documents can be with either (lib/company-kind.ts).
+  const party = roleForDocType(tipo)
+  const partyCompanies = forRole(companies, party, empresa)
   const hasLines = tipo === PURCHASE_DOC_TYPE && lineas.some(isFilledLine)
 
   // ── Load parent document if ?from= is present ───────────────────────────────
@@ -498,6 +503,7 @@ export function SubirView() {
       {newClientOpen && currentOrg && (
         <NewClientModal
           orgId={currentOrg.id}
+          role={party === "supplier" ? "supplier" : "client"}
           onCreated={async (id) => { await mutateCompanies(); setEmpresa(id) }}
           onClose={() => setNewClientOpen(false)}
         />
@@ -617,13 +623,13 @@ export function SubirView() {
 
                 <div ref={empresaRef}>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                    <Building2 className="w-3.5 h-3.5 inline mr-1" />{t("company")}
+                    <Building2 className="w-3.5 h-3.5 inline mr-1" />{party === "supplier" ? t("supplier") : party ? t("company") : t("party")}
                   </label>
                   <div className="relative">
                     <select required value={empresa} onChange={e => setEmpresa(e.target.value)}
                       className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
-                      <option value="">{t("selectCompany")}</option>
-                      {companies.map(c => <option key={c.id} value={c.id}>{clientLabel(c, companies)}</option>)}
+                      <option value="">{party === "supplier" ? t("selectSupplier") : party ? t("selectCompany") : t("selectParty")}</option>
+                      {partyCompanies.map(c => <option key={c.id} value={c.id}>{clientLabel(c, companies)}</option>)}
                     </select>
                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                   </div>
@@ -631,7 +637,9 @@ export function SubirView() {
                   <button type="button" onClick={() => setNewClientOpen(true)}
                     className="inline-flex items-center gap-1 mt-1.5 text-xs text-muted-foreground hover:text-accent transition-colors">
                     <Plus className="w-3 h-3" />
-                    {companies.length === 0 ? t("addFirstCompany") : tCommon("newCompany")}
+                    {party === "supplier"
+                      ? (partyCompanies.length === 0 ? t("addFirstSupplier") : t("newSupplier"))
+                      : (partyCompanies.length === 0 ? t("addFirstCompany") : tCommon("newCompany"))}
                   </button>
                 </div>
 
