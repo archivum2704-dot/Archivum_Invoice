@@ -68,7 +68,8 @@
         "generic": "An unexpected error occurred. Please try again."
       },
       "taxAuthorityAccess": "Tax authority access",
-      "taxAuthorityAccessHint": "Shows only tax-relevant information: issued invoices and invoicing and event records, read-only."
+      "taxAuthorityAccessHint": "Shows only tax-relevant information: issued invoices and invoicing and event records, read-only.",
+      "otherDevice": "You were signed out because your account signed in on another device. Archivum allows one open session at a time: signing in here will close the other one."
     },
     "signup": {
       "title": "Create your account",

@@ -40,15 +40,12 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     redirect('/auth/login?reason=other_device')
   }
 
-  // If cookie is missing but we're authenticated, register a new session
-  // (handles refresh after SSR rehydration or first load after OAuth)
-  if (!sidCookie && profile) {
-    const sessionId = crypto.randomUUID()
-    await supabase.from('profiles').update({ active_session_id: sessionId }).eq('id', user.id)
-    // Note: Can't set a cookie directly from a Server Component (no Response object).
-    // The client will call /api/auth/register-session on mount for this case.
-    // For now the check will pass since DB has the new value.
-  }
+  // No cookie but authenticated (the archivum_sid cookie lasts 30 days, the
+  // Supabase session longer): leave active_session_id alone. Rewriting it
+  // here, as this did, could not set the matching cookie from a Server
+  // Component, so every page load rotated the id again and threw the user's
+  // other device out to the login page over and over. The next sign-in
+  // registers a fresh id through /api/auth/register-session.
 
   // ── Onboarding gate ────────────────────────────────────────────────────────
   const { data: memberships } = await supabase

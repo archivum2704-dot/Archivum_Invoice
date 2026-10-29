@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
@@ -41,6 +41,13 @@ export default function LoginPage() {
   const [companyCode, setCompanyCode] = useState('')
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState<string | null>(null)
+  // Sent here from (protected)/layout.tsx when the account signed in on
+  // another device: only one session at a time is allowed. Without saying
+  // so, the user just found themselves back on the login page.
+  const [otherDevice, setOtherDevice] = useState(false)
+  useEffect(() => {
+    setOtherDevice(new URLSearchParams(window.location.search).get('reason') === 'other_device')
+  }, [])
   const [showPassword, setShowPassword] = useState(false)
   // «Acceso de la Administración tributaria» — unchecked by default, chosen
   // before entering (RD 1007/2023 art. 8.4; AEAT example, apartado 2.c).
@@ -262,6 +269,11 @@ export default function LoginPage() {
                 </span>
               </label>
 
+              {otherDevice && !error && (
+                <div className="rounded-lg border border-border bg-muted/50 px-3 py-2.5">
+                  <p className="text-foreground text-sm">{t('otherDevice')}</p>
+                </div>
+              )}
               {error && (
                 <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
                   <p className="text-destructive text-sm">{error}</p>

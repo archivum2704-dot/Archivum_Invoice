@@ -68,7 +68,8 @@
         "generic": "Se produjo un error inesperado. Inténtalo de nuevo."
       },
       "taxAuthorityAccess": "Acceso de la Administración tributaria",
-      "taxAuthorityAccessHint": "Solo muestra la información con trascendencia tributaria: facturas emitidas y registros de facturación y de eventos, en modo consulta."
+      "taxAuthorityAccessHint": "Solo muestra la información con trascendencia tributaria: facturas emitidas y registros de facturación y de eventos, en modo consulta.",
+      "otherDevice": "Se ha cerrado tu sesión porque tu cuenta ha entrado desde otro dispositivo. Archivum solo permite una sesión abierta a la vez: al entrar aquí se cerrará la otra."
     },
     "signup": {
       "title": "Crear tu cuenta",
