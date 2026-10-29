@@ -10,6 +10,7 @@ import { Logo } from '@/components/logo'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { cn } from '@/lib/utils'
 import { TAX_ACCESS_HOME, setTaxAccessCookie } from '@/lib/tax-authority-access'
+import { explainSignInError } from '@/lib/auth-email-errors'
 
 type Tab = 'empresa' | 'usuario'
 
@@ -63,7 +64,7 @@ export default function LoginPage() {
     setLoading(true); setError(null)
     const supabase = createClient()
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
-    if (authError) { setError(t('errors.invalidCredentials')); setLoading(false); return }
+    if (authError) { setError(explainSignInError(authError)); setLoading(false); return }
     await registerSession()
     enter()
   }
@@ -73,7 +74,7 @@ export default function LoginPage() {
     setLoading(true); setError(null)
     const supabase = createClient()
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
-    if (authError) { setError(t('errors.invalidCredentials')); setLoading(false); return }
+    if (authError) { setError(explainSignInError(authError)); setLoading(false); return }
     const code = companyCode.trim().toUpperCase()
     const { data: org } = await supabase.from('organizations').select('id, name').eq('access_code', code).single()
     if (!org) {

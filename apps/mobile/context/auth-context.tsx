@@ -4,6 +4,7 @@ import { Alert } from "react-native";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { explainSignInError } from "@/lib/auth-email-errors";
 
 const SESSION_KEY = "@archivum/device_session_id";
 
@@ -188,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // would trip the single-device check and kick this fresh login.
       await AsyncStorage.removeItem(SESSION_KEY).catch(() => {});
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return { error: error.message, mfaRequired: false };
+      if (error) return { error: explainSignInError(error), mfaRequired: false };
       if (data.user) await registerDeviceSession(data.user.id);
       const mfaRequired = await checkMfaPending();
       return { error: null, mfaRequired };
@@ -202,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await AsyncStorage.removeItem(SESSION_KEY).catch(() => {});
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return { error: error.message, mfaRequired: false };
+      if (error) return { error: explainSignInError(error), mfaRequired: false };
 
       const upperCode = code.trim().toUpperCase();
       const { data: orgData } = await supabase

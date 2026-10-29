@@ -25,3 +25,26 @@ export function explainAuthEmailError(err: { code?: string; message?: string; st
   }
   return err?.message ? `No se pudo completar: ${err.message}` : "No se pudo completar la operación."
 }
+
+/**
+ * Why a sign-in with email and password failed, in Spanish. The web login
+ * used to answer "correo o contraseña incorrectos" to every error, which hid
+ * an unconfirmed email, a rate limit or a blocked account; the app showed
+ * Supabase's raw English message.
+ */
+export function explainSignInError(err: { code?: string; message?: string; status?: number } | null | undefined): string {
+  const msg = (err?.message ?? "").toLowerCase()
+  if (err?.code === "invalid_credentials" || msg.includes("invalid login credentials")) {
+    return "Correo o contraseña incorrectos."
+  }
+  if (err?.code === "email_not_confirmed" || msg.includes("email not confirmed")) {
+    return "Tu correo todavía no está confirmado. Busca el correo de confirmación de Archivum (mira también en spam) o pide ayuda al administrador."
+  }
+  if (err?.code === "user_banned" || msg.includes("banned")) {
+    return "Esta cuenta está bloqueada. Contacta con el administrador de Archivum."
+  }
+  if (err?.status === 429 || err?.code?.startsWith("over_") || msg.includes("rate limit")) {
+    return "Demasiados intentos seguidos. Espera unos minutos y vuelve a intentarlo."
+  }
+  return err?.message ? `No se pudo iniciar sesión: ${err.message}` : "No se pudo iniciar sesión."
+}
