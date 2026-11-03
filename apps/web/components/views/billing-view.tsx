@@ -11,6 +11,8 @@ import { useOrganization } from "@/lib/context/organization-context"
 import { useBilling } from "@/lib/hooks/use-billing"
 import type { BillingStatus } from "@/lib/hooks/use-billing"
 import { PLANS, ADDONS } from "@/lib/pricing"
+import { LEGAL_VERSION } from "@/lib/legal/version"
+import Link from "next/link"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(iso: string | null) {
@@ -85,6 +87,10 @@ function AddonStepper({ label, sublabel, value, onChange, price }: {
 }
 
 // ── Main view ─────────────────────────────────────────────────────────────────
+
+const IVA = 0.21
+const eur = (n: number) => n.toFixed(2).replace(".", ",")
+
 export function BillingView() {
   const { currentOrg, isOrgAdmin } = useOrganization()
   const { billing, loading, mutate } = useBilling(currentOrg?.id ?? null)
@@ -96,6 +102,8 @@ export function BillingView() {
   const [addonMsg, setAddonMsg]         = useState<string | null>(null)
   // Plan selected but not yet purchased — lets the user configure extras before checkout
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null)
+  // Aviso legal, anexo II/III: conditions accepted, unticked by default, before paying.
+  const [acceptsLegal, setAcceptsLegal] = useState(false)
 
   const isActive      = billing?.subscriptionStatus === "active" || billing?.subscriptionStatus === "trialing"
   const addonsChanged = extraUsers > 0 || extraDocs > 0
@@ -130,6 +138,7 @@ export function BillingView() {
         planId,
         extraUsers: withExtraUsers,
         extraDocs:  withExtraDocs,
+        acceptedLegalVersion: acceptsLegal ? LEGAL_VERSION : undefined,
       }),
     })
     const data = await res.json()
@@ -224,7 +233,7 @@ export function BillingView() {
                     {plan.price === 0 ? "0" : plan.priceLabel.replace(" €", "")}
                   </span>
                   {plan.price > 0
-                    ? <span className="text-sm text-muted-foreground mb-0.5">€/mes</span>
+                    ? <span className="text-sm text-muted-foreground mb-0.5">€/mes + IVA</span>
                     : <span className="text-sm font-medium text-muted-foreground mb-0.5">€ · gratis</span>
                   }
                 </div>
@@ -437,7 +446,7 @@ export function BillingView() {
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Resumen del pedido</p>
                     <div className="flex justify-between text-muted-foreground">
                       <span>Plan {pendingPlan.name}</span>
-                      <span>{pendingPlan.price.toFixed(2).replace(".", ",")} €/mes</span>
+                      <span>{eur(pendingPlan.price)} €/mes</span>
                     </div>
                   </>
                 )}
@@ -462,10 +471,27 @@ export function BillingView() {
                 )}
 
                 {/* Total monthly */}
-                {(pendingPlan || extraUsers > 0) && (
+                {/* Prices are published without IVA; a new contract is charged 21 % on
+                    top (lib/stripe-tax.ts), so the order shows base, IVA and total. */}
+                {pendingPlan ? (
+                  <>
+                    <div className="flex justify-between text-muted-foreground pt-1 border-t border-border">
+                      <span>Base mensual</span>
+                      <span>{eur(totalCost)} €</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>IVA (21 %)</span>
+                      <span>{eur(totalCost * IVA)} €</span>
+                    </div>
+                    <div className="flex justify-between font-semibold text-foreground">
+                      <span>Total mensual</span>
+                      <span>{eur(totalCost * (1 + IVA))} €</span>
+                    </div>
+                  </>
+                ) : extraUsers > 0 && (
                   <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-border">
-                    <span>{pendingPlan ? "Total mensual" : "Nuevo total mensual"}</span>
-                    <span>{totalCost.toFixed(2).replace(".", ",")} €</span>
+                    <span>Nuevo total mensual</span>
+                    <span>{eur(totalCost)} € + IVA</span>
                   </div>
                 )}
 
@@ -481,7 +507,7 @@ export function BillingView() {
                       </div>
                       <div className="flex justify-between font-semibold text-foreground pt-1 border-t border-border">
                         <span>Total a cobrar hoy</span>
-                        <span className="text-primary">{oneTimeCost.toFixed(2).replace(".", ",")} €</span>
+                        <span className="text-primary">{pendingPlan ? `${eur(oneTimeCost * (1 + IVA))} € (IVA incl.)` : `${eur(oneTimeCost)} € + IVA`}</span>
                       </div>
                     </>
                   )
@@ -492,13 +518,24 @@ export function BillingView() {
             {/* Action buttons */}
             {pendingPlan ? (
               /* Pre-checkout: go to Stripe with selected plan + extras */
-              <div className="mt-4 flex items-center gap-2">
+              <>
+              <label className="mt-4 flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed cursor-pointer select-none">
+                <input type="checkbox" checked={acceptsLegal} onChange={e => setAcceptsLegal(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-input accent-primary" />
+                <span>
+                  He leído y acepto el <Link href="/terminos" target="_blank" className="text-primary underline">Aviso legal y las Condiciones de uso y de contratación</Link> y
+                  el <Link href="/encargo-tratamiento" target="_blank" className="text-primary underline">Contrato de encargo del tratamiento</Link>.
+                  Acepto recibir las facturas del servicio en formato electrónico y solicito que el servicio comience
+                  de inmediato; si soy consumidor y desisto en los 14 días siguientes, abonaré la parte proporcional del servicio prestado.
+                </span>
+              </label>
+              <div className="mt-3 flex items-center gap-2">
                 <button
                   onClick={() => handleCheckout(pendingPlan.id, extraUsers, extraDocs)}
-                  disabled={!!redirecting}
+                  disabled={!!redirecting || !acceptsLegal}
                   className="flex-1 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors"
                 >
-                  {redirecting === "checkout" ? "Redirigiendo..." : `Contratar plan ${pendingPlan.name}`}
+                  {redirecting === "checkout" ? "Redirigiendo..." : `Contratar y pagar · ${pendingPlan.name}`}
                 </button>
                 <button
                   onClick={() => { setPendingPlanId(null); setExtraUsers(0); setExtraDocs(0) }}
@@ -507,6 +544,7 @@ export function BillingView() {
                   Cancelar
                 </button>
               </div>
+              </>
             ) : addonsChanged && isActive ? (
               /* Active subscription: save addon changes */
               <div className="mt-4 flex items-center gap-2">

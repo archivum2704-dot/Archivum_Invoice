@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getIvaTaxRateId, subscriptionHasIva } from '@/lib/stripe-tax'
 import { getStripe, PRICES } from '@/lib/stripe'
 
 export async function POST(req: NextRequest) {
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
       stripe.prices.list({ lookup_keys: [PRICES.extraCompanies], limit: 1 }),
     ])
 
-    const items: { id?: string; price?: string; quantity: number; deleted?: boolean }[] = []
+    const items: { id?: string; price?: string; quantity: number; deleted?: boolean; tax_rates?: string[] }[] = []
 
     const existingUsersItem     = sub.items.data.find(i => i.price.lookup_key === PRICES.extraUsers)
     const existingDocsItem      = sub.items.data.find(i => i.price.lookup_key === PRICES.extraDocs)
@@ -90,6 +91,14 @@ export async function POST(req: NextRequest) {
 
     if (items.length === 0) {
       return NextResponse.json({ ok: true, changed: false })
+    }
+
+    // A new add-on line gets IVA when the subscription already pays it.
+    // Subscriptions from before 3 Nov 2026 were sold without IVA and are left
+    // as they were until that is decided (lib/stripe-tax.ts).
+    if (subscriptionHasIva(sub)) {
+      const iva = await getIvaTaxRateId(stripe)
+      for (const it of items) if (it.price) it.tax_rates = [iva]
     }
 
     await stripe.subscriptions.update(org.stripe_subscription_id, {

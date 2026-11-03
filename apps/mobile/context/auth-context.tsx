@@ -5,6 +5,7 @@ import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { explainSignInError } from "@/lib/auth-email-errors";
+import { LEGAL_VERSION } from "@/lib/legal-version";
 
 const SESSION_KEY = "@archivum/device_session_id";
 
@@ -43,7 +44,7 @@ interface AuthContextType {
   mfaPending: boolean;
   signInEmpresa: (email: string, password: string) => Promise<SignInResult>;
   signInUsuario: (email: string, password: string, code: string) => Promise<SignInResult>;
-  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<string | null>;
+  signUp: (email: string, password: string, firstName: string, lastName: string, marketing?: boolean) => Promise<string | null>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   verifyMfaCode: (code: string) => Promise<string | null>;
@@ -256,12 +257,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   /* ── Sign up ────────────────────────────────────────────────────────────── */
-  const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
+  const signUp = async (email: string, password: string, firstName: string, lastName: string, marketing = false) => {
+    const now = new Date().toISOString();
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { first_name: firstName, last_name: lastName },
+        // Record of the conditions accepted on the sign-up screen (same keys as the web).
+        data: {
+          first_name: firstName, last_name: lastName,
+          legal_version: LEGAL_VERSION, legal_accepted_at: now,
+          marketing_opt_in: marketing, ...(marketing ? { marketing_opt_in_at: now } : {}),
+        },
       },
     });
     return error ? explainAuthEmailError(error) : null;

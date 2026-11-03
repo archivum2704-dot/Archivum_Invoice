@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
 import { Logo } from '@/components/logo'
+import { LegalConsentCheckbox, MarketingConsentCheckbox } from '@/components/legal-consent'
+import { LEGAL_VERSION } from '@/lib/legal/version'
 
 export default function SignupPage() {
   const t       = useTranslations('auth.signup')
@@ -26,6 +28,8 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm]   = useState(false)
+  const [acceptsLegal, setAcceptsLegal] = useState(false)
+  const [marketing, setMarketing]       = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -39,6 +43,11 @@ export default function SignupPage() {
 
     if (formData.password !== formData.confirmPassword) {
       setError(t('errors.passwordMismatch'))
+      setLoading(false)
+      return
+    }
+    if (!acceptsLegal) {
+      setError('Para crear la cuenta tienes que aceptar el Aviso legal y las condiciones.')
       setLoading(false)
       return
     }
@@ -57,6 +66,13 @@ export default function SignupPage() {
         data: {
           first_name: formData.firstName,
           last_name: formData.lastName,
+          // Record of what was accepted and when; the account does not exist
+          // yet, so it travels with the sign-up. LegalAcceptanceGate asks
+          // again when LEGAL_VERSION changes.
+          legal_version: LEGAL_VERSION,
+          legal_accepted_at: new Date().toISOString(),
+          marketing_opt_in: marketing,
+          ...(marketing ? { marketing_opt_in_at: new Date().toISOString() } : {}),
         },
       },
     })
@@ -160,13 +176,18 @@ export default function SignupPage() {
             </div>
           </div>
 
+          <div className="space-y-2.5">
+            <LegalConsentCheckbox checked={acceptsLegal} onChange={setAcceptsLegal} disabled={loading} />
+            <MarketingConsentCheckbox checked={marketing} onChange={setMarketing} disabled={loading} />
+          </div>
+
           {error && (
             <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
               <p className="text-destructive text-sm">{error}</p>
             </div>
           )}
 
-          <Button type="submit" disabled={loading} className="w-full">
+          <Button type="submit" disabled={loading || !acceptsLegal} className="w-full">
             {loading ? t('submitting') : t('submit')}
           </Button>
         </form>

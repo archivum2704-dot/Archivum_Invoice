@@ -3,7 +3,7 @@
 > **Léeme primero.** Este fichero es el punto de partida de cada sesión.
 > Cuando cambies algo relevante, actualízalo en el mismo commit.
 >
-> Última actualización: **15 de octubre de 2026 (Proveedores: apartado propio y facturas de compra con proveedor)**
+> Última actualización: **3 de noviembre de 2026 (textos legales publicados, aceptación en el registro y IVA del 21 % en Stripe)**
 
 ---
 
@@ -91,6 +91,7 @@ Rama de trabajo: `claude/user-client-creation-kk6p58` → merge a `main`.
 | **Cargar en Vercel el email/fecha/lugar de la declaración responsable firmada** | Nosotros | Firmada el 2 de septiembre de 2026 por las dos socias (ver abajo) — falta cargar `VERIFACTU_PRODUCER_EMAIL`, `VERIFACTU_DECLARATION_PLACE`, `VERIFACTU_DECLARATION_DATE` y `VERIFACTU_DECLARATION_ISSUED=true` en Vercel y redesplegar para que `/declaracion-responsable` deje de mostrar "no emitida". ⚠️ El proyecto de Vercel de Archivum **no está en la cuenta conectada al MCP de Vercel** (`davidpieters12-gmailcoms-projects` solo tiene proyectos personales), así que hay que cargarlas a mano desde el dashboard. Ojo: el apartado 2.c generado describe ya el acceso de la Administración (4 oct), que el documento en prosa firmado no menciona |
 | **Política de cookies** | Abogado | Texto **terminado por el abogado (4 oct), pendiente de que lo envíe**. `/cookies` sigue con el placeholder hasta recibirlo |
 | **Nada está en la UE: funciones de Vercel en Washington (`iad1`) y base de datos de Supabase en Virginia del Norte (`us-east-1`)** | Nosotros | **Supabase Pro contratado el 4 de octubre** (con él llegan 7 días de copias diarias), así que toca migrar. Guion completo en [`docs/migracion-frankfurt.md`](docs/migracion-frankfurt.md) y copia de Storage en `apps/web/scripts/migrate-storage.ts` (el volcado de la BD no incluye los ficheros). No se puede ejecutar desde la nube: hace falta un equipo con `psql`/CLI de Supabase. ⚠️ **No cambiar solo la región de Vercel** (cada consulta cruzaría el Atlántico); se mueve a `fra1` en el mismo paso. Todos los usuarios tendrán que volver a iniciar sesión una vez |
+| **Suscripciones anteriores al 3 de noviembre sin IVA** | Cliente | Se vendieron cobrando el precio publicado sin sumar IVA, y siguen así: solo las suscripciones nuevas llevan el 21 %. Hay que decidir si se les añade (aviso previo) o se respetan. Mientras tanto, a esas suscripciones tampoco se les suma IVA en los extras |
 | **Decisión: apoderamiento vs certificado por cliente** | Cliente + gestor | Cambia el modelo de servicio. La AEAT admite las dos vías (ver abajo); es decisión de negocio, ya no técnica |
 
 
@@ -317,6 +318,7 @@ vectores antes de tocar nada.**
 | `VERIFACTU_SYSTEM_ID` | opcional | Por defecto `AR`. **No cambiar una vez en producción** |
 | `VERIFACTU_ENDPOINT_PROD` / `_TEST` | opcional | Sobrescriben las URLs de la AEAT (certificado de representante) |
 | `VERIFACTU_ENDPOINT_TEST_SELLO` / `_PROD_SELLO` | opcional | Certificado de sello: `prewww10` y `www10`. Los cuatro endpoints salen del WSDL |
+| `STRIPE_IVA_TAX_RATE_ID` | opcional | Fija el TaxRate del IVA. Sin ella, `lib/stripe-tax.ts` busca (o crea la primera vez) uno del 21 % con la metadata `archivum_iva_21` |
 | `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` | ❌ | Monitorización de errores (`@sentry/nextjs`). Mismo DSN en las dos; falta configurarlas en Vercel |
 | `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` | opcional | Subida de source maps en el build. Sin `SENTRY_AUTH_TOKEN` el build funciona igual, solo que las trazas en Sentry salen minificadas |
 
@@ -365,6 +367,16 @@ en varios sitios acaba divergiendo**. Por eso:
   `EmpresasView` con `role="supplier"`; en el móvil, un selector dentro de Clientes.
   El límite de clientes del plan **no cuenta proveedores** (trigger
   `enforce_company_limit` y `/api/billing/status`).
+- **Textos legales y su aceptación**: el texto de `/terminos` (aviso legal y condiciones) y
+  `/encargo-tratamiento` sale de los .docx aprobados por el abogado en `docs/legal/`, generado
+  con `apps/web/scripts/legal/generate.py` (no editar `lib/legal/*.ts` a mano). La versión
+  vigente es `LEGAL_VERSION` (`lib/legal/version.ts`, copiado en `apps/mobile/lib/legal-version.ts`):
+  **al cambiar cualquiera de los dos textos hay que subirla**, y todas las cuentas vuelven a
+  aceptarla (`LegalAcceptanceGate`, web y móvil). Se registra en `user_metadata`
+  (`legal_version`, `legal_accepted_at`, `marketing_opt_in`) y, al contratar, en la metadata de
+  la sesión y la suscripción de Stripe.
+- **IVA**: los precios se publican **sin IVA** y Stripe suma un 21 % fijo (`lib/stripe-tax.ts`,
+  TaxRate buscado o creado por su metadata `archivum_iva_21`). No usa Stripe Tax.
 - **Cadena Pedido → Albarán → Factura**: `components/document-chain.tsx` (web) y
   `components/DocumentChain.tsx` (móvil).
 - **CIF/NIF de cliente**: obligatorio y único **entre clientes principales** de cada
@@ -433,6 +445,7 @@ Cosas que la aplicación **no** hace y que no deben volver a afirmarse:
 
 | Fecha | Qué |
 |---|---|
+| 3 nov | **Textos legales publicados, aceptación obligatoria e IVA del 21 %.** El abogado dio el visto bueno a los dos documentos revisados el 2 de noviembre (con cambios marcados: correos `facturas@archivum.es`, titular «ARCHIVUM. VV, S.C.», firmantes Virginia Ocaña del Cura y María Victoria Peña Ruiz como CEO, Resend como subencargado, Vercel Analytics solo en la web pública, copias diarias de 7 días que no incluyen Storage, la AEAT como destinataria por obligación legal y no subencargada, medidas de seguridad que existían y no se citaban). Guardados en `docs/legal/`. **`/terminos`** pasa a ser el «Aviso legal, condiciones de uso y condiciones de contratación» (sustituye a los Términos del 1 de septiembre) y nueva página pública **`/encargo-tratamiento`**; los dos se generan desde los .docx (`apps/web/scripts/legal/generate.py`), sin los anexos internos del aviso. Enlaces en el pie de la landing (Aviso legal, Privacidad, Cookies; antes no había ninguno, lo exige la LSSI) y en Ajustes → Legal. **Registro** (web y móvil): casilla obligatoria de aceptación, desmarcada, y otra aparte y voluntaria para comunicaciones comerciales. **Cuentas ya existentes**: al entrar, una ventana pide aceptar una vez (no en el acceso de la Administración tributaria). **Contratar**: casilla obligatoria (condiciones, factura electrónica e inicio inmediato del servicio para consumidores), botón «Contratar y pagar», y desglose base / IVA (21 %) / total; el servidor rechaza el pago sin aceptación (`legal_not_accepted`). **IVA**: decisión del cliente, precios sin IVA y 21 % fijo; hasta hoy **Stripe no cobraba IVA** (no había ningún impuesto configurado). Ahora cada línea nueva lleva el TaxRate; los precios dicen «+ IVA» en web y móvil. Las suscripciones ya existentes no se tocan (ver «Lo que bloquea»). `tsc` web y móvil, `next build` y `expo export` en verde; **no probado en navegador, en el móvil ni contra Stripe** |
 | 29 oct | **El login dice el motivo real del fallo** (aviso: un owner, `envaseskbbrothers@gmail.com`, no podía entrar). La web respondía «Correo o contraseña incorrectos» a **cualquier** error de Supabase Auth —correo sin confirmar, demasiados intentos, cuenta bloqueada— y el móvil mostraba el mensaje en inglés. Nuevo `explainSignInError` en `lib/auth-email-errors.ts` (web y móvil, copia idéntica), usado en `app/auth/login/page.tsx` y `context/auth-context.tsx`. OTA a `preview` (grupo `cc3dbe90…`) y `production` (grupo `610e29a3…`) |
 | 29 oct | **Sesión única: la web echaba al usuario sin decir por qué, y a veces en bucle** (mismo aviso; su cuenta estaba bien y había entrado ese mismo día). Archivum permite una sola sesión por cuenta: al entrar en un dispositivo se cierra la de los demás. En la web, el expulsado volvía a `/auth/login?reason=other_device` y la página **ignoraba ese `reason`**: aparecía el login sin explicación. Ahora lo dice (`auth.login.otherDevice`). Además, `(protected)/layout.tsx`, cuando faltaba la cookie `archivum_sid` (dura 30 días; la sesión de Supabase, más), reescribía `profiles.active_session_id` **en cada carga de página** sin poder poner la cookie, así que echaba al otro dispositivo (p. ej. el móvil) una y otra vez. Quitado: sin cookie no se toca nada y el próximo login registra la sesión. El móvil ya avisaba con un `Alert` |
 | 19 oct | **Script para dar un plan de pago a mano**: `apps/web/scripts/grant-plan/dar-plan.sql` (SQL Editor, un solo bloque `DO`): busca la cuenta por correo y pone `subscription_plan`/`subscription_status = active` en las organizaciones de las que es dueña, igual que el panel `/admin-dashboard`. Habilita `archivum.internal_billing_write` solo en la transacción, porque `protect_billing_columns` rechaza cambiar el plan desde el SQL Editor. La cuenta tiene que existir (registro en archivum.es). Preparado para dar Pro a `soniacastro118@hotmail.com` |

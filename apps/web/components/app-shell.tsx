@@ -6,6 +6,7 @@ import { Menu } from "lucide-react"
 import { Sidebar } from "@/components/sidebar"
 import { TutorialAutoLauncher } from "@/components/tutorial-modal"
 import { NavGuardProvider } from "@/lib/context/nav-guard-context"
+import { LegalAcceptanceGate } from "@/components/legal-acceptance-gate"
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -35,6 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <NavGuardProvider>
+    <LegalAcceptanceGate />
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Desktop sidebar — always visible on lg+ */}
       <div className="hidden lg:block shrink-0">

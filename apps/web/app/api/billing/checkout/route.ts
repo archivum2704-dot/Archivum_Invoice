@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { LEGAL_VERSION } from '@/lib/legal/version'
+import { getIvaTaxRateId } from '@/lib/stripe-tax'
 import { getStripe, PRICES } from '@/lib/stripe'
 import type { PlanId } from '@/lib/pricing'
 
@@ -23,8 +25,8 @@ function getAdmin() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { orgId, planId = 'starter', extraUsers = 0, extraDocs = 0 } = await req.json() as {
-      orgId: string; planId?: PlanId; extraUsers?: number; extraDocs?: number
+    const { orgId, planId = 'starter', extraUsers = 0, extraDocs = 0, acceptedLegalVersion } = await req.json() as {
+      orgId: string; planId?: PlanId; extraUsers?: number; extraDocs?: number; acceptedLegalVersion?: string
     }
     if (!orgId) return NextResponse.json({ error: 'missing_org' }, { status: 400 })
     if (planId === 'free' || !PLAN_PRICE_KEY[planId as Exclude<PlanId, 'free'>]) {
@@ -61,6 +63,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'already_subscribed' }, { status: 409 })
     }
 
+    // The conditions in force must be accepted before paying for a new
+    // subscription (plan changes go to the portal above) (aviso legal,
+    // anexo II); the acceptance travels with the Stripe session as its record.
+    if (acceptedLegalVersion !== LEGAL_VERSION) {
+      return NextResponse.json({ error: 'legal_not_accepted' }, { status: 400 })
+    }
+    const legalMeta = { legal_version: LEGAL_VERSION, legal_accepted_at: new Date().toISOString(), immediate_start_requested: 'yes' }
+
     // Get or create Stripe customer
     let customerId = org.stripe_customer_id
     if (!customerId) {
@@ -88,7 +98,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'stripe_price_not_found', detail: lookupKey }, { status: 500 })
     }
 
-    const lineItems: { price: string; quantity: number }[] = [
+    const lineItems: { price: string; quantity: number; tax_rates?: string[] }[] = [
       { price: basePrice.data[0].id, quantity: 1 },
     ]
 
@@ -109,6 +119,10 @@ export async function POST(req: NextRequest) {
       lineItems.push({ price: docsPrice.data[0].id, quantity: finalExtraDocs })
     }
 
+    // Precios publicados sin IVA: se suma el 21 % a cada línea (lib/stripe-tax.ts).
+    const iva = await getIvaTaxRateId(stripe)
+    for (const item of lineItems) item.tax_rates = [iva]
+
     // First-time subscription → 7-day trial
     const isFirstTime = !org.stripe_subscription_id
     const session = await stripe.checkout.sessions.create({
@@ -118,10 +132,10 @@ export async function POST(req: NextRequest) {
       ...(isFirstTime && {
         subscription_data: {
           trial_period_days: 7,
-          metadata: { org_id: orgId, plan_id: planId },
+          metadata: { org_id: orgId, plan_id: planId, ...legalMeta },
         },
       }),
-      metadata: { org_id: orgId, plan_id: planId },
+      metadata: { org_id: orgId, plan_id: planId, ...legalMeta },
       success_url: `${APP_URL}/configuracion/billing?success=1`,
       cancel_url:  `${APP_URL}/configuracion/billing`,
       allow_promotion_codes: true,

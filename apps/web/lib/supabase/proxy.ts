@@ -44,6 +44,7 @@ export async function updateSession(request: NextRequest) {
     '/privacidad',
     '/cookies',
     '/terminos',
+    '/encargo-tratamiento',
   ]
   const isPublicRoute = publicRoutes.some(route =>
     route === '/'

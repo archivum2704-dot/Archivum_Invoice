@@ -575,7 +575,7 @@ export function SettingsView() {
             "don't leave it undiscoverable" fix applied to VERI*FACTU above. */}
         <Section
           title="Legal"
-          description="Política de privacidad, cookies y términos de servicio."
+          description="Política de privacidad, cookies, aviso legal y contrato de encargo del tratamiento."
         >
           <div className="space-y-3">
             <Link
@@ -604,7 +604,17 @@ export function SettingsView() {
             >
               <span className="flex items-center gap-2.5 min-w-0">
                 <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="block text-sm font-medium text-foreground">Términos y condiciones</span>
+                <span className="block text-sm font-medium text-foreground">Aviso legal y condiciones</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            </Link>
+            <Link
+              href="/encargo-tratamiento"
+              className="flex items-center justify-between gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:bg-muted transition-colors"
+            >
+              <span className="flex items-center gap-2.5 min-w-0">
+                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="block text-sm font-medium text-foreground">Contrato de encargo del tratamiento</span>
               </span>
               <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
             </Link>

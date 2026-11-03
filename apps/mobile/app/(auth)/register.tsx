@@ -13,6 +13,7 @@ import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
 import { Input, Button } from "@/components/ui";
+import { LegalConsentCheckbox, MarketingConsentCheckbox } from "@/components/LegalConsent";
 
 export default function RegisterScreen() {
   const C = useColors();
@@ -27,13 +28,16 @@ export default function RegisterScreen() {
   const [showConfirm,  setShowConfirm]  = useState(false);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState<string | null>(null);
+  const [acceptsLegal, setAcceptsLegal] = useState(false);
+  const [marketing,    setMarketing]    = useState(false);
 
   const handleRegister = async () => {
     if (password !== confirm) { setError(t("register.errorMismatch")); return; }
     if (password.length < 8)  { setError(t("register.errorMinLength")); return; }
+    if (!acceptsLegal) { setError("Para crear la cuenta tienes que aceptar el Aviso legal y las condiciones."); return; }
     setLoading(true);
     setError(null);
-    const err = await signUp(email.trim(), password, firstName.trim(), lastName.trim());
+    const err = await signUp(email.trim(), password, firstName.trim(), lastName.trim(), marketing);
     setLoading(false);
     if (err) {
       setError(err === "User already registered" ? t("register.errorAlreadyRegistered") : err);
@@ -128,6 +132,11 @@ export default function RegisterScreen() {
               }
             />
 
+            <View style={{ gap: spacing.md }}>
+              <LegalConsentCheckbox checked={acceptsLegal} onChange={setAcceptsLegal} />
+              <MarketingConsentCheckbox checked={marketing} onChange={setMarketing} />
+            </View>
+
             {error && (
               <View style={{
                 backgroundColor: C.redL, borderWidth: 1,
@@ -142,6 +151,7 @@ export default function RegisterScreen() {
               label={t("register.submit")}
               onPress={handleRegister}
               loading={loading}
+              disabled={!acceptsLegal}
               style={{ marginTop: 4 }}
             />
           </View>

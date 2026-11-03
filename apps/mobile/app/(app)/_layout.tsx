@@ -9,6 +9,7 @@ import { canAccess, type SectionId } from "@/lib/permissions";
 import {
   Home, BookOpen, Search, Building2, Users, Settings, Lock,
 } from "lucide-react-native";
+import { LegalAcceptanceGate } from "@/components/LegalAcceptanceGate";
 
 export default function AppLayout() {
   const { t } = useTranslation();
@@ -60,6 +61,8 @@ export default function AppLayout() {
   if (!orgId && !isOnboardingRoute) return <Redirect href="/(app)/onboarding" />;
 
   return (
+    <>
+    <LegalAcceptanceGate />
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -131,5 +134,6 @@ export default function AppLayout() {
       <Tabs.Screen name="presupuesto/[id]" options={{ href: null }} />
       <Tabs.Screen name="factura/[id]"   options={{ href: null }} />
     </Tabs>
+    </>
   );
 }

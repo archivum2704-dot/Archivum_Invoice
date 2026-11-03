@@ -569,7 +569,7 @@ export default function LandingPage() {
             Empieza a facturar y ordenar hoy
           </h2>
           <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            Gratis para siempre · Starter 14,99 € · Business 19,99 € · Pro 24,99 €/mes. Sin permanencia.
+            Gratis para siempre · Starter 14,99 € · Business 19,99 € · Pro 24,99 €/mes + IVA. Sin permanencia.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
@@ -593,7 +593,11 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
           <Logo size={24} textClassName="text-muted-foreground text-xs" />
           <p>© {new Date().getFullYear()} Archivum. Todos los derechos reservados.</p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+            {/* LSSI art. 10: el aviso legal tiene que estar a un clic desde la web. */}
+            <Link href="/terminos" className="hover:text-foreground transition-colors">Aviso legal</Link>
+            <Link href="/privacidad" className="hover:text-foreground transition-colors">Privacidad</Link>
+            <Link href="/cookies" className="hover:text-foreground transition-colors">Cookies</Link>
             {/* Art. 13.2: available to the client at the moment of acquisition,
                 which means reachable without an account. */}
             <Link href="/declaracion-responsable" className="hover:text-foreground transition-colors">Declaración responsable</Link>
