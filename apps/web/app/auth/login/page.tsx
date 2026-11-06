@@ -11,6 +11,7 @@ import { LanguageSwitcher } from '@/components/language-switcher'
 import { cn } from '@/lib/utils'
 import { TAX_ACCESS_HOME, setTaxAccessCookie } from '@/lib/tax-authority-access'
 import { explainSignInError } from '@/lib/auth-email-errors'
+import { LumenCredit } from '@/components/lumen-credit'
 
 type Tab = 'empresa' | 'usuario'
 
@@ -310,6 +311,11 @@ export default function LoginPage() {
               </p>
             )}
           </div>
+        </div>
+
+        {/* Crédito del estudio que diseñó la web */}
+        <div className="flex justify-center px-6 pb-6 shrink-0">
+          <LumenCredit label={tCommon('designedBy')} ariaLabel={tCommon('designedByAria')} />
         </div>
       </div>
     </div>
