@@ -193,7 +193,6 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
     { section: "biblioteca" as const, label: t("library"),   icon: Library,         href: "/biblioteca" },
     { section: "empresas"   as const, label: t("companies"), icon: Building2,       href: "/empresas" },
     { section: "empresas"   as const, label: t("suppliers"), icon: Factory,         href: "/proveedores" },
-    { section: "biblioteca" as const, label: t("purchaseInvoices"), icon: ShoppingCart, href: "/facturas-compra" },
     ...(hasPaidModules
       ? [
           { section: "inventario"   as const, label: t("inventory"),     icon: Package,       href: "/inventario" },
@@ -202,6 +201,8 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
           { section: "facturacion"  as const, label: t("invoicing"),     icon: Receipt,       href: "/facturacion" },
         ]
       : []),
+    // Junto a «Facturas venta»; visible también sin módulos de pago.
+    { section: "biblioteca" as const, label: t("purchaseInvoices"), icon: ShoppingCart, href: "/facturas-compra" },
     { section: "usuarios" as const, label: t("users"), icon: Users, href: "/usuarios" },
     ...(isPlatformAdmin
       ? [{ section: "admin" as const, label: t("adminPanel"), icon: ShieldCheck, href: "/admin-dashboard" }]
