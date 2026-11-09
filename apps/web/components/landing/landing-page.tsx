@@ -15,12 +15,9 @@ import { LandingNav } from "./landing-nav"
  * Landing pública. Parte del prototipo «Archivum_Landing_v02» y lo adapta a
  * lo que el producto hace hoy:
  *  - Planes y precios salen de lib/pricing.ts (fuente única), no del prototipo.
- *  - No hay reserva de llamadas: el bloque de contacto abre un correo.
+ *  - Sin reserva de llamadas (el prototipo traía un calendario de boceto).
  *  - VeriFactu: «Preparado para», nunca «conforme» ni «cumple» (ver CLAUDE.md).
  */
-
-const CONTACT_EMAIL = "facturas@archivum.es"
-const CONTACT_HREF = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Quiero saber más sobre Archivum")}`
 
 const ICON = { strokeWidth: 1.5 } as const
 
@@ -715,49 +712,13 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ── Contacto ───────────────────────────────────────────────────── */}
-        <section className="py-24 sm:py-32" id="contacto">
-          <div className={container}>
-            <div className="lp-reveal relative overflow-hidden rounded-[2.25rem] bg-[linear-gradient(115deg,#102b4e,#013a92_65%,#4d2c96)] px-6 py-14 text-white sm:px-14 sm:py-16">
-              <div className="pointer-events-none absolute -right-24 -top-48 h-[430px] w-[430px] rounded-full border border-lp-cyan/20 shadow-[0_0_0_40px_rgba(86,224,235,0.04),0_0_0_90px_rgba(86,224,235,0.03)]" />
-              <div className="relative grid items-center gap-10 lg:grid-cols-[1.25fr_1fr]">
-                <div>
-                  <Eyebrow tone="dark">¿Prefieres hablarlo?</Eyebrow>
-                  <h2 className="mt-5 text-balance text-[1.9rem] font-extrabold leading-[1.12] tracking-[-0.045em] sm:text-[2.5rem]">
-                    Escríbenos y te ayudamos a resolver tus dudas.
-                  </h2>
-                  <p className="mt-4 max-w-xl text-pretty text-[15px] leading-[1.75] text-blue-100/85 sm:text-base">
-                    Si quieres saber si Archivum encaja con tu negocio, cuéntanos cómo lo gestionas
-                    hoy. Sin tener que decidirlo todo antes de hablar.
-                  </p>
-                </div>
-                <div className="lg:justify-self-end">
-                  <ul className="mb-7 grid gap-3 text-sm text-blue-50">
-                    {[
-                      "Cuéntanos cómo gestionas hoy tu negocio.",
-                      "Resuelve dudas sobre las funciones y los planes.",
-                      "Valora si tiene sentido probar Archivum.",
-                    ].map(t => (
-                      <li key={t} className="flex items-start gap-2.5">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-lp-cyan" strokeWidth={2.25} />
-                        {t}
-                      </li>
-                    ))}
-                  </ul>
-                  <Cta href={CONTACT_HREF} variant="white" external>Escribir a {CONTACT_EMAIL}</Cta>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* ── Preguntas ──────────────────────────────────────────────────── */}
-        <section className="bg-lp-soft py-24 sm:py-32" id="preguntas">
+        <section className="py-24 sm:py-32" id="preguntas">
           <div className={container}>
             <SectionHead eyebrow="Preguntas frecuentes" title="Lo que quizá quieras saber antes de empezar." />
             <div className="mx-auto grid max-w-3xl gap-3">
               {FAQ.map(({ q, a }) => (
-                <details key={q} className="lp-reveal group rounded-2xl bg-white ring-1 ring-lp-line open:shadow-[0_18px_40px_-26px_rgba(26,45,73,0.35)]">
+                <details key={q} className="lp-reveal group rounded-2xl bg-lp-soft ring-1 ring-lp-line open:shadow-[0_18px_40px_-26px_rgba(26,45,73,0.35)]">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-5 rounded-2xl px-5 py-5 text-[15px] font-bold [&::-webkit-details-marker]:hidden sm:px-6">
                     {q}
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-lp-blue/[0.07] text-lp-blue transition-transform duration-500 ease-lp group-open:rotate-45">
@@ -772,7 +733,7 @@ export function LandingPage() {
         </section>
 
         {/* ── CTA final ──────────────────────────────────────────────────── */}
-        <section className="relative overflow-hidden py-24 sm:py-32">
+        <section className="relative overflow-hidden bg-lp-soft py-24 sm:py-32">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_70%_at_50%_100%,rgba(0,95,194,0.09),transparent)]" />
           <div className={`${container} lp-reveal relative text-center`}>
             <h2 className="mx-auto max-w-3xl text-balance text-[2.1rem] font-extrabold leading-[1.08] tracking-[-0.05em] sm:text-[3.25rem]">
