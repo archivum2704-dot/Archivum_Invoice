@@ -26,7 +26,7 @@
     "lowStockBadge": "Stock bajo"
   },
   "invoicing": {
-    "title": "Facturación",
+    "title": "Facturas venta",
     "new": "Nueva factura",
     "empty": "Aún no has emitido facturas",
     "client": "Cliente",
@@ -199,6 +199,8 @@
     "uncollected": "sin cobrar",
     "view": "Ver",
     "paid": "Cobrado",
+    "expensesPaid": "Pagado (gastos)",
+    "expensesPending": "Pendiente de pago",
     "pending": "Pendiente",
     "overdue": "Vencido",
     "monthlyActivity": "Actividad mensual",

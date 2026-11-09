@@ -115,17 +115,38 @@
     "dashboard": "Panel Principal",
     "library": "Biblioteca",
     "search": "Buscador",
-    "upload": "Subir",
+    "upload": "Otros documentos",
     "companies": "Clientes",
     "inventory": "Inventario",
-    "invoicing": "Facturación",
+    "invoicing": "Facturas venta",
     "adminPanel": "Panel Admin",
     "users": "Usuarios",
     "settings": "Ajustes",
     "signOut": "Cerrar sesión",
     "quotes": "Pedidos",
     "deliveryNotes": "Albaranes",
-    "suppliers": "Proveedores"
+    "suppliers": "Proveedores",
+    "purchaseInvoices": "Facturas compra"
+  },
+  "purchaseInvoices": {
+    "title": "Facturas de compra",
+    "subtitle": "Facturas recibidas de tus proveedores. Cuentan como gasto.",
+    "new": "Nueva factura de compra",
+    "paid": "Pagado",
+    "pending": "Pendiente de pago",
+    "overdue": "Vencido",
+    "count": "{count, plural, one {# factura} other {# facturas}}",
+    "searchPlaceholder": "Buscar por número o proveedor…",
+    "empty": "Aún no hay facturas de compra",
+    "emptyHint": "Registra la primera con «Nueva factura de compra».",
+    "noResults": "Ninguna factura coincide con la búsqueda",
+    "columns": {
+      "number": "Número",
+      "supplier": "Proveedor",
+      "date": "Fecha",
+      "total": "Total",
+      "status": "Estado"
+    }
   },
   "inventory": {
     "title": "Inventario",
@@ -181,7 +202,7 @@
     "createdToast": "Producto «{name}» creado"
   },
   "invoicing": {
-    "title": "Facturación",
+    "title": "Facturas venta",
     "newInvoice": "Nueva factura",
     "verifactuNote": "Facturas con huella encadenada y QR de cotejo de la AEAT (VeriFactu).",
     "configureVerifactu": "Configurar certificado",
@@ -403,6 +424,9 @@
       "pending": "Pendiente de cobro",
       "overdue": "Vencido",
       "docsPaid": "{n} docs pagados",
+      "docsCollected": "{n} docs cobrados",
+      "expensesPaid": "Pagado (gastos)",
+      "expensesPending": "Pendiente de pago",
       "docsPending": "{n} docs pendientes",
       "docsOverdue": "{n} docs vencidos"
     },

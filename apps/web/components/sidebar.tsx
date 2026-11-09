@@ -25,6 +25,7 @@ import {
   Truck,
   Lock,
   Factory,
+  ShoppingCart,
 } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { isClient } from "@/lib/company-kind"
@@ -37,6 +38,7 @@ import { useOverdueDocs } from "@/lib/hooks/use-overdue-docs"
 import { useDocuments } from "@/lib/hooks/use-documents"
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { isPaidPlan } from "@/lib/plan"
+import { isExpenseDoc } from "@/lib/document-flow"
 import { canAccess } from "@/lib/permissions"
 import { useAccessContext } from "@/lib/hooks/use-access"
 import type { DocumentStatus } from "@/lib/supabase/types"
@@ -127,13 +129,14 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   // Amounts by status + revenue invoiced per month (last 6 months)
   const summary = useMemo(() => {
     const sumStatus = (status: DocumentStatus) =>
-      documents.filter(d => d.status === status).reduce((acc, d) => acc + (d.total ?? 0), 0)
+      // Cobrado / pendiente de cobro: las facturas recibidas son gasto, no cuentan
+      documents.filter(d => d.status === status && !isExpenseDoc(d)).reduce((acc, d) => acc + (d.total ?? 0), 0)
 
     const now = new Date()
     const revenue = Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1)
       const value = documents.reduce((acc, doc) => {
-        if (!doc.issue_date) return acc
+        if (!doc.issue_date || isExpenseDoc(doc)) return acc
         const parts = doc.issue_date.split("-")
         if (parts.length !== 3) return acc
         if (parseInt(parts[0], 10) === d.getFullYear() && parseInt(parts[1], 10) - 1 === d.getMonth())
@@ -190,6 +193,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
     { section: "biblioteca" as const, label: t("library"),   icon: Library,         href: "/biblioteca" },
     { section: "empresas"   as const, label: t("companies"), icon: Building2,       href: "/empresas" },
     { section: "empresas"   as const, label: t("suppliers"), icon: Factory,         href: "/proveedores" },
+    { section: "biblioteca" as const, label: t("purchaseInvoices"), icon: ShoppingCart, href: "/facturas-compra" },
     ...(hasPaidModules
       ? [
           { section: "inventario"   as const, label: t("inventory"),     icon: Package,       href: "/inventario" },

@@ -19,6 +19,7 @@ import { radius } from "@/lib/radius";
 import { Card, EmptyState } from "@/components/ui";
 import { DocRow } from "@/components/DocRow";
 import { useLinkedStatuses } from "@/lib/linked-status";
+import { isExpenseDoc } from "@/lib/document-flow";
 import { UploadFab } from "@/components/UploadFab";
 
 /* ── Bar chart (SVG, no external lib needed) ─────────────────────────────── */
@@ -85,7 +86,7 @@ export default function DashboardScreen() {
   const { t } = useTranslation();
   const [docs,       setDocs]       = useState<any[]>([]);
   const [chartData,  setChartData]  = useState<{ month: string; count: number }[]>([]);
-  const [kpi,        setKpi]        = useState({ paid: 0, paidN: 0, pending: 0, pendingN: 0, overdue: 0, overdueN: 0 });
+  const [kpi,        setKpi]        = useState({ paid: 0, paidN: 0, pending: 0, pendingN: 0, overdue: 0, overdueN: 0, expPaid: 0, expPaidN: 0, expPending: 0, expPendingN: 0 });
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -94,15 +95,18 @@ export default function DashboardScreen() {
 
     const { data: allDocs } = await supabase
       .from("documents")
-      .select("id, document_number, status, total, issue_date, companies(name)")
+      .select("id, document_number, document_type, status, total, issue_date, companies(name)")
       .eq("organization_id", orgId)
       .order("created_at", { ascending: false });
 
     const docs = allDocs ?? [];
 
     // KPIs
-    const paidDocs    = docs.filter((d) => d.status === "paid");
-    const pendingDocs = docs.filter((d) => d.status === "pending");
+    // Una factura recibida es un gasto: pagada = la hemos pagado, no cobrado.
+    const paidDocs    = docs.filter((d) => d.status === "paid" && !isExpenseDoc(d));
+    const pendingDocs = docs.filter((d) => d.status === "pending" && !isExpenseDoc(d));
+    const expPaidDocs    = docs.filter((d) => d.status === "paid" && isExpenseDoc(d));
+    const expPendingDocs = docs.filter((d) => d.status === "pending" && isExpenseDoc(d));
     const overdueDocs = docs.filter((d) => d.status === "overdue");
     const sum = (arr: any[]) => arr.reduce((s, d) => s + (Number(d.total) || 0), 0);
 
@@ -110,6 +114,8 @@ export default function DashboardScreen() {
       paid:     sum(paidDocs),    paidN:    paidDocs.length,
       pending:  sum(pendingDocs), pendingN: pendingDocs.length,
       overdue:  sum(overdueDocs), overdueN: overdueDocs.length,
+      expPaid:    sum(expPaidDocs),    expPaidN:    expPaidDocs.length,
+      expPending: sum(expPendingDocs), expPendingN: expPendingDocs.length,
     });
 
     // Recent docs
@@ -216,6 +222,28 @@ export default function DashboardScreen() {
             </Card>
           ))}
         </View>
+
+        {/* Gastos: facturas recibidas (pagadas / por pagar) */}
+        {(kpi.expPaidN > 0 || kpi.expPendingN > 0) && (
+          <View style={{ flexDirection: "row", gap: spacing.sm, paddingHorizontal: spacing.lg, marginTop: spacing.sm }}>
+            {[
+              { label: t("dashboard.expensesPaid"),    amount: kpi.expPaid,    count: kpi.expPaidN,    color: C.blue },
+              { label: t("dashboard.expensesPending"), amount: kpi.expPending, count: kpi.expPendingN, color: C.yellow },
+            ].map((k) => (
+              <Card
+                key={k.label}
+                containerStyle={{ flex: 1 }}
+                style={{ borderTopWidth: 3, borderTopColor: k.color, padding: spacing.md }}
+              >
+                <Text style={{ fontFamily: fonts.medium, fontSize: 11, color: C.muted, marginBottom: 4 }}>{k.label}</Text>
+                <Text style={{ fontFamily: fonts.extrabold, fontSize: 15, color: k.color }} numberOfLines={1}>
+                  €{k.amount.toLocaleString("es-ES", { minimumFractionDigits: 0 })}
+                </Text>
+                <Text style={{ fontFamily: fonts.regular, fontSize: 11, color: C.muted, marginTop: 2 }}>{k.count} {t("common.docs")}</Text>
+              </Card>
+            ))}
+          </View>
+        )}
 
         {/* Quick access — paid features */}
         {paidFeatures && (

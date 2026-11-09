@@ -21,6 +21,7 @@ import type { DocumentStatus, DocumentType } from "@/lib/supabase/types"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 import { TutorialHelpButton } from "@/components/tutorial-help-button"
 import { isPaidPlan } from "@/lib/plan"
+import { isExpenseDoc } from "@/lib/document-flow"
 
 const STATUS_STYLES: Record<DocumentStatus, string> = {
   paid:      "bg-[var(--status-paid)]/10 text-[var(--status-paid)]",
@@ -124,8 +125,14 @@ export function DashboardView() {
     const sum = (pred: (d: typeof documents[0]) => boolean) =>
       documents.filter(pred).reduce((acc, d) => acc + (d.total ?? 0), 0)
 
-    const paidAmount    = sum(d => d.status === "paid")
-    const pendingAmount = sum(d => d.status === "pending")
+    // Una factura recibida es un gasto: pagada = la hemos pagado, no cobrado.
+    const count = (pred: (d: typeof documents[0]) => boolean) => documents.filter(pred).length
+    const collected    = (d: typeof documents[0]) => d.status === "paid" && !isExpenseDoc(d)
+    const toCollect    = (d: typeof documents[0]) => d.status === "pending" && !isExpenseDoc(d)
+    const expensePaid  = (d: typeof documents[0]) => d.status === "paid" && isExpenseDoc(d)
+    const expenseToPay = (d: typeof documents[0]) => d.status === "pending" && isExpenseDoc(d)
+    const paidAmount    = sum(collected)
+    const pendingAmount = sum(toCollect)
     const overdueAmount = sum(d => d.status === "overdue")
     const totalDocs     = documents.length
 
@@ -154,7 +161,7 @@ export function DashboardView() {
       {
         label: t("kpi.collected"),
         value: fmt(paidAmount),
-        sub: t("kpi.docsPaid", { n: documents.filter(d => d.status === "paid").length }),
+        sub: t("kpi.docsCollected", { n: count(collected) }),
         icon: CheckCircle2,
         iconBg: "bg-[var(--status-paid)]/10",
         iconColor: "text-[var(--status-paid)]",
@@ -163,7 +170,25 @@ export function DashboardView() {
       {
         label: t("kpi.pending"),
         value: fmt(pendingAmount),
-        sub: t("kpi.docsPending", { n: documents.filter(d => d.status === "pending").length }),
+        sub: t("kpi.docsPending", { n: count(toCollect) }),
+        icon: Clock,
+        iconBg: "bg-[var(--status-pending)]/10",
+        iconColor: "text-[var(--status-pending)]",
+        isAmount: true,
+      },
+      {
+        label: t("kpi.expensesPaid"),
+        value: fmt(sum(expensePaid)),
+        sub: t("kpi.docsPaid", { n: count(expensePaid) }),
+        icon: ArrowUpRight,
+        iconBg: "bg-primary/10",
+        iconColor: "text-primary",
+        isAmount: true,
+      },
+      {
+        label: t("kpi.expensesPending"),
+        value: fmt(sum(expenseToPay)),
+        sub: t("kpi.docsPending", { n: count(expenseToPay) }),
         icon: Clock,
         iconBg: "bg-[var(--status-pending)]/10",
         iconColor: "text-[var(--status-pending)]",
@@ -388,7 +413,7 @@ export function DashboardView() {
       ) : (
         <>
           {/* KPI Cards — double-bezel architecture */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             {kpis.map((kpi, i) => (
               <div
                 key={kpi.label}

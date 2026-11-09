@@ -115,17 +115,38 @@
     "dashboard": "Dashboard",
     "library": "Library",
     "search": "Search",
-    "upload": "Upload",
+    "upload": "Other documents",
     "companies": "Clients",
     "inventory": "Inventory",
-    "invoicing": "Invoicing",
+    "invoicing": "Sales invoices",
     "adminPanel": "Admin Panel",
     "users": "Users",
     "settings": "Settings",
     "signOut": "Sign out",
     "quotes": "Orders",
     "deliveryNotes": "Delivery notes",
-    "suppliers": "Suppliers"
+    "suppliers": "Suppliers",
+    "purchaseInvoices": "Purchase invoices"
+  },
+  "purchaseInvoices": {
+    "title": "Purchase invoices",
+    "subtitle": "Invoices received from your suppliers. They count as expenses.",
+    "new": "New purchase invoice",
+    "paid": "Paid",
+    "pending": "Pending payment",
+    "overdue": "Overdue",
+    "count": "{count, plural, one {# invoice} other {# invoices}}",
+    "searchPlaceholder": "Search by number or supplier…",
+    "empty": "No purchase invoices yet",
+    "emptyHint": "Add the first one with “New purchase invoice”.",
+    "noResults": "No invoices match the search",
+    "columns": {
+      "number": "Number",
+      "supplier": "Supplier",
+      "date": "Date",
+      "total": "Total",
+      "status": "Status"
+    }
   },
   "inventory": {
     "title": "Inventory",
@@ -181,7 +202,7 @@
     "createdToast": "Product “{name}” created"
   },
   "invoicing": {
-    "title": "Invoicing",
+    "title": "Sales invoices",
     "newInvoice": "New invoice",
     "verifactuNote": "Invoices with a chained fingerprint and AEAT verification QR (VeriFactu).",
     "configureVerifactu": "Configure certificate",
@@ -403,6 +424,9 @@
       "pending": "Pending collection",
       "overdue": "Overdue",
       "docsPaid": "{n} docs paid",
+      "docsCollected": "{n} docs collected",
+      "expensesPaid": "Paid (expenses)",
+      "expensesPending": "Pending payment",
       "docsPending": "{n} docs pending",
       "docsOverdue": "{n} docs overdue"
     },
