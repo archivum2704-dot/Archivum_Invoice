@@ -164,3 +164,57 @@
     margin: 0;
   }
 }
+
+/* ─── Landing pública (app/page.tsx) ──────────────────────────────────────── */
+
+@theme inline {
+  --color-lp-navy: #1a2d49;
+  --color-lp-deep: #013a92;
+  --color-lp-blue: #005fc2;
+  --color-lp-violet: #7531b6;
+  --color-lp-cyan: #56e0eb;
+  --color-lp-ink: #5a6b82;
+  --color-lp-line: #e4eaf1;
+  --color-lp-soft: #f5f8fc;
+  --ease-lp: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+html:has(.lp-root) {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6.5rem;
+}
+
+@keyframes lp-rise {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes lp-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Entrada del hero: una sola vez, escalonada con --lp-delay. */
+  .lp-enter {
+    animation: lp-rise 0.9s cubic-bezier(0.32, 0.72, 0, 1) backwards;
+    animation-delay: var(--lp-delay, 0ms);
+  }
+  .lp-float {
+    animation: lp-float 7s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    animation-delay: var(--lp-delay, 0ms);
+  }
+
+  /*
+   * Aparición al hacer scroll, solo con CSS. Donde el navegador no entiende
+   * animation-timeline el contenido se ve tal cual, sin animación: nunca
+   * queda oculto esperando a un script (ni para buscadores ni sin JS).
+   */
+  @supports (animation-timeline: view()) {
+    .lp-reveal {
+      animation: lp-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 38%;
+    }
+  }
+}
