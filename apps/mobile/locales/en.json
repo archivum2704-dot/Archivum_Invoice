@@ -26,7 +26,7 @@
     "lowStockBadge": "Low stock"
   },
   "invoicing": {
-    "title": "Invoicing",
+    "title": "Sales invoices",
     "new": "New invoice",
     "empty": "You haven't issued any invoices yet",
     "client": "Client",
@@ -199,6 +199,8 @@
     "uncollected": "uncollected",
     "view": "View",
     "paid": "Collected",
+    "expensesPaid": "Paid (expenses)",
+    "expensesPending": "Pending payment",
     "pending": "Pending",
     "overdue": "Overdue",
     "monthlyActivity": "Monthly activity",
