@@ -166,55 +166,99 @@
 }
 
 /* ─── Landing pública (app/page.tsx) ──────────────────────────────────────── */
+/*
+ * Dirección: «el documento». Papel cálido, tinta, un único acento (azul
+ * tinta) y filetes finos en lugar de tarjetas. Sin degradados.
+ */
 
 @theme inline {
-  --color-lp-navy: #1a2d49;
-  --color-lp-deep: #013a92;
-  --color-lp-blue: #005fc2;
-  --color-lp-violet: #7531b6;
-  --color-lp-cyan: #56e0eb;
-  --color-lp-ink: #5a6b82;
-  --color-lp-line: #e4eaf1;
-  --color-lp-soft: #f5f8fc;
-  --ease-lp: cubic-bezier(0.32, 0.72, 0, 1);
+  --color-lp-paper: #f5f1e8;
+  --color-lp-band: #ece7da;
+  --color-lp-sheet: #fffdf8;
+  --color-lp-ink: #17202b;
+  --color-lp-dim: #5f6168;
+  --color-lp-rule: #d6cfbf;
+  --color-lp-accent: #1b4fa3;
+  --ease-lp: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html:has(.lp-root) {
   scroll-behavior: smooth;
-  scroll-padding-top: 6.5rem;
+  scroll-padding-top: 5.5rem;
+}
+
+.lp-root {
+  font-family: var(--font-lp-sans), system-ui, sans-serif;
+  font-feature-settings: 'ss01';
+}
+.lp-serif {
+  font-family: var(--font-lp-serif), Georgia, serif;
+  font-variation-settings: 'opsz' 144, 'SOFT' 30;
+  font-weight: 400;
+}
+.lp-mono {
+  font-family: var(--font-lp-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Grano de papel: capa fija, no se repinta al hacer scroll. */
+.lp-grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.lp-root :focus-visible {
+  outline: 2px solid var(--color-lp-accent);
+  outline-offset: 3px;
 }
 
 @keyframes lp-rise {
-  from { opacity: 0; transform: translateY(28px); }
+  from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: none; }
 }
-
-@keyframes lp-float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-7px); }
+@keyframes lp-sheet-in {
+  from { opacity: 0; transform: translateY(40px) rotate(var(--lp-rot-from, 0deg)); }
+  to   { opacity: 1; transform: rotate(var(--lp-rot, 0deg)); }
+}
+@keyframes lp-stamp {
+  0%   { opacity: 0; transform: rotate(-9deg) scale(1.7); }
+  60%  { opacity: 0.9; transform: rotate(-9deg) scale(0.96); }
+  100% { opacity: 0.82; transform: rotate(-9deg) scale(1); }
 }
 
+.lp-sheet { transform: rotate(var(--lp-rot, 0deg)); }
+.lp-stamp { transform: rotate(-9deg); opacity: 0.82; }
+
 @media (prefers-reduced-motion: no-preference) {
-  /* Entrada del hero: una sola vez, escalonada con --lp-delay. */
   .lp-enter {
-    animation: lp-rise 0.9s cubic-bezier(0.32, 0.72, 0, 1) backwards;
+    animation: lp-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
     animation-delay: var(--lp-delay, 0ms);
   }
-  .lp-float {
-    animation: lp-float 7s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  .lp-sheet {
+    animation: lp-sheet-in 1.1s cubic-bezier(0.16, 1, 0.3, 1) backwards;
     animation-delay: var(--lp-delay, 0ms);
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .lp-stack:hover .lp-sheet { transform: rotate(var(--lp-rot-hover, var(--lp-rot, 0deg))) translateY(var(--lp-lift, 0px)); }
+  .lp-stamp {
+    animation: lp-stamp 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards;
+    animation-delay: 1.25s;
   }
 
   /*
    * Aparición al hacer scroll, solo con CSS. Donde el navegador no entiende
-   * animation-timeline el contenido se ve tal cual, sin animación: nunca
-   * queda oculto esperando a un script (ni para buscadores ni sin JS).
+   * animation-timeline el contenido se ve tal cual: nunca queda oculto
+   * esperando a un script (ni para buscadores ni sin JS).
    */
   @supports (animation-timeline: view()) {
     .lp-reveal {
       animation: lp-rise linear both;
       animation-timeline: view();
-      animation-range: entry 0% entry 38%;
+      animation-range: entry 0% entry 32%;
     }
   }
 }
