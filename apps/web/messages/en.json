@@ -1169,7 +1169,7 @@
     },
     "subirDate": {
       "title": "Issue date",
-      "description": "The date the document was issued. AI may suggest it automatically when you upload the file."
+      "description": "The date the document was issued."
     },
     "subirAmount": {
       "title": "Total amount",

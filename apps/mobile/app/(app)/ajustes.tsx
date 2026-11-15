@@ -10,7 +10,7 @@ import {
   Building2, Copy, Check, Users, Globe, Moon,
   Bell, LogOut, ChevronRight, CreditCard, FileText,
   CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle, Info,
-  ShieldCheck, Pencil, X, ImageOff, Upload, Trash2, FileCheck2,
+  ShieldCheck, Pencil, X, ImageOff, Upload, Trash2, FileCheck2, UserX,
 } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import Constants from "expo-constants";
@@ -32,6 +32,7 @@ import { APP_URL } from "@/lib/config";
 import { PLANS, type PlanId } from "@/lib/pricing";
 import { parseApiResponse } from "@/lib/api";
 import { KeyboardModal } from "@/components/KeyboardModal";
+import { DeleteAccountModal } from "@/components/DeleteAccountModal";
 import { Button, Card, Badge, Input, type BadgeTone } from "@/components/ui";
 
 function SectionLabel({ children, C }: { children: string; C: Colors }) {
@@ -504,6 +505,7 @@ export default function AjustesScreen() {
   const [plan,          setPlan]          = useState<PlanInfo | null>(null);
   const [orgEditOpen,   setOrgEditOpen]   = useState(false);
   const [certModalOpen, setCertModalOpen] = useState(false);
+  const [deleteOpen,    setDeleteOpen]    = useState(false);
 
   // Load notifications preference
   useEffect(() => {
@@ -928,8 +930,25 @@ export default function AjustesScreen() {
                 <ChevronRight size={16} color={C.red} strokeWidth={1.75} />
               </View>
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setDeleteOpen(true)}
+              style={{ padding: spacing.md + 2, borderTopWidth: 1, borderTopColor: C.border }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm + 2 }}>
+                <UserX size={16} color={C.red} strokeWidth={1.75} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: fonts.semibold, fontSize: 14, color: C.red }}>{t("ajustes.deleteAccount.title")}</Text>
+                  <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: C.muted, marginTop: 2 }}>
+                    {t("ajustes.deleteAccount.subtitle")}
+                  </Text>
+                </View>
+                <ChevronRight size={16} color={C.red} strokeWidth={1.75} />
+              </View>
+            </TouchableOpacity>
           </Card>
         </View>
+
+        <DeleteAccountModal visible={deleteOpen} onClose={() => setDeleteOpen(false)} />
 
         {/* Sign out */}
         <View style={{ marginHorizontal: spacing.lg, marginTop: spacing.xl }}>

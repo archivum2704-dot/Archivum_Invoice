@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { resolveEntitlements } from '@/lib/pricing'
+import { isTrialAvailable, resolveEntitlements } from '@/lib/pricing'
 
 export async function GET(req: NextRequest) {
   try {
@@ -66,6 +66,7 @@ export async function GET(req: NextRequest) {
       plan: planId,
       subscriptionStatus,
       trialEndsAt:          org?.trial_ends_at      ?? null,
+      trialAvailable:       isTrialAvailable(org),
       currentPeriodEnd:     org?.current_period_end ?? null,
       extraUsersQuantity,
       extraDocsQuantity,

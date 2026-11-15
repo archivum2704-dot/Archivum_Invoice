@@ -53,12 +53,14 @@ export const ADDONS = {
     label: "Bono 250 documentos extra",
     sublabel: "Pago único · sin caducidad",
     price: 4.99,
+    priceLabel: "4,99 € + IVA",
     docs: 250,
   },
   extraUser: {
     label: "Usuario adicional (miembro)",
     sublabel: "Por usuario / mes",
     price: 4.99,
+    priceLabel: "4,99 €/mes + IVA",
   },
 } as const;
 
@@ -97,6 +99,22 @@ const ACTIVE_STATUSES = ['active', 'trialing']
 
 /** Clients (companies) allowed on a paid plan before add-ons. */
 const PAID_BASE_COMPANIES = 20
+
+/**
+ * Cifras que los textos traducidos interpolan ({{starterPrice}}, {{userPrice}},
+ * {{paidUsers}}, {{paidClients}}). Salen de aquí y no se escriben en los
+ * ficheros de idioma: los avisos de límite llegaron a anunciar «2 €/usuario»
+ * meses después de que el precio fuera otro.
+ */
+export function pricingParams(lang: string) {
+  const money = (n: number) => (lang.startsWith("en") ? n.toFixed(2) : n.toFixed(2).replace(".", ","))
+  return {
+    starterPrice: money(PLANS.starter.price),
+    userPrice: money(ADDONS.extraUser.price),
+    paidUsers: PLANS.starter.users,
+    paidClients: PAID_BASE_COMPANIES,
+  }
+}
 
 /**
  * The single definition of what an organization is entitled to.

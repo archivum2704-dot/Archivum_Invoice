@@ -18,6 +18,7 @@ import { Button, Card, Input } from "@/components/ui";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/auth-context";
+import { pricingParams } from "@/lib/pricing";
 
 const { width: W } = Dimensions.get("window");
 
@@ -43,7 +44,7 @@ export async function isOnboardingCompleted(): Promise<boolean> {
 }
 
 export default function OnboardingScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const C = useColors();
   const { refreshProfile, orgId } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
@@ -221,7 +222,7 @@ export default function OnboardingScreen() {
                 <Card key={b} style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm + 2 }}>
                   <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: slide.iconColor }} />
                   <Text style={{ flex: 1, fontFamily: fonts.medium, fontSize: 14, color: C.text }}>
-                    {t(`tutorial.slides.${slide.key}.${b}`)}
+                    {t(`tutorial.slides.${slide.key}.${b}`, pricingParams(i18n.language))}
                   </Text>
                 </Card>
               ))}

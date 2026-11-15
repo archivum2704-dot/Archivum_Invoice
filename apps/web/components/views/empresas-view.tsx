@@ -12,6 +12,7 @@ import { useTranslations } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { useBilling } from "@/lib/hooks/use-billing"
+import { PLANS, TRIAL_DAYS } from "@/lib/pricing"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Coachmark } from "@/components/coachmark"
@@ -316,8 +317,8 @@ function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan
         </h2>
         <p className="text-sm text-muted-foreground mb-5">
           {isFreePlan
-            ? "El plan gratuito incluye 1 cliente. Actualiza al plan Pro para gestionar hasta 20 clientes, o añade clientes extra a partir de 2 €/cliente/mes + IVA."
-            : "Has alcanzado el límite de clientes de tu plan. Añade clientes extra desde Facturación a partir de 2 €/cliente/mes + IVA."}
+            ? `El plan gratuito incluye 1 cliente. Los planes Starter, Business y Pro incluyen 20, desde ${PLANS.starter.priceLabel}/mes + IVA.`
+            : "Has alcanzado el límite de clientes de tu plan."}
         </p>
         <div className="space-y-2">
           {isFreePlan && (
@@ -325,7 +326,7 @@ function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan
               onClick={() => { router.push("/configuracion/billing"); onClose() }}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
             >
-              Ver planes — 7 días gratis
+              Ver planes — {TRIAL_DAYS.pro} días de Pro gratis
             </button>
           )}
           <button
@@ -335,7 +336,7 @@ function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan
               isFreePlan ? "border-border text-foreground hover:bg-muted" : "bg-primary text-primary-foreground border-transparent hover:bg-primary/90"
             )}
           >
-            {isFreePlan ? "Añadir clientes extra" : "Gestionar clientes extra"}
+            {isFreePlan ? "Ir a Plan y facturación" : "Ver mi plan"}
           </button>
           <button onClick={onClose} className="w-full px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             Cancelar

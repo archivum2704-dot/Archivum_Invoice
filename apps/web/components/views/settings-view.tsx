@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, AlertTriangle, Zap, FileText, Users, Building2, TrendingUp, Upload, Trash2, Loader2, ImageOff, ShieldCheck, ChevronRight, Lock, Cookie, KeyRound } from "lucide-react"
+import { Settings, Copy, Check, Save, HelpCircle, Sparkles, Mail, AlertTriangle, Zap, FileText, Users, Building2, TrendingUp, Upload, Trash2, Loader2, ImageOff, ShieldCheck, ChevronRight, Lock, Cookie, KeyRound, UserX } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
@@ -615,6 +615,16 @@ export function SettingsView() {
               <span className="flex items-center gap-2.5 min-w-0">
                 <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                 <span className="block text-sm font-medium text-foreground">Contrato de encargo del tratamiento</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            </Link>
+            <Link
+              href="/eliminar-cuenta"
+              className="flex items-center justify-between gap-3 bg-card border border-border rounded-xl px-4 py-3 hover:bg-muted transition-colors"
+            >
+              <span className="flex items-center gap-2.5 min-w-0">
+                <UserX className="w-4 h-4 text-red-600 shrink-0" />
+                <span className="block text-sm font-medium text-red-600">Eliminar mi cuenta</span>
               </span>
               <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
             </Link>
