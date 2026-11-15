@@ -690,6 +690,23 @@
         "forbidden": "No tienes permiso para gestionar el certificado de esta organización.",
         "generic": "No se pudo guardar el certificado. Inténtalo de nuevo."
       }
+    },
+    "deleteAccount": {
+      "title": "Eliminar mi cuenta",
+      "subtitle": "Borra tu cuenta y tus datos de acceso.",
+      "body": "Se borrarán al momento tu cuenta y tu acceso a todas tus organizaciones. Si eres el único miembro de una organización, se cancela su suscripción y sus datos se borran a los {{days}} días. Las facturas emitidas se conservan el plazo que exige la ley.\n\nDescarga antes lo que quieras guardar: después no podrás entrar. No se puede deshacer.",
+      "moreInfo": "Más información sobre qué se borra →",
+      "confirmLabel": "Escribe {{word}} para confirmar",
+      "confirm": "Eliminar mi cuenta definitivamente",
+      "doneTitle": "Cuenta eliminada",
+      "doneBody": "Tu cuenta se ha eliminado. Te hemos enviado una confirmación por correo.",
+      "errors": {
+        "owner_with_members": "Eres el único propietario de {{orgs}} y hay más personas en ella. Antes, nombra a otra persona propietaria en Equipo o quita al resto de miembros.",
+        "unauthorized": "Tu sesión ha caducado. Vuelve a iniciar sesión e inténtalo de nuevo.",
+        "stripe_cancel_failed": "No se pudo cancelar tu suscripción, así que no se ha eliminado nada. Inténtalo en unos minutos.",
+        "confirmation_required": "Escribe {{word}} para confirmar.",
+        "generic": "No se pudo eliminar la cuenta. Inténtalo de nuevo o escríbenos a facturas@archivum.es."
+      }
     }
   },
   "register": {

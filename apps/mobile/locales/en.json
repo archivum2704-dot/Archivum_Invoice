@@ -690,6 +690,23 @@
         "forbidden": "You don't have permission to manage this organization's certificate.",
         "generic": "Couldn't save the certificate. Try again."
       }
+    },
+    "deleteAccount": {
+      "title": "Delete my account",
+      "subtitle": "Deletes your account and sign-in details.",
+      "body": "Your account and your access to all your organizations will be deleted immediately. If you are the only member of an organization, its subscription is cancelled and its data is deleted after {{days}} days. Issued invoices are kept for the period required by law.\n\nDownload anything you want to keep first: you won't be able to sign in afterwards. This cannot be undone.",
+      "moreInfo": "More about what gets deleted →",
+      "confirmLabel": "Type {{word}} to confirm",
+      "confirm": "Delete my account permanently",
+      "doneTitle": "Account deleted",
+      "doneBody": "Your account has been deleted. We've sent you a confirmation email.",
+      "errors": {
+        "owner_with_members": "You are the only owner of {{orgs}} and there are other people in it. First make someone else an owner in Team, or remove the other members.",
+        "unauthorized": "Your session has expired. Sign in again and retry.",
+        "stripe_cancel_failed": "Your subscription couldn't be cancelled, so nothing was deleted. Please try again in a few minutes.",
+        "confirmation_required": "Type {{word}} to confirm.",
+        "generic": "The account couldn't be deleted. Try again or write to facturas@archivum.es."
+      }
     }
   },
   "register": {

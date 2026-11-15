@@ -45,6 +45,9 @@ export async function updateSession(request: NextRequest) {
     '/cookies',
     '/terminos',
     '/encargo-tratamiento',
+    // Google Play links here from the store listing: anyone, signed in or not,
+    // must be able to read how to delete their account.
+    '/eliminar-cuenta',
   ]
   const isPublicRoute = publicRoutes.some(route =>
     route === '/'
