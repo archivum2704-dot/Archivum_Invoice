@@ -14,6 +14,7 @@ import { useMembers, useMemberCompanyAccess, type OrgMember } from "@/lib/hooks/
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { useFolders } from "@/lib/hooks/use-folders"
 import { useBilling } from "@/lib/hooks/use-billing"
+import { ADDONS, PLANS } from "@/lib/pricing"
 import { useRouter } from "next/navigation"
 import type { OrgRole } from "@/lib/supabase/types"
 import { Coachmark } from "@/components/coachmark"
@@ -709,8 +710,8 @@ function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan
         </h2>
         <p className="text-sm text-muted-foreground mb-5">
           {isFreePlan
-            ? "El plan gratuito incluye 1 usuario. Actualiza al plan Starter o Pro para añadir usuarios extra a 4,99 €/usuario/mes."
-            : "Has alcanzado el límite de usuarios de tu plan. Añade usuarios extra desde la sección de Facturación a 4,99 €/usuario/mes."}
+            ? `El plan gratuito incluye 1 usuario. Los planes Starter, Business y Pro incluyen ${PLANS.starter.users} y admiten usuarios extra a ${ADDONS.extraUser.priceLabel}.`
+            : `Has alcanzado el límite de usuarios de tu plan. Añade usuarios extra desde la sección de Facturación a ${ADDONS.extraUser.priceLabel}.`}
         </p>
 
         <div className="space-y-2">

@@ -330,10 +330,10 @@
     "deleteTitle": "Delete client",
     "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? Its documents will be unassigned.",
     "limitTitle": "Client limit reached",
-    "limitDesc": "Your current plan allows up to {{max}} client(s). Upgrade to Pro or add extra clients for €2/client/month.",
+    "limitDesc": "Your current plan allows up to {{max}} client(s). The Starter, Business and Pro plans include {{paidClients}} clients.",
     "limitBullet1": "Free plan: 1 client",
-    "limitBullet2": "Pro plan: 20 clients included",
-    "limitBullet3": "+€2/month per extra client",
+    "limitBullet2": "Starter, Business and Pro: {{paidClients}} clients",
+    "limitBullet3": "Paid plans from €{{starterPrice}}/month + VAT",
     "paymentMethod": "Payment method",
     "paymentDueDays": "Due (days)",
     "paymentDueDaysHint": "Days from the invoice date. Used to suggest the due date when invoicing.",
@@ -381,10 +381,10 @@
     "deleteTitle": "Delete supplier",
     "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? Its purchase invoices will be left without a supplier.",
     "limitTitle": "Client limit reached",
-    "limitDesc": "Your current plan allows up to {{max}} client(s). Upgrade to Pro or add extra clients for €2/client/month.",
+    "limitDesc": "Your current plan allows up to {{max}} client(s). The Starter, Business and Pro plans include {{paidClients}} clients.",
     "limitBullet1": "Free plan: 1 client",
-    "limitBullet2": "Pro plan: 20 clients included",
-    "limitBullet3": "+€2/month per extra client",
+    "limitBullet2": "Starter, Business and Pro: {{paidClients}} clients",
+    "limitBullet3": "Paid plans from €{{starterPrice}}/month + VAT",
     "paymentMethod": "Payment method",
     "paymentDueDays": "Due (days)",
     "paymentDueDaysHint": "Days from the invoice date. Used to suggest the due date when recording a purchase.",
@@ -461,11 +461,11 @@
     },
     "limitFree": "Free plan limit",
     "limitReached": "User limit reached",
-    "limitDescFree": "The free plan includes 1 user. Upgrade to Pro to add up to 5 users.",
-    "limitDescPaid": "You've reached {{max}} users. Add extra users for €2/user/month.",
+    "limitDescFree": "The free plan includes 1 user. Paid plans include {{paidUsers}} and allow extra users.",
+    "limitDescPaid": "You've reached {{max}} users. Add extra users for €{{userPrice}}/user/month + VAT.",
     "limitBullet1": "Free plan: 1 user",
-    "limitBullet2": "Pro plan: 5 users included",
-    "limitBullet3": "+€2/month per extra user"
+    "limitBullet2": "Starter, Business and Pro: {{paidUsers}} users included",
+    "limitBullet3": "+€{{userPrice}}/month + VAT per extra user"
   },
   "subir": {
     "title": "Upload document",
@@ -533,36 +533,36 @@
     "slides": {
       "welcome": {
         "title": "Welcome to Archivum",
-        "description": "Your intelligent system to organize all your business documents.",
-        "b1": "Automatic AI processing",
-        "b2": "Access from any device",
-        "b3": "Secure and private data"
+        "description": "Your invoices and documents, in order and ready for your accountant.",
+        "b1": "Invoice, file and share from one place",
+        "b2": "On mobile and on the web",
+        "b3": "Ready for VeriFactu"
       },
       "upload": {
-        "title": "Upload and process documents",
+        "title": "Upload and file documents",
         "description": "Capture invoices, contracts and receipts with the camera and file them on the spot.",
         "b1": "Supports PDFs, photos and scans",
-        "b2": "Extracts amounts, dates, tax IDs",
-        "b3": "No need to transcribe anything"
+        "b2": "You enter amount, dates and client",
+        "b3": "Organized by client and folder"
       },
       "companies": {
-        "title": "Organize by company",
-        "description": "Create one company per client or department and group their documents.",
-        "b1": "Free plan: 1 company",
-        "b2": "Pro plan: up to 20 companies",
-        "b3": "Add more for €2/company/month"
+        "title": "Organize by client",
+        "description": "Add your clients and suppliers and group their documents.",
+        "b1": "Free plan: 1 client",
+        "b2": "Paid plans: {{paidClients}} clients",
+        "b3": "Suppliers don't count towards the limit"
       },
       "team": {
         "title": "Work as a team",
         "description": "Invite teammates with custom roles and per-company permissions.",
         "b1": "Roles: Admin, Member, Viewer",
         "b2": "Granular access per company or folder",
-        "b3": "Free plan: 1 user · Pro: 5 + extras"
+        "b3": "Free: 1 user · Paid: {{paidUsers}} + extras"
       },
       "search": {
         "title": "Find anything instantly",
-        "description": "Smart search and filters by company, date, type or amount.",
-        "b1": "Search inside document content",
+        "description": "Advanced search and filters by client, date, type or amount.",
+        "b1": "Search by document number",
         "b2": "Combinable filters",
         "b3": "Sorted by relevance"
       }

@@ -26,7 +26,7 @@ import { radius } from "@/lib/radius";
 import { BillingNotice } from "@/components/BillingNotice";
 import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
-import { resolveEntitlements } from "@/lib/pricing";
+import { pricingParams, resolveEntitlements } from "@/lib/pricing";
 import { Badge, Button, Card, EmptyState, Input } from "@/components/ui";
 import { hasRole, isClient, kindOf, withRole, type CompanyKind, type CompanyRole } from "@/lib/company-kind";
 
@@ -77,6 +77,8 @@ const NO_SECTOR = "__no_sector__";
 
 /* ── Upgrade modal ───────────────────────────────────────────────────────── */
 function UpgradeModal({ visible, maxCompanies, onClose, C, t }: { visible: boolean; maxCompanies: number; onClose: () => void; C: any; t: any }) {
+  const { i18n } = useTranslation();
+  const pp = pricingParams(i18n.language);
   return (
     <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
@@ -91,10 +93,10 @@ function UpgradeModal({ visible, maxCompanies, onClose, C, t }: { visible: boole
           {t("empresas.limitTitle")}
         </Text>
         <Text style={{ fontFamily: fonts.regular, fontSize: 14, color: C.muted, textAlign: "center", paddingHorizontal: spacing.xl, lineHeight: 20, marginBottom: spacing.xl - 4 }}>
-          {t("empresas.limitDesc", { max: maxCompanies })}
+          {t("empresas.limitDesc", { ...pp, max: maxCompanies })}
         </Text>
         <View style={{ marginHorizontal: spacing.xl, marginBottom: spacing.xl - 4, gap: spacing.sm }}>
-          {[t("empresas.limitBullet1"), t("empresas.limitBullet2"), t("empresas.limitBullet3")].map((line) => (
+          {[t("empresas.limitBullet1", pp), t("empresas.limitBullet2", pp), t("empresas.limitBullet3", pp)].map((line) => (
             <View key={line} style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.blue }} />
               <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.text }}>{line}</Text>

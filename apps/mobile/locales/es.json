@@ -330,10 +330,10 @@
     "deleteTitle": "Eliminar cliente",
     "deleteConfirm": "¿Estás seguro de que quieres eliminar \"{{name}}\"? Sus documentos quedarán sin cliente asignado.",
     "limitTitle": "Límite de clientes alcanzado",
-    "limitDesc": "Tu plan actual permite hasta {{max}} cliente(s). Actualiza a Pro o añade clientes adicionales por 2 €/cliente/mes + IVA.",
-    "limitBullet1": "Plan Gratis: 1 cliente",
-    "limitBullet2": "Plan Pro: 20 clientes incluidos",
-    "limitBullet3": "+2 €/mes + IVA por cliente adicional",
+    "limitDesc": "Tu plan actual permite hasta {{max}} cliente(s). Los planes Starter, Business y Pro incluyen {{paidClients}} clientes.",
+    "limitBullet1": "Plan Gratuito: 1 cliente",
+    "limitBullet2": "Starter, Business y Pro: {{paidClients}} clientes",
+    "limitBullet3": "Planes de pago desde {{starterPrice}} €/mes + IVA",
     "paymentMethod": "Forma de pago",
     "paymentDueDays": "Vencimiento (días)",
     "paymentDueDaysHint": "Días desde la fecha de la factura. Se usa para proponer el vencimiento al facturar.",
@@ -381,10 +381,10 @@
     "deleteTitle": "Eliminar proveedor",
     "deleteConfirm": "¿Estás seguro de que quieres eliminar \"{{name}}\"? Sus facturas de compra quedarán sin proveedor asignado.",
     "limitTitle": "Límite de clientes alcanzado",
-    "limitDesc": "Tu plan actual permite hasta {{max}} cliente(s). Actualiza a Pro o añade clientes adicionales por 2 €/cliente/mes + IVA.",
-    "limitBullet1": "Plan Gratis: 1 cliente",
-    "limitBullet2": "Plan Pro: 20 clientes incluidos",
-    "limitBullet3": "+2 €/mes + IVA por cliente adicional",
+    "limitDesc": "Tu plan actual permite hasta {{max}} cliente(s). Los planes Starter, Business y Pro incluyen {{paidClients}} clientes.",
+    "limitBullet1": "Plan Gratuito: 1 cliente",
+    "limitBullet2": "Starter, Business y Pro: {{paidClients}} clientes",
+    "limitBullet3": "Planes de pago desde {{starterPrice}} €/mes + IVA",
     "paymentMethod": "Forma de pago",
     "paymentDueDays": "Vencimiento (días)",
     "paymentDueDaysHint": "Días desde la fecha de la factura. Se usa para proponer el vencimiento al registrar una compra.",
@@ -461,11 +461,11 @@
     },
     "limitFree": "Límite del plan gratuito",
     "limitReached": "Límite de usuarios alcanzado",
-    "limitDescFree": "El plan gratuito incluye 1 usuario. Actualiza a Pro para añadir hasta 5 usuarios.",
-    "limitDescPaid": "Has llegado a {{max}} usuarios. Añade usuarios extra por 2€/usuario/mes.",
-    "limitBullet1": "Plan Gratis: 1 usuario",
-    "limitBullet2": "Plan Pro: 5 usuarios incluidos",
-    "limitBullet3": "+2 €/mes + IVA por usuario adicional"
+    "limitDescFree": "El plan gratuito incluye 1 usuario. Los planes de pago incluyen {{paidUsers}} y admiten usuarios extra.",
+    "limitDescPaid": "Has llegado a {{max}} usuarios. Añade usuarios extra por {{userPrice}} €/usuario/mes + IVA.",
+    "limitBullet1": "Plan Gratuito: 1 usuario",
+    "limitBullet2": "Starter, Business y Pro: {{paidUsers}} usuarios incluidos",
+    "limitBullet3": "+{{userPrice}} €/mes + IVA por usuario adicional"
   },
   "subir": {
     "title": "Subir documento",
@@ -533,36 +533,36 @@
     "slides": {
       "welcome": {
         "title": "Bienvenido a Archivum",
-        "description": "Tu sistema inteligente para organizar todos los documentos de tu empresa.",
-        "b1": "Procesamiento automático con IA",
-        "b2": "Acceso desde cualquier dispositivo",
-        "b3": "Datos seguros y privados"
+        "description": "Tus facturas y documentos, en orden y listos para tu gestoría.",
+        "b1": "Factura, archiva y comparte desde un mismo lugar",
+        "b2": "En el móvil y en la web",
+        "b3": "Preparado para VeriFactu"
       },
       "upload": {
-        "title": "Sube y procesa documentos",
+        "title": "Sube y archiva documentos",
         "description": "Captura facturas, contratos y recibos con la cámara y archívalos al momento.",
-        "b1": "Soporta PDF, fotos y escaneos",
-        "b2": "Extracción de importes, fechas, NIF/CIF",
-        "b3": "Sin necesidad de transcribir nada"
+        "b1": "Admite PDF, fotos y escaneos",
+        "b2": "Tú indicas importe, fechas y cliente",
+        "b3": "Ordenado por cliente y carpeta"
       },
       "companies": {
-        "title": "Organiza por empresa",
-        "description": "Crea una empresa por cada cliente o departamento y agrupa sus documentos.",
-        "b1": "Plan Gratis: 1 empresa",
-        "b2": "Plan Pro: hasta 20 empresas",
-        "b3": "Añade más por 2 €/empresa/mes"
+        "title": "Organiza por cliente",
+        "description": "Da de alta tus clientes y proveedores y agrupa sus documentos.",
+        "b1": "Plan Gratuito: 1 cliente",
+        "b2": "Planes de pago: {{paidClients}} clientes",
+        "b3": "Los proveedores no cuentan para el límite"
       },
       "team": {
         "title": "Trabaja en equipo",
         "description": "Invita a tu equipo con roles y permisos personalizados por empresa.",
         "b1": "Roles: Administrador, Colaborador, Visor",
         "b2": "Acceso granular por empresa o carpeta",
-        "b3": "Plan Gratis: 1 usuario · Pro: 5 + extras"
+        "b3": "Gratuito: 1 usuario · De pago: {{paidUsers}} + extras"
       },
       "search": {
         "title": "Encuentra todo al instante",
-        "description": "Búsqueda inteligente y filtros por empresa, fecha, tipo o importe.",
-        "b1": "Búsqueda por contenido del documento",
+        "description": "Búsqueda avanzada y filtros por cliente, fecha, tipo o importe.",
+        "b1": "Busca por número de documento",
         "b2": "Filtros combinables",
         "b3": "Ordenado por relevancia"
       }

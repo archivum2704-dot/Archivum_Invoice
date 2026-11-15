@@ -20,7 +20,7 @@ import { spacing } from "@/lib/spacing";
 import { radius } from "@/lib/radius";
 import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
-import { resolveEntitlements } from "@/lib/pricing";
+import { pricingParams, resolveEntitlements } from "@/lib/pricing";
 import { RequirePermission } from "@/components/RequirePermission";
 import { KeyboardModal } from "@/components/KeyboardModal";
 import { readJson } from "@/lib/api";
@@ -57,6 +57,8 @@ interface PlanInfo {
 
 /* ── Upgrade modal ───────────────────────────────────────────────────────── */
 function UpgradeModal({ visible, maxUsers, onClose, C, t }: { visible: boolean; maxUsers: number; onClose: () => void; C: any; t: any }) {
+  const { i18n } = useTranslation();
+  const pp = pricingParams(i18n.language);
   return (
     <KeyboardModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={{ flex: 1, backgroundColor: C.overlay }} activeOpacity={1} onPress={onClose} />
@@ -71,10 +73,10 @@ function UpgradeModal({ visible, maxUsers, onClose, C, t }: { visible: boolean; 
           {maxUsers === 1 ? t("equipo.limitFree") : t("equipo.limitReached")}
         </Text>
         <Text style={{ fontFamily: fonts.regular, fontSize: 14, color: C.muted, textAlign: "center", paddingHorizontal: spacing.xl, lineHeight: 20, marginBottom: spacing.xl - 4 }}>
-          {maxUsers === 1 ? t("equipo.limitDescFree") : t("equipo.limitDescPaid", { max: maxUsers })}
+          {maxUsers === 1 ? t("equipo.limitDescFree", pp) : t("equipo.limitDescPaid", { ...pp, max: maxUsers })}
         </Text>
         <View style={{ marginHorizontal: spacing.xl, marginBottom: spacing.xl - 4, gap: spacing.sm }}>
-          {[t("equipo.limitBullet1"), t("equipo.limitBullet2"), t("equipo.limitBullet3")].map((line) => (
+          {[t("equipo.limitBullet1", pp), t("equipo.limitBullet2", pp), t("equipo.limitBullet3", pp)].map((line) => (
             <View key={line} style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.blue }} />
               <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: C.text }}>{line}</Text>
