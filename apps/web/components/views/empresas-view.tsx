@@ -12,7 +12,7 @@ import { useTranslations } from "next-intl"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { useBilling } from "@/lib/hooks/use-billing"
-import { PLANS } from "@/lib/pricing"
+import { PLANS, TRIAL_DAYS } from "@/lib/pricing"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Coachmark } from "@/components/coachmark"
@@ -326,7 +326,7 @@ function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan
               onClick={() => { router.push("/configuracion/billing"); onClose() }}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
             >
-              Ver planes — 7 días gratis
+              Ver planes — {TRIAL_DAYS.pro} días de Pro gratis
             </button>
           )}
           <button

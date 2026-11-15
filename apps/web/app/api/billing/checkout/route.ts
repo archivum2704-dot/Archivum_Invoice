@@ -4,7 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { LEGAL_VERSION } from '@/lib/legal/version'
 import { getIvaTaxRateId } from '@/lib/stripe-tax'
 import { getStripe, PRICES } from '@/lib/stripe'
-import type { PlanId } from '@/lib/pricing'
+import { TRIAL_DAYS, isTrialAvailable, type PlanId } from '@/lib/pricing'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://archivum2704-dot.vercel.app'
 
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     const admin = getAdmin()
     const { data: org } = await admin
       .from('organizations')
-      .select('name, stripe_customer_id, stripe_subscription_id, subscription_status')
+      .select('name, stripe_customer_id, stripe_subscription_id, subscription_status, trial_ends_at')
       .eq('id', orgId)
       .single()
 
@@ -123,18 +123,17 @@ export async function POST(req: NextRequest) {
     const iva = await getIvaTaxRateId(stripe)
     for (const item of lineItems) item.tax_rates = [iva]
 
-    // First-time subscription → 7-day trial
-    const isFirstTime = !org.stripe_subscription_id
+    // Primera contratación → prueba gratuita (una sola por organización).
+    const paidPlan  = planId as Exclude<PlanId, 'free'>
+    const trialDays = isTrialAvailable(org) ? TRIAL_DAYS[paidPlan] : 0
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       line_items: lineItems,
-      ...(isFirstTime && {
-        subscription_data: {
-          trial_period_days: 7,
-          metadata: { org_id: orgId, plan_id: planId, ...legalMeta },
-        },
-      }),
+      subscription_data: {
+        ...(trialDays > 0 && { trial_period_days: trialDays }),
+        metadata: { org_id: orgId, plan_id: planId, ...legalMeta },
+      },
       metadata: { org_id: orgId, plan_id: planId, ...legalMeta },
       success_url: `${APP_URL}/configuracion/billing?success=1`,
       cancel_url:  `${APP_URL}/configuracion/billing`,

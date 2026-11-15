@@ -109,6 +109,30 @@ export const PLANS = {
 
 export type PlanId = keyof typeof PLANS
 
+// ── Prueba gratuita ──────────────────────────────────────────────────────────
+
+/**
+ * Días de prueba al contratar por primera vez, con tarjeta. El plan Pro da 30;
+ * Stripe cobra solo al acabar, y si se cancela antes o el cobro falla la
+ * suscripción termina y la organización vuelve a los límites del Gratuito
+ * (resolveEntitlements, más abajo).
+ */
+export const TRIAL_DAYS: Record<Exclude<PlanId, "free">, number> = {
+  starter: 7,
+  business: 7,
+  pro: 30,
+}
+
+/**
+ * Una organización solo tiene una prueba. trial_ends_at se conserva al
+ * cancelar, y es lo que lo recuerda: stripe_subscription_id se borra al
+ * terminar la suscripción, así que mirarlo a él regalaba una prueba nueva a
+ * quien cancelaba y volvía a contratar.
+ */
+export function isTrialAvailable(org: { stripe_subscription_id?: string | null; trial_ends_at?: string | null } | null | undefined) {
+  return !org?.stripe_subscription_id && !org?.trial_ends_at
+}
+
 /** Add-ons (precios fijos) */
 export const ADDONS = {
   extraDocs: {

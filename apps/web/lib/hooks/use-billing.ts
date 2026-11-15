@@ -4,6 +4,8 @@ export interface BillingStatus {
   plan:                'free' | 'starter' | 'business' | 'pro'
   subscriptionStatus:  'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'incomplete' | 'paused'
   trialEndsAt:         string | null
+  /** No ha tenido nunca una prueba: la primera contratación la incluye. */
+  trialAvailable:      boolean
   currentPeriodEnd:    string | null
   extraUsersQuantity:  number
   extraDocsQuantity:   number

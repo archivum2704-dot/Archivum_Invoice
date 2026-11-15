@@ -14,7 +14,7 @@ import { useMembers, useMemberCompanyAccess, type OrgMember } from "@/lib/hooks/
 import { useCompanies } from "@/lib/hooks/use-companies"
 import { useFolders } from "@/lib/hooks/use-folders"
 import { useBilling } from "@/lib/hooks/use-billing"
-import { ADDONS, PLANS } from "@/lib/pricing"
+import { ADDONS, PLANS, TRIAL_DAYS } from "@/lib/pricing"
 import { useRouter } from "next/navigation"
 import type { OrgRole } from "@/lib/supabase/types"
 import { Coachmark } from "@/components/coachmark"
@@ -720,7 +720,7 @@ function UpgradeModal({ onClose, isFreePlan }: { onClose: () => void; isFreePlan
               onClick={() => { router.push("/configuracion/billing"); onClose() }}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
             >
-              Ver planes — 7 días gratis
+              Ver planes — {TRIAL_DAYS.pro} días de Pro gratis
             </button>
           )}
           <button

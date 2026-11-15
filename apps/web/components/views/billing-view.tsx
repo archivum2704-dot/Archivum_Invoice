@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { useOrganization } from "@/lib/context/organization-context"
 import { useBilling } from "@/lib/hooks/use-billing"
 import type { BillingStatus } from "@/lib/hooks/use-billing"
-import { PLANS, ADDONS } from "@/lib/pricing"
+import { PLANS, ADDONS, TRIAL_DAYS } from "@/lib/pricing"
 import { LEGAL_VERSION } from "@/lib/legal/version"
 import Link from "next/link"
 
@@ -116,6 +116,13 @@ export function BillingView() {
 
   // Plan the user has selected to purchase (not yet active)
   const pendingPlan = pendingPlanId ? PLANS[pendingPlanId as keyof typeof PLANS] : null
+
+  // Días de prueba que tendría el plan elegido (0 si ya gastó su prueba).
+  const trialDays = pendingPlanId && pendingPlanId !== "free" && billing?.trialAvailable
+    ? TRIAL_DAYS[pendingPlanId as keyof typeof TRIAL_DAYS] ?? 0
+    : 0
+  const firstChargeDate = new Date(Date.now() + trialDays * 86_400_000)
+    .toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })
 
   // Which plan to use for cost calculations
   const displayPlan = pendingPlan ?? currentPlan
@@ -519,6 +526,13 @@ export function BillingView() {
             {pendingPlan ? (
               /* Pre-checkout: go to Stripe with selected plan + extras */
               <>
+              {trialDays > 0 && (
+                <p className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs leading-relaxed text-foreground">
+                  <strong>Prueba gratuita de {trialDays} días.</strong> Se te pide la tarjeta, pero el plan no se cobra hoy.
+                  El primer cobro, de {eur(totalCost * (1 + IVA))} € (IVA incluido), será el {firstChargeDate} y después
+                  cada mes. Si cancelas antes desde «Gestionar facturación» no se cobra nada y la cuenta pasa al plan Gratuito.
+                </p>
+              )}
               <label className="mt-4 flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed cursor-pointer select-none">
                 <input type="checkbox" checked={acceptsLegal} onChange={e => setAcceptsLegal(e.target.checked)}
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-input accent-primary" />
@@ -535,7 +549,7 @@ export function BillingView() {
                   disabled={!!redirecting || !acceptsLegal}
                   className="flex-1 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors"
                 >
-                  {redirecting === "checkout" ? "Redirigiendo..." : `Contratar y pagar · ${pendingPlan.name}`}
+                  {redirecting === "checkout" ? "Redirigiendo..." : trialDays > 0 ? `Empezar ${trialDays} días gratis · ${pendingPlan.name}` : `Contratar y pagar · ${pendingPlan.name}`}
                 </button>
                 <button
                   onClick={() => { setPendingPlanId(null); setExtraUsers(0); setExtraDocs(0) }}
