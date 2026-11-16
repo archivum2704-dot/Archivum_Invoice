@@ -134,7 +134,8 @@ export async function POST(req: NextRequest) {
         ...(trialDays > 0 && { trial_period_days: trialDays }),
         metadata: { org_id: orgId, plan_id: planId, ...legalMeta },
       },
-      metadata: { org_id: orgId, plan_id: planId, ...legalMeta },
+      // extra_docs: bonus packs paid in this checkout, so the webhook can add them to the quota.
+      metadata: { org_id: orgId, plan_id: planId, extra_docs: String(finalExtraDocs), ...legalMeta },
       success_url: `${APP_URL}/configuracion/billing?success=1`,
       cancel_url:  `${APP_URL}/configuracion/billing`,
       allow_promotion_codes: true,
