@@ -9,11 +9,12 @@
 DO $$
 DECLARE
   -- ── Datos ──────────────────────────────────────────────
-  v_email  text := 'soniacastro118@hotmail.com';
+  v_email  text := 'correo@ejemplo.com';
   v_plan   text := 'pro';            -- starter | business | pro
   v_hasta  date := NULL;             -- NULL = sin fecha de fin
   -- ───────────────────────────────────────────────────────
   v_user uuid;
+  v_docs int;
   v_n    int;
   r      record;
 BEGIN
@@ -26,10 +27,21 @@ BEGIN
   -- administrador; desde el SQL Editor se habilita solo en esta transacción.
   PERFORM set_config('archivum.internal_billing_write', 'on', true);
 
+  -- Documentos al mes de cada plan: los mismos que PLANS en lib/pricing.ts.
+  v_docs := CASE v_plan WHEN 'starter' THEN 75 WHEN 'business' THEN 200 WHEN 'pro' THEN 450 END;
+  IF v_docs IS NULL THEN
+    RAISE EXCEPTION 'Plan % desconocido: usa starter, business o pro.', v_plan;
+  END IF;
+
+  -- doc_quota_pool es la bolsa de documentos que se gasta al subir y que
+  -- bloquea las subidas al llegar a 0. Sin recargarla, el plan de pago se
+  -- quedaba con los 20 del Gratuito. GREATEST: ejecutar el script dos veces
+  -- no suma dos meses, y no se quita nada a quien ya tenía más.
   UPDATE public.organizations o
   SET subscription_plan   = v_plan,
       subscription_status = 'active',
-      current_period_end  = v_hasta
+      current_period_end  = v_hasta,
+      doc_quota_pool      = GREATEST(coalesce(o.doc_quota_pool, 0), v_docs)
   WHERE o.id IN (SELECT organization_id FROM public.organization_members
                  WHERE user_id = v_user AND role = 'owner');
   GET DIAGNOSTICS v_n = ROW_COUNT;
@@ -38,11 +50,11 @@ BEGIN
     RAISE EXCEPTION 'La cuenta % existe pero no es dueña de ninguna organización (no terminó el alta).', v_email;
   END IF;
 
-  FOR r IN SELECT o.name, o.subscription_plan, o.subscription_status
+  FOR r IN SELECT o.name, o.subscription_plan, o.subscription_status, o.doc_quota_pool
            FROM public.organizations o
            JOIN public.organization_members m ON m.organization_id = o.id
            WHERE m.user_id = v_user AND m.role = 'owner'
   LOOP
-    RAISE NOTICE 'Listo: «%» → plan %, estado %', r.name, r.subscription_plan, r.subscription_status;
+    RAISE NOTICE 'Listo: «%» → plan %, estado %, % documentos disponibles', r.name, r.subscription_plan, r.subscription_status, r.doc_quota_pool;
   END LOOP;
 END $$;

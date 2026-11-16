@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { getStripe, PRICES } from '@/lib/stripe'
+import { ADDONS, PLANS, type PlanId } from '@/lib/pricing'
 import type Stripe from 'stripe'
 
 // Do NOT wrap in createClient() — webhook uses raw body, no user session
@@ -16,6 +17,25 @@ async function getOrgId(admin: ReturnType<typeof getAdmin>, customerId: string, 
   if (metaOrgId) return metaOrgId
   const { data } = await admin.from('organizations').select('id').eq('stripe_customer_id', customerId).single()
   return data?.id ?? null
+}
+
+/**
+ * Recarga el cupo de documentos (organizations.doc_quota_pool).
+ *
+ * El cupo es una bolsa que se gasta al subir documentos (trigger
+ * decrement_quota_pool) y que el trigger enforce_doc_quota usa para bloquear
+ * subidas al llegar a 0. Nada la recargaba: ni la contratación ni las
+ * renovaciones llamaban a renew_doc_quota, así que toda organización se
+ * quedaba con los 20 documentos iniciales aunque pagara Pro.
+ */
+async function topUpDocs(admin: ReturnType<typeof getAdmin>, orgId: string, docs: number) {
+  if (!(docs > 0)) return
+  const { error } = await admin.rpc('renew_doc_quota', { p_org_id: orgId, p_monthly_docs: docs })
+  if (error) console.error('[webhook] renew_doc_quota', orgId, error)
+}
+
+function monthlyDocs(plan: string | null | undefined) {
+  return plan && plan in PLANS ? PLANS[plan as PlanId].docsPerMonth : 0
 }
 
 export async function POST(req: NextRequest) {
@@ -78,6 +98,15 @@ export async function POST(req: NextRequest) {
           current_period_end:     periodEnd,
         }).eq('id', orgId)
 
+        // First period (trial included): the plan's monthly documents plus
+        // any bonus packs bought with it. Packs that live on the subscription
+        // as an item are added by customer.subscription.updated (it compares
+        // with extra_docs_quantity); only one-off packs are counted here, so
+        // none is added twice.
+        const packsOnSub = sub.items.data.some((i: any) => i.price.lookup_key === PRICES.extraDocs)
+        const extraDocsPacks = packsOnSub ? 0 : (Number(session.metadata?.extra_docs ?? 0) || 0)
+        await topUpDocs(admin, orgId, monthlyDocs(checkoutPlan) + extraDocsPacks * ADDONS.extraDocs.docs)
+
         // Update org_id on billing_events row
         await admin.from('billing_events').update({ organization_id: orgId }).eq('stripe_event_id', event.id)
         break
@@ -114,12 +143,20 @@ export async function POST(req: NextRequest) {
         }
         if (sub.trial_end) update.trial_ends_at = new Date(sub.trial_end * 1000).toISOString()
 
+        // Bonus packs bought later (update-addons) arrive as a higher quantity
+        // on the subscription: add only the packs that are new.
+        const { data: before } = await admin.from('organizations').select('extra_docs_quantity').eq('id', orgId).single()
+        const newPacks = (extraDocsItem?.quantity ?? 0) - (before?.extra_docs_quantity ?? 0)
+
         if (event.type === 'customer.subscription.deleted') {
           update.stripe_subscription_id = null
           update.subscription_status    = 'canceled'
         }
 
         await admin.from('organizations').update(update).eq('id', orgId)
+        if (event.type === 'customer.subscription.updated') {
+          await topUpDocs(admin, orgId, newPacks * ADDONS.extraDocs.docs)
+        }
         await admin.from('billing_events').update({ organization_id: orgId }).eq('stripe_event_id', event.id)
         break
       }
@@ -135,6 +172,13 @@ export async function POST(req: NextRequest) {
           subscription_status: 'active',
           ...(periodEnd && { current_period_end: periodEnd }),
         }).eq('id', orgId)
+
+        // Each renewal adds the plan's monthly documents (unused ones carry
+        // over). The first period is topped up on checkout.session.completed.
+        if (inv.billing_reason === 'subscription_cycle') {
+          const { data: org } = await admin.from('organizations').select('subscription_plan').eq('id', orgId).single()
+          await topUpDocs(admin, orgId, monthlyDocs(org?.subscription_plan))
+        }
         await admin.from('billing_events').update({ organization_id: orgId }).eq('stripe_event_id', event.id)
         break
       }

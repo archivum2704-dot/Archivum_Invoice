@@ -29,7 +29,7 @@ import { radius } from "@/lib/radius";
 import { useShadows } from "@/lib/shadows";
 import { BillingNotice } from "@/components/BillingNotice";
 import { APP_URL } from "@/lib/config";
-import { PLANS, type PlanId } from "@/lib/pricing";
+import { ADDONS, PLANS, type PlanId } from "@/lib/pricing";
 import { parseApiResponse } from "@/lib/api";
 import { KeyboardModal } from "@/components/KeyboardModal";
 import { DeleteAccountModal } from "@/components/DeleteAccountModal";
@@ -696,7 +696,7 @@ export default function AjustesScreen() {
             {plan && (() => {
               const planData = PLANS[plan.subscription_plan];
               const baseMonthly = planData.docsPerMonth;
-              const bonusDocs = plan.extra_docs_quantity * 200;
+              const bonusDocs = plan.extra_docs_quantity * ADDONS.extraDocs.docs;
               const totalPool = plan.doc_quota_pool;
               const usedApprox = Math.max(0, baseMonthly + bonusDocs - totalPool);
               return (
