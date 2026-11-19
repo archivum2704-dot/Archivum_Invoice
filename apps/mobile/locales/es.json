@@ -867,5 +867,13 @@
     "all": "Todo",
     "sales": "Ventas",
     "purchases": "Compras"
+  },
+  "auth": {
+    "profileFailed": {
+      "title": "No se pudo cargar tu cuenta",
+      "body": "Comprueba tu conexión a internet e inténtalo de nuevo.",
+      "retry": "Reintentar",
+      "signOut": "Cerrar sesión"
+    }
   }
 }

@@ -1,6 +1,7 @@
 import { Tabs, Redirect, usePathname } from "expo-router";
 import { useAuth } from "@/context/auth-context";
-import { View, ActivityIndicator } from "react-native";
+import { useState } from "react";
+import { View, ActivityIndicator, Text, TouchableOpacity } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/lib/colors";
@@ -14,7 +15,8 @@ import { LegalAcceptanceGate } from "@/components/LegalAcceptanceGate";
 export default function AppLayout() {
   const { t } = useTranslation();
   const C = useColors();
-  const { session, loading, profile, orgId, mfaPending } = useAuth();
+  const { session, loading, profile, orgId, mfaPending, profileFailed, refreshProfile, signOut } = useAuth();
+  const [retrying, setRetrying] = useState(false);
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const isOnboardingRoute = pathname?.includes("onboarding");
@@ -45,6 +47,29 @@ export default function AppLayout() {
   // Wait for the profile too: right after a fresh sign-in the session exists
   // but the profile (and with it orgId) is still loading. Deciding on orgId
   // before that would wrongly send existing users to onboarding.
+  // The profile could not be loaded: offer a way out instead of spinning
+  // forever (before, only killing the app got past this screen).
+  if (!loading && session && !profile && profileFailed) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.bg, padding: 32, gap: 16 }}>
+        <Text style={{ fontSize: 17, fontWeight: "700", color: C.text, textAlign: "center" }}>{t("auth.profileFailed.title")}</Text>
+        <Text style={{ fontSize: 14, color: C.muted, textAlign: "center", lineHeight: 20 }}>{t("auth.profileFailed.body")}</Text>
+        <TouchableOpacity
+          disabled={retrying}
+          onPress={async () => { setRetrying(true); await refreshProfile(); setRetrying(false); }}
+          style={{ backgroundColor: C.blue, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 28, opacity: retrying ? 0.6 : 1 }}
+        >
+          {retrying
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>{t("auth.profileFailed.retry")}</Text>}
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => { void signOut(); }}>
+          <Text style={{ color: C.muted, fontSize: 14 }}>{t("auth.profileFailed.signOut")}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   if (loading || (session && !profile)) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.bg }}>

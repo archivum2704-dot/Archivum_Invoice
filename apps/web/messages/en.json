@@ -109,6 +109,32 @@
       "title": "Check your inbox",
       "message": "We sent a confirmation link to your email. Click it to activate your account.",
       "backToLogin": "Back to sign in"
+    },
+    "updatePassword": {
+      "title": "New password",
+      "subtitle": "Choose a new password for your account",
+      "checking": "Checking the link…",
+      "password": "New password",
+      "confirm": "Repeat the password",
+      "hint": "At least 8 characters.",
+      "submit": "Save password",
+      "submitting": "Saving…",
+      "successTitle": "Password changed",
+      "successBody": "You can now sign in to the app or the web with your new password.",
+      "goToLogin": "Sign in",
+      "invalidTitle": "This link isn't valid",
+      "expired": "The link has expired or was already used. Request a new one: it only works once and for a limited time.",
+      "otherBrowser": "This link only works in the same browser you requested it from. Open it there, or request a new one here.",
+      "missing": "Open this page from the link we sent you by email.",
+      "requestNew": "Request a new link",
+      "errors": {
+        "tooShort": "The password must be at least 8 characters.",
+        "mismatch": "The passwords don't match.",
+        "same": "The new password must be different from the old one.",
+        "weak": "That password is too weak. Try a longer one or add numbers and symbols.",
+        "session": "The link session has expired. Request a new link.",
+        "generic": "The password couldn't be changed. Please try again."
+      }
     }
   },
   "nav": {

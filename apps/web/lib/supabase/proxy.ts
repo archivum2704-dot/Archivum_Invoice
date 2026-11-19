@@ -32,6 +32,9 @@ export async function updateSession(request: NextRequest) {
     '/auth/signup',
     '/auth/signup-success',
     '/auth/reset-password',
+    // Destination of the password-reset email link. The visitor has no session
+    // yet (the page creates it from the link), so it must not bounce to login.
+    '/auth/update-password',
     '/auth/callback',
     '/auth/error',
     '/setup',
@@ -75,13 +78,17 @@ export async function updateSession(request: NextRequest) {
   // exempt for the same reason unauthenticated ones are: the mobile app
   // doesn't do this challenge yet and answers for itself.
   const isMfaChallengeRoute = request.nextUrl.pathname.startsWith('/auth/mfa')
+  // The reset link opens with a session of its own (the page creates it), and
+  // someone already signed in may open it too: neither must be sent away
+  // before they can type the new password.
+  const isPasswordUpdate = request.nextUrl.pathname.startsWith('/auth/update-password')
   let mfaPending = false
   if (user && !isApiRoute) {
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
     mfaPending = !!aal && aal.nextLevel === 'aal2' && aal.currentLevel !== aal.nextLevel
   }
 
-  if (user && mfaPending && !isMfaChallengeRoute && !isApiRoute) {
+  if (user && mfaPending && !isMfaChallengeRoute && !isApiRoute && !isPasswordUpdate) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/mfa'
     return NextResponse.redirect(url)
@@ -93,7 +100,7 @@ export async function updateSession(request: NextRequest) {
   // lib/tax-authority-access.ts.
   const taxAccess = request.cookies.get(TAX_ACCESS_COOKIE)?.value === '1'
 
-  if (user && !mfaPending && request.nextUrl.pathname.startsWith('/auth/')) {
+  if (user && !mfaPending && request.nextUrl.pathname.startsWith('/auth/') && !isPasswordUpdate) {
     const url = request.nextUrl.clone()
     url.pathname = taxAccess ? TAX_ACCESS_HOME : '/dashboard'
     return NextResponse.redirect(url)

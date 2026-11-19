@@ -42,6 +42,10 @@ interface AuthContextType {
   /** True once password sign-in succeeds but the account has a verified TOTP
    * factor still awaiting its challenge — mirrors the web's aal1→aal2 gate. */
   mfaPending: boolean;
+  /** The session exists but the profile could not be loaded (no connection,
+   * a failed query). Screens waiting on the profile show a retry instead of
+   * spinning forever. */
+  profileFailed: boolean;
   signInEmpresa: (email: string, password: string) => Promise<SignInResult>;
   signInUsuario: (email: string, password: string, code: string) => Promise<SignInResult>;
   signUp: (email: string, password: string, firstName: string, lastName: string, marketing?: boolean) => Promise<string | null>;
@@ -60,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role,       setRole]       = useState<string | null>(null);
   const [loading,    setLoading]    = useState(true);
   const [mfaPending, setMfaPending] = useState(false);
+  const [profileFailed, setProfileFailed] = useState(false);
 
   /** Reads currentLevel/nextLevel off the live session — aal2 is only ever
    * reached after `mfa.challengeAndVerify`, so a mismatch means a verified
@@ -89,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await loadProfileUnsafe(userId);
     } catch (e) {
       console.warn("[auth] loadProfile failed:", e);
+      setProfileFailed(true);
     }
   };
 
@@ -99,7 +105,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq("id", userId)
       .single();
 
-    if (!p) return;
+    // A network or query error comes back as {data: null, error}, not as a
+    // throw: without this the profile stayed null and the app kept spinning.
+    if (!p) {
+      setProfileFailed(true);
+      return;
+    }
+    setProfileFailed(false);
 
     // ── Single-device enforcement ──────────────────────────────────────────
     const localSid = await AsyncStorage.getItem(SESSION_KEY).catch(() => null);
@@ -145,23 +157,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      if (session?.user) {
-        await checkMfaPending();
-        await loadProfile(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
+      try {
         if (session?.user) {
           await checkMfaPending();
           await loadProfile(session.user.id);
+        }
+      } catch (e) {
+        console.warn("[auth] startup check failed:", e);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    // Supabase runs this callback while it holds its internal auth lock, and
+    // waits for it before signInWithPassword resolves. Calling Supabase again
+    // from inside it (getAuthenticatorAssuranceLevel, the profile query) waits
+    // for that same lock: a deadlock. The first sign-in then never finished
+    // and the login button spun until the app was killed; on reopening, the
+    // stored session took the getSession path above and worked. Supabase's
+    // docs say to defer such work out of the callback, which is what this does.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        if (session?.user) {
+          const userId = session.user.id;
+          setTimeout(() => {
+            void (async () => {
+              await checkMfaPending().catch(() => false);
+              await loadProfile(userId);
+            })();
+          }, 0);
         } else {
           setProfile(null);
           setOrg(null);
           setMfaPending(false);
+          setProfileFailed(false);
         }
       }
     );
@@ -285,7 +315,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      session, profile, org, orgId, role, isPlatformAdmin, isAdmin, isPaid, loading, mfaPending,
+      session, profile, org, orgId, role, isPlatformAdmin, isAdmin, isPaid, loading, mfaPending, profileFailed,
       signInEmpresa, signInUsuario, signUp, signOut, refreshProfile, verifyMfaCode, cancelMfa,
     }}>
       {children}

@@ -867,5 +867,13 @@
     "all": "All",
     "sales": "Sales",
     "purchases": "Purchases"
+  },
+  "auth": {
+    "profileFailed": {
+      "title": "Your account couldn't be loaded",
+      "body": "Check your internet connection and try again.",
+      "retry": "Try again",
+      "signOut": "Sign out"
+    }
   }
 }
