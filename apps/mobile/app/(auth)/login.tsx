@@ -10,6 +10,7 @@ import { router } from "expo-router";
 import { Building2, User, Eye, EyeOff } from "lucide-react-native";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/lib/supabase";
+import { APP_URL } from "@/lib/config";
 import { useColors } from "@/lib/colors";
 import { fonts } from "@/lib/typography";
 import { spacing } from "@/lib/spacing";
@@ -163,7 +164,11 @@ export default function LoginScreen() {
                       Alert.alert("Email requerido", "Escribe tu correo electrónico para recuperar la contraseña.");
                       return;
                     }
-                    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email.trim());
+                    // Sin redirectTo, Supabase manda el enlace a la URL del sitio (la portada),
+                    // donde no hay forma de poner la contraseña nueva.
+                    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+                      redirectTo: `${APP_URL}/auth/update-password`,
+                    });
                     if (resetErr) {
                       Alert.alert("Error", explainAuthEmailError(resetErr));
                     } else {

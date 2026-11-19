@@ -109,6 +109,32 @@
       "title": "Revisa tu bandeja de entrada",
       "message": "Te enviamos un enlace de confirmación a tu correo. Haz clic en él para activar tu cuenta.",
       "backToLogin": "Volver al inicio de sesión"
+    },
+    "updatePassword": {
+      "title": "Nueva contraseña",
+      "subtitle": "Elige una contraseña nueva para tu cuenta",
+      "checking": "Comprobando el enlace…",
+      "password": "Nueva contraseña",
+      "confirm": "Repite la contraseña",
+      "hint": "Mínimo 8 caracteres.",
+      "submit": "Guardar contraseña",
+      "submitting": "Guardando…",
+      "successTitle": "Contraseña cambiada",
+      "successBody": "Ya puedes entrar en la app o en la web con tu nueva contraseña.",
+      "goToLogin": "Iniciar sesión",
+      "invalidTitle": "El enlace no es válido",
+      "expired": "El enlace ha caducado o ya se usó. Pide uno nuevo: solo vale una vez y durante un tiempo limitado.",
+      "otherBrowser": "Este enlace solo funciona en el mismo navegador desde el que pediste el cambio. Ábrelo allí, o pide uno nuevo desde aquí.",
+      "missing": "Abre esta página desde el enlace que te enviamos por correo.",
+      "requestNew": "Pedir un enlace nuevo",
+      "errors": {
+        "tooShort": "La contraseña debe tener al menos 8 caracteres.",
+        "mismatch": "Las contraseñas no coinciden.",
+        "same": "La contraseña nueva tiene que ser distinta de la anterior.",
+        "weak": "Esa contraseña es demasiado débil. Prueba con una más larga o con números y símbolos.",
+        "session": "La sesión del enlace ha caducado. Pide un enlace nuevo.",
+        "generic": "No se pudo cambiar la contraseña. Inténtalo de nuevo."
+      }
     }
   },
   "nav": {
