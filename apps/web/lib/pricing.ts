@@ -169,6 +169,10 @@ export const PRICING_FAQ = [
     a: "Sí, sin permanencia ni penalización. Al cancelar tienes 15 días para descargar tus documentos antes de que la cuenta se elimine.",
   },
   {
+    q: "¿Cómo funciona la prueba gratuita?",
+    a: `Al registrarte tienes el plan Pro completo durante ${TRIAL_DAYS.pro} días, sin tarjeta. Si contratas un plan durante la prueba, no se cobra nada hasta que termine. Si no contratas, la cuenta pasa al plan Gratuito y conservas todo lo que hayas creado.`,
+  },
+  {
     q: "¿El plan Gratuito caduca?",
     a: "No. El plan gratuito es para siempre. No te pediremos tarjeta para seguir usándolo.",
   },
