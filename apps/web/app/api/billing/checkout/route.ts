@@ -126,12 +126,23 @@ export async function POST(req: NextRequest) {
     // Primera contratación → prueba gratuita (una sola por organización).
     const paidPlan  = planId as Exclude<PlanId, 'free'>
     const trialDays = isTrialAvailable(org) ? TRIAL_DAYS[paidPlan] : 0
+    // Contracting during the sign-up trial keeps the days left: Stripe charges
+    // when the trial would have ended. Stripe wants trial_end at least 48 h
+    // ahead; closer than that, the charge simply starts now.
+    const trialEndsAt = org.trial_ends_at ? new Date(org.trial_ends_at).getTime() : 0
+    const keepTrialUntil =
+      !org.stripe_subscription_id && org.subscription_status === 'trialing' &&
+      trialEndsAt > Date.now() + 48 * 3600 * 1000
+        ? Math.floor(trialEndsAt / 1000)
+        : null
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       line_items: lineItems,
       subscription_data: {
-        ...(trialDays > 0 && { trial_period_days: trialDays }),
+        ...(keepTrialUntil
+          ? { trial_end: keepTrialUntil }
+          : trialDays > 0 && { trial_period_days: trialDays }),
         metadata: { org_id: orgId, plan_id: planId, ...legalMeta },
       },
       // extra_docs: bonus packs paid in this checkout, so the webhook can add them to the quota.

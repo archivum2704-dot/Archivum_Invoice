@@ -79,6 +79,9 @@ export async function GET(req: NextRequest) {
       maxCompanies,
       hasSubscription,
       hasCustomer:          !!org?.stripe_customer_id,
+      // A trial started at sign-up has no Stripe subscription behind it: the
+      // billing screen must offer to contract, not to manage one.
+      hasStripeSubscription: !!org?.stripe_subscription_id,
       isAdmin:              isPlatformAdmin || ['owner', 'admin'].includes(member?.role ?? ''),
     })
   } catch (err) {

@@ -80,6 +80,8 @@ export type BillingRow = {
   extra_users_quantity?: number | null
   extra_docs_quantity?: number | null
   extra_companies_quantity?: number | null
+  /** End of the free trial; once past, a trial no longer counts as active. */
+  trial_ends_at?: string | null
 }
 
 export type Entitlements = {
@@ -138,8 +140,14 @@ export function resolveEntitlements(
     ? (org?.subscription_plan ?? 'free') as PlanId
     : 'free'
 
+  // A trial whose end date has passed is over even before the daily cron
+  // (/api/cron/mark-overdue) moves the organization back to the free plan.
+  const trialOver =
+    org?.subscription_status === 'trialing' &&
+    !!org?.trial_ends_at && new Date(org.trial_ends_at).getTime() < Date.now()
+
   const isActive =
-    planId !== 'free' && ACTIVE_STATUSES.includes(org?.subscription_status ?? '')
+    planId !== 'free' && ACTIVE_STATUSES.includes(org?.subscription_status ?? '') && !trialOver
 
   if (opts.isPlatformAdmin) {
     return { planId, isActive: true, maxUsers: UNLIMITED, maxDocs: UNLIMITED, maxCompanies: UNLIMITED }
