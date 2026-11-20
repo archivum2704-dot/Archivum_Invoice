@@ -105,7 +105,15 @@ export function BillingView() {
   // Aviso legal, anexo II/III: conditions accepted, unticked by default, before paying.
   const [acceptsLegal, setAcceptsLegal] = useState(false)
 
-  const isActive      = billing?.subscriptionStatus === "active" || billing?.subscriptionStatus === "trialing"
+  // A Stripe subscription in force. The 30-day trial given at sign-up has
+  // none: it shows Pro as the current plan, but there is nothing to manage in
+  // the Stripe portal yet, and contracting goes through checkout.
+  const hasStripeSub  = !!billing?.hasStripeSubscription
+  const isActive      = hasStripeSub && (billing?.subscriptionStatus === "active" || billing?.subscriptionStatus === "trialing")
+  const signupTrialEnd = !hasStripeSub && billing?.subscriptionStatus === "trialing" && billing?.trialEndsAt
+    && new Date(billing.trialEndsAt).getTime() > Date.now()
+    ? new Date(billing.trialEndsAt)
+    : null
   const addonsChanged = extraUsers > 0 || extraDocs > 0
 
   const currentPlanId = billing?.plan ?? "free"
@@ -121,7 +129,12 @@ export function BillingView() {
   const trialDays = pendingPlanId && pendingPlanId !== "free" && billing?.trialAvailable
     ? TRIAL_DAYS[pendingPlanId as keyof typeof TRIAL_DAYS] ?? 0
     : 0
-  const firstChargeDate = new Date(Date.now() + trialDays * 86_400_000)
+  // Contracting during the sign-up trial: no charge until it ends (the checkout
+  // route passes trial_end), unless fewer than 48 h are left.
+  const keepTrialUntil = signupTrialEnd && signupTrialEnd.getTime() > Date.now() + 48 * 3600 * 1000
+    ? signupTrialEnd
+    : null
+  const firstChargeDate = (keepTrialUntil ?? new Date(Date.now() + trialDays * 86_400_000))
     .toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })
 
   // Which plan to use for cost calculations
@@ -248,7 +261,7 @@ export function BillingView() {
                 {/* Renewal / trial info */}
                 <p className="text-[11px] text-muted-foreground leading-tight">
                   {isCurrent && billing?.subscriptionStatus === "trialing"
-                    ? `Prueba activa — quedan ${daysLeft(billing.trialEndsAt)} días`
+                    ? `Prueba gratuita — quedan ${daysLeft(billing.trialEndsAt)} días`
                     : isCurrent && billing?.currentPeriodEnd && isPaid
                       ? `Renueva ${formatDate(billing.currentPeriodEnd)}`
                       : isPaid
@@ -329,7 +342,25 @@ export function BillingView() {
                     )}
                   </>
                 )}
-                {isOrgAdmin && isCurrent && isPaid && (
+                {isOrgAdmin && isCurrent && isPaid && !hasStripeSub && (
+                  pendingPlanId === plan.id ? (
+                    <button
+                      onClick={() => { setPendingPlanId(null); setExtraUsers(0); setExtraDocs(0) }}
+                      className="w-full py-2.5 rounded-xl text-sm font-semibold bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors"
+                    >
+                      ✓ Seleccionado — cambiar
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => { setPendingPlanId(plan.id); setExtraUsers(0); setExtraDocs(0) }}
+                      disabled={!!redirecting}
+                      className="w-full py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60"
+                    >
+                      {`Contratar ${plan.name}`}
+                    </button>
+                  )
+                )}
+                {isOrgAdmin && isCurrent && isPaid && hasStripeSub && (
                   <button
                     onClick={handlePortal}
                     disabled={!!redirecting}
@@ -526,7 +557,13 @@ export function BillingView() {
             {pendingPlan ? (
               /* Pre-checkout: go to Stripe with selected plan + extras */
               <>
-              {trialDays > 0 && (
+              {keepTrialUntil ? (
+                <p className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs leading-relaxed text-foreground">
+                  <strong>Sigues en tu prueba gratuita.</strong> Se te pide la tarjeta, pero no se cobra nada hasta que acabe.
+                  El primer cobro, de {eur(totalCost * (1 + IVA))} € (IVA incluido), será el {firstChargeDate} y después
+                  cada mes. Si cancelas antes desde «Gestionar facturación» no se cobra nada y la cuenta pasa al plan Gratuito.
+                </p>
+              ) : trialDays > 0 && (
                 <p className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs leading-relaxed text-foreground">
                   <strong>Prueba gratuita de {trialDays} días.</strong> Se te pide la tarjeta, pero el plan no se cobra hoy.
                   El primer cobro, de {eur(totalCost * (1 + IVA))} € (IVA incluido), será el {firstChargeDate} y después
@@ -549,7 +586,7 @@ export function BillingView() {
                   disabled={!!redirecting || !acceptsLegal}
                   className="flex-1 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors"
                 >
-                  {redirecting === "checkout" ? "Redirigiendo..." : trialDays > 0 ? `Empezar ${trialDays} días gratis · ${pendingPlan.name}` : `Contratar y pagar · ${pendingPlan.name}`}
+                  {redirecting === "checkout" ? "Redirigiendo..." : keepTrialUntil ? `Contratar · ${pendingPlan.name} (sin cobro hasta el ${firstChargeDate})` : trialDays > 0 ? `Empezar ${trialDays} días gratis · ${pendingPlan.name}` : `Contratar y pagar · ${pendingPlan.name}`}
                 </button>
                 <button
                   onClick={() => { setPendingPlanId(null); setExtraUsers(0); setExtraDocs(0) }}

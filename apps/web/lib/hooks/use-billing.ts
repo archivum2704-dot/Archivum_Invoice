@@ -18,6 +18,7 @@ export interface BillingStatus {
   maxCompanies:        number
   hasSubscription:     boolean
   hasCustomer:         boolean
+  hasStripeSubscription: boolean
   isAdmin:             boolean
 }
 
