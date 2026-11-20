@@ -8,7 +8,9 @@ import {
 } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { LumenCredit } from "@/components/lumen-credit"
-import { PLANS, ADDONS, PRICING_FAQ } from "@/lib/pricing"
+import { PLANS, ADDONS, PRICING_FAQ, TRIAL_DAYS } from "@/lib/pricing"
+
+const TRIAL = TRIAL_DAYS.pro
 import { LandingNav } from "./landing-nav"
 
 /*
@@ -309,7 +311,7 @@ const EXTRAS: { icon: LucideIcon; label: string }[] = [
 const STEPS = [
   {
     title: "Crea tu cuenta",
-    desc: "En un par de minutos y sin tarjeta. Añade los datos de tu negocio, tus clientes y tus productos, o impórtalos desde Excel.",
+    desc: `En un par de minutos y sin tarjeta, con ${TRIAL} días de Pro incluidos. Añade los datos de tu negocio, tus clientes y tus productos, o impórtalos desde Excel.`,
   },
   {
     title: "Factura y archiva",
@@ -379,11 +381,11 @@ export function LandingPage() {
                 Sin depender de Excel, carpetas, correos y papeles.
               </p>
               <div className="lp-enter mt-8 flex flex-col gap-3 sm:flex-row" style={delay(240)}>
-                <Cta href="/auth/signup">Empezar gratis</Cta>
+                <Cta href="/auth/signup">Probar {TRIAL} días gratis</Cta>
                 <Cta href="#como-funciona" variant="ghost">Ver cómo funciona</Cta>
               </div>
               <ul className="lp-enter mt-7 flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-lp-ink" style={delay(320)}>
-                {["Plan gratuito para siempre", "Sin tarjeta", "Preparado para VeriFactu"].map(t => (
+                {[`${TRIAL} días de Pro gratis`, "Sin tarjeta", "Preparado para VeriFactu"].map(t => (
                   <li key={t} className="flex items-center gap-1.5">
                     <Check className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.25} />
                     {t}
@@ -640,7 +642,8 @@ export function LandingPage() {
         <section className="bg-lp-soft py-24 sm:py-32" id="planes">
           <div className={container}>
             <SectionHead eyebrow="Planes claros" title="Un plan para cada momento de tu negocio.">
-              Empieza gratis y amplía tu capacidad cuando lo necesites. La cuota de documentos que no
+              Al registrarte tienes el plan Pro completo durante {TRIAL} días, sin tarjeta. Después eliges
+              plan o sigues gratis con el plan Gratuito. La cuota de documentos que no
               consumes se acumula al mes siguiente. Sin permanencia.
             </SectionHead>
 
@@ -685,14 +688,16 @@ export function LandingPage() {
                       {plan.price === 0 ? "Crear cuenta gratis" : `Elegir ${plan.name}`}
                     </Link>
                     <p className="mt-2.5 text-center text-[11px] text-lp-ink">
-                      {plan.price === 0 ? "Sin tarjeta · Para siempre" : "Sin permanencia"}
+                      {plan.price === 0
+                        ? "Sin tarjeta · Para siempre"
+                        : plan.id === "pro" ? `${TRIAL} días gratis al registrarte` : "Sin permanencia"}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
             <p className="lp-reveal mt-6 text-center text-xs text-lp-ink">
-              Precios mensuales sin IVA (21 %). Se empieza siempre con la cuenta gratuita y el plan se contrata desde dentro.
+              Precios mensuales sin IVA (21 %). Toda cuenta nueva empieza con {TRIAL} días de Pro; si contratas durante la prueba, no se cobra nada hasta que termine.
             </p>
 
             <div className="lp-reveal mt-14">
@@ -744,7 +749,7 @@ export function LandingPage() {
               tu negocio.
             </p>
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Cta href="/auth/signup">Crear cuenta gratis</Cta>
+              <Cta href="/auth/signup">Probar {TRIAL} días gratis</Cta>
               <Cta href="/auth/login" variant="ghost">Ya tengo cuenta</Cta>
             </div>
           </div>
