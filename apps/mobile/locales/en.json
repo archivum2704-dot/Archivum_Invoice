@@ -208,7 +208,10 @@
     "recentDocs": "Recent documents",
     "viewAll": "View all",
     "noDocs": "No documents",
-    "uploadFirst": "Upload your first document to get started"
+    "uploadFirst": "Upload your first document to get started",
+    "overdueBellLabel": "Overdue documents: {{count}}",
+    "noOverdueTitle": "All up to date",
+    "noOverdueBody": "You have no overdue documents waiting to be collected or paid."
   },
   "biblioteca": {
     "title": "Library",

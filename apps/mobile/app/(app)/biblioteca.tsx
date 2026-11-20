@@ -112,13 +112,21 @@ export default function BibliotecaScreen() {
     return next;
   });
   // "Ver documentos" on a client links here with ?empresa=<id> (WEB-020).
-  const { empresa, tipo } = useLocalSearchParams<{ empresa?: string; tipo?: string }>();
+  const { empresa, tipo, estado } = useLocalSearchParams<{ empresa?: string; tipo?: string; estado?: string }>();
   const [companyFilter, setCompanyFilter] = useState<string | null>(null);
   useEffect(() => { setCompanyFilter(empresa ? String(empresa) : null); }, [empresa]);
   useEffect(() => {
     if (tipo === "ventas") setActiveType("invoice_issued");
     if (tipo === "compras") setActiveType("invoice_received");
   }, [tipo]);
+  // The dashboard bell links here with ?estado=overdue: show every overdue
+  // document, whatever folder or type was selected before.
+  useEffect(() => {
+    if (!estado) return;
+    setStatusFilter(String(estado));
+    setActiveFolder(null);
+    setActiveType("all");
+  }, [estado]);
 
   const moveSelected = async (folderId: string | null) => {
     const ids = Array.from(selectedIds);

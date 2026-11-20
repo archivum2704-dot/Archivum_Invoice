@@ -208,7 +208,10 @@
     "recentDocs": "Documentos recientes",
     "viewAll": "Ver todos",
     "noDocs": "Sin documentos",
-    "uploadFirst": "Sube tu primer documento para comenzar"
+    "uploadFirst": "Sube tu primer documento para comenzar",
+    "overdueBellLabel": "Documentos vencidos: {{count}}",
+    "noOverdueTitle": "Todo al día",
+    "noOverdueBody": "No tienes documentos vencidos pendientes de cobro o de pago."
   },
   "biblioteca": {
     "title": "Biblioteca",

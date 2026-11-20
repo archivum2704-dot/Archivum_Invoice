@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, ReactNode } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, RefreshControl,
-  ActivityIndicator,
+  ActivityIndicator, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -160,6 +160,17 @@ export default function DashboardScreen() {
     );
   }
 
+  // The bell and the red box both open the overdue documents: the same set the
+  // "Vencido" count comes from (documents.status = 'overdue', sales and
+  // purchases). Before, neither could be tapped and the bell looked dead.
+  const openOverdue = () => {
+    if (kpi.overdueN === 0) {
+      Alert.alert(t("dashboard.noOverdueTitle"), t("dashboard.noOverdueBody"));
+      return;
+    }
+    router.push({ pathname: "/(app)/biblioteca", params: { estado: "overdue" } });
+  };
+
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: C.bg }}>
       <ScrollView
@@ -174,17 +185,22 @@ export default function DashboardScreen() {
               {firstName} 👋
             </Text>
           </View>
-          <View>
+          <TouchableOpacity
+            onPress={openOverdue}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t("dashboard.overdueBellLabel", { count: kpi.overdueN })}
+          >
             <Bell size={24} color={C.muted} strokeWidth={1.75} />
             {kpi.overdueN > 0 && (
               <View style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, backgroundColor: C.red, borderRadius: 4 }} />
             )}
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Overdue alert */}
         {kpi.overdueN > 0 && (
-          <View style={{
+          <TouchableOpacity activeOpacity={0.7} onPress={openOverdue} style={{
             marginHorizontal: spacing.lg, marginTop: spacing.md + 2,
             backgroundColor: C.redL, borderWidth: 1, borderColor: "rgba(220,38,38,.2)",
             borderRadius: radius.md, padding: spacing.md, flexDirection: "row", gap: spacing.sm + 2, alignItems: "center",
@@ -199,7 +215,7 @@ export default function DashboardScreen() {
               </Text>
             </View>
             <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: C.red }}>{t("dashboard.view")} →</Text>
-          </View>
+          </TouchableOpacity>
         )}
 
         {/* KPI cards */}
