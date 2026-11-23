@@ -2,7 +2,7 @@
 
 import { useTaxAuthorityMode } from "@/lib/hooks/use-tax-authority-mode"
 import { useEffect, useState } from "react"
-import useSWR from "swr"
+import useSWR, { mutate as mutateGlobal } from "swr"
 import QRCode from "qrcode"
 import { ArrowLeft, Printer, ShieldCheck, Loader2, Ban, Copy, Check, Wallet, Info } from "lucide-react"
 import Link from "next/link"
@@ -143,6 +143,7 @@ export function FacturaEmitidaView({ id }: { id: string }) {
         status: patch.payment_status, payment_date: date || null, payment_method: payMethod || null,
       }).eq("id", invoice.document_id)
     }
+    void mutateGlobal(key => Array.isArray(key) && key[0] === "linked-statuses")
     toast.success(t("paymentSaved"))
     if (override) setPayDate(override.date)
     setPayMsg({ ok: true, text: t("paymentSaved") })
