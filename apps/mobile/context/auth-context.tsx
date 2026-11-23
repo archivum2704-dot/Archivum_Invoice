@@ -1,5 +1,5 @@
 import { explainAuthEmailError } from "@/lib/auth-email-errors";
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { Alert } from "react-native";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -65,6 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading,    setLoading]    = useState(true);
   const [mfaPending, setMfaPending] = useState(false);
   const [profileFailed, setProfileFailed] = useState(false);
+  // True while this device is signing in and claiming the session. The auth
+  // listener loads the profile in parallel and, until the claim is written,
+  // still sees the previous device's id: without this it took that for "another
+  // device signed in" and threw out the login that was just being made, so a
+  // session left open on the PC kept the phone from getting in.
+  const signingInRef = useRef(false);
 
   /** Reads currentLevel/nextLevel off the live session — aal2 is only ever
    * reached after `mfa.challengeAndVerify`, so a mismatch means a verified
@@ -116,7 +122,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // ── Single-device enforcement ──────────────────────────────────────────
     const localSid = await AsyncStorage.getItem(SESSION_KEY).catch(() => null);
 
-    if (p.active_session_id && localSid && p.active_session_id !== localSid) {
+    // Read again before acting: this profile may have been fetched just before
+    // this same device wrote its new id, which is a stale answer, not another device.
+    const takenElsewhere = async () => {
+      if (signingInRef.current || !p.active_session_id || !localSid || p.active_session_id === localSid) return false;
+      const { data: fresh } = await supabase.from("profiles").select("active_session_id").eq("id", userId).single();
+      const nowSid = await AsyncStorage.getItem(SESSION_KEY).catch(() => null);
+      return !signingInRef.current && !!fresh?.active_session_id && !!nowSid && fresh.active_session_id !== nowSid;
+    };
+
+    if (await takenElsewhere()) {
       // Another device has logged in — kick this session
       await supabase.auth.signOut();
       await AsyncStorage.removeItem(SESSION_KEY);
@@ -208,12 +223,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // instead of merely getting redirected next time it happens to be used.
     await supabase.auth.signOut({ scope: "others" });
     const sessionId = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-    await AsyncStorage.setItem(SESSION_KEY, sessionId).catch(() => {});
+    // Database first, then this device: the other way round left a moment in
+    // which the local id no longer matched the stored one.
     await supabase.from("profiles").update({ active_session_id: sessionId }).eq("id", userId);
+    await AsyncStorage.setItem(SESSION_KEY, sessionId).catch(() => {});
   };
 
   /* ── Sign in Empresa (owner/admin) ─────────────────────────────────────── */
   const signInEmpresa = async (email: string, password: string): Promise<SignInResult> => {
+    signingInRef.current = true;
     try {
       // Drop any stale device-session id BEFORE signing in: the auth listener
       // fires loadProfile immediately, and a leftover id from a previous session
@@ -226,11 +244,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null, mfaRequired };
     } catch {
       return { error: "No se pudo iniciar sesión. Comprueba tu conexión e inténtalo de nuevo.", mfaRequired: false };
+    } finally {
+      signingInRef.current = false;
     }
   };
 
   /* ── Sign in Usuario (member with company code) ─────────────────────────── */
   const signInUsuario = async (email: string, password: string, code: string): Promise<SignInResult> => {
+    signingInRef.current = true;
     try {
       await AsyncStorage.removeItem(SESSION_KEY).catch(() => {});
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -258,6 +279,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null, mfaRequired };
     } catch {
       return { error: "No se pudo iniciar sesión. Comprueba tu conexión e inténtalo de nuevo.", mfaRequired: false };
+    } finally {
+      signingInRef.current = false;
     }
   };
 

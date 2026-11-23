@@ -16,6 +16,8 @@ import { useCompanies } from "@/lib/hooks/use-companies"
 import { forRole, roleForDocType } from "@/lib/company-kind"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
+import { mutate as mutateGlobal } from "swr"
+import { syncInvoicePaymentFromDocument } from "@/lib/invoice-payment"
 import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number"
 import type { Database } from "@/lib/supabase/types"
 import { clientLabel } from "@/lib/client-checks"
@@ -206,6 +208,15 @@ export function EditarView({ id }: EditarViewProps) {
         await replacePurchaseItems(supabase, id, purchaseLines)
       }
 
+      // The archived copy of an invoice shows the invoice's own payment
+      // status everywhere, so marking the copy «Pagado» has to mark the
+      // invoice as collected too (lib/invoice-payment.ts).
+      let paymentDateToSave = fechaPago || null
+      if (linkedInvoice) {
+        const synced = await syncInvoicePaymentFromDocument(supabase, id, estado, fechaPago || null, metodoPago || null)
+        if (synced !== undefined) paymentDateToSave = synced
+      }
+
       const baseAmount = parseFloat(subtotal.replace(/\./g, "").replace(",", ".")) || null
       const rate       = parseFloat(taxRate) || 0
       const taxAmount  = baseAmount != null ? (baseAmount * rate) / 100 : null
@@ -225,7 +236,7 @@ export function EditarView({ id }: EditarViewProps) {
           }),
           status:          estado as any,
           due_date:        fechaVenc || null,
-          payment_date:    fechaPago || null,
+          payment_date:    paymentDateToSave,
           notes:           notas.trim() || null,
           description:     descripcion.trim() || null,
           payment_method:  metodoPago || null,
@@ -237,6 +248,8 @@ export function EditarView({ id }: EditarViewProps) {
 
       if (updateErr) throw updateErr
 
+      // Biblioteca, the dashboard and the detail read the invoice status from this cache.
+      if (linkedInvoice) void mutateGlobal(key => Array.isArray(key) && key[0] === "linked-statuses")
       setSaved(true)
       toast.success(tCommon("saved"))
       setTimeout(() => router.push(`/factura/${id}`), 800)

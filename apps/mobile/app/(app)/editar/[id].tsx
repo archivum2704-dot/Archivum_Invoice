@@ -18,6 +18,7 @@ import { Button, Card, Input } from "@/components/ui";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { findDocumentNumberConflict, numberConflictMessage } from "@/lib/document-number";
 import { PurchaseLinesEditor } from "@/components/PurchaseLinesEditor";
+import { syncInvoicePaymentFromDocument } from "@/lib/invoice-payment";
 import {
   type PurchaseLine, PURCHASE_DOC_TYPE, fromItemRows, isFilledLine, purchaseTotals,
   replacePurchaseItems, validatePurchaseLines,
@@ -136,6 +137,17 @@ export default function EditarScreen() {
       setHadLines(hasLines);
     }
 
+    // The archived copy of an invoice shows the invoice's own payment status
+    // everywhere, so marking the copy «Pagado» marks the invoice as collected
+    // too (lib/invoice-payment.ts). Returns undefined for any other document.
+    let paymentDateToSave: string | null = payDate || null;
+    try {
+      const synced = await syncInvoicePaymentFromDocument(supabase, id, status, payDate || null, payMethod || null);
+      if (synced !== undefined) paymentDateToSave = synced;
+    } catch (e: any) {
+      setSaving(false); Alert.alert(t("common.error"), e?.message ?? t("editar.saveError")); return;
+    }
+
     const { error } = await supabase.from("documents").update({
       // An invoice archive keeps the invoice's fiscal data untouched.
       ...(linkedInvoice ? {} : {
@@ -150,7 +162,7 @@ export default function EditarScreen() {
       }),
       status,
       due_date:     dueDate   || null,
-      payment_date: payDate   || null,
+      payment_date: paymentDateToSave,
       payment_method: payMethod || null,
       notes:        notes.trim()  || null,
       description:  desc.trim()   || null,
