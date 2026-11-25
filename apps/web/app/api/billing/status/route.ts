@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isTrialAvailable, resolveEntitlements } from '@/lib/pricing'
+import { getBillingStore } from '@/lib/store-billing-server'
 
 export async function GET(req: NextRequest) {
   try {
@@ -82,6 +83,8 @@ export async function GET(req: NextRequest) {
       // A trial started at sign-up has no Stripe subscription behind it: the
       // billing screen must offer to contract, not to manage one.
       hasStripeSubscription: !!org?.stripe_subscription_id,
+      // Paid through the App Store or Google Play: managed in that store.
+      billingStore:         await getBillingStore(supabase, orgId),
       isAdmin:              isPlatformAdmin || ['owner', 'admin'].includes(member?.role ?? ''),
     })
   } catch (err) {

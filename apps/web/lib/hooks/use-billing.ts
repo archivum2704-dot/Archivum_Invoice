@@ -19,6 +19,8 @@ export interface BillingStatus {
   hasSubscription:     boolean
   hasCustomer:         boolean
   hasStripeSubscription: boolean
+  /** 'app_store' | 'play_store' when the plan is paid through a store. */
+  billingStore?: 'app_store' | 'play_store' | null
   isAdmin:             boolean
 }
 

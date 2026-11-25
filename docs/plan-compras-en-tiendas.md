@@ -1,6 +1,6 @@
 # Plan: cobrar las suscripciones con Apple (iOS) y Google Play (Android)
 
-> Estado: **propuesta, sin empezar**. Decisión del 25 de noviembre de 2026: la primera versión
+> Estado: **en marcha desde el 26 de noviembre de 2026**. Decidido: en las tiendas, **mismo precio final que la web** (IVA incluido: 18,14 / 24,19 / 30,24 €, al escalón de Apple más cercano); **usuarios extra solo en la web**; **el bono de documentos también en la app**. Hecho: la parte de servidor (`/api/billing/revenuecat`, migración `20261126_store_billing.sql`, avisos en la facturación web). Falta: configurar las consolas y RevenueCat, y la pantalla de compras del móvil (build nueva, versión 1.0.2). Decisión del 25 de noviembre de 2026: la primera versión
 > se publica en las dos tiendas **gratis y sin compras dentro de la app**; las cuentas se
 > contratan en archivum.es con Stripe, como hasta ahora. Este documento es lo que haría falta
 > para añadir después las compras de cada tienda, sin quitar la web.
@@ -59,7 +59,7 @@ cambiar de plan sea subir o bajar dentro del grupo.
    la web (30,24 € con IVA para Pro), o algo más alto en la app para cubrir la comisión.
 2. **Escalones de Apple.** Apple solo deja elegir entre sus escalones de precio; el más cercano a
    la cifra que decidáis.
-3. **Usuarios extra.** En la web son una cantidad variable dentro de la misma suscripción. En las
+3. **Usuarios extra** (*decidido: solo en la web*). Pendiente: una organización que paga en la tienda no tiene suscripción de Stripe a la que añadirlos; de momento la web le oculta los extras. En la web son una cantidad variable dentro de la misma suscripción. En las
    tiendas eso no existe tal cual: o se venden como suscripciones aparte («+1 usuario», «+2
    usuarios»…), o los usuarios extra se siguen contratando solo en la web. Lo más sencillo es lo
    segundo.

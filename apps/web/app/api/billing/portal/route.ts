@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { getStripe } from '@/lib/stripe'
+import { getBillingStore } from '@/lib/store-billing-server'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://archivum2704-dot.vercel.app'
 
@@ -35,6 +36,11 @@ export async function POST(req: NextRequest) {
       .select('stripe_customer_id')
       .eq('id', orgId)
       .single()
+
+    // A subscription bought in the App Store or Google Play is managed there.
+    if (await getBillingStore(admin, orgId)) {
+      return NextResponse.json({ error: 'store_subscription' }, { status: 409 })
+    }
 
     if (!org?.stripe_customer_id) {
       return NextResponse.json({ error: 'no_subscription' }, { status: 400 })

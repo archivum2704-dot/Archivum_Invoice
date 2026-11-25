@@ -5,6 +5,7 @@ import { LEGAL_VERSION } from '@/lib/legal/version'
 import { getIvaTaxRateId } from '@/lib/stripe-tax'
 import { getStripe, PRICES } from '@/lib/stripe'
 import { TRIAL_DAYS, isTrialAvailable, type PlanId } from '@/lib/pricing'
+import { getBillingStore } from '@/lib/store-billing-server'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://archivum2704-dot.vercel.app'
 
@@ -61,6 +62,12 @@ export async function POST(req: NextRequest) {
     // Already has an active subscription — redirect to portal instead
     if (org.stripe_subscription_id && ['active', 'trialing', 'past_due'].includes(org.subscription_status ?? '')) {
       return NextResponse.json({ error: 'already_subscribed' }, { status: 409 })
+    }
+
+    // Already paying through the App Store or Google Play: a second, web
+    // subscription would charge twice. Plan changes happen in that store.
+    if (await getBillingStore(admin, orgId) && ['active', 'past_due'].includes(org.subscription_status ?? '')) {
+      return NextResponse.json({ error: 'store_subscription' }, { status: 409 })
     }
 
     // The conditions in force must be accepted before paying for a new
