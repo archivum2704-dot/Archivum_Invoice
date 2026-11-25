@@ -119,6 +119,8 @@ publicitarios, diagnósticos (la app no lleva Sentry ni analítica).
 4. `04-clientes.png` — Clientes y proveedores en un solo sitio
 5. `05-buscador.png` — Encuentra cualquier documento al momento
 
+Si App Store Connect rechaza el tamaño («las dimensiones del archivo no son válidas»), hay las mismas imágenes en `capturas-6.7/` (1290 × 2796, iPhone de 6,7") y `capturas-6.5/` (1242 × 2688, iPhone de 6,5"). Se suben en **Distribución → versión → Vista previa y capturas de pantalla de la app**, en la pestaña del tamaño correspondiente.
+
 Son las mismas pantallas que las de Google Play (`docs/play-store/capturas/`), con marco de
 iPhone y la barra de estado de iOS en lugar de la de Android. Apple las reescala para los
 demás tamaños de iPhone. No hacen falta capturas de iPad: `supportsTablet` es `false`.
