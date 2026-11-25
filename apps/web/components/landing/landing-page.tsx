@@ -7,6 +7,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { Logo } from "@/components/logo"
+import { CookieSettingsLink } from "@/components/cookie-banner"
 import { LumenCredit } from "@/components/lumen-credit"
 import { PLANS, ADDONS, PRICING_FAQ, TRIAL_DAYS } from "@/lib/pricing"
 
@@ -768,6 +769,7 @@ export function LandingPage() {
             <Link href="/terminos" className="transition-colors hover:text-foreground">Aviso legal</Link>
             <Link href="/privacidad" className="transition-colors hover:text-foreground">Privacidad</Link>
             <Link href="/cookies" className="transition-colors hover:text-foreground">Cookies</Link>
+            <CookieSettingsLink className="transition-colors hover:text-foreground" />
             {/* Art. 13.2: available to the client at the moment of acquisition,
                 which means reachable without an account. */}
             <Link href="/declaracion-responsable" className="transition-colors hover:text-foreground">Declaración responsable</Link>

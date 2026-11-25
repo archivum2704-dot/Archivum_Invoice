@@ -6,6 +6,8 @@ import { OrganizationProvider } from '@/lib/context/organization-context'
 import './globals.css'
 import { Toaster } from "@/components/ui/sonner"
 import { PublicAnalytics } from "@/components/public-analytics"
+import { GoogleAnalytics } from "@/components/google-analytics"
+import { CookieBanner } from "@/components/cookie-banner"
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -52,6 +54,8 @@ export default async function RootLayout({
             cursor the way the inline banners did (WEB-005). */}
         <Toaster richColors position="top-center" closeButton />
         <PublicAnalytics />
+        <GoogleAnalytics />
+        <CookieBanner />
       </body>
     </html>
   )

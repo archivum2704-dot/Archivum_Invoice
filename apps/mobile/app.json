@@ -16,7 +16,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.archivum.app",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
