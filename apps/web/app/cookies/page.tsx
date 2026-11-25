@@ -19,7 +19,7 @@ export default function CookiesPage() {
         },
         {
           title: 'Analítica',
-          summary: 'Vercel Analytics, solo en las páginas públicas (inicio y páginas legales; nunca dentro de la aplicación), que por defecto no usa cookies ni identificadores persistentes — mide visitas de forma agregada y anónima. A confirmar en el texto final si esto exime del deber de información reforzado.',
+          summary: 'Google Analytics 4 (Google Ireland Ltd.), solo en las páginas públicas y solo si se acepta en el aviso de cookies: cookies _ga y _ga_<ID>, hasta 2 años, para contar visitas y cómo se usa la web, sin señales de Google ni personalización de anuncios. Nunca dentro de la aplicación. Además, Vercel Analytics en las mismas páginas, que no usa cookies ni identificadores persistentes y mide visitas de forma agregada. La elección se puede cambiar en cualquier momento con «Configurar cookies».',
         },
         {
           title: 'Lo que no se usa',

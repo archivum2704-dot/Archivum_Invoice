@@ -16,7 +16,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.archivum.app",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
@@ -52,7 +52,16 @@
           "cameraPermission": "Archivum necesita acceso a tu cámara para fotografiar documentos."
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ]
     ],
     "newArchEnabled": false,
     "experiments": {
