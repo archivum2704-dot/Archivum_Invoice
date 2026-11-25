@@ -11,6 +11,7 @@ import { useOrganization } from "@/lib/context/organization-context"
 import { useBilling } from "@/lib/hooks/use-billing"
 import type { BillingStatus } from "@/lib/hooks/use-billing"
 import { PLANS, ADDONS, TRIAL_DAYS } from "@/lib/pricing"
+import { storeLabel } from "@/lib/store-billing"
 import { LEGAL_VERSION } from "@/lib/legal/version"
 import Link from "next/link"
 
@@ -109,6 +110,9 @@ export function BillingView() {
   // none: it shows Pro as the current plan, but there is nothing to manage in
   // the Stripe portal yet, and contracting goes through checkout.
   const hasStripeSub  = !!billing?.hasStripeSubscription
+  // Paid through the App Store or Google Play: plan changes and cancellation
+  // happen in that store, so this screen only explains where.
+  const storeName     = storeLabel(billing?.billingStore)
   const isActive      = hasStripeSub && (billing?.subscriptionStatus === "active" || billing?.subscriptionStatus === "trialing")
   const signupTrialEnd = !hasStripeSub && billing?.subscriptionStatus === "trialing" && billing?.trialEndsAt
     && new Date(billing.trialEndsAt).getTime() > Date.now()
@@ -147,7 +151,8 @@ export function BillingView() {
   const newUsersCost = extraUsers * ADDONS.extraUser.price
 
   // Extras panel is shown when active (manage existing) OR when user picked a plan to buy
-  const showExtras = isActive || pendingPlanId !== null
+  // A store subscription has no Stripe subscription to attach web extras to.
+  const showExtras = !storeName && (isActive || pendingPlanId !== null)
 
   async function handleCheckout(planId: string, withExtraUsers = 0, withExtraDocs = 0) {
     setRedirecting("checkout")
@@ -211,6 +216,18 @@ export function BillingView() {
         </h1>
         <p className="text-muted-foreground text-sm mt-1">Gestiona tu suscripción y límites de uso</p>
       </div>
+
+      {storeName && (
+        <div className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-foreground">
+          <strong>Tu suscripción se paga a través de {storeName}.</strong>{" "}
+          Para cambiar de plan o cancelarla, hazlo desde{" "}
+          {billing?.billingStore === "app_store"
+            ? "el iPhone: Ajustes → tu nombre → Suscripciones → Archivum."
+            : "Google Play: tu perfil → Pagos y suscripciones → Suscripciones → Archivum."}
+          {" "}Los bonos de documentos se compran desde la app. Los usuarios extra, de momento, solo se pueden
+          contratar con una suscripción de la web.
+        </div>
+      )}
 
       {/* ── Plan cards ────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -301,6 +318,11 @@ export function BillingView() {
 
               {/* CTA */}
               <div className="p-4 pt-2">
+                {storeName && isPaid ? (
+                  <div className="py-2.5 text-center text-xs text-muted-foreground">
+                    {isCurrent ? `Contratado en ${storeName}` : `Se cambia desde ${storeName}`}
+                  </div>
+                ) : (<>
                 {isOrgAdmin && !isCurrent && isPaid && (
                   <>
                     {isActive ? (
@@ -376,6 +398,7 @@ export function BillingView() {
                 {!isOrgAdmin && !isCurrent && isPaid && (
                   <div className="py-2.5 text-center text-xs text-muted-foreground">Solo el administrador puede cambiar el plan</div>
                 )}
+                </>)}
               </div>
             </div>
           )
